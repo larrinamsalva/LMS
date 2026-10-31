@@ -109,9 +109,10 @@ export class OfflineRecovery {
   ) {
     this.target = localTarget(options.databaseUrl, options.databaseName);
   }
-  private async run<T>(
+  protected async run<T>(
     fn: (client: Client, trust: Trusted) => Promise<T>,
     caseId?: string,
+    auditRejections = true,
   ): Promise<T> {
     const trust = await readTrust(this.options.trustFile);
     const client = new Client({
@@ -157,7 +158,7 @@ export class OfflineRecovery {
       return result;
     } catch (error) {
       await client.query("rollback");
-      if (authorized && offline) {
+      if (authorized && offline && auditRejections) {
         // Rejection is a separate transaction; credentials/case state never partially commit.
         try {
           await client.query("begin");
@@ -197,7 +198,7 @@ export class OfflineRecovery {
       await client.end();
     }
   }
-  private async enrolled(client: Client, trust: Trusted) {
+  protected async enrolled(client: Client, trust: Trusted) {
     const row = (
       await client.query(
         "select trusted_at<=clock_timestamp()-interval '24 hours' as established from lms_private.recovery_trust where digest=$1",

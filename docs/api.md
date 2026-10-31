@@ -55,3 +55,8 @@ The [local identity adapter](local-auth.md) can validate a distinct signed auth 
 ## Offline recovery maintenance
 
 `OfflineRecovery({databaseUrl,databaseName,trustFile})` is a local administrator-only host/CLI boundary, never an HTTP handler. Strict `enroll`, `open`, `review`, `attest`, `apply` and read-only `verifyPassword` methods implement prior trust, two independent signatures, expiring one-use review and atomic reset/revocation/audit. Root file ownership, authority/cooling-off, offline locks and current credential/membership/instance versions fail closed. Recovered/restored databases remain activation-blocked. See [exact inputs, signing workflow, errors and remaining gates](offline-recovery.md).
+
+
+## Offline lineage maintenance
+
+`CredentialLineage({databaseUrl,databaseName,trustFile,journalFile,commitmentKeyFile,expectedCheckpointDigest?})` reuses the existing offline administrator lock/trust boundary. Strict `propose({mode:"genesis"|"advance",confirmation:"CAPTURE FICTIONAL LINEAGE FOR INDEPENDENT REVIEW"})` returns unsigned metadata/checkpoint material. `assess({confirmation:"ASSESS OFFLINE LINEAGE WITHOUT ACTIVATION"})` returns a consistency report and always `activationAllowed:false`. Neither method signs, publishes, updates a trusted receipt, revokes state or activates. The expected digest must come from independent latest-head custody. See [schemas, custody, signing purposes, CLI and failure behavior](credential-lineage.md). No HTTP method or module capability exposes this interface.

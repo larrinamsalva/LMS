@@ -66,3 +66,8 @@ An old archive can still contain an old valid password hash. Tests prove that fa
 The follow-up must establish an independently protected credential lineage/epoch and key/role recovery, verify older-snapshot detection and credential rotation, and rehearse new sign-in/recent-auth/permission checks before implementing any unblock/activation command. Public recovery, MFA, transport/proxy/TLS security and production recovery remain disabled. See [evidence](offline-recovery-verification.md) and [security policy](../SECURITY.md).
 
 Before invoking native restore, the guarded helper also commits a database-level `lms.restore_blocked=on` marker outside the archive/cleanup transaction. Runtime factories and database guards read the database catalog setting, not a caller-overridable session GUC. A failed native restore or post-restore cleanup therefore remains quarantined. This marker still does not solve arbitrary administrator/filesystem rollback; no activation command is supplied.
+
+
+## PR #7 lineage foundation
+
+The [external credential-lineage contract](credential-lineage.md) now supplies metadata outbox/checkpoints and a read-only consistency assessment. Existing identity evidence and two independent recovery approvals remain mandatory; checkpoint witnesses do not replace those account-specific checks. Assessment never activates or revokes state and cannot establish trust for an unenrolled legacy restore. All blockers described above remain enforced. Durable independent freshness/publication, key/role recovery and identity-specific recovery acceptance are deferred, with [separate verification evidence](credential-lineage-verification.md).

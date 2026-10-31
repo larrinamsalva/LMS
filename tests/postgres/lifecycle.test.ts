@@ -205,6 +205,7 @@ beforeAll(async () => {
   expect(await migrate(admin)).toEqual([
     "004_account_lifecycle",
     "005_offline_recovery",
+    "006_credential_lineage",
   ]);
   expect((await engine.snapshot({ userId: owner }, org)).records[0]).toEqual(
     record,

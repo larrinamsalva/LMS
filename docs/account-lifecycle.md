@@ -56,3 +56,6 @@ An older backup necessarily restores older password hashes and event history. Do
 See [verification evidence](account-lifecycle-verification.md), [recovery design and next phase](local-recovery-plan.md) and [security boundaries](../SECURITY.md).
 
 PR #6 tightens restore acceptance: normal authentication and persistent runtime attachment are now blocked after any supported restore, including an old archive. Earlier sign-in-after-restore verification is historical; current tests inspect restored credentials/data offline and assert refusal to activate. See [current recovery evidence](offline-recovery-verification.md).
+
+
+PR #7 adds a [metadata lineage and external checkpoint foundation](credential-lineage.md). Credential changes now append version/event metadata in the same transaction; failed appends fail the change. Keyed commitments can detect changed credential material without exporting hashes. This does not authorize restored sign-in: assessment is offline/read-only and all activation blockers remain.

@@ -62,6 +62,10 @@ The [host-only password-change API](docs/account-lifecycle.md) verifies the curr
 
 Follow [the offline recovery procedure](docs/offline-recovery.md) for provisioned fictional accounts only. Insufficient prior evidence or a separate approver means refusal. Native restores now install an activation blocker, including older archives; data can be inspected offline, but normal authentication/persistent startup remains disabled until rollback-resistant recovery is separately accepted. See [verification and limitations](docs/offline-recovery-verification.md).
 
+## Independent credential lineage foundation
+
+The [host-only credential lineage tools](docs/credential-lineage.md) add transaction-bound metadata and independently signed external checkpoints with a separately held latest digest and credential-state commitment key. Read-only assessment detects supported snapshot rollback and evidence/state mismatches. **Activation remains blocked**, including after a successful assessment; identity-specific recovery acceptance, durable independent freshness and key/role recovery are next phases. No public route or automatic signer is added. See [verified scope and limitations](docs/credential-lineage-verification.md).
+
 ## Verify
 
 ```sh
