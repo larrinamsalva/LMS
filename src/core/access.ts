@@ -11,7 +11,7 @@ export type SessionResolver = (
 const base = {
   organizationId: z.uuid(),
   targetUserId: z.uuid(),
-  revision: z.number().int().min(0),
+  revision: z.number().int().min(0).max(2_147_483_647),
   reason: z.string().trim().min(3).max(300),
 };
 export const accessChangeSchema = z.discriminatedUnion("action", [

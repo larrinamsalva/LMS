@@ -23,6 +23,7 @@ describe("owner access host contracts", () => {
       { ...input, userId: uuid },
       { ...input, sessionId: uuid },
       { ...input, revision: -1 },
+      { ...input, revision: 2_147_483_648 },
       { ...input, reason: " " },
       { ...input, action: "remove" },
     ])
