@@ -317,7 +317,7 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
           "select count(*)::int as count from lms_meta.migrations",
         )
       ).rows[0].count,
-    ).toBe(1);
+    ).toBe(2);
   });
   it("rolls back failed migrations atomically and can subsequently initialize the empty database", async () => {
     await withClient(databaseUrl(names[2]), async (client) => {
@@ -326,8 +326,8 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
         migrate(client, [
           ...files,
           {
-            version: 2,
-            name: "002_intentional_failure",
+            version: 3,
+            name: "003_intentional_failure",
             sql: "create table public.partial_migration(id integer); select definitely_missing_function();",
           },
         ]),
@@ -338,7 +338,10 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
         )
       ).rows[0];
       expect(state).toEqual({ records: null, partial: null, ledger: null });
-      expect(await migrate(client)).toEqual(["001_foundation"]);
+      expect(await migrate(client)).toEqual([
+        "001_foundation",
+        "002_local_identity",
+      ]);
     });
   });
   it("creates a private native pg_dump archive and restores records, audit, roles and constraints into a separate database", async () => {
