@@ -39,3 +39,7 @@ All paths below are local `/api/demo`. Responses are private/no-store. GET requi
 | GET | `?organizationId=UUID&export=1` | Downloadable workspace JSON |
 
 Errors are `{error:string}` with 400/401/403/404/409/413/415/503 as appropriate; internal database details are not returned. Unsupported actions (including invoice issuance, messages, payments and AI) are rejected. There are no real-business HTTP endpoints, production connections, hosted deployment adapters or import endpoint in this phase.
+
+## Optional local identity host
+
+The [local identity adapter](local-auth.md) can validate a distinct signed auth cookie against PostgreSQL and return a fresh verified Principal to trusted host code. It grants no organization membership and is not mounted in Next.js. The public demo API remains independent and persistent business paths remain absent. See the identity contract for strict handler allowlists, revocation, local throttling and remaining HTTP/recovery gates.
