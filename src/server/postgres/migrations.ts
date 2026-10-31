@@ -18,6 +18,7 @@ export async function loadMigrations(): Promise<Migration[]> {
       "003_owner_memberships",
       "004_account_lifecycle",
       "005_offline_recovery",
+      "006_credential_lineage",
     ].map(async (name, index) => ({
       version: index + 1,
       name,

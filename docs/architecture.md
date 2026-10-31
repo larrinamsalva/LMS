@@ -64,3 +64,8 @@ Password changes compose the same identity host with Better Auth verification/co
 ## Offline recovery phase
 
 A local administrator maintenance service validates an external, pre-enrolled operator/evidence registry and two independently signed, version-bound reviews. It reuses the configured Better Auth codec and shared credential mutation helper. Credential-version and recovery audits are private; industry/business data is unchanged. Runtime factories use separate lifetime maintenance connections and database write guards. Restore/recovery quarantines activation until a later protected credential-lineage acceptance phase. There is no public recovery or bypass flag. See [the contract](offline-recovery.md).
+
+
+## Credential lineage foundation
+
+Migration 6 adds transaction-bound credential/version/recovery metadata to a private sequential hash chain. `src/server/lineage` separates strict versioned cryptographic formats from a local offline assessor, reusing recovery locks, trust enrollment and signature checks. Two external witnesses bind the stream/epoch/head and opaque credential-state commitments; an independently retained latest digest supplies the freshness assumption that a hash chain cannot provide alone. Journal/key/pin custody and publication remain manual and separate from DB backups. Assessment preserves blockers and changes no identity/business data. See [trust, failure model and deferred acceptance](credential-lineage.md).
