@@ -4,7 +4,9 @@
   "private": true,
   "license": "MIT",
   "type": "module",
-  "engines": { "node": ">=22.0.0" },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1",
     "build": "next build",
@@ -14,11 +16,17 @@
     "test:e2e": "playwright test",
     "licenses": "node scripts/licenses.mjs",
     "licenses:check": "node scripts/licenses.mjs --check",
-    "check": "npm run typecheck && npm test && npm run licenses:check && npm run build"
+    "check": "npm run typecheck && npm test && npm run licenses:check && npm run build",
+    "db:init": "node --env-file=.env.postgres --import=tsx scripts/postgres.ts init",
+    "db:migrate": "node --env-file=.env.postgres --import=tsx scripts/postgres.ts migrate",
+    "db:backup": "node --env-file=.env.postgres --import=tsx scripts/postgres.ts backup",
+    "db:restore": "node --env-file=.env.postgres --import=tsx scripts/postgres.ts restore",
+    "test:postgres": "vitest run --config vitest.postgres.config.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.14",
     "next": "16.4.3",
+    "pg": "8.23.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "zod": "4.6.7"
@@ -27,8 +35,10 @@
     "@axe-core/playwright": "4.14.0",
     "@playwright/test": "1.64.1",
     "@types/node": "22.20.5",
+    "@types/pg": "8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vitest": "5.0.5"
   }

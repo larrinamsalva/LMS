@@ -31,3 +31,7 @@ The upstream lockfile has 523 package entries (including platform optional packa
 `npm run licenses` generates `docs/dependencies.json` from the exact committed lockfile, including name, version, integrity and license. `npm run licenses:check` rejects missing/unrecognized license declarations and stale inventory; it is not legal compatibility certification. Installed npm packages retain their own LICENSE/NOTICE files. Development dependencies and optional platform packages are included in the inventory, clearly marked. Run `npm audit` against the current registry and record results in `docs/verification.md` before review. Do not silently upgrade major versions or copy the upstream lockfile.
 
 LMS runtime has no Supabase client, payment provider, AI provider, analytics, remote fonts or mandatory subscription. No outbound business integration exists. Network access is needed to install dependencies and browser test binaries, not to operate the demo afterward.
+
+## Durable PostgreSQL phase
+
+Added exact versions `pg` 8.23.1 (MIT), `@types/pg` 8.23.1 (MIT, development) and `tsx` 4.23.15 (MIT, development). The regenerated lockfile inventory includes all new transitives and optional build-tool binaries. No cloud database SDK, provider, payment or AI dependency is added. The official PostgreSQL Docker image/client tools are separately installed local/CI prerequisites; preserve their upstream notices when distributing a combined package. See the separate PostgreSQL verification record for current checks and limits.
