@@ -209,7 +209,10 @@ beforeAll(async () => {
     "customers",
     { name: "Fictional record before membership migration" },
   );
-  expect(await migrate(admin)).toEqual(["003_owner_memberships"]);
+  expect(await migrate(admin)).toEqual([
+    "003_owner_memberships",
+    "004_account_lifecycle",
+  ]);
   expect(
     (await engine.snapshot({ userId: users.owner }, oldOrg)).records[0],
   ).toEqual(retained);

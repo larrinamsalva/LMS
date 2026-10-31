@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import {
   fictionalAccountSchema,
+  passwordChangeSchema,
   validateAuthOptions,
 } from "../../src/server/auth/config";
 const base = {
@@ -49,4 +50,27 @@ it("only provisions fictional local accounts without granting requested roles", 
   expect(() =>
     fictionalAccountSchema.parse({ ...account, password: "short" }),
   ).toThrow();
+});
+
+it("requires explicit confirmed self-service credential changes with bounded secret input", () => {
+  const input = {
+    operationId: "10000000-0000-4000-8000-000000000001",
+    currentPassword: "fictional_current_password",
+    newPassword: "fictional_new_password",
+    confirmation: "CHANGE PASSWORD AND SIGN OUT",
+  };
+  expect(passwordChangeSchema.parse(input)).toEqual(input);
+  for (const value of [
+    { ...input, confirmation: undefined },
+    { ...input, currentPassword: "" },
+    { ...input, newPassword: "short" },
+    { ...input, newPassword: "x".repeat(129) },
+    { ...input, newPassword: input.currentPassword },
+    { ...input, userId: input.operationId },
+    { ...input, sessionId: input.operationId },
+    { ...input, role: "owner" },
+    { ...input, revokeOtherSessions: false },
+    { ...input, operationId: "invalid" },
+  ])
+    expect(passwordChangeSchema.safeParse(value).success).toBe(false);
 });

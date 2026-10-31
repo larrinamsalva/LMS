@@ -54,6 +54,10 @@ The separate [local identity adapter](docs/local-auth.md) adds Better Auth passw
 
 The [owner access host API](docs/owner-access.md) adds session-bound reviewed role changes, removal and atomic ownership handover, with durable audits and confirmation receipts. A guarded local command can create a new fictional workspace for a provisioned owner. It remains **host-only**: no staff UI, real-user invitations or business routes are exposed. See [verification and recovery limits](docs/owner-access-verification.md).
 
+## Experimental account lifecycle
+
+The [host-only password-change API](docs/account-lifecycle.md) verifies the current password, requires a sign-in within five minutes, revokes all account sessions/approvals and records a secret-free credential event atomically. Owner access commands use the same recent-authentication rule. The [lost-access recovery plan](docs/local-recovery-plan.md) is design only; no reset/deletion tool or public route is enabled. See [verification and limits](docs/account-lifecycle-verification.md).
+
 ## Verify
 
 ```sh

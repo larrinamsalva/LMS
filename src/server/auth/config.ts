@@ -1,6 +1,27 @@
 import { z } from "zod";
 import { localTarget } from "../postgres/targets";
 export const authBasePath = "/api/local-auth";
+export const passwordPolicy = {
+  minLength: 15,
+  maxLength: 128,
+  recentSeconds: 300,
+} as const;
+const newPassword = z
+  .string()
+  .min(passwordPolicy.minLength)
+  .max(passwordPolicy.maxLength);
+export const passwordChangeSchema = z
+  .object({
+    operationId: z.uuid(),
+    currentPassword: z.string().min(1).max(passwordPolicy.maxLength),
+    newPassword,
+    confirmation: z.literal("CHANGE PASSWORD AND SIGN OUT"),
+  })
+  .strict()
+  .refine((value) => value.currentPassword !== value.newPassword, {
+    message: "Choose a different password.",
+    path: ["newPassword"],
+  });
 export interface LocalAuthOptions {
   databaseUrl: string;
   databaseName: string;
@@ -39,6 +60,6 @@ export const fictionalAccountSchema = z
   .object({
     name: z.string().trim().min(1).max(80),
     email: z.email().toLowerCase().endsWith("@example.test"),
-    password: z.string().min(15).max(128),
+    password: newPassword,
   })
   .strict();
