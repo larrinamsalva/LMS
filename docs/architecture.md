@@ -25,7 +25,7 @@ The smallest vertical slice is operational custom records: customers, property u
 | Option | Decision |
 | --- | --- |
 | PGlite embedded PostgreSQL | Default fictional demo; no account, Docker, API key or external service. Real PostgreSQL SQL/RLS, single process. Memory reset on server restart; bounded demo sessions |
-| Network PostgreSQL | Adapter contract and portable migration; require integration/concurrency acceptance before claiming supported hosting |
+| Network PostgreSQL | Experimental host-only node-postgres adapter, bounded pools, migrations and recovery rehearsal; no business HTTP routes. See PostgreSQL setup and verification |
 | Supabase | Optional future verified identity/SQL adapter. Do not expose demo tables through Data API or reuse demo identity in hosted auth |
 | SQLite | Not selected: it lacks native PostgreSQL RLS; separate files alone would change the isolation model |
 
@@ -33,7 +33,7 @@ The smallest vertical slice is operational custom records: customers, property u
 
 Trusted server code sets the user identity inside a transaction and switches to a non-owner, non-BYPASSRLS application role. Membership rows are the authority. Browser-provided organization IDs never grant membership. All business tables enable and force RLS; UPDATE has USING and WITH CHECK. Composite keys bind record/audit/config identity to one organization. Ordinary application roles cannot provision users, grant roles, alter policies or rewrite audit events. Audits are owner/admin only because snapshots may contain personal data.
 
-The current app exposes **only an ephemeral fictional demo**, never a real-business endpoint. A random opaque cookie maps to a server-created demo user and its two organizations. Session expiry/restart resets access and the demo is bounded. There are no finance, messaging, AI, payment or production-auth routes. Such capabilities must require typed permissions plus a reviewed explicit confirmation transaction before they can be enabled. A client checkbox will not be an authorization boundary.
+The current web app exposes **only an ephemeral fictional demo**, never a real-business endpoint. A random opaque cookie maps to a server-created demo user and its two organizations. Session expiry/restart resets access and the demo is bounded. There are no finance, messaging, AI, payment or production-auth routes. Such capabilities must require typed permissions plus a reviewed explicit confirmation transaction before they can be enabled. A client checkbox will not be an authorization boundary.
 
 Database identities, membership provisioning and direct SQL access are trusted host responsibilities. Raw database access must never be exposed to end users; a database administrator can bypass RLS. The demo runtime remains single process and cannot be deployed horizontally as-is.
 
@@ -46,3 +46,7 @@ Configurations have a schema version and append-only revision. Publishing requir
 Scheduling will need timezone-aware intervals and collision rules. Inventory will need immutable signed movements. Estimates/invoices will need exact decimal strings/integer minor units, tax snapshots, idempotent commands and correction histories. Documents will need scoped metadata plus private object bytes. Workflows will use allowlisted deterministic events/conditions/actions; no eval or arbitrary code. Reports need scoped server queries; backups must include database, credentials/identity, object bytes and tested restore, distinct from workspace JSON export. Import must be atomic, validate every row and never overwrite identity/history. AI is an optional adapter with an explicit data preview and confirmation; manual features remain complete.
 
 See [API](api.md), [security](../SECURITY.md), [roadmap](../ROADMAP.md) and [extraction assessment](extraction-assessment.md).
+
+## Durable adapter phase
+
+`src/server/postgres/adapter.ts` implements the existing SQL interface without changing the engine or presets. Migration/role/bootstrap and native backup/restore code are separate host-only tools. The demo imports none of them and never reads persistent connection URLs. See [setup](postgres-setup.md), [migrations](../db/README.md) and [verification](postgres-verification.md). Authentication, session security, hosted access, production recovery and public business operations remain gated.
