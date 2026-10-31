@@ -1,12 +1,21 @@
 import { Pool } from "pg";
 import { PostgresDialect } from "kysely";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
-import type { Principal } from "../../core/engine";
+import { EngineError, type Principal } from "../../core/engine";
+import { APIError } from "better-auth/api";
+import {
+  withSignInLock,
+  passwordAttempt,
+  credentialSnapshot,
+  commitPasswordChange,
+} from "./lifecycle";
 import { connectionOptions } from "../postgres/adapter";
 import { BodyError, readJson } from "../request-body";
 import { z } from "zod";
 import {
   authBasePath,
+  passwordPolicy,
+  passwordChangeSchema,
   credentialsSchema,
   fictionalAccountSchema,
   validateAuthOptions,
@@ -16,11 +25,11 @@ const privateHeaders = {
   "Cache-Control": "private, no-store",
   "X-Content-Type-Options": "nosniff",
 };
-async function identityPool(options: LocalAuthOptions) {
+async function identityPool(options: LocalAuthOptions, max = 3) {
   const pool = new Pool({
     ...connectionOptions({ connectionString: options.databaseUrl }),
     options: "-c search_path=lms_identity,pg_catalog -c role=lms_auth_service",
-    max: 3,
+    max,
   });
   pool.on("error", () =>
     console.error("An idle local identity connection failed."),
@@ -65,12 +74,13 @@ function authOptions(
       enabled: true,
       disableSignUp: !provisioning,
       autoSignIn: false,
-      minPasswordLength: 15,
-      maxPasswordLength: 128,
+      minPasswordLength: passwordPolicy.minLength,
+      maxPasswordLength: passwordPolicy.maxLength,
       requireEmailVerification: false,
     },
     session: {
       expiresIn: 7200,
+      freshAge: passwordPolicy.recentSeconds,
       disableSessionRefresh: true,
       cookieCache: { enabled: false },
     },
@@ -133,6 +143,14 @@ export async function provisionFictionalAccount(
 /** Unmounted host adapter. The public Next.js app never imports or exposes this handler. */
 export async function createLocalAuth(options: LocalAuthOptions) {
   const { auth, pool, valid } = await build(options, false);
+  // Separate bounded coordinator prevents checked-out lock waiters from starving auth queries.
+  let coordinator: Pool;
+  try {
+    coordinator = await identityPool(valid, 1);
+  } catch (error) {
+    await pool.end();
+    throw error;
+  }
   async function identity(headers: Headers) {
     // No bearer plugin, user ID header, cached session data, or demo cookie can assert identity.
     const clean = new Headers();
@@ -156,6 +174,42 @@ export async function createLocalAuth(options: LocalAuthOptions) {
   return {
     principal,
     identity,
+    /** Host-only self-service. Never accepts a target user, role or session from JSON. */
+    async changePassword(headers: Headers, value: unknown) {
+      const input = passwordChangeSchema.parse(value);
+      const session = await identity(headers);
+      if (!session)
+        throw new EngineError("Sign in before changing credentials.", 401);
+      await passwordAttempt(pool, session.userId);
+      const expected = await credentialSnapshot(pool, session.userId);
+      const clean = new Headers();
+      const cookie = headers.get("cookie");
+      if (cookie) clean.set("cookie", cookie);
+      try {
+        await auth.api.verifyPassword({
+          headers: clean,
+          body: { password: input.currentPassword },
+        });
+      } catch (error) {
+        if (
+          error instanceof APIError &&
+          [400, 401, 403].includes(error.statusCode)
+        )
+          throw new EngineError(
+            "Current credentials or session could not be verified.",
+            401,
+          );
+        throw error;
+      }
+      const hash = await (await auth.$context).password.hash(input.newPassword);
+      return commitPasswordChange(
+        coordinator,
+        session,
+        expected,
+        hash,
+        input.operationId,
+      );
+    },
     async handle(request: Request) {
       try {
         const url = new URL(request.url);
@@ -207,9 +261,14 @@ export async function createLocalAuth(options: LocalAuthOptions) {
           );
           headers.set("content-type", "application/json");
         }
-        const response = await auth.handler(
-          new Request(url, { method: request.method, headers, body }),
-        );
+        const invoke = () =>
+          auth.handler(
+            new Request(url, { method: request.method, headers, body }),
+          );
+        const response =
+          route === "/sign-in/email"
+            ? await withSignInLock(coordinator, JSON.parse(body!).email, invoke)
+            : await invoke();
         const outputHeaders = new Headers(response.headers);
         for (const name of ["content-length", "content-encoding", "etag"])
           outputHeaders.delete(name);
@@ -257,6 +316,8 @@ export async function createLocalAuth(options: LocalAuthOptions) {
         );
       }
     },
-    close: () => pool.end(),
+    close: async () => {
+      await Promise.all([pool.end(), coordinator.end()]);
+    },
   };
 }

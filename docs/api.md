@@ -47,3 +47,7 @@ The [local identity adapter](local-auth.md) can validate a distinct signed auth 
 ## Owner membership host
 
 `AccessService(engine, auth.identity)` composes the existing database transaction boundary with a freshly verified session. Owner-only `snapshot` and `prepare` produce an organization-scoped roster and an expiring stored review. `confirm` requires the same session and explicit confirmation, rechecks database authorization, serializes on the organization and returns an idempotent audited receipt. Ordinary role changes cannot grant/remove owner; handover is atomic. See [exact schemas, setup, locking and recovery limits](owner-access.md). No access endpoint is mounted in Next.js.
+
+## Credential lifecycle host
+
+`createLocalAuth(...).changePassword(headers, input)` accepts only a new operation UUID, current/new password and explicit `CHANGE PASSWORD AND SIGN OUT`. Better Auth verifies the signed-cookie identity/current password and supplies hashing; PostgreSQL rechecks the matching recent session and expected credential, revokes all subject sessions/approvals, updates the password and appends an immutable event atomically. No replacement session is created. All owner commands now require a sign-in within five minutes. No HTTP/reset/deletion endpoint is added. See [inputs/errors/locking](account-lifecycle.md), [evidence](account-lifecycle-verification.md) and the [deferred recovery design](local-recovery-plan.md).

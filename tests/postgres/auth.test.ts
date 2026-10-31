@@ -107,6 +107,7 @@ beforeAll(async () => {
   expect(await migrate(admin)).toEqual([
     "002_local_identity",
     "003_owner_memberships",
+    "004_account_lifecycle",
   ]);
   await provisionRuntime(admin, url(name, "business"));
   await provisionAuthRuntime(admin, url(name, "auth"));

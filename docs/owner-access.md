@@ -25,7 +25,7 @@ This command cannot adopt an existing organization or grant itself owner in one.
 
 ## Host API
 
-`AccessService` in `src/core/access.ts` accepts the existing `Engine` and `createLocalAuth(...).identity` as its session resolver. Each method resolves the cookie afresh and uses `Engine.asUser`; it does not copy record/config business logic or accept a browser-provided principal/session ID.
+`AccessService` in `src/core/access.ts` accepts the existing `Engine` and `createLocalAuth(...).identity` as its session resolver. Each method resolves the cookie afresh, requires a sign-in within five minutes and uses `Engine.asUser`; it does not copy record/config business logic or accept a browser-provided principal/session ID.
 
 | Method | Input | Result |
 | --- | --- | --- |
@@ -70,6 +70,6 @@ Session deletion and access commits have a defined order: if the command first l
 
 Native backups retain memberships, revisions, confirmed receipts, audits and bootstrap receipts, but exclude pending review, live session and verification data. Guarded restoration purges restored sessions and cascades pending approvals, including those in manual archives. Re-authenticate and create a new review after recovery; do not replay old approvals. Test restoration into an empty, offline database, verify records/roles/audits and perform a new authorized change before attaching any host.
 
-Owners cannot issue email invitations, recover accounts, delete accounts or transfer to unverified real identities. There is no staff UI, recent-password/MFA step-up, mailbox verification, support impersonation or public network session acceptance. Password loss by the sole owner still needs trusted local maintenance; this is not a complete recovery process. Production recovery, per-account/proxy rate limits and in-flight fencing for general business operations remain gates. No external service, live operation or deployment is enabled.
+Owners cannot issue email invitations, recover accounts, delete accounts or transfer to unverified real identities. There is no staff UI, MFA step-up, mailbox verification, support impersonation or public network session acceptance. Password loss by the sole owner remains locked pending the [reviewed recovery follow-up](local-recovery-plan.md); no reset tool is provided. Fresh sign-in is now required for owner commands; it is not MFA. Production recovery, per-account/proxy rate limits and in-flight fencing for general business operations remain gates. No external service, live operation or deployment is enabled.
 
 See [test evidence](owner-access-verification.md), [security policy](../SECURITY.md) and [roadmap](../ROADMAP.md).

@@ -23,7 +23,8 @@ Provisioning uses Better Auth's server API with automatic sign-in disabled. Publ
 | `handle(Request)` | An **unmounted** standard Request/Response auth handler; only POST sign-in/email, sign-out, revoke-sessions, revoke-other-sessions and GET get-session are allowed |
 | `principal(Headers)` | Validate only the signed auth cookie against the current database session, bypass all cookie caches, and return `{userId: UUID}` or null; database failure throws |
 | `identity(Headers)` | Fresh signed-cookie/database validation returning `{userId, sessionId}` or null for internal session-fenced commands; never accept either field from a client |
-| `close()` | Close the identity pool during host shutdown |
+| `changePassword(Headers, input)` | Host-only current-password verification, recent sign-in, atomic credential/audit update and all-session revocation; [exact contract](account-lifecycle.md) |
+| `close()` | Close both bounded identity/coordinator pools during host shutdown |
 
 Every host operation must revalidate a session; do not retain/reuse a Principal across requests. A valid identity is not an organization permission: the unchanged engine and SQL memberships/RLS authorize business records separately. No current web route accepts a Principal, forwarded user ID or bearer token to access persistent data.
 
@@ -45,4 +46,4 @@ The native backup helper excludes session, verification and pending membership-r
 
 `npm run test:postgres` runs actual PostgreSQL tests for sign-in, invalid credentials, signed-cookie tampering, CSRF/body limits, expiry, revocation, independent-process persistence, membership revocation, role isolation, shared throttling, Secure cookie configuration and restored-session invalidation. It also reruns all PR #2 persistence/concurrency/migration/recovery tests. Existing local checks and browser tests verify that the public demo remains available without login and auth/business paths remain absent.
 
-See [the evidence record](local-auth-verification.md). Follow the [owner membership phase](owner-access.md) with account lifecycle/recovery/MFA, trusted HTTP/session boundaries, general business-write session fencing and complete recovery acceptance before enabling real persistent business endpoints. No deployment, production database, outbound message or ForgeOS change is authorized by this phase.
+See [the evidence record](local-auth-verification.md). The [credential lifecycle phase](account-lifecycle.md) adds verified password changes and recent authentication. Follow it with audited lost-access recovery/MFA, trusted HTTP/session boundaries, general business-write session fencing and complete recovery acceptance before enabling real persistent business endpoints. No deployment, production database, outbound message or ForgeOS change is authorized by this phase.
