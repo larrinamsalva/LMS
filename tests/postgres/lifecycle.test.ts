@@ -67,6 +67,7 @@ let owner: string,
   member: string,
   outsider: string,
   initialHash: string,
+  memberHash: string,
   org: string,
   otherOrg: string,
   ownerHeaders: Headers,
@@ -179,6 +180,12 @@ beforeAll(async () => {
       [owner],
     )
   ).rows[0].password;
+  memberHash = (
+    await admin.query(
+      'select password from lms_identity.account where "userId"=$1',
+      [member],
+    )
+  ).rows[0].password;
   org = (
     await bootstrapFictionalWorkspace(admin, {
       ownerId: owner,
@@ -212,6 +219,10 @@ beforeEach(async () => {
   await admin.query(
     'update lms_identity.account set password=$1 where "userId"=$2',
     [initialHash, owner],
+  );
+  await admin.query(
+    'update lms_identity.account set password=$1 where "userId"=$2',
+    [memberHash, member],
   );
   await admin.query("truncate lms_identity.credential_events");
   org = (
@@ -381,6 +392,36 @@ describe("verified local credential lifecycle and recent authentication", () => 
         await expect(auth.query(sql)).rejects.toMatchObject({ code: "42501" });
     } finally {
       await auth.end();
+    }
+  });
+  it("captures cookie credentials once so a caller cannot switch accounts between verification steps", async () => {
+    const different = "fictional_member_different_password";
+    await host.changePassword(memberHeaders, input(different));
+    const signed = await signIn(different, "member@example.test");
+    expect(signed.status).toBe(200);
+    const changingHeaders = new Headers(ownerHeaders),
+      held = await blocker();
+    let changing: Promise<unknown> | undefined;
+    try {
+      await held.query("lock table lms_identity.rate_limit in share mode");
+      changing = host.changePassword(
+        changingHeaders,
+        input(changed, randomUUID(), different),
+      );
+      changing.catch(() => {});
+      await waitForLock("%insert into lms_identity.rate_limit%");
+      changingHeaders.set("cookie", cookie(signed).get("cookie")!);
+      await held.query("commit");
+      await expect(changing).rejects.toMatchObject({ status: 401 });
+      expect((await signIn()).status).toBe(200);
+      expect((await events()).map((row) => row.subject_id)).toEqual([member]);
+      expect((await engine.snapshot({ userId: owner }, org)).role).toBe(
+        "owner",
+      );
+    } finally {
+      await held.query("rollback");
+      await held.end();
+      await Promise.allSettled([changing]);
     }
   });
   it("requires a recent live session and checks expiry again after waiting for a database lock", async () => {

@@ -177,14 +177,15 @@ export async function createLocalAuth(options: LocalAuthOptions) {
     /** Host-only self-service. Never accepts a target user, role or session from JSON. */
     async changePassword(headers: Headers, value: unknown) {
       const input = passwordChangeSchema.parse(value);
-      const session = await identity(headers);
+      // Capture credentials once; a caller must not switch the verifying account between awaits.
+      const clean = new Headers();
+      const cookie = headers.get("cookie");
+      if (cookie) clean.set("cookie", cookie);
+      const session = await identity(clean);
       if (!session)
         throw new EngineError("Sign in before changing credentials.", 401);
       await passwordAttempt(pool, session.userId);
       const expected = await credentialSnapshot(pool, session.userId);
-      const clean = new Headers();
-      const cookie = headers.get("cookie");
-      if (cookie) clean.set("cookie", cookie);
       try {
         await auth.api.verifyPassword({
           headers: clean,
