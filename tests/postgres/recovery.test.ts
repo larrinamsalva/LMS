@@ -513,6 +513,9 @@ describe("controlled offline recovery with independent signed evidence", () => {
   it("rejects duplicate recovery and competing approved cases after the credential version changes", async () => {
     const a = await approved(),
       b = await approved();
+    await expect(apply(a.caseId, original)).rejects.toMatchObject({
+      status: 400,
+    });
     await apply(a.caseId);
     await expect(apply(a.caseId)).rejects.toMatchObject({ status: 409 });
     await expect(apply(b.caseId)).rejects.toMatchObject({ status: 409 });

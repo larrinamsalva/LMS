@@ -470,7 +470,7 @@ export class OfflineRecovery {
       ).rows[0];
       const current = (
         await client.query(
-          'select a.id from lms_identity.account a join lms_identity.credential_versions v on v.account_id=a.id join lms_identity."user" u on u.id=a."userId" where a.id=$1 and a."userId"=$2 and v.version=$3 and a."providerId"=\'credential\' and u.email like \'%@example.test\' for update of a,v',
+          'select a.id,a.password from lms_identity.account a join lms_identity.credential_versions v on v.account_id=a.id join lms_identity."user" u on u.id=a."userId" where a.id=$1 and a."userId"=$2 and v.version=$3 and a."providerId"=\'credential\' and u.email like \'%@example.test\' for update of a,v',
           [row.account_id, row.subject_id, row.context.credentialVersion],
         )
       ).rows;
@@ -483,6 +483,16 @@ export class OfflineRecovery {
         throw new EngineError(
           "Credential, membership or database version changed. Open a new case.",
           409,
+        );
+      if (
+        await passwordCodec.verify({
+          hash: current[0].password,
+          password: input.newPassword,
+        })
+      )
+        throw new EngineError(
+          "Choose a replacement different from the current credential.",
+          400,
         );
       await replaceCredential(
         client,

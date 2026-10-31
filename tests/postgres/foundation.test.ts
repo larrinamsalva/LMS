@@ -467,7 +467,7 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
     await writeFile(file, "not a PostgreSQL archive");
     await expect(
       restoreDatabase(databaseUrl(names[0]), names[0], file),
-    ).rejects.toThrow(/not empty/i);
+    ).rejects.toThrow(/Stop runtime hosts/i);
     await expect(
       restoreDatabase(databaseUrl(names[0]), "production", file),
     ).rejects.toThrow();
