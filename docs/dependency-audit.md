@@ -35,3 +35,7 @@ LMS runtime has no Supabase client, payment provider, AI provider, analytics, re
 ## Durable PostgreSQL phase
 
 Added exact versions `pg` 8.23.1 (MIT), `@types/pg` 8.23.1 (MIT, development) and `tsx` 4.23.15 (MIT, development). The regenerated lockfile inventory includes all new transitives and optional build-tool binaries. No cloud database SDK, provider, payment or AI dependency is added. The official PostgreSQL Docker image/client tools are separately installed local/CI prerequisites; preserve their upstream notices when distributing a combined package. See the separate PostgreSQL verification record for current checks and limits.
+
+## Local identity phase
+
+Added exact Better Auth 1.7.14 (MIT) and direct Kysely 0.29.7 (MIT), retaining PostgreSQL and existing lockfile/notice checks. Better Auth supplies password/session implementations; no custom password algorithm or JWT handling is introduced. All new transitive license declarations are included in the regenerated inventory. Telemetry is explicitly disabled and no provider/messaging SDK is configured.

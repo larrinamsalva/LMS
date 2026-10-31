@@ -46,6 +46,10 @@ A separate host-only PostgreSQL adapter now implements the existing engine inter
 
 Follow [the local PostgreSQL setup and recovery rehearsal](docs/postgres-setup.md). Setting up this optional backend does not provide verified user authentication or authorize real business use. See [migration rules](db/README.md) and [network verification results](docs/postgres-verification.md).
 
+## Experimental local authentication
+
+The separate [local identity adapter](docs/local-auth.md) adds Better Auth password sign-in and revocable PostgreSQL sessions for provisioned fictional accounts. It is **host-only and unmounted**: the demo still opens without login, and persistent business routes remain closed. It includes separate runtime credentials, private identity tables, database throttling and recovery that does not revive old sessions. See [verification and remaining gates](docs/local-auth-verification.md).
+
 ## Verify
 
 ```sh
