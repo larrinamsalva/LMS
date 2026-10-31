@@ -14,7 +14,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Append-only database audit history; project JSON and organization-scoped workspace exports.
 - Accessible light/dark themes, phone layout and no-login **fictional-data-only** demo.
 
-This is a working foundation, **not production business software**. Scheduling conflict protection, staff administration, service pricing/quotes, stock ledgers, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
+This is a working foundation, **not production business software**. Scheduling conflict protection, staff administration UI, service pricing/quotes, stock ledgers, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
 
 ## Run locally
 
@@ -44,11 +44,15 @@ Both commands bind to loopback by default. Publishing this single-process demo n
 
 A separate host-only PostgreSQL adapter now implements the existing engine interface. It adds a bounded pool, checked runtime roles, transactional checksum migrations, Docker Compose storage and native backup/restore commands. **The no-login website still uses its own temporary database.** No persistent business HTTP endpoints are exposed.
 
-Follow [the local PostgreSQL setup and recovery rehearsal](docs/postgres-setup.md). Setting up this optional backend does not provide verified user authentication or authorize real business use. See [migration rules](db/README.md) and [network verification results](docs/postgres-verification.md).
+Follow [the local PostgreSQL setup and recovery rehearsal](docs/postgres-setup.md). Setting up this optional backend does not enable authenticated HTTP business routes or authorize real business use. See [migration rules](db/README.md) and [network verification results](docs/postgres-verification.md).
 
 ## Experimental local authentication
 
 The separate [local identity adapter](docs/local-auth.md) adds Better Auth password sign-in and revocable PostgreSQL sessions for provisioned fictional accounts. It is **host-only and unmounted**: the demo still opens without login, and persistent business routes remain closed. It includes separate runtime credentials, private identity tables, database throttling and recovery that does not revive old sessions. See [verification and remaining gates](docs/local-auth-verification.md).
+
+## Experimental owner access
+
+The [owner access host API](docs/owner-access.md) adds session-bound reviewed role changes, removal and atomic ownership handover, with durable audits and confirmation receipts. A guarded local command can create a new fictional workspace for a provisioned owner. It remains **host-only**: no staff UI, real-user invitations or business routes are exposed. See [verification and recovery limits](docs/owner-access-verification.md).
 
 ## Verify
 

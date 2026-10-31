@@ -24,7 +24,8 @@
     "test:postgres": "vitest run --config vitest.postgres.config.ts",
     "auth:init": "node --env-file=.env.postgres --env-file=.env.local-auth --import=tsx scripts/local-auth.ts init",
     "auth:provision": "node --env-file=.env.postgres --env-file=.env.local-auth --import=tsx scripts/local-auth.ts provision",
-    "auth:revoke-all": "node --env-file=.env.postgres --env-file=.env.local-auth --import=tsx scripts/local-auth.ts revoke-all"
+    "auth:revoke-all": "node --env-file=.env.postgres --env-file=.env.local-auth --import=tsx scripts/local-auth.ts revoke-all",
+    "access:bootstrap": "node --env-file=.env.postgres --import=tsx scripts/access-bootstrap.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.14",

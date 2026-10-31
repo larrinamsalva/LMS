@@ -2,7 +2,7 @@
 
 Each numbered stage is a separate reviewable PR or series of small PRs. Never auto-merge.
 
-1. **Foundation (this PR):** pinned TypeScript/React/Next.js dependencies, MIT attribution, validated manifests/configuration, SQL-backed operational records, organization RLS/roles, append-only audits, configuration rollback, fictional demo with two distinct presets, setup/docs, unit/integration/security/responsive tests and CI.
+1. **Foundation (merged PR #1):** pinned TypeScript/React/Next.js dependencies, MIT attribution, validated manifests/configuration, SQL-backed operational records, organization RLS/roles, append-only audits, configuration rollback, fictional demo with two distinct presets, setup/docs, unit/integration/security/responsive tests and CI.
 2. **Self-host identity and persistence:** verified local/password or optional Supabase adapter, trusted membership administration, persistent PostgreSQL adapter, migrations, revocation/session tests, disaster recovery/restore, deployment runbook and actual PostgreSQL concurrency tests. Gate: no real data before security and restore acceptance.
 3. **Operational modules:** customers, service rates, scheduling/crews, job evidence and maintenance, inventory movements; typed relationships and conflict/idempotency tests. Gate: two actual business workflows using shared engine, not duplicated apps.
 4. **Finance and documents:** estimate snapshots, invoice drafts, exact money math, permission + explicit confirmation, immutable corrections, private uploads and scoped exports. Gate: no live issuance/payment/messaging without explicit owner authorization and environment acceptance.
@@ -11,3 +11,5 @@ Each numbered stage is a separate reviewable PR or series of small PRs. Never au
 7. **Optional integrations:** deterministic workflow rules, messaging/payment adapters and transparent optional AI with permission checks and explicit reviewed action confirmations. Default disabled; all workflows usable manually.
 
 Phase 1 acceptance: fresh clone can install and start without credentials; two presets use identical forms/service/SQL; a created record survives refresh within its demo session; cross-organization raw SQL reads/writes and viewer writes fail; stale updates conflict; audit cannot be rewritten; invalid configs fail; disabling a module retains its data; rollback appends history; phone and desktop forms work in both themes. Limits and any unrun verification are recorded, not claimed as completed.
+
+Stage 2 is delivered incrementally: PR #2 added durable PostgreSQL; PR #3 added a host-only local identity/session adapter; the owner access phase adds reviewed membership changes, handover and fictional bootstrap. Next: local account recovery/lifecycle, recent-authentication/MFA policy, then a separately reviewed HTTP/session boundary and session fencing for general business writes. No public persistent-business surface before those gates and complete recovery acceptance.

@@ -1,6 +1,6 @@
 # Public roadmap
 
-LMS is a staged open-source project. Checkboxes describe delivered code, not a hosted service or production certification. This foundation PR remains subject to review.
+LMS is a staged open-source project. Checkboxes describe delivered code, not a hosted service or production certification. Each development phase is reviewed in a separate pull request.
 
 - [x] Independent MIT repository, upstream extraction and dependency/license assessment
 - [x] TypeScript configuration/record engine and explicit module manifests
@@ -9,7 +9,8 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 - [x] Shared fictional property and cleaning workspaces with generated forms
 - [x] Accessible themes, responsive layouts, export and automated local checks
 - [x] Experimental host-only identity/password adapter and revocable database sessions for provisioned fictional accounts
-- [ ] Real-user lifecycle, membership administration, recovery/MFA and public session/transport acceptance
+- [x] Experimental host-only owner membership reviews/confirmation, atomic handover, audits and fictional workspace bootstrap
+- [ ] Real-user lifecycle, membership UI, recovery/MFA and public session/transport acceptance
 - [x] Experimental host-only PostgreSQL adapter, local Compose setup, transactional migrations and dedicated network/concurrency tests
 - [x] Native fictional backup/restore rehearsal with retained policies/history
 - [ ] Production hosting, verified authentication/session security and complete recovery acceptance

@@ -43,3 +43,7 @@ Errors are `{error:string}` with 400/401/403/404/409/413/415/503 as appropriate;
 ## Optional local identity host
 
 The [local identity adapter](local-auth.md) can validate a distinct signed auth cookie against PostgreSQL and return a fresh verified Principal to trusted host code. It grants no organization membership and is not mounted in Next.js. The public demo API remains independent and persistent business paths remain absent. See the identity contract for strict handler allowlists, revocation, local throttling and remaining HTTP/recovery gates.
+
+## Owner membership host
+
+`AccessService(engine, auth.identity)` composes the existing database transaction boundary with a freshly verified session. Owner-only `snapshot` and `prepare` produce an organization-scoped roster and an expiring stored review. `confirm` requires the same session and explicit confirmation, rechecks database authorization, serializes on the organization and returns an idempotent audited receipt. Ordinary role changes cannot grant/remove owner; handover is atomic. See [exact schemas, setup, locking and recovery limits](owner-access.md). No access endpoint is mounted in Next.js.

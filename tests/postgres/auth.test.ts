@@ -104,7 +104,10 @@ beforeAll(async () => {
   // Rehearse upgrading an existing PR #2 database, without rewriting migration 1 or records.
   const migrations = await loadMigrations();
   await migrate(admin, migrations.slice(0, 1));
-  expect(await migrate(admin)).toEqual(["002_local_identity"]);
+  expect(await migrate(admin)).toEqual([
+    "002_local_identity",
+    "003_owner_memberships",
+  ]);
   await provisionRuntime(admin, url(name, "business"));
   await provisionAuthRuntime(admin, url(name, "auth"));
   owner = (

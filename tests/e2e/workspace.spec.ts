@@ -194,6 +194,14 @@ test("HTTP boundary rejects CSRF, forged scope, missing sessions and unavailable
     ).status(),
   ).toBe(404);
   expect((await request.get("/api/records")).status()).toBe(404);
+  expect((await request.get("/api/access/members")).status()).toBe(404);
+  expect(
+    (
+      await request.post("/api/access/confirm", {
+        data: { confirmation: "CONFIRM ACCESS CHANGE" },
+      })
+    ).status(),
+  ).toBe(404);
   expect(
     (
       await request.post("/api/demo", {
