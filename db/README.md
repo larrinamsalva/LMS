@@ -1,6 +1,6 @@
 # Database migrations
 
-`001_foundation.sql` remains unchanged from PR #1. The public demonstration executes it plus the shared business migration 7 in a fresh, temporary PGlite database; identity/recovery migrations remain separate. Persistent PostgreSQL uses the **same schema and engine**, through `src/server/postgres/migrations.ts` and a separately provisioned runtime login.
+`001_foundation.sql` remains unchanged from PR #1. The public demonstration executes it plus the shared business migrations 7 and 8 in a fresh, temporary PGlite database; identity/recovery migrations remain separate. Persistent PostgreSQL uses the **same schema and engine**, through `src/server/postgres/migrations.ts` and a separately provisioned runtime login.
 
 ## Network migration contract
 
@@ -19,7 +19,7 @@ Keep historical SQL unchanged. Add the next numbered SQL file, register it expli
 
 Version 1 remains immutable. Version 2 adds only the private local identity schema and its separate role boundary. Initialization validates both service roles. Fixture seeding lives in test support, outside migrations. There are no real accounts, passwords, invoices or sample personal data in schema SQL.
 
-Migration 2 follows the Better Auth 1.7.14 core schema, without providers/plugins. Existing version-1 databases upgrade transactionally without rewriting business rows or the original checksum. New network tests rehearse this upgrade. The temporary PGlite demo still loads version 1 only.
+Migration 2 follows the Better Auth 1.7.14 core schema, without providers/plugins. Existing version-1 databases upgrade transactionally without rewriting business rows or the original checksum. New network tests rehearse this upgrade. The temporary PGlite demo loads shared business migrations 1, 7 and 8, without identity/recovery schemas.
 
 Migration 3 adds access revisions, private session-bound membership reviews, durable confirmation/bootstrap receipts and three private owner commands with invoker wrappers. It backfills revision zero without changing existing roles/records; the network suite rehearses version 2 → 3. Raw membership DML remains denied. All new tables force RLS. Definer/helper search paths are empty and PUBLIC execution is revoked. See [owner contracts](../docs/owner-access.md). Roll back code only after reviewing schema compatibility; recovery uses a verified offline backup, never destructive down SQL.
 
@@ -40,3 +40,10 @@ A stable logical stream, sequence and SHA-256 chain are retained in backups. Thi
 `007_relationship_scheduling.sql` installs `btree_gist`, scoped reference/appointment projections, operation receipts and a private mutation epoch. Narrow definer triggers validate source-record relationships, retain archive/history and enforce an exclusive `[start,end)` resource constraint; runtime roles cannot mutate projections/receipts directly. A real coordination-row version rejects stale snapshot writers. All added tables force RLS.
 
 Stop all hosts first; the existing exclusive maintenance lease/table locks protect installation. All SQL/ledger changes are transactional. Existing records/configurations/roles/audits are preserved, and untracked appointment rows fail enrollment. New presets enable the module only for newly created fictional workspaces; no old work schema is silently changed. See [upgrade/retry/DST/constraint contract](../docs/shared-scheduling.md). Neither this migration nor native restore unblocks activation.
+
+
+## Migration 8: dated crews and availability
+
+`008_workforce_availability.sql` adds scoped membership/availability projections and retained per-revision employee allocations. The existing organization epoch orders their checks with bookings; a new GiST exclusion prevents the same employee being reserved through different Worker/Crew resources. Source record permissions restrict workforce administration to owners/admins; projections force RLS and grant runtime reads only. Work windows, time off and effective rosters are checked transactionally; invalidating changes refuse rather than silently alter reserved people.
+
+Stop hosts and back up before the normal `db:migrate` command. The exclusive maintenance/table locks and migration transaction apply, preserving migrations 1–7, original records/configuration and audits. Untracked workforce entities refuse upgrade. Existing resource-only appointments receive no fabricated people; explicit enrollment requires cancellation/archive of blocking bookings. [Setup, enrollment, failure behavior and limits](../docs/crews-availability.md). All restored databases remain activation-blocked.

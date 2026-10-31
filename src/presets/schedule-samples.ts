@@ -1,5 +1,6 @@
 import type { Engine, Principal } from "../core/engine";
 import { wallToInstant } from "../core/time";
+import { seedWorkforce } from "./workforce-samples";
 /** Fictional fixtures only; industry choices are configuration target IDs, never alternate services. */
 export async function seedSchedule(
   engine: Engine,
@@ -13,7 +14,10 @@ export async function seedSchedule(
   const customer = snapshot.records.find((r) => r.entity === "customers")!,
     target = appointment.fields.find((f) => f.key === "work")!.target!;
   const work = snapshot.records.find((r) => r.entity === target)!,
-    site = snapshot.records.find((r) => r.entity === "units");
+    site =
+      snapshot.records.find(
+        (r) => r.entity === "units" && r.data.label === "Cabin 02",
+      ) ?? snapshot.records.find((r) => r.entity === "units");
   const data = {
     ...work.data,
     customer: customer.id,
@@ -35,6 +39,15 @@ export async function seedSchedule(
   );
   const date = String(work.data.date ?? work.data.due),
     zone = config.timeZone ?? "UTC";
+  if (config.modules.some((m) => m.id === "workforce"))
+    await seedWorkforce(
+      engine,
+      principal,
+      organizationId,
+      resource,
+      date,
+      zone,
+    );
   await engine.saveRecord(principal, organizationId, "appointments", {
     title:
       target === "jobs"

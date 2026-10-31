@@ -1,0 +1,10 @@
+{
+  "id": "workforce",
+  "version": "1.0.0",
+  "engineApi": 1,
+  "name": "Employees & crews",
+  "description": "Fictional profiles, dated crew membership and finite availability windows.",
+  "dependencies": ["scheduling"],
+  "entities": ["employees", "resource-memberships", "availability"],
+  "capabilities": ["records:read", "records:write"]
+}

@@ -24,6 +24,10 @@
     {
       "id": "scheduling",
       "version": "1.0.0"
+    },
+    {
+      "id": "workforce",
+      "version": "1.0.0"
     }
   ],
   "entities": [
@@ -85,11 +89,7 @@
           "label": "Status",
           "type": "select",
           "required": true,
-          "options": [
-            "Open",
-            "In progress",
-            "Done"
-          ]
+          "options": ["Open", "In progress", "Done"]
         },
         {
           "key": "due",
@@ -150,11 +150,7 @@
           "label": "Resource type",
           "type": "select",
           "required": true,
-          "options": [
-            "Crew",
-            "Worker",
-            "Equipment"
-          ]
+          "options": ["Crew", "Worker", "Equipment"]
         },
         {
           "key": "notes",
@@ -227,16 +223,176 @@
           "label": "Appointment status",
           "type": "select",
           "required": true,
-          "options": [
-            "Scheduled",
-            "In progress",
-            "Completed",
-            "Cancelled"
-          ]
+          "options": ["Scheduled", "In progress", "Completed", "Cancelled"]
         },
         {
           "key": "notes",
           "label": "Appointment notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "employees",
+      "module": "workforce",
+      "singular": "Employee profile",
+      "plural": "Employees",
+      "titleField": "name",
+      "fields": [
+        {
+          "key": "name",
+          "label": "Employee name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "role",
+          "label": "Work role",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "skills",
+          "label": "Skills",
+          "type": "longtext",
+          "required": false
+        },
+        {
+          "key": "status",
+          "label": "Employee status",
+          "type": "select",
+          "required": true,
+          "options": ["Active", "Inactive"]
+        },
+        {
+          "key": "email",
+          "label": "Contact email",
+          "type": "email",
+          "required": false
+        },
+        {
+          "key": "phone",
+          "label": "Contact phone",
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "notes",
+          "label": "Profile notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "resource-memberships",
+      "module": "workforce",
+      "singular": "Dated membership",
+      "plural": "Dated memberships",
+      "titleField": "title",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Membership title",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "employee",
+          "label": "Employee",
+          "type": "reference",
+          "required": true,
+          "target": "employees"
+        },
+        {
+          "key": "resource",
+          "label": "Worker or crew",
+          "type": "reference",
+          "required": true,
+          "target": "resources"
+        },
+        {
+          "key": "start",
+          "label": "Effective start",
+          "type": "datetime",
+          "required": true
+        },
+        {
+          "key": "end",
+          "label": "Effective end",
+          "type": "datetime",
+          "required": true
+        },
+        {
+          "key": "time_zone",
+          "label": "Membership time zone",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "notes",
+          "label": "Membership notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "availability",
+      "module": "workforce",
+      "singular": "Availability period",
+      "plural": "Availability periods",
+      "titleField": "title",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Period title",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "employee",
+          "label": "Employee",
+          "type": "reference",
+          "required": false,
+          "target": "employees"
+        },
+        {
+          "key": "resource",
+          "label": "Resource",
+          "type": "reference",
+          "required": false,
+          "target": "resources"
+        },
+        {
+          "key": "kind",
+          "label": "Period type",
+          "type": "select",
+          "required": true,
+          "options": ["Working hours", "Day off", "Vacation", "Unavailable"]
+        },
+        {
+          "key": "start",
+          "label": "Period start",
+          "type": "datetime",
+          "required": true
+        },
+        {
+          "key": "end",
+          "label": "Period end",
+          "type": "datetime",
+          "required": true
+        },
+        {
+          "key": "time_zone",
+          "label": "Period time zone",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "notes",
+          "label": "Availability notes",
           "type": "longtext",
           "required": false
         }
@@ -267,11 +423,7 @@
           "label": "Service",
           "type": "select",
           "required": true,
-          "options": [
-            "Standard clean",
-            "Move-out clean",
-            "Deep clean"
-          ]
+          "options": ["Standard clean", "Move-out clean", "Deep clean"]
         },
         {
           "key": "date",
@@ -290,11 +442,7 @@
           "label": "Status",
           "type": "select",
           "required": true,
-          "options": [
-            "Planned",
-            "In progress",
-            "Done"
-          ]
+          "options": ["Planned", "In progress", "Done"]
         },
         {
           "key": "notes",
@@ -311,6 +459,9 @@
     "tasks",
     "resources",
     "appointments",
+    "employees",
+    "resource-memberships",
+    "availability",
     "items"
   ]
 }

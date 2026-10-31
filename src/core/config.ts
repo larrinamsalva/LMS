@@ -6,6 +6,7 @@ import {
   appointmentStatuses,
 } from "./time";
 import { moduleById } from "../modules/registry";
+import { workforceContract, validateWorkforceRecord } from "./workforce";
 const reserved = new Set([
   "__proto__",
   "constructor",
@@ -132,6 +133,8 @@ export const businessConfigSchema = z
         error(`Entity ${entity.id} is not provided by ${entity.module}.`);
     }
     for (const entity of config.entities) {
+      if (!workforceContract(entity))
+        error("Workforce fields must match the module contract.");
       for (const field of entity.fields.filter((f) => f.type === "reference")) {
         const target = config.entities.find((e) => e.id === field.target);
         if (
@@ -247,5 +250,6 @@ export function validateRecord(
     if (field.type === "datetime" && result[field.key])
       result[field.key] = normalizeInstant(String(result[field.key]));
   if (entity.id === "appointments") validateAppointment(result);
+  validateWorkforceRecord(entity.id, result);
   return result;
 }

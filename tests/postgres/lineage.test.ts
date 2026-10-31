@@ -331,6 +331,7 @@ beforeAll(async () => {
     expect(await migrate(source)).toEqual([
       "006_credential_lineage",
       "007_relationship_scheduling",
+      "008_workforce_availability",
     ]);
     expect(await business(source)).toEqual(before);
   } finally {
@@ -818,6 +819,7 @@ describe("external credential lineage with native PostgreSQL and offline witness
       expect(await migrate(c)).toEqual([
         "006_credential_lineage",
         "007_relationship_scheduling",
+        "008_workforce_availability",
       ]);
       expect(
         (

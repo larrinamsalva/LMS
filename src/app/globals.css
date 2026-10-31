@@ -1116,3 +1116,34 @@ legend {
     grid-template-columns: 1fr;
   }
 }
+
+/* Shared crew/availability cards retain the existing theme contrast tokens. */
+.workforce-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px;
+}
+.workforce-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.workforce-card p {
+  line-height: 1.6;
+}
+.workforce-members {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.workforce-members li {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  overflow-wrap: anywhere;
+}
+.workforce-members .actions {
+  margin-top: 8px;
+}

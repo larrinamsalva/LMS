@@ -532,15 +532,24 @@ describe("shared scheduling with native PostgreSQL constraints", () => {
         [owner.userId],
       );
       const legacy = structuredClone(presets.property);
-      legacy.modules = legacy.modules.filter((m) => m.id !== "scheduling");
+      legacy.modules = legacy.modules.filter(
+        (m) => !["scheduling", "workforce"].includes(m.id),
+      );
       legacy.entities = legacy.entities
-        .filter((e) => e.module !== "scheduling")
+        .filter((e) => !["scheduling", "workforce"].includes(e.module))
         .map((e) => ({
           ...e,
           fields: e.fields.filter((f) => f.type !== "reference"),
         }));
       legacy.navigation = legacy.navigation.filter(
-        (id) => !["appointments", "resources"].includes(id),
+        (id) =>
+          ![
+            "appointments",
+            "resources",
+            "employees",
+            "resource-memberships",
+            "availability",
+          ].includes(id),
       );
       delete legacy.timeZone;
       const id = randomUUID();
@@ -562,7 +571,10 @@ describe("shared scheduling with native PostgreSQL constraints", () => {
       } finally {
         await lease.close();
       }
-      expect(await migrate(c)).toEqual(["007_relationship_scheduling"]);
+      expect(await migrate(c)).toEqual([
+        "007_relationship_scheduling",
+        "008_workforce_availability",
+      ]);
       expect(
         (
           await c.query(

@@ -8,6 +8,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 
 - One TypeScript engine and one responsive React workspace render **Property Manager** (customers, sites/units, maintenance tasks, supply catalog) and **Cleaning Company** (customers, cleaning jobs, service dates, crew notes, tasks, supply catalog).
 - Shared customer/work links, exclusive-resource scheduling, retained booking zones and a responsive daily agenda for both businesses.
+- Fictional employee profiles, effective-dated Worker/Crew membership, finite working hours/time off, and cross-crew employee conflict protection.
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
@@ -15,7 +16,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Append-only database audit history; project JSON and organization-scoped workspace exports.
 - Accessible light/dark themes, phone layout and no-login **fictional-data-only** demo.
 
-This is a working foundation, **not production business software**. Advanced recurring scheduling, crew/staff administration UI, service pricing/quotes, stock ledgers, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
+This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, service pricing/quotes, stock ledgers, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
 
 ## Run locally
 
@@ -44,6 +45,12 @@ Both commands bind to loopback by default. Publishing this single-process demo n
 ## Customer-linked scheduling
 
 Choose **Schedule** in either fictional workspace. Cleaning uses Customer → Cleaning job → Appointment → Crew/resource; property uses Customer/Site → Maintenance request → Appointment → Worker/resource. The same forms and engine handle both. Overlapping exclusive resources are rejected by PostgreSQL; UTC instants, DST choices, retries and archive history have documented rules. Follow [the workflow/upgrade guide](docs/shared-scheduling.md) and [verification evidence](docs/shared-scheduling-verification.md). Recurrence, live calendars and notifications remain deferred.
+
+## Employees, crews and availability
+
+Open **Crews & availability** to add fictional profiles, dated memberships and work/time-off periods. Owners/admins manage these records; staff can schedule eligible rosters. PostgreSQL prevents a person being booked through different crews or Worker resources at once. Directory and schedule show employee allocation history on desktop, tablet and phone. Employee profiles never create login accounts or grant permissions.
+
+Existing unenrolled PR #10 resources remain explicitly resource-only. Enrolled resources require a stable, fully available roster; cancel/archive affected bookings before changing it. The single-resource appointment model remains. See [setup/workflows and limits](docs/crews-availability.md), [manifest](examples/workforce.module.json) and [verified tests](docs/crews-availability-verification.md). Weekly recurrence, payroll and timesheets remain deferred.
 
 ## Experimental durable PostgreSQL
 

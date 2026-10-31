@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { TimeError } from "./time";
 import {
+  recordWriteRoles,
+  workforceEntities,
+  type StaffAssignment,
+} from "./workforce";
+import {
   activeEntities,
   getEntity,
   validateConfig,
@@ -54,7 +59,22 @@ export class EngineError extends Error {
 }
 function recordFailure(error: unknown): never {
   if (error instanceof TimeError) throw new EngineError(error.message, 400);
-  const e = error as { code?: string; message?: string };
+  const e = error as { code?: string; message?: string; constraint?: string };
+  if (e.code === "23P01" && e.constraint === "one_worker_identity")
+    throw new EngineError(
+      "This Worker resource already has an effective employee during that period.",
+      409,
+    );
+  if (e.code === "23P01" && e.constraint === "unique_crew_membership")
+    throw new EngineError(
+      "This employee already has an overlapping membership in this resource.",
+      409,
+    );
+  if (e.code === "23P01" && e.constraint === "exclusive_employee_time")
+    throw new EngineError(
+      "An employee is already assigned during that time, including through another crew or worker resource.",
+      409,
+    );
   if (e.code === "23P01")
     throw new EngineError(
       "This resource already has an appointment during that time. Choose another time or resource.",
@@ -127,6 +147,31 @@ export class Engine {
       throw new EngineError("Workspace configuration is unavailable.", 404);
     return { ...row, document: validateConfig(row.document) };
   }
+  private async hasWorkforce(tx: SqlConnection) {
+    return (
+      await tx.query<{ present: boolean }>(
+        "select to_regclass('lms.appointment_staff') is not null as present",
+      )
+    ).rows[0].present;
+  }
+  private async requireWorkforce(tx: SqlConnection) {
+    if (!(await this.hasWorkforce(tx)))
+      throw new EngineError(
+        "Stop hosts and apply migration 8 before enabling or writing workforce records.",
+        409,
+      );
+  }
+  private async staffHistory(tx: SqlConnection, organizationId: string) {
+    // Older, deliberately partial migration rehearsals remain readable; new workforce writes refuse.
+    return (await this.hasWorkforce(tx))
+      ? (
+          await tx.query<StaffAssignment>(
+            "select * from lms.appointment_staff where organization_id=$1 order by appointment_id,appointment_revision,employee_id",
+            [organizationId],
+          )
+        ).rows
+      : [];
+  }
   private async command(
     tx: SqlConnection,
     organizationId: string,
@@ -188,7 +233,15 @@ export class Engine {
           [organizationId],
         )
       ).rows;
-      return { organizationId, config, role, records, history, audit };
+      return {
+        organizationId,
+        config,
+        role,
+        records,
+        history,
+        audit,
+        staffAssignments: await this.staffHistory(tx, organizationId),
+      };
     });
   }
   async saveRecord(
@@ -200,13 +253,19 @@ export class Engine {
     operationId?: string,
   ) {
     return this.asUser(principal, async (tx) => {
-      await this.requireRole(tx, organizationId, ["owner", "admin", "staff"]);
+      await this.requireRole(tx, organizationId, recordWriteRoles(entityId));
       // Serialize config publication and data validation in the same organization.
       await tx.query(
         "select id from lms.organizations where id=$1 for update",
         [organizationId],
       );
       const config = await this.current(tx, organizationId);
+      if (
+        workforceEntities.includes(entityId) ||
+        (entityId === "appointments" &&
+          config.document.modules.some((m) => m.id === "workforce"))
+      )
+        await this.requireWorkforce(tx);
       const clean = validateRecord(getEntity(config.document, entityId), data);
       const replay = await this.command(tx, organizationId, operationId, {
         kind: "save",
@@ -282,6 +341,17 @@ export class Engine {
         )
       ).rows[0];
       if (!record) throw new EngineError("Record unavailable.", 404);
+      await this.requireRole(
+        tx,
+        organizationId,
+        recordWriteRoles(record.entity),
+      );
+      if (
+        workforceEntities.includes(record.entity) ||
+        (record.entity === "appointments" &&
+          config.document.modules.some((m) => m.id === "workforce"))
+      )
+        await this.requireWorkforce(tx);
       getEntity(config.document, record.entity);
       const replay = await this.command(tx, organizationId, operationId, {
         kind: "archive",
@@ -323,6 +393,8 @@ export class Engine {
         [organizationId],
       );
       const current = await this.current(tx, organizationId);
+      if (config.modules.some((m) => m.id === "workforce"))
+        await this.requireWorkforce(tx);
       if (current.revision !== expectedRevision)
         throw new EngineError(
           "Configuration changed. Reload before publishing.",
@@ -410,6 +482,7 @@ export class Engine {
         config,
         history,
         records,
+        staffAssignments: await this.staffHistory(tx, organizationId),
       };
     });
   }

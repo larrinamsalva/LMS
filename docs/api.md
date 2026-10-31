@@ -70,3 +70,10 @@ The [local identity adapter](local-auth.md) can validate a distinct signed auth 
 ## Shared scheduling and record command receipts
 
 `reference` fields declare a target entity and store an organization-scoped record UUID; `datetime` fields store explicit UTC instants. The optional `scheduling` manifest defines the shared `resources`/`appointments` contract; work target/terms are configuration. Existing `saveRecord(..., existing?, operationId?)` and `archiveRecord(..., archived, operationId?)` now support scoped immutable command receipts. Identical retries return the original result; altered retries and stale edits fail. The demo's existing save/archive JSON allow `operationId`; no persistent endpoint is mounted. See [field names, ranges, statuses, DST, roles, archive rules and retries](shared-scheduling.md).
+
+
+## Workforce contracts
+
+The optional `workforce` manifest adds `employees`, `resource-memberships` and `availability` as ordinary records. Use existing `saveRecord`/`archiveRecord` revision and operation-ID arguments. Only owners/admins can mutate those entities; staff scheduling remains operational. Employee work roles never grant identity/membership permissions. Workforce periods reuse explicit-instant datetime fields and an IANA `time_zone`.
+
+Workspace snapshots and the existing version-1 JSON export add `staffAssignments`: trigger-maintained per-appointment-revision employee/membership snapshots with an `active` reservation flag. Released rows remain retained. This additive export metadata does not supply an import or production restore API. See [field contracts, enrollment, availability and concurrency rules](crews-availability.md). No public persistent route is added.
