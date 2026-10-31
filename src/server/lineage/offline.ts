@@ -6,6 +6,7 @@ import { readPrivateText } from "../recovery/private-file";
 import { EngineError } from "../../core/engine";
 import {
   commitmentKeySchema,
+  credentialVersions,
   checkpointSchema,
   entrySchema,
   hexDigest,
@@ -98,26 +99,7 @@ async function snapshot(client: Client) {
       credentialVersion,
     }),
   );
-  const fromEntries = new Map<
-    string,
-    { accountId: string; subjectId: string; credentialVersion: string }
-  >();
-  for (const p of chain.payloads) {
-    if (p.kind === "credential-baseline" || p.kind === "credential-version")
-      fromEntries.set(p.accountId!, {
-        accountId: p.accountId!,
-        subjectId: p.subjectId!,
-        credentialVersion: p.credentialVersion!,
-      });
-    else if (p.kind === "credential-deleted") fromEntries.delete(p.accountId!);
-  }
-  if (
-    canonical(
-      [...fromEntries.values()].sort((a, b) =>
-        a.accountId.localeCompare(b.accountId, "en"),
-      ),
-    ) !== canonical(versions)
-  )
+  if (canonical(credentialVersions(chain.payloads)) !== canonical(versions))
     throw new EngineError(
       "Credential versions do not match their recorded lineage.",
       409,

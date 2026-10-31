@@ -66,6 +66,10 @@ Follow [the offline recovery procedure](docs/offline-recovery.md) for provisione
 
 The [host-only credential lineage tools](docs/credential-lineage.md) add transaction-bound metadata and independently signed external checkpoints with a separately held latest digest and credential-state commitment key. Read-only assessment detects supported snapshot rollback and evidence/state mismatches. **Activation remains blocked**, including after a successful assessment; identity-specific recovery acceptance, durable independent freshness and key/role recovery are next phases. No public route or automatic signer is added. See [verified scope and limitations](docs/credential-lineage-verification.md).
 
+## Controlled checkpoint publication
+
+The [custodian-only checkpoint publisher](docs/checkpoint-publication.md) validates the existing checkpoint signatures, requires separate independent publication approvals and durably records immutable receipts on a protected Linux filesystem. Pending or conflicting history refuses verification; an independently retained root and latest receipt are required. This is a bounded local phase, with no mandatory hosting service and **no restored-database activation**. It does not provide a monotonic external witness or repair expired/corrupt intents. See [verification and limits](docs/checkpoint-publication-verification.md).
+
 ## Verify
 
 ```sh
@@ -74,7 +78,7 @@ npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-Browser tests use a **production build**, started automatically on loopback port 3100, with desktop and phone Chromium projects. `npm run check` includes type checking, unit and real-SQL integration/security tests, dependency inventory verification and the production build. `npm audit` is a separate current-registry check. If browser downloads are restricted, `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chromium` selects an installed Chromium; report its version when using this override. Never call unrun checks passing.
+The checkpoint publication CLI and its filesystem tests require Linux with util-linux `flock`; the web demo does not require that utility. Browser tests use a **production build**, started automatically on loopback port 3100, with desktop and phone Chromium projects. `npm run check` includes type checking, unit and real-SQL integration/security tests, dependency inventory verification and the production build. `npm audit` is a separate current-registry check. If browser downloads are restricted, `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chromium` selects an installed Chromium; report its version when using this override. Never call unrun checks passing.
 
 ## Architecture and extension points
 

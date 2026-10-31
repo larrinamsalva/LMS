@@ -240,6 +240,25 @@ export function verifyChain(streamId: string, entries: Entry[]) {
   }
   return { head, payloads };
 }
+/** Shared derivation of current credential-version metadata from the exact event prefix. */
+export function credentialVersions(payloads: Payload[]) {
+  const versions = new Map<
+    string,
+    { accountId: string; subjectId: string; credentialVersion: string }
+  >();
+  for (const p of payloads) {
+    if (p.kind === "credential-baseline" || p.kind === "credential-version")
+      versions.set(p.accountId!, {
+        accountId: p.accountId!,
+        subjectId: p.subjectId!,
+        credentialVersion: p.credentialVersion!,
+      });
+    else if (p.kind === "credential-deleted") versions.delete(p.accountId!);
+  }
+  return [...versions.values()].sort((a, b) =>
+    a.accountId.localeCompare(b.accountId, "en"),
+  );
+}
 export function assertFresh(checkpoint: Checkpoint, now: Date) {
   if (
     Date.parse(checkpoint.issuedAt) > now.getTime() ||

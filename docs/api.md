@@ -60,3 +60,8 @@ The [local identity adapter](local-auth.md) can validate a distinct signed auth 
 ## Offline lineage maintenance
 
 `CredentialLineage({databaseUrl,databaseName,trustFile,journalFile,commitmentKeyFile,expectedCheckpointDigest?})` reuses the existing offline administrator lock/trust boundary. Strict `propose({mode:"genesis"|"advance",confirmation:"CAPTURE FICTIONAL LINEAGE FOR INDEPENDENT REVIEW"})` returns unsigned metadata/checkpoint material. `assess({confirmation:"ASSESS OFFLINE LINEAGE WITHOUT ACTIVATION"})` returns a consistency report and always `activationAllowed:false`. Neither method signs, publishes, updates a trusted receipt, revokes state or activates. The expected digest must come from independent latest-head custody. See [schemas, custody, signing purposes, CLI and failure behavior](credential-lineage.md). No HTTP method or module capability exposes this interface.
+
+
+## Custodian publication API
+
+`CheckpointPublisher({directory,trustFile,expectedRootDigest?})` runs on separate offline Linux custody storage with no database/HMAC/private signing key. `initialize(journal,input)` enrolls a new root using an independently reviewed checkpoint digest; `review(journal,input)` produces an expiring context; `publish(journal,input)` requires two purpose-specific signatures and confirmation; `resume(input)` completes only the exact unexpired intent; `verify(input)` requires an independently retained minimum receipt and returns the verified latest descendant/journal. Every result that reports activation says false. Strict schemas, durability sequence, custody separation, limits and CLI inputs are documented in [the publication contract](checkpoint-publication.md). No HTTP endpoint is added.

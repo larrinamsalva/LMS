@@ -41,6 +41,8 @@ import { replaceCredential } from "../../src/server/auth/lifecycle";
 import { connectPostgres } from "../../src/server/postgres/adapter";
 import { bootstrapFictionalWorkspace } from "../../src/server/access/bootstrap";
 import { Engine } from "../../src/core/engine";
+import { CheckpointPublisher } from "../../src/server/publication/store";
+import { signPublication } from "../helpers/publication";
 const raw = process.env.LMS_TEST_ADMIN_URL;
 if (!raw)
   throw new Error("LMS_TEST_ADMIN_URL is required; lineage tests never skip.");
@@ -206,6 +208,39 @@ async function stillBlocked(database = name) {
     connectPostgres({ connectionString: url(database, "business") }),
   ).rejects.toThrow(/activation blocked/i);
 }
+async function publicationStore(journal: Journal) {
+  const directory = path.join(fixtureDir, "custodian-store");
+  const root = await new CheckpointPublisher({
+    directory,
+    trustFile,
+  }).initialize(journal, {
+    expectedCheckpointDigest: checkpointDigest(journal.checkpoints.at(-1)!),
+    confirmation: "INITIALIZE FICTIONAL PUBLICATION CUSTODY",
+  });
+  return new CheckpointPublisher({
+    directory,
+    trustFile,
+    expectedRootDigest: root.rootDigest,
+  });
+}
+async function publishCheckpoint(
+  store: CheckpointPublisher,
+  journal: Journal,
+  parent: string | null = null,
+) {
+  const request = await store.review(journal, {
+    expectedReceiptDigest: parent,
+    confirmation: "REVIEW FICTIONAL CHECKPOINT PUBLICATION",
+  });
+  return store.publish(journal, {
+    publication: signPublication(authority, request),
+    confirmation: "PUBLISH VERIFIED FICTIONAL CHECKPOINT",
+  });
+}
+const verifyPublicationInput = (minimumReceiptDigest: string) => ({
+  minimumReceiptDigest,
+  confirmation: "VERIFY PUBLISHED FICTIONAL CHECKPOINT",
+});
 beforeAll(async () => {
   cluster = new Client({ connectionString: control.toString() });
   await cluster.connect();
@@ -684,7 +719,9 @@ describe("external credential lineage with native PostgreSQL and offline witness
     expect(await assess()).toMatchObject({ activationAllowed: false });
   });
   it("captures completed recovery and rejected replay without bypassing existing identity evidence or independent approval", async () => {
-    await publish(await propose());
+    const baseline = await publish(await propose());
+    const store = await publicationStore(baseline);
+    const firstReceipt = await publishCheckpoint(store, baseline);
     const r = new OfflineRecovery({
       databaseUrl: url(name),
       databaseName: name,
@@ -737,7 +774,16 @@ describe("external credential lineage with native PostgreSQL and offline witness
     ).toEqual(
       expect.arrayContaining(["completed", "rejected", "verified", "approved"]),
     );
-    await publish(p);
+    const recovered = await publish(p);
+    const completed = await publishCheckpoint(
+      store,
+      recovered,
+      firstReceipt.receiptDigest,
+    );
+    expect(
+      (await store.verify(verifyPublicationInput(completed.receiptDigest)))
+        .activationAllowed,
+    ).toBe(false);
     expect(await assess()).toMatchObject({ activationAllowed: false });
     await stillBlocked();
   });
@@ -789,6 +835,102 @@ describe("external credential lineage with native PostgreSQL and offline witness
       /quarantined|history/,
     );
     await stillBlocked(target);
+  });
+  it("uses independently published receipts to detect a rolled-back PostgreSQL archive and verify a current restore without activation", async () => {
+    const before = await business(),
+      baseline = await publish(await propose());
+    const store = await publicationStore(baseline),
+      first = await publishCheckpoint(store, baseline);
+    const oldArchive = await backup("before-publication-rotation");
+    await rotation();
+    const updated = await publish(await propose("advance"));
+    const latest = await publishCheckpoint(store, updated, first.receiptDigest);
+    const verified = await store.verify(
+      verifyPublicationInput(latest.receiptDigest),
+    );
+    await writeFile(journalFile, JSON.stringify(verified.journal), {
+      mode: 0o600,
+    });
+    pin = verified.checkpointDigest;
+    const old = await restore(oldArchive);
+    await expect(assess(old)).rejects.toThrow(/older|mismatched/);
+    await stillBlocked(old);
+    const current = await restore(await backup("after-publication-rotation"));
+    expect(await assess(current)).toMatchObject({
+      credentialStateVerified: true,
+      activationAllowed: false,
+    });
+    await stillBlocked(current);
+    await inspect(current, async (c) =>
+      expect(await business(c)).toEqual(before),
+    );
+  });
+  it("refuses an interrupted publication and an unapproved successor while PostgreSQL business data and activation blockers stay intact", async () => {
+    const baseline = await publish(await propose());
+    const directory = path.join(fixtureDir, "custodian-store");
+    const root = await new CheckpointPublisher({
+      directory,
+      trustFile,
+    }).initialize(baseline, {
+      expectedCheckpointDigest: checkpointDigest(baseline.checkpoints.at(-1)!),
+      confirmation: "INITIALIZE FICTIONAL PUBLICATION CUSTODY",
+    });
+    const opts = { directory, trustFile, expectedRootDigest: root.rootDigest };
+    const store = new CheckpointPublisher(opts);
+    const first = await publishCheckpoint(store, baseline);
+    await rotation();
+    await block();
+    const before = await business(),
+      updated = await publish(await propose("advance"));
+    const request = await store.review(updated, {
+      expectedReceiptDigest: first.receiptDigest,
+      confirmation: "REVIEW FICTIONAL CHECKPOINT PUBLICATION",
+    });
+    const publication = signPublication(authority, request),
+      forged = structuredClone(publication);
+    forged.approval.signature = Buffer.alloc(64).toString("base64");
+    await expect(
+      store.publish(updated, {
+        publication: forged,
+        confirmation: "PUBLISH VERIFIED FICTIONAL CHECKPOINT",
+      }),
+    ).rejects.toMatchObject({ status: 403 });
+    class InterruptedPublisher extends CheckpointPublisher {
+      protected override async afterDurabilityStep(stage: string) {
+        if (stage === "intent-directory-synced")
+          throw new Error("Synthetic publication interruption");
+      }
+    }
+    await expect(
+      new InterruptedPublisher(opts).publish(updated, {
+        publication,
+        confirmation: "PUBLISH VERIFIED FICTIONAL CHECKPOINT",
+      }),
+    ).rejects.toThrow("Synthetic publication interruption");
+    await expect(
+      store.verify(verifyPublicationInput(first.receiptDigest)),
+    ).rejects.toMatchObject({ status: 423 });
+    await stillBlocked();
+    expect(await business()).toEqual(before);
+    const { receiptDigest } =
+      await import("../../src/server/publication/protocol");
+    await store.resume({
+      expectedPublicationDigest: receiptDigest(publication),
+      confirmation: "RESUME THE EXACT APPROVED PUBLICATION",
+    });
+    const verified = await store.verify(
+      verifyPublicationInput(receiptDigest(publication)),
+    );
+    pin = verified.checkpointDigest;
+    await writeFile(journalFile, JSON.stringify(verified.journal), {
+      mode: 0o600,
+    });
+    expect(await assess()).toMatchObject({
+      lineageVerified: true,
+      activationAllowed: false,
+    });
+    await stillBlocked();
+    expect(await business()).toEqual(before);
   });
   it("runs the host-only CLI without printing secrets and rejects unsupported activation commands", async () => {
     const run = async (action: string, input: unknown) =>

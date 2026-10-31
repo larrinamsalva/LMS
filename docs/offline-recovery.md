@@ -71,3 +71,6 @@ Before invoking native restore, the guarded helper also commits a database-level
 ## PR #7 lineage foundation
 
 The [external credential-lineage contract](credential-lineage.md) now supplies metadata outbox/checkpoints and a read-only consistency assessment. Existing identity evidence and two independent recovery approvals remain mandatory; checkpoint witnesses do not replace those account-specific checks. Assessment never activates or revokes state and cannot establish trust for an unenrolled legacy restore. All blockers described above remain enforced. Durable independent freshness/publication, key/role recovery and identity-specific recovery acceptance are deferred, with [separate verification evidence](credential-lineage-verification.md).
+
+
+PR #9 adds [bounded external checkpoint publication](checkpoint-publication.md), including publication of a completed recovery tail. This neither replaces the two identity-specific recovery approvals nor accepts a recovered identity. Supported restores stay blocked; new-instance publication/acceptance remains deferred.

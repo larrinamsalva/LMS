@@ -81,3 +81,8 @@ The assessor checks a complete locked snapshot, source audits, versions, commitm
 | Successful consistency assessment | Preserve every blocker; no activation or business mutation |
 
 Before activation can be implemented, the next phase must supply a durable independently monotonic publication/receipt protocol, auditable identity-specific recovery acceptance using prior trusted evidence, fresh independent approval including sole-owner separation, credential/key/role recovery and rotation, fenced all-session/approval invalidation, and a tested post-acceptance authentication/recent-auth/authorization rehearsal. Existing recovery signatures remain required for credential replacement; lineage signatures cannot substitute for identity verification or owner authority. Public authentication, MFA, production transport/security, real-user acceptance and production recovery require their own reviews. See [verification evidence](credential-lineage-verification.md) and [SECURITY.md](../SECURITY.md).
+
+
+## PR #9 publication phase
+
+[Custodian publication](checkpoint-publication.md) now supplies a bounded durable local receipt workflow with separate independent publication approval, immutable records, a surviving-intent blocker and exact unexpired resume. It still requires independently retained root/high-water evidence, supplies no monotonic witness and refuses physical instance transitions or expired/corrupt-intent repair. The manual lineage protocol above remains compatible; no database blocker is removed. Use the verified publisher journal with the existing offline assessor only under the documented custody assumptions.
