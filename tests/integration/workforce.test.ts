@@ -141,6 +141,18 @@ it("rejects missing hours, time off, inactive employees and invalidated roster c
       engine.saveRecord(
         owner,
         a,
+        "appointments",
+        appointmentData(w, {
+          start: "2026-11-06T14:00:00Z",
+          end: "2026-11-06T15:00:00Z",
+        }),
+        one,
+        randomUUID(),
+      ),
+    () =>
+      engine.saveRecord(
+        owner,
+        a,
         "availability",
         period({ employee: person.profile.id, kind: "Vacation" }),
       ),

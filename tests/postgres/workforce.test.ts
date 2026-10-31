@@ -466,6 +466,27 @@ describe("employee and crew availability with native PostgreSQL transactions", (
       engine.saveRecord(
         owner,
         a,
+        "appointments",
+        appointmentData(w, {
+          start: "2026-11-07T03:00:00Z",
+          end: "2026-11-07T04:00:00Z",
+        }),
+        appt,
+        randomUUID(),
+      ),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining("work window"),
+    });
+    expect(
+      (await engine.snapshot(owner, a)).staffAssignments.filter(
+        (s) => s.active,
+      ),
+    ).toHaveLength(1);
+    await expect(
+      engine.saveRecord(
+        owner,
+        a,
         "resource-memberships",
         { ...member.data, end: "2026-11-06T18:30:00Z" },
         member,
