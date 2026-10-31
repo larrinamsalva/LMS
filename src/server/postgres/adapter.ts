@@ -46,7 +46,7 @@ async function verifyRuntime(client: PoolClient) {
     not r.rolsuper and not r.rolbypassrls and not r.rolcreaterole and not r.rolcreatedb
     and not r.rolinherit and r.rolcanlogin
     and pg_has_role(session_user,'lms_app','MEMBER')
-    and not exists(select 1 from pg_namespace n where n.nspname in ('lms','lms_private','lms_meta') and pg_has_role(session_user,n.nspowner,'MEMBER'))
+    and not exists(select 1 from pg_namespace n where n.nspname in ('lms','lms_private','lms_meta','lms_identity') and pg_has_role(session_user,n.nspowner,'MEMBER'))
     and not exists(select 1 from pg_database d where d.datname=current_database() and pg_has_role(session_user,d.datdba,'MEMBER')) as safe
     from pg_roles r where r.rolname=session_user`);
   if (!rows[0]?.safe)

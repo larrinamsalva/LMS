@@ -21,10 +21,15 @@
     "db:migrate": "node --env-file=.env.postgres --import=tsx scripts/postgres.ts migrate",
     "db:backup": "node --env-file=.env.postgres --import=tsx scripts/postgres.ts backup",
     "db:restore": "node --env-file=.env.postgres --import=tsx scripts/postgres.ts restore",
-    "test:postgres": "vitest run --config vitest.postgres.config.ts"
+    "test:postgres": "vitest run --config vitest.postgres.config.ts",
+    "auth:init": "node --env-file=.env.postgres --env-file=.env.local-auth --import=tsx scripts/local-auth.ts init",
+    "auth:provision": "node --env-file=.env.postgres --env-file=.env.local-auth --import=tsx scripts/local-auth.ts provision",
+    "auth:revoke-all": "node --env-file=.env.postgres --env-file=.env.local-auth --import=tsx scripts/local-auth.ts revoke-all"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.14",
+    "better-auth": "1.7.14",
+    "kysely": "0.29.7",
     "next": "16.4.3",
     "pg": "8.23.1",
     "react": "19.3.1",

@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { open, unlink } from "node:fs/promises";
 import path from "node:path";
 import { Client } from "pg";
-import { ensureApplicationRole } from "./migrations";
+import { ensureApplicationRole, ensureIdentityRole } from "./migrations";
 import { localTarget } from "./targets";
 function pgEnvironment(url: URL) {
   // Remove inherited libpq settings entirely; an empty PGSERVICE is still a service selection.
@@ -72,7 +72,13 @@ export async function backupDatabase(
   try {
     await runTool(
       "pg_dump",
-      ["--format=custom", "--no-owner", "--no-password"],
+      [
+        "--format=custom",
+        "--no-owner",
+        "--no-password",
+        "--exclude-table-data=lms_identity.session",
+        "--exclude-table-data=lms_identity.verification",
+      ],
       target,
       "ignore",
       handle.fd,
@@ -111,6 +117,7 @@ export async function restoreDatabase(
     if (tables.rows.length)
       throw new Error("Restore target is not empty. Refusing to overwrite it.");
     await ensureApplicationRole(client);
+    await ensureIdentityRole(client);
     const handle = await open(file, "r");
     try {
       await runTool(
@@ -128,6 +135,26 @@ export async function restoreDatabase(
         "ignore",
         binDirectory,
       );
+      // Restored identity sessions are never trusted as live credentials.
+      // This also supports older archives without the optional identity schema.
+      if (
+        (
+          await client.query(
+            "select to_regclass('lms_identity.session') as sessions",
+          )
+        ).rows[0].sessions
+      ) {
+        await client.query("BEGIN");
+        try {
+          await client.query(
+            "delete from lms_identity.session; delete from lms_identity.verification",
+          );
+          await client.query("COMMIT");
+        } catch (error) {
+          await client.query("ROLLBACK");
+          throw error;
+        }
+      }
     } finally {
       await handle.close();
     }

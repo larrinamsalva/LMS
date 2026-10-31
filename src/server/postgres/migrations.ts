@@ -11,29 +11,82 @@ export const checksum = (sql: string) =>
   createHash("sha256").update(sql).digest("hex");
 /** Reuses the original SQL, removing only its transaction/cluster-role scaffolding. */
 export async function loadMigrations(): Promise<Migration[]> {
-  const sql = await readFile(
-    path.join(process.cwd(), "db/001_foundation.sql"),
-    "utf8",
+  return Promise.all(
+    ["001_foundation", "002_local_identity"].map(async (name, index) => ({
+      version: index + 1,
+      name,
+      sql: await readFile(
+        path.join(process.cwd(), "db", name + ".sql"),
+        "utf8",
+      ),
+    })),
   );
-  return [{ version: 1, name: "001_foundation", sql }];
 }
-export async function ensureApplicationRole(client: Client) {
+async function ensureNoLoginRole(
+  client: Client,
+  name: "lms_app" | "lms_auth_service",
+) {
   const role = await client.query(
-    `select rolcanlogin,rolsuper,rolcreatedb,rolcreaterole,rolinherit,rolbypassrls from pg_roles where rolname='lms_app'`,
+    "select rolcanlogin,rolsuper,rolcreatedb,rolcreaterole,rolinherit,rolbypassrls from pg_roles where rolname=$1",
+    [name],
   );
   if (!role.rows.length)
     await client.query(
-      "create role lms_app nologin nosuperuser nocreatedb nocreaterole noinherit nobypassrls",
+      `create role ${name} nologin nosuperuser nocreatedb nocreaterole noinherit nobypassrls`,
     );
   else if (Object.values(role.rows[0]).some(Boolean))
     throw new Error(
-      "Existing lms_app role has unsafe attributes. No changes applied.",
+      `Existing ${name} role has unsafe attributes. No changes applied.`,
     );
   const parents = await client.query(
-    `select 1 from pg_auth_members m join pg_roles r on r.oid=m.member where r.rolname='lms_app'`,
+    "select 1 from pg_auth_members m join pg_roles r on r.oid=m.member where r.rolname=$1",
+    [name],
   );
   if (parents.rows.length)
-    throw new Error("lms_app must not inherit or assume other roles.");
+    throw new Error(`${name} must not inherit or assume other roles.`);
+}
+export async function ensureApplicationRole(client: Client) {
+  await ensureNoLoginRole(client, "lms_app");
+}
+export async function ensureIdentityRole(client: Client) {
+  await ensureNoLoginRole(client, "lms_auth_service");
+}
+export async function provisionAuthRuntime(client: Client, runtimeUrl: string) {
+  const url = new URL(runtimeUrl);
+  const password = decodeURIComponent(url.password);
+  if (
+    url.username !== "lms_auth_runtime" ||
+    password.length < 24 ||
+    password.includes("REPLACE_WITH")
+  )
+    throw new Error("Use lms_auth_runtime and a generated, separate password.");
+  await client.query("BEGIN");
+  try {
+    await client.query("select pg_advisory_xact_lock(74021903)");
+    await ensureIdentityRole(client);
+    if (
+      !(
+        await client.query(
+          "select 1 from pg_roles where rolname='lms_auth_runtime'",
+        )
+      ).rows.length
+    ) {
+      const literal = (
+        await client.query<{ value: string }>(
+          "select quote_literal($1) as value",
+          [password],
+        )
+      ).rows[0].value;
+      await client.query(
+        `create role lms_auth_runtime login nosuperuser nocreatedb nocreaterole noinherit nobypassrls password ${literal}`,
+      );
+      await client.query("grant lms_auth_service to lms_auth_runtime");
+    }
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  }
 }
 export async function provisionRuntime(client: Client, runtimeUrl: string) {
   const url = new URL(runtimeUrl);
@@ -140,6 +193,7 @@ export async function migrate(client: Client, migrations: Migration[] = []) {
         );
     }
     await ensureApplicationRole(client);
+    await ensureIdentityRole(client);
     const pending = files.filter(
       (f) => !applied.some((a) => a.version === f.version),
     );
