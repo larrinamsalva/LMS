@@ -10,3 +10,5 @@ coverage/
 !.env.postgres.example
 backups/
 *.dump
+
+!.env.local-auth.example

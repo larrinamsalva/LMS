@@ -17,4 +17,6 @@ Use `npm run db:init -- --database lms_development` once, then `npm run db:migra
 
 Keep historical SQL unchanged. Add the next numbered SQL file, register it explicitly in `loadMigrations`, and include failure/rollback and existing-database upgrade tests. New migrations must not contain their own top-level transaction controls. Migration authors are trusted maintainers; the runner does not sandbox arbitrary SQL. Take a native backup, rehearse on a separate database, review grants/RLS/locks and verify the resulting schema before applying an upgrade. Never use a down migration to erase retained business/audit history.
 
-The first persistent release only registers version 1. Fixture seeding lives in test support, outside migrations. There are no real accounts, passwords, invoices or sample personal data in schema SQL.
+Version 1 remains immutable. Version 2 adds only the private local identity schema and its separate role boundary. Initialization validates both service roles. Fixture seeding lives in test support, outside migrations. There are no real accounts, passwords, invoices or sample personal data in schema SQL.
+
+Migration 2 follows the Better Auth 1.7.14 core schema, without providers/plugins. Existing version-1 databases upgrade transactionally without rewriting business rows or the original checksum. New network tests rehearse this upgrade. The temporary PGlite demo still loads version 1 only.
