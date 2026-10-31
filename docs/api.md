@@ -51,3 +51,7 @@ The [local identity adapter](local-auth.md) can validate a distinct signed auth 
 ## Credential lifecycle host
 
 `createLocalAuth(...).changePassword(headers, input)` accepts only a new operation UUID, current/new password and explicit `CHANGE PASSWORD AND SIGN OUT`. Better Auth verifies the signed-cookie identity/current password and supplies hashing; PostgreSQL rechecks the matching recent session and expected credential, revokes all subject sessions/approvals, updates the password and appends an immutable event atomically. No replacement session is created. All owner commands now require a sign-in within five minutes. No HTTP/reset/deletion endpoint is added. See [inputs/errors/locking](account-lifecycle.md), [evidence](account-lifecycle-verification.md) and the [deferred recovery design](local-recovery-plan.md).
+
+## Offline recovery maintenance
+
+`OfflineRecovery({databaseUrl,databaseName,trustFile})` is a local administrator-only host/CLI boundary, never an HTTP handler. Strict `enroll`, `open`, `review`, `attest`, `apply` and read-only `verifyPassword` methods implement prior trust, two independent signatures, expiring one-use review and atomic reset/revocation/audit. Root file ownership, authority/cooling-off, offline locks and current credential/membership/instance versions fail closed. Recovered/restored databases remain activation-blocked. See [exact inputs, signing workflow, errors and remaining gates](offline-recovery.md).

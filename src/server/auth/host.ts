@@ -10,6 +10,8 @@ import {
   commitPasswordChange,
 } from "./lifecycle";
 import { connectionOptions } from "../postgres/adapter";
+import { runtimeLease } from "../postgres/runtime-lease";
+import { passwordCodec } from "./password";
 import { BodyError, readJson } from "../request-body";
 import { z } from "zod";
 import {
@@ -39,7 +41,7 @@ async function identityPool(options: LocalAuthOptions, max = 3) {
       safe: boolean;
     }>(`select current_user='lms_auth_service'
       and not r.rolsuper and not r.rolbypassrls and not r.rolcreatedb and not r.rolcreaterole and not r.rolinherit and r.rolcanlogin
-      and not exists(select 1 from pg_namespace n where n.nspname in ('lms','lms_private','lms_meta','lms_identity') and pg_has_role(session_user,n.nspowner,'MEMBER'))
+      and not exists(select 1 from pg_namespace n where n.nspname in ('lms','lms_private','lms_meta','lms_identity','lms_control') and pg_has_role(session_user,n.nspowner,'MEMBER'))
       and not exists(select 1 from pg_database d where d.datname=current_database() and pg_has_role(session_user,d.datdba,'MEMBER'))
       and not exists(select 1 from pg_roles p where p.rolname not in (session_user,'lms_auth_service') and pg_has_role(session_user,p.oid,'MEMBER')) as safe
       from pg_roles r where r.rolname=session_user`);
@@ -72,6 +74,7 @@ function authOptions(
     trustedOrigins: [options.origin],
     emailAndPassword: {
       enabled: true,
+      password: passwordCodec,
       disableSignUp: !provisioning,
       autoSignIn: false,
       minPasswordLength: passwordPolicy.minLength,
@@ -151,7 +154,18 @@ export async function createLocalAuth(options: LocalAuthOptions) {
     await pool.end();
     throw error;
   }
+  let lease: Awaited<ReturnType<typeof runtimeLease>>;
+  try {
+    lease = await runtimeLease(
+      connectionOptions({ connectionString: valid.databaseUrl }),
+      "lms_auth_service",
+    );
+  } catch (error) {
+    await Promise.all([pool.end(), coordinator.end()]);
+    throw error;
+  }
   async function identity(headers: Headers) {
+    lease.assertOpen();
     // No bearer plugin, user ID header, cached session data, or demo cookie can assert identity.
     const clean = new Headers();
     const cookie = headers.get("cookie");
@@ -213,6 +227,7 @@ export async function createLocalAuth(options: LocalAuthOptions) {
     },
     async handle(request: Request) {
       try {
+        lease.assertOpen();
         const url = new URL(request.url);
         const route = url.pathname.slice(authBasePath.length);
         const post = request.method === "POST";
@@ -319,6 +334,7 @@ export async function createLocalAuth(options: LocalAuthOptions) {
     },
     close: async () => {
       await Promise.all([pool.end(), coordinator.end()]);
+      await lease.close();
     },
   };
 }

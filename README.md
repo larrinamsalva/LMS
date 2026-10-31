@@ -56,7 +56,11 @@ The [owner access host API](docs/owner-access.md) adds session-bound reviewed ro
 
 ## Experimental account lifecycle
 
-The [host-only password-change API](docs/account-lifecycle.md) verifies the current password, requires a sign-in within five minutes, revokes all account sessions/approvals and records a secret-free credential event atomically. Owner access commands use the same recent-authentication rule. The [lost-access recovery plan](docs/local-recovery-plan.md) is design only; no reset/deletion tool or public route is enabled. See [verification and limits](docs/account-lifecycle-verification.md).
+The [host-only password-change API](docs/account-lifecycle.md) verifies the current password, requires a sign-in within five minutes, revokes all account sessions/approvals and records a secret-free credential event atomically. Owner access commands use the same recent-authentication rule. The [offline recovery contract](docs/offline-recovery.md) adds prior trust, two independently signed approvals and atomic credential replacement. It keeps recovered/restored databases blocked from normal runtime attachment; no public reset/deletion route or activation override is enabled. See [verification and limits](docs/account-lifecycle-verification.md).
+
+## Controlled offline recovery
+
+Follow [the offline recovery procedure](docs/offline-recovery.md) for provisioned fictional accounts only. Insufficient prior evidence or a separate approver means refusal. Native restores now install an activation blocker, including older archives; data can be inspected offline, but normal authentication/persistent startup remains disabled until rollback-resistant recovery is separately accepted. See [verification and limitations](docs/offline-recovery-verification.md).
 
 ## Verify
 

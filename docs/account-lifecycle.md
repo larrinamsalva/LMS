@@ -1,6 +1,6 @@
 # Experimental account lifecycle: password changes and recent sign-in
 
-This phase implements a **host-only**, self-service password change for provisioned fictional accounts. It does not add a password reset tool, public authentication route or account-deletion endpoint. The separate no-login demo remains temporary and uses migration 1 only. Lost-access recovery is [designed separately](local-recovery-plan.md) for the next reviewed phase.
+This phase implements a **host-only**, self-service password change for provisioned fictional accounts. It adds no public reset/authentication or deletion endpoint. The later [controlled offline reset](offline-recovery.md) is a separate administrator boundary with activation blocked. The separate no-login demo remains temporary and uses migration 1 only. The [offline recovery phase](offline-recovery.md) now implements the guarded reset subset; activation remains blocked.
 
 ## Setup and host contract
 
@@ -54,3 +54,5 @@ Native backups retain changed credentials and credential events, while excluding
 An older backup necessarily restores older password hashes and event history. Do not attach a host to it merely because session tables are empty: it can re-enable an old password and lose later operation IDs. Keep recovery offline until credential/secret rotation and independent identity checks have an accepted, tested procedure. This PR does not claim protection against credential rollback through arbitrary old backups, administrator compromise, MFA bypass, public TLS/proxy/session security or complete disaster recovery.
 
 See [verification evidence](account-lifecycle-verification.md), [recovery design and next phase](local-recovery-plan.md) and [security boundaries](../SECURITY.md).
+
+PR #6 tightens restore acceptance: normal authentication and persistent runtime attachment are now blocked after any supported restore, including an old archive. Earlier sign-in-after-restore verification is historical; current tests inspect restored credentials/data offline and assert refusal to activate. See [current recovery evidence](offline-recovery-verification.md).

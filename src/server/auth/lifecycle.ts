@@ -99,17 +99,12 @@ export async function commitPasswordChange(
         "select lms_identity.require_recent_session($1,$2,true)",
         [session.userId, session.sessionId],
       );
-      await client.query(
-        "select set_config('lms.credential_operation',$1,true)",
-        [operationId],
-      );
-      // Delete before updating, with rollback restoring both sessions and pending reviews on failure.
-      await client.query('delete from lms_identity.session where "userId"=$1', [
+      await replaceCredential(
+        client,
+        expected.id,
         session.userId,
-      ]);
-      await client.query(
-        'update lms_identity.account set password=$1,"updatedAt"=clock_timestamp() where id=$2',
-        [newHash, expected.id],
+        newHash,
+        operationId,
       );
       return {
         success: true as const,
@@ -131,4 +126,24 @@ export async function commitPasswordChange(
       );
     throw error;
   }
+}
+
+/** Shared atomic mutation; callers must first lock and authorize the credential/session or recovery case. */
+export async function replaceCredential(
+  client: Pick<PoolClient, "query">,
+  accountId: string,
+  userId: string,
+  newHash: string,
+  operationId: string,
+) {
+  await client.query("select set_config('lms.credential_operation',$1,true)", [
+    operationId,
+  ]);
+  await client.query('delete from lms_identity.session where "userId"=$1', [
+    userId,
+  ]);
+  await client.query(
+    'update lms_identity.account set password=$1,"updatedAt"=clock_timestamp() where id=$2 and "userId"=$3',
+    [newHash, accountId, userId],
+  );
 }

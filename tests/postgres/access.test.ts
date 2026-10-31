@@ -1,3 +1,4 @@
+import { offlineEngine, offlinePassword } from "./offline-inspection";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Client } from "pg";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -212,6 +213,7 @@ beforeAll(async () => {
   expect(await migrate(admin)).toEqual([
     "003_owner_memberships",
     "004_account_lifecycle",
+    "005_offline_recovery",
   ]);
   expect(
     (await engine.snapshot({ userId: users.owner }, oldOrg)).records[0],
@@ -632,44 +634,28 @@ describe("session-bound owner membership commands", () => {
           )
         ).rows[0].n,
       ).toBe(3);
-      await recovered.query("delete from lms_identity.rate_limit");
-      restored = await createLocalAuth({
-        ...options,
-        databaseUrl: url(restoreName, "auth"),
-        databaseName: restoreName,
-      });
-      expect(await restored.identity(headers.owner)).toBeNull();
-      restoredBusiness = await connectPostgres({
-        connectionString: url(restoreName, "business"),
-      });
-      const recoveredEngine = new Engine(restoredBusiness),
-        recoveredAccess = new AccessService(recoveredEngine, restored.identity);
-      const fresh = await login("owner", restored);
-      expect(await recoveredAccess.snapshot(fresh, org)).toEqual(expected);
       await expect(
-        recoveredAccess.confirm(fresh, {
-          reviewId: pending.reviewId,
-          confirmation: "CONFIRM ACCESS CHANGE",
+        createLocalAuth({
+          ...options,
+          databaseUrl: url(restoreName, "auth"),
+          databaseName: restoreName,
         }),
-      ).rejects.toMatchObject({ status: 403 });
+      ).rejects.toThrow(/activation blocked/i);
+      await expect(
+        connectPostgres({ connectionString: url(restoreName, "business") }),
+      ).rejects.toThrow(/activation blocked/i);
+      const recoveredEngine = offlineEngine(recovered);
       expect(
         (await recoveredEngine.snapshot({ userId: users.member }, org))
           .records[0].data.name,
       ).toBe("Fictional restored member record");
-      const review = await recoveredAccess.prepare(fresh, {
-        organizationId: org,
-        targetUserId: users.outsider,
-        action: "set-role",
-        role: "viewer",
-        revision: expected.revision,
-        reason: "Fresh reviewed change after recovery",
-      });
-      await expect(
-        recoveredAccess.confirm(fresh, {
-          reviewId: review.reviewId,
-          confirmation: "CONFIRM ACCESS CHANGE",
-        }),
-      ).resolves.toMatchObject({ revision: expected.revision + 1 });
+      expect(await offlinePassword(recovered, users.owner, password)).toBe(
+        true,
+      );
+      expect(
+        (await recovered.query("select blocked from lms_control.state")).rows[0]
+          .blocked,
+      ).toBe(true);
     } finally {
       await restored?.close();
       await restoredBusiness?.close();

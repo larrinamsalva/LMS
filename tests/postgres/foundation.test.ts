@@ -1,3 +1,4 @@
+import { offlineEngine } from "./offline-inspection";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Client } from "pg";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -317,7 +318,7 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
           "select count(*)::int as count from lms_meta.migrations",
         )
       ).rows[0].count,
-    ).toBe(4);
+    ).toBe(5);
   });
   it("rolls back failed migrations atomically and can subsequently initialize the empty database", async () => {
     await withClient(databaseUrl(names[2]), async (client) => {
@@ -326,8 +327,8 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
         migrate(client, [
           ...files,
           {
-            version: 5,
-            name: "005_intentional_failure",
+            version: 6,
+            name: "006_intentional_failure",
             sql: "create table public.partial_migration(id integer); select definitely_missing_function();",
           },
         ]),
@@ -343,6 +344,7 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
         "002_local_identity",
         "003_owner_memberships",
         "004_account_lifecycle",
+        "005_offline_recovery",
       ]);
     });
   });
@@ -385,11 +387,13 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
       archive,
       process.env.LMS_PG_BIN,
     );
-    const restoredDb = await connectPostgres({
-      connectionString: databaseUrl(names[1], true),
-    });
+    await expect(
+      connectPostgres({ connectionString: databaseUrl(names[1], true) }),
+    ).rejects.toThrow(/activation blocked/i);
+    const restoredDb = new Client({ connectionString: databaseUrl(names[1]) });
+    await restoredDb.connect();
     try {
-      const restored = new Engine(restoredDb);
+      const restored = offlineEngine(restoredDb);
       const after = await restored.exportWorkspace(principal, fixture.property);
       expect(after.records).toEqual(before.records);
       expect(after.config).toEqual(before.config);
@@ -433,16 +437,14 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
             ],
           ),
         ),
-      ).rejects.toThrow(/foreign key/i);
-      const write = await restored.saveRecord(
-        principal,
-        fixture.property,
-        "customers",
-        { name: "Written after restore" },
-      );
-      expect(write.revision).toBe(1);
+      ).rejects.toThrow(/activation blocked/i);
+      await expect(
+        restored.saveRecord(principal, fixture.property, "customers", {
+          name: "Blocked restored write",
+        }),
+      ).rejects.toThrow(/activation blocked/i);
     } finally {
-      await restoredDb.close();
+      await restoredDb.end();
     }
     expect(
       await withClient(databaseUrl(names[1]), (client) => migrate(client)),
@@ -465,7 +467,7 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
     await writeFile(file, "not a PostgreSQL archive");
     await expect(
       restoreDatabase(databaseUrl(names[0]), names[0], file),
-    ).rejects.toThrow(/not empty/i);
+    ).rejects.toThrow(/Stop runtime hosts/i);
     await expect(
       restoreDatabase(databaseUrl(names[0]), "production", file),
     ).rejects.toThrow();

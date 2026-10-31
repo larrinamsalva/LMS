@@ -1,3 +1,4 @@
+import { offlinePassword } from "./offline-inspection";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Client } from "pg";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -108,6 +109,7 @@ beforeAll(async () => {
     "002_local_identity",
     "003_owner_memberships",
     "004_account_lifecycle",
+    "005_offline_recovery",
   ]);
   await provisionRuntime(admin, url(name, "business"));
   await provisionAuthRuntime(admin, url(name, "auth"));
@@ -528,26 +530,27 @@ describe("self-hosted local identity and revocable database sessions", () => {
         archive,
         process.env.LMS_PG_BIN,
       );
-      const restored = await createLocalAuth({
-        ...options,
-        databaseUrl: url(restoreName, "auth"),
-        databaseName: restoreName,
-      });
-      try {
-        expect(await restored.principal(new Headers({ cookie }))).toBeNull();
-        const fresh = await login("owner@example.test", restored);
-        expect(
-          await restored.principal(new Headers({ cookie: fresh.cookie })),
-        ).toEqual({ userId: owner });
-      } finally {
-        await restored.close();
-      }
+      await expect(
+        createLocalAuth({
+          ...options,
+          databaseUrl: url(restoreName, "auth"),
+          databaseName: restoreName,
+        }),
+      ).rejects.toThrow(/activation blocked/i);
       const verifier = new Client({ connectionString: url(restoreName) });
       await verifier.connect();
       try {
         expect(
           (await verifier.query("select * from lms_identity.account")).rows,
         ).toHaveLength(2);
+        expect(await offlinePassword(verifier, owner, password)).toBe(true);
+        expect(
+          (await verifier.query("select blocked from lms_control.state"))
+            .rows[0].blocked,
+        ).toBe(true);
+        expect(
+          (await verifier.query("select * from lms_identity.session")).rows,
+        ).toHaveLength(0);
         expect(
           (await verifier.query("select * from lms_identity.verification"))
             .rows,

@@ -36,7 +36,7 @@ Connections to non-loopback hosts require TLS with certificate verification. A p
 
 ## Native backup and restore
 
-A workspace JSON export is not a database backup. Native backups include schema, business rows, memberships, configuration/audit history, policies, migration ledger and optional identity accounts. Session/verification/pending membership-review data is deliberately excluded and purged after restoration; users must sign in again. PostgreSQL cluster logins/passwords, future identity-provider state and document object bytes require separate recovery procedures. This foundation has no external objects/identity provider.
+A workspace JSON export is not a database backup. Native backups include schema, business rows, memberships, configuration/audit history, policies, migration ledger and optional identity accounts. Session/verification/pending membership-review data is deliberately excluded and purged after restoration; normal authentication/persistent activation is blocked pending separately accepted rollback protection. PostgreSQL cluster logins/passwords, future identity-provider state and document object bytes require separate recovery procedures. This foundation has no external objects/identity provider.
 
 Install PostgreSQL client tools matching or newer than the server, and keep `pg_dump`/`pg_restore` on PATH (or set `LMS_PG_BIN`). Create a private `backups` directory first (for example, `mkdir -m 700 backups` on Linux/macOS; on Windows restrict its ACL to your account), then:
 
@@ -56,7 +56,7 @@ docker compose --env-file .env.postgres exec -T postgres createdb -U postgres lm
 docker compose --env-file .env.postgres exec -T postgres pg_restore -U postgres -d lms_restore_rehearsal --single-transaction --exit-on-error --no-owner < fictional.dump
 ```
 
-The manual Docker restore does not perform LMS post-restore token purging. Use only the exclusion-bearing archive above and verify empty session/verification/pending-review tables before connecting a host. These Docker commands are manual alternatives; the guarded Node restore command also checks that the target is empty. Do not use `--clean` to overwrite a workspace. On a new cluster, recreate the checked NOLOGIN `lms_app` and `lms_auth_service` roles before restoration and provision a separate restricted runtime afterward; cluster credentials are intentionally not embedded in the archive. Validate migration checksums, compare restored fictional records/history, re-test unauthorized reads/writes and perform a new authorized write before accepting a recovery. A backup without a verified restore is insufficient.
+The manual Docker restore does not perform LMS post-restore token purging. Use only the exclusion-bearing archive above and verify empty session/verification/pending-review tables before connecting a host. These Docker commands are manual alternatives; the guarded Node restore command also checks that the target is empty. Do not use `--clean` to overwrite a workspace. On a new cluster, recreate the checked NOLOGIN `lms_app` and `lms_auth_service` roles before restoration and provision a separate restricted runtime afterward; cluster credentials are intentionally not embedded in the archive. Validate migration checksums, compare restored fictional records/history, inspect retained policies/rows and verify credentials offline; assert normal attachment/writes are blocked. Do not perform a runtime write or sign-in to a restored database until the separate activation gate is accepted. A backup without a verified restore is insufficient.
 
 ## Run the network tests
 
@@ -69,3 +69,5 @@ npm run test:postgres
 The suite refuses a missing URL or ordinary database name; it never silently skips. It creates randomly named test/restore databases and drops **only those databases it created**. Do not point it at a shared or real-business cluster. It tests separate application process restarts, competing record/config updates, SQL isolation, revoked membership, pooled identity reset, migration checksum/rollback, native backup/restore, failed restore and independence from the public demo. A dedicated PostgreSQL CI job runs it alongside existing foundation and responsive browser jobs.
 
 See [migration rules](../db/README.md), [verification results](postgres-verification.md) and [remaining security gates](../SECURITY.md).
+
+Current restore acceptance requires [the offline recovery contract](offline-recovery.md). The guarded command installs `lms_control.restore_blocker` even for old archives, and no init/migration can remove it. Manual Docker restore lacks that quarantine/cleanup protocol; it is for offline inspection only and is not an accepted runtime recovery path. Do not attach a host or remove the blocker.

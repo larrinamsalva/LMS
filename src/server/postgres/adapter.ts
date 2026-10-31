@@ -1,4 +1,5 @@
 import { Pool, type PoolClient } from "pg";
+import { runtimeLease } from "./runtime-lease";
 import type { SqlConnection, SqlDatabase } from "../../core/engine";
 export interface PostgresOptions {
   connectionString: string;
@@ -46,7 +47,7 @@ async function verifyRuntime(client: PoolClient) {
     not r.rolsuper and not r.rolbypassrls and not r.rolcreaterole and not r.rolcreatedb
     and not r.rolinherit and r.rolcanlogin
     and pg_has_role(session_user,'lms_app','MEMBER')
-    and not exists(select 1 from pg_namespace n where n.nspname in ('lms','lms_private','lms_meta','lms_identity') and pg_has_role(session_user,n.nspowner,'MEMBER'))
+    and not exists(select 1 from pg_namespace n where n.nspname in ('lms','lms_private','lms_meta','lms_identity','lms_control') and pg_has_role(session_user,n.nspowner,'MEMBER'))
     and not exists(select 1 from pg_database d where d.datname=current_database() and pg_has_role(session_user,d.datdba,'MEMBER')) as safe
     from pg_roles r where r.rolname=session_user`);
   if (!rows[0]?.safe)
@@ -89,12 +90,24 @@ export async function connectPostgres(
     await pool.end();
     throw error;
   }
+  let lease: Awaited<ReturnType<typeof runtimeLease>>;
+  try {
+    lease = await runtimeLease(connectionOptions(options), "lms_app", false);
+  } catch (error) {
+    await pool.end();
+    throw error;
+  }
   return {
     async query<T>(sql: string, parameters?: unknown[]) {
+      lease.assertOpen();
       return { rows: (await pool.query(sql, parameters)).rows as T[] };
     },
-    exec: (sql) => pool.query(sql),
+    exec: (sql) => {
+      lease.assertOpen();
+      return pool.query(sql);
+    },
     async transaction<T>(fn: (tx: SqlConnection) => Promise<T>) {
+      lease.assertOpen();
       const client = await pool.connect();
       let discard = false;
       try {
@@ -114,6 +127,9 @@ export async function connectPostgres(
         client.release(discard);
       }
     },
-    close: () => pool.end(),
+    close: async () => {
+      await pool.end();
+      await lease.close();
+    },
   };
 }
