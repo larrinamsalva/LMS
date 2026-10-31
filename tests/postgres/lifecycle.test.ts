@@ -1,3 +1,4 @@
+import { offlineEngine, offlinePassword } from "./offline-inspection";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Client } from "pg";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -201,7 +202,10 @@ beforeAll(async () => {
     name: "Fictional record before lifecycle migration",
   });
   const before = await engine.exportWorkspace({ userId: owner }, org);
-  expect(await migrate(admin)).toEqual(["004_account_lifecycle"]);
+  expect(await migrate(admin)).toEqual([
+    "004_account_lifecycle",
+    "005_offline_recovery",
+  ]);
   expect((await engine.snapshot({ userId: owner }, org)).records[0]).toEqual(
     record,
   );
@@ -806,49 +810,25 @@ describe("verified local credential lifecycle and recent authentication", () => 
         (await recovered.query("select * from lms_private.membership_reviews"))
           .rows,
       ).toHaveLength(0);
-      await recovered.query("delete from lms_identity.rate_limit");
-      restored = await createLocalAuth({
-        ...options,
-        databaseUrl: url(restoreName, "auth"),
-        databaseName: restoreName,
-      });
-      expect(await restored.identity(ownerHeaders)).toBeNull();
-      expect(
-        (await signIn(original, "owner@example.test", restored)).status,
-      ).toBe(401);
-      const fresh = await signIn(changed, "owner@example.test", restored);
-      expect(fresh.status).toBe(200);
-      restoredDb = await connectPostgres({
-        connectionString: url(restoreName, "business"),
-      });
-      const recoveredEngine = new Engine(restoredDb);
-      expect(await recoveredEngine.snapshot({ userId: owner }, org)).toEqual(
-        before,
-      );
-      const recoveredAccess = new AccessService(
-        recoveredEngine,
-        restored.identity,
-      );
-      expect(await recoveredAccess.snapshot(cookie(fresh), org)).toMatchObject({
-        revision: 1,
-      });
       await expect(
-        restored.changePassword(
-          cookie(fresh),
-          input(changed + "_replay", expected[0].operation_id, changed),
-        ),
-      ).rejects.toMatchObject({ status: 409 });
+        createLocalAuth({
+          ...options,
+          databaseUrl: url(restoreName, "auth"),
+          databaseName: restoreName,
+        }),
+      ).rejects.toThrow(/activation blocked/i);
       await expect(
-        restored.changePassword(
-          cookie(fresh),
-          input(changed + "_restored", randomUUID(), changed),
-        ),
-      ).resolves.toMatchObject({ success: true });
-      expect(await events(recovered)).toHaveLength(2);
+        connectPostgres({ connectionString: url(restoreName, "business") }),
+      ).rejects.toThrow(/activation blocked/i);
+      expect(await offlinePassword(recovered, owner, original)).toBe(false);
+      expect(await offlinePassword(recovered, owner, changed)).toBe(true);
       expect(
-        (await signIn(changed + "_restored", "owner@example.test", restored))
-          .status,
-      ).toBe(200);
+        await offlineEngine(recovered).snapshot({ userId: owner }, org),
+      ).toEqual(before);
+      expect(
+        (await recovered.query("select blocked from lms_control.state")).rows[0]
+          .blocked,
+      ).toBe(true);
     } finally {
       await restored?.close();
       await restoredDb?.close();

@@ -11,7 +11,8 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 - [x] Experimental host-only identity/password adapter and revocable database sessions for provisioned fictional accounts
 - [x] Experimental host-only owner membership reviews/confirmation, atomic handover, audits and fictional workspace bootstrap
 - [x] Experimental host-only verified password changes, atomic session/approval revocation, credential audits and recent-authentication controls
-- [ ] Audited lost-access recovery implementation (offline procedure designed), MFA and real-user lifecycle
+- [x] Controlled fictional offline recovery: prior trust, two independent signed approvals, atomic reset and audit
+- [ ] Rollback-resistant recovery activation, external credential lineage, MFA and real-user lifecycle
 - [ ] Membership UI and public session/transport acceptance
 - [x] Experimental host-only PostgreSQL adapter, local Compose setup, transactional migrations and dedicated network/concurrency tests
 - [x] Native fictional backup/restore rehearsal with retained policies/history

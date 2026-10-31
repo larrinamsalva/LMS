@@ -194,6 +194,12 @@ test("HTTP boundary rejects CSRF, forged scope, missing sessions and unavailable
     ).status(),
   ).toBe(404);
   expect((await request.get("/api/records")).status()).toBe(404);
+  expect((await request.post("/api/recovery", { data: {} })).status()).toBe(
+    404,
+  );
+  expect(
+    (await request.post("/api/local-auth/recovery", { data: {} })).status(),
+  ).toBe(404);
   expect(
     (
       await request.post("/api/local-auth/change-password", { data: {} })

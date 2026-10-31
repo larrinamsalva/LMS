@@ -60,3 +60,7 @@ The owner AccessService composes that verified session with Engine.asUser. Three
 ## Credential lifecycle phase
 
 Password changes compose the same identity host with Better Auth verification/configured hashing and a checked bounded coordinator connection. Credential-row locks coordinate sign-in and compare-and-swap updates across hosts; the recent-session rule is shared with owner SQL. Session/review revocation, credential update and a private credential audit commit atomically. Business permissions/history are not rewritten. Public transport and executable lost-access reset remain closed. See [the lifecycle contract](account-lifecycle.md) and [recovery acceptance plan](local-recovery-plan.md).
+
+## Offline recovery phase
+
+A local administrator maintenance service validates an external, pre-enrolled operator/evidence registry and two independently signed, version-bound reviews. It reuses the configured Better Auth codec and shared credential mutation helper. Credential-version and recovery audits are private; industry/business data is unchanged. Runtime factories use separate lifetime maintenance connections and database write guards. Restore/recovery quarantines activation until a later protected credential-lineage acceptance phase. There is no public recovery or bypass flag. See [the contract](offline-recovery.md).

@@ -1,6 +1,8 @@
-# Controlled local recovery: design for the next phase
+# Controlled local recovery plan
 
-**Design only.** PR #5 implements password changes for an authenticated user who knows the current password. It deliberately ships no lost-password reset/recovery tool. There are no verified email addresses, recovery codes, trusted contact delivery, recovery MFA or public reset endpoint. An email address, organization selection, possession of a demo cookie or knowledge of a user UUID is not identity evidence.
+PR #6 implements the [offline recovery contract](offline-recovery.md): prior trust, independently signed verification/approval, expiring one-use cases, atomic credential/session/review/audit updates and a permanent activation blocker after recovery/restore. The original design below remains a record of the acceptance goals. **Live sign-in/reactivation is deliberately blocked until older-backup credential rollback has a separately reviewed solution.** No public reset endpoint exists.
+
+**Original PR #5 design.** PR #5 implements password changes for an authenticated user who knows the current password. It deliberately ships no lost-password reset/recovery tool. There are no verified email addresses, recovery codes, trusted contact delivery, recovery MFA or public reset endpoint. An email address, organization selection, possession of a demo cookie or knowledge of a user UUID is not identity evidence.
 
 A lost-access identity currently stays locked until a separately reviewed recovery implementation is accepted. Do not work around this by editing a password hash, enabling Better Auth's reset routes, adopting an existing organization through bootstrap, deleting an owner, or granting a replacement account membership manually. `auth:revoke-all` can end known fictional sessions as existing trusted local maintenance; it is containment, not password recovery or a complete recovery audit.
 
@@ -26,4 +28,4 @@ These controls are proposed requirements, not an implemented permission bypass. 
 - Evidence that original memberships, configuration revisions and business audits survive and other users/organizations remain unaffected.
 - A private fictional-data rehearsal using the actual command. Public identity verification, TLS/proxy controls, MFA and production recovery remain separately gated.
 
-Until that follow-up is merged and verified, only the [current-password change contract](account-lifecycle.md) is executable.
+The offline reset subset is now executable under the [PR #6 contract](offline-recovery.md). Normal activation, real-user verification/MFA and complete recovery acceptance remain future gates.

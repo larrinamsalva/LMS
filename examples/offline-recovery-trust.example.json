@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "REPLACE_WITH_REGISTRY_UUID",
+  "createdAt": "REPLACE_WITH_ACTUAL_REGISTRY_DATE_UTC",
+  "operators": [
+    {
+      "id": "REPLACE_WITH_VERIFIER_UUID",
+      "personId": "REPLACE_WITH_INDEPENDENT_VERIFIER_PERSON_UUID",
+      "enrolledAt": "REPLACE_WITH_PRIOR_TRUSTED_ENROLLMENT_DATE_UTC",
+      "publicKey": "-----BEGIN PUBLIC KEY-----\nREPLACE_WITH_PREVIOUSLY_VERIFIED_ED25519_PUBLIC_KEY\n-----END PUBLIC KEY-----\n",
+      "capabilities": ["verify"]
+    },
+    {
+      "id": "REPLACE_WITH_APPROVER_UUID",
+      "personId": "REPLACE_WITH_DIFFERENT_VERIFIED_APPROVER_PERSON_UUID",
+      "enrolledAt": "REPLACE_WITH_PRIOR_TRUSTED_ENROLLMENT_DATE_UTC",
+      "publicKey": "-----BEGIN PUBLIC KEY-----\nREPLACE_WITH_SEPARATELY_HELD_ED25519_PUBLIC_KEY\n-----END PUBLIC KEY-----\n",
+      "capabilities": ["approve"]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "REPLACE_WITH_PRIOR_EVIDENCE_UUID",
+      "subjectId": "REPLACE_WITH_PROVISIONED_FICTIONAL_SUBJECT_UUID",
+      "establishedAt": "REPLACE_WITH_PRIOR_ESTABLISHED_EVIDENCE_DATE_UTC",
+      "kind": "offline-identity-record",
+      "recordDigest": "REPLACE_WITH_SHA256_REFERENCE_TO_TRUSTED_OFFLINE_RECORD"
+    }
+  ]
+}
