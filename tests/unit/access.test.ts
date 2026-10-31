@@ -80,6 +80,14 @@ describe("owner access host contracts", () => {
         confirmation: "CONFIRM ACCESS CHANGE",
       }),
     ).rejects.toMatchObject({ status: 401 });
+    // All host methods keep their Promise contract, including schema failures.
+    await expect(access.snapshot(new Headers(), "invalid")).rejects.toThrow();
+    await expect(
+      access.prepare(new Headers(), { ...input, userId: uuid }),
+    ).rejects.toThrow();
+    await expect(
+      access.confirm(new Headers(), { reviewId: uuid }),
+    ).rejects.toThrow();
     expect(resolved).toBe(3);
     expect(calls).toBe(0);
   });

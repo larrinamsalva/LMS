@@ -107,7 +107,7 @@ export class AccessService {
       throw error;
     }
   }
-  snapshot(headers: Headers, organizationId: string) {
+  async snapshot(headers: Headers, organizationId: string) {
     z.uuid().parse(organizationId);
     return this.call<AccessSnapshot>(
       headers,
@@ -115,7 +115,7 @@ export class AccessService {
       (s) => [organizationId, s.sessionId],
     );
   }
-  prepare(headers: Headers, value: unknown) {
+  async prepare(headers: Headers, value: unknown) {
     const change = accessChangeSchema.parse(value);
     return this.call<AccessReview>(
       headers,
@@ -131,7 +131,7 @@ export class AccessService {
       ],
     );
   }
-  confirm(headers: Headers, value: unknown) {
+  async confirm(headers: Headers, value: unknown) {
     const confirmation = accessConfirmationSchema.parse(value);
     return this.call<AccessReceipt>(
       headers,
