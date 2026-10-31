@@ -28,7 +28,7 @@ The normal `npm run dev`, `npm run build` and `npm start` continue to use the te
 
 ## Host integration contract
 
-Trusted future host code explicitly calls `connectPostgres({connectionString})`, passes the returned `SqlDatabase` to the existing `Engine`, and calls `close()` during shutdown. It must authenticate the user before constructing `Principal`. This PR supplies no authentication adapter; the integration tests use fictional test identities provisioned by trusted fixtures.
+Trusted future host code explicitly calls `connectPostgres({connectionString})`, passes the returned `SqlDatabase` to the existing `Engine`, and calls `close()` during shutdown. It must authenticate the user before constructing `Principal`. The separate [local identity host](local-auth.md) and [owner access service](owner-access.md) support provisioned fictional identities only; they are not mounted as HTTP business routes.
 
 The runtime login must not own the database/application schemas, have elevated attributes, or have any role membership other than `lms_app`. Its NOINHERIT status denies direct business-table queries before the engine switches locally to `lms_app`. The engine's transaction-local user assertion and PostgreSQL memberships/RLS remain the authority. Commits and rollbacks return connections without the previous caller's identity. Administrator URLs belong only to maintenance tools, never a runtime pool.
 
@@ -36,7 +36,7 @@ Connections to non-loopback hosts require TLS with certificate verification. A p
 
 ## Native backup and restore
 
-A workspace JSON export is not a database backup. Native backups include schema, business rows, memberships, configuration/audit history, policies, migration ledger and optional identity accounts. Session/verification data is deliberately excluded and purged after restoration; users must sign in again. PostgreSQL cluster logins/passwords, future identity-provider state and document object bytes require separate recovery procedures. This foundation has no external objects/identity provider.
+A workspace JSON export is not a database backup. Native backups include schema, business rows, memberships, configuration/audit history, policies, migration ledger and optional identity accounts. Session/verification/pending membership-review data is deliberately excluded and purged after restoration; users must sign in again. PostgreSQL cluster logins/passwords, future identity-provider state and document object bytes require separate recovery procedures. This foundation has no external objects/identity provider.
 
 Install PostgreSQL client tools matching or newer than the server, and keep `pg_dump`/`pg_restore` on PATH (or set `LMS_PG_BIN`). Create a private `backups` directory first (for example, `mkdir -m 700 backups` on Linux/macOS; on Windows restrict its ACL to your account), then:
 
@@ -51,12 +51,12 @@ npm run db:restore -- --database lms_restore_rehearsal --file backups/fictional.
 If only Docker is installed, use its native client tools as the alternative (run from a private directory; make the resulting archive readable only by your account):
 
 ```sh
-docker compose --env-file .env.postgres exec -T postgres pg_dump -U postgres -d lms_development --format=custom --no-owner --exclude-table-data=lms_identity.session --exclude-table-data=lms_identity.verification > fictional.dump
+docker compose --env-file .env.postgres exec -T postgres pg_dump -U postgres -d lms_development --format=custom --no-owner --exclude-table-data=lms_identity.session --exclude-table-data=lms_identity.verification --exclude-table-data=lms_private.membership_reviews > fictional.dump
 docker compose --env-file .env.postgres exec -T postgres createdb -U postgres lms_restore_rehearsal
 docker compose --env-file .env.postgres exec -T postgres pg_restore -U postgres -d lms_restore_rehearsal --single-transaction --exit-on-error --no-owner < fictional.dump
 ```
 
-The manual Docker restore does not perform LMS post-restore token purging. Use only the exclusion-bearing archive above and verify empty session/verification tables before connecting a host. These Docker commands are manual alternatives; the guarded Node restore command also checks that the target is empty. Do not use `--clean` to overwrite a workspace. On a new cluster, recreate the checked NOLOGIN `lms_app` role before restoration and provision a separate restricted runtime afterward; cluster credentials are intentionally not embedded in the archive. Validate migration checksums, compare restored fictional records/history, re-test unauthorized reads/writes and perform a new authorized write before accepting a recovery. A backup without a verified restore is insufficient.
+The manual Docker restore does not perform LMS post-restore token purging. Use only the exclusion-bearing archive above and verify empty session/verification/pending-review tables before connecting a host. These Docker commands are manual alternatives; the guarded Node restore command also checks that the target is empty. Do not use `--clean` to overwrite a workspace. On a new cluster, recreate the checked NOLOGIN `lms_app` and `lms_auth_service` roles before restoration and provision a separate restricted runtime afterward; cluster credentials are intentionally not embedded in the archive. Validate migration checksums, compare restored fictional records/history, re-test unauthorized reads/writes and perform a new authorized write before accepting a recovery. A backup without a verified restore is insufficient.
 
 ## Run the network tests
 

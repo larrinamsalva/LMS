@@ -12,14 +12,16 @@ export const checksum = (sql: string) =>
 /** Reuses the original SQL, removing only its transaction/cluster-role scaffolding. */
 export async function loadMigrations(): Promise<Migration[]> {
   return Promise.all(
-    ["001_foundation", "002_local_identity"].map(async (name, index) => ({
-      version: index + 1,
-      name,
-      sql: await readFile(
-        path.join(process.cwd(), "db", name + ".sql"),
-        "utf8",
-      ),
-    })),
+    ["001_foundation", "002_local_identity", "003_owner_memberships"].map(
+      async (name, index) => ({
+        version: index + 1,
+        name,
+        sql: await readFile(
+          path.join(process.cwd(), "db", name + ".sql"),
+          "utf8",
+        ),
+      }),
+    ),
   );
 }
 async function ensureNoLoginRole(

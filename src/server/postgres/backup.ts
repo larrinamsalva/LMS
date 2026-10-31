@@ -78,6 +78,7 @@ export async function backupDatabase(
         "--no-password",
         "--exclude-table-data=lms_identity.session",
         "--exclude-table-data=lms_identity.verification",
+        "--exclude-table-data=lms_private.membership_reviews",
       ],
       target,
       "ignore",
@@ -135,7 +136,7 @@ export async function restoreDatabase(
         "ignore",
         binDirectory,
       );
-      // Restored identity sessions are never trusted as live credentials.
+      // Restored sessions are never trusted; deleting them also cascades pending access reviews.
       // This also supports older archives without the optional identity schema.
       if (
         (

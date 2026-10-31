@@ -133,7 +133,7 @@ export async function provisionFictionalAccount(
 /** Unmounted host adapter. The public Next.js app never imports or exposes this handler. */
 export async function createLocalAuth(options: LocalAuthOptions) {
   const { auth, pool, valid } = await build(options, false);
-  async function principal(headers: Headers): Promise<Principal | null> {
+  async function identity(headers: Headers) {
     // No bearer plugin, user ID header, cached session data, or demo cookie can assert identity.
     const clean = new Headers();
     const cookie = headers.get("cookie");
@@ -142,10 +142,20 @@ export async function createLocalAuth(options: LocalAuthOptions) {
       headers: clean,
       query: { disableCookieCache: true },
     });
-    return result ? { userId: z.uuid().parse(result.user.id) } : null;
+    return result
+      ? {
+          userId: z.uuid().parse(result.user.id),
+          sessionId: z.uuid().parse(result.session.id),
+        }
+      : null;
+  }
+  async function principal(headers: Headers): Promise<Principal | null> {
+    const verified = await identity(headers);
+    return verified ? { userId: verified.userId } : null;
   }
   return {
     principal,
+    identity,
     async handle(request: Request) {
       try {
         const url = new URL(request.url);
