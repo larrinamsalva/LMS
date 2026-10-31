@@ -1,6 +1,6 @@
 # Database migrations
 
-`001_foundation.sql` remains unchanged from PR #1. The public demonstration still executes it in a fresh, temporary PGlite database. Persistent PostgreSQL uses the **same schema and engine**, through `src/server/postgres/migrations.ts` and a separately provisioned runtime login.
+`001_foundation.sql` remains unchanged from PR #1. The public demonstration executes it plus the shared business migration 7 in a fresh, temporary PGlite database; identity/recovery migrations remain separate. Persistent PostgreSQL uses the **same schema and engine**, through `src/server/postgres/migrations.ts` and a separately provisioned runtime login.
 
 ## Network migration contract
 
@@ -33,3 +33,10 @@ Migration 5 adds private recovery trust/cases/events, credential-version UUIDs a
 `006_credential_lineage.sql` uses the existing exclusive maintenance advisory lock plus non-waiting source-table locks; stop all identity/business hosts first. Existing v5+ leases prevent enrollment. The runner transaction backfills metadata baselines/audits and installs private version/credential/recovery triggers atomically. A failed migration leaves all pending schema/ledger changes unapplied. Prior SQL/checksums remain unchanged. No business data or membership/history is rewritten.
 
 A stable logical stream, sequence and SHA-256 chain are retained in backups. This database outbox is not its own trust anchor. Independently protected two-person checkpoints, a latest receipt and an off-database HMAC key are required by [the separate offline lineage contract](../docs/credential-lineage.md). Already quarantined databases are marked ineligible for genesis; neither migration nor lineage assessment removes any activation blocker. Runtime roles cannot read/write lineage tables or call its private definer helpers. Coordinate protected external custody separately from normal PostgreSQL backups.
+
+
+## Migration 7: shared relationships and resource scheduling
+
+`007_relationship_scheduling.sql` installs `btree_gist`, scoped reference/appointment projections, operation receipts and a private mutation epoch. Narrow definer triggers validate source-record relationships, retain archive/history and enforce an exclusive `[start,end)` resource constraint; runtime roles cannot mutate projections/receipts directly. A real coordination-row version rejects stale snapshot writers. All added tables force RLS.
+
+Stop all hosts first; the existing exclusive maintenance lease/table locks protect installation. All SQL/ledger changes are transactional. Existing records/configurations/roles/audits are preserved, and untracked appointment rows fail enrollment. New presets enable the module only for newly created fictional workspaces; no old work schema is silently changed. See [upgrade/retry/DST/constraint contract](../docs/shared-scheduling.md). Neither this migration nor native restore unblocks activation.

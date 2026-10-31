@@ -328,7 +328,10 @@ beforeAll(async () => {
         )
       ).rows[0].count,
     ).toBe(5);
-    expect(await migrate(source)).toEqual(["006_credential_lineage"]);
+    expect(await migrate(source)).toEqual([
+      "006_credential_lineage",
+      "007_relationship_scheduling",
+    ]);
     expect(await business(source)).toEqual(before);
   } finally {
     await source.end();
@@ -812,7 +815,10 @@ describe("external credential lineage with native PostgreSQL and offline witness
     await backupDatabase(url(legacy), legacy, file, process.env.LMS_PG_BIN);
     const target = await restore(file);
     await inspect(target, async (c) => {
-      expect(await migrate(c)).toEqual(["006_credential_lineage"]);
+      expect(await migrate(c)).toEqual([
+        "006_credential_lineage",
+        "007_relationship_scheduling",
+      ]);
       expect(
         (
           await c.query(

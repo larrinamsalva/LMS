@@ -61,6 +61,19 @@ export function ProjectPanel({
             maxLength={80}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
           />
+          <label htmlFor="business-zone">Business time zone</label>
+          <input
+            id="business-zone"
+            value={draft.timeZone ?? "UTC"}
+            required
+            maxLength={80}
+            onChange={(e) => setDraft({ ...draft, timeZone: e.target.value })}
+          />
+          <p className="muted">
+            Use an IANA zone such as America/Los_Angeles or UTC. This changes
+            schedule display and new-booking defaults; existing booking instants
+            stay fixed.
+          </p>
           <div className="form-grid terminology">
             <div>
               <label htmlFor="customer-singular">
@@ -258,7 +271,7 @@ export function ProjectPanel({
           foundation. No invoices, messages, payment processing or AI actions
           run here.
         </p>
-        <a href="https://github.com/larrinamsalva/LMS/blob/feat/configurable-foundation/ROADMAP.md">
+        <a href="https://github.com/larrinamsalva/LMS/blob/main/ROADMAP.md">
           View the public roadmap ↗
         </a>
       </section>

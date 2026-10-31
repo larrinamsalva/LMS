@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ConfigurationError } from "../../../core/config";
+import { TimeError } from "../../../core/time";
 import { EngineError } from "../../../core/engine";
 import { sameOrigin } from "../../../server/request-origin";
 import { BodyError, readJson } from "../../../server/request-body";
@@ -26,6 +27,7 @@ const command = z.discriminatedUnion("action", [
       organizationId: org,
       entity: z.string().max(40),
       data: z.unknown(),
+      operationId: org.optional(),
       existing: z.object({ id: org, revision: rev }).strict().optional(),
     })
     .strict(),
@@ -36,6 +38,7 @@ const command = z.discriminatedUnion("action", [
       recordId: org,
       revision: rev,
       archived: z.boolean(),
+      operationId: org.optional(),
     })
     .strict(),
   z
@@ -54,7 +57,7 @@ function failure(error: unknown) {
       { error: error.message },
       { status: error.status, headers },
     );
-  if (error instanceof ConfigurationError)
+  if (error instanceof ConfigurationError || error instanceof TimeError)
     return NextResponse.json(
       { error: error.message },
       { status: 400, headers },
@@ -140,6 +143,7 @@ export async function POST(request: NextRequest) {
         input.entity,
         input.data,
         input.existing,
+        input.operationId,
       );
     if (input.action === "archive")
       await engine.archiveRecord(
@@ -148,6 +152,7 @@ export async function POST(request: NextRequest) {
         input.recordId,
         input.revision,
         input.archived,
+        input.operationId,
       );
     if (input.action === "configure")
       await engine.publishConfig(

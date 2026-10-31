@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TimeError } from "./time";
 import {
   activeEntities,
   getEntity,
@@ -51,6 +52,31 @@ export class EngineError extends Error {
     super(message);
   }
 }
+function recordFailure(error: unknown): never {
+  if (error instanceof TimeError) throw new EngineError(error.message, 400);
+  const e = error as { code?: string; message?: string };
+  if (e.code === "23P01")
+    throw new EngineError(
+      "This resource already has an appointment during that time. Choose another time or resource.",
+      409,
+    );
+  if (["40001", "40P01", "55P03"].includes(e.code ?? ""))
+    throw new EngineError(
+      "Concurrent work changed this workspace. Reload and review before retrying.",
+      409,
+    );
+  if (e.code === "23514")
+    throw new EngineError(
+      e.message ?? "Check the related records and appointment range.",
+      409,
+    );
+  if (["23503", "23505"].includes(e.code ?? ""))
+    throw new EngineError(
+      "The related record or operation changed. Reload before continuing.",
+      409,
+    );
+  throw error;
+}
 const id = z.uuid();
 const revision = z.number().int().min(1);
 const allRoles = ["owner", "admin", "staff", "viewer"];
@@ -67,6 +93,7 @@ export class Engine {
       await tx.query("select set_config('lms.user_id',$1,true)", [
         principal.userId,
       ]);
+      await tx.query("select set_config('lms.record_command','',true)");
       return fn(tx);
     });
   }
@@ -99,6 +126,33 @@ export class Engine {
     if (!row)
       throw new EngineError("Workspace configuration is unavailable.", 404);
     return { ...row, document: validateConfig(row.document) };
+  }
+  private async command(
+    tx: SqlConnection,
+    organizationId: string,
+    operationId: string | undefined,
+    request: unknown,
+  ) {
+    if (!operationId) return null;
+    id.parse(operationId);
+    const previous = (
+      await tx.query<{ result: WorkspaceRecord; matches: boolean }>(
+        "select result,request=$3::jsonb as matches from lms.record_operations where organization_id=$1 and operation_id=$2",
+        [organizationId, operationId, request],
+      )
+    ).rows[0];
+    if (previous) {
+      if (!previous.matches)
+        throw new EngineError(
+          "This operation identifier already belongs to a different request.",
+          409,
+        );
+      return previous.result;
+    }
+    await tx.query("select set_config('lms.record_command',$1,true)", [
+      JSON.stringify({ operationId, request }),
+    ]);
+    return null;
   }
   async snapshot(principal: Principal, organizationId: string) {
     return this.asUser(principal, async (tx) => {
@@ -143,6 +197,7 @@ export class Engine {
     entityId: string,
     data: unknown,
     existing?: { id: string; revision: number },
+    operationId?: string,
   ) {
     return this.asUser(principal, async (tx) => {
       await this.requireRole(tx, organizationId, ["owner", "admin", "staff"]);
@@ -153,6 +208,13 @@ export class Engine {
       );
       const config = await this.current(tx, organizationId);
       const clean = validateRecord(getEntity(config.document, entityId), data);
+      const replay = await this.command(tx, organizationId, operationId, {
+        kind: "save",
+        entity: entityId,
+        data: clean,
+        existing: existing ?? null,
+      });
+      if (replay) return replay;
       if (existing) {
         id.parse(existing.id);
         revision.parse(existing.revision);
@@ -193,7 +255,7 @@ export class Engine {
           [organizationId, entityId, clean, config.revision, principal.userId],
         )
       ).rows[0];
-    });
+    }).catch(recordFailure);
   }
   async archiveRecord(
     principal: Principal,
@@ -201,6 +263,7 @@ export class Engine {
     recordId: string,
     expectedRevision: number,
     archived: boolean,
+    operationId?: string,
   ) {
     id.parse(recordId);
     revision.parse(expectedRevision);
@@ -220,6 +283,13 @@ export class Engine {
       ).rows[0];
       if (!record) throw new EngineError("Record unavailable.", 404);
       getEntity(config.document, record.entity);
+      const replay = await this.command(tx, organizationId, operationId, {
+        kind: "archive",
+        recordId,
+        revision: expectedRevision,
+        archived,
+      });
+      if (replay) return replay;
       const row = (
         await tx.query<WorkspaceRecord>(
           "update lms.records set archived=$1,config_revision=$2 where organization_id=$3 and id=$4 and revision=$5 returning *",
@@ -235,7 +305,7 @@ export class Engine {
       if (!row)
         throw new EngineError("Record changed. Reload before continuing.", 409);
       return row;
-    });
+    }).catch(recordFailure);
   }
   async publishConfig(
     principal: Principal,

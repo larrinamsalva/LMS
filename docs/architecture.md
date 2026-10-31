@@ -6,7 +6,7 @@ One engine. Any business. Your data. Your control.
 
 Next.js App Router + React + strict TypeScript retain practical ForgeOS compatibility. A framework-independent core validates versioned JSON business configurations and module manifests. The same record service, forms, SQL and audit history operate property and cleaning presets. Industry terminology, fields and enabled modules live in configuration. This foundation is not a complete property/cleaning product or website builder.
 
-The smallest vertical slice is operational custom records: customers, property units or cleaning jobs, and tasks. Create, edit, archive, search, export, configuration revision/rollback and audit review work. Optional inventory is a simple item catalog, not a stock ledger. Billing, service-rate calculations, quotes, scheduling conflict protection, documents, reports and external actions remain staged modules. The UI labels their availability honestly.
+The smallest vertical slice is operational custom records: customers, property units or cleaning jobs, and tasks. Create, edit, archive, search, export, configuration revision/rollback and audit review work. Optional inventory is a simple item catalog, not a stock ledger. Billing, service-rate calculations, quotes, advanced recurring scheduling, documents, reports and external actions remain staged modules. The UI labels their availability honestly.
 
 ## Boundaries
 
@@ -43,7 +43,7 @@ Configurations have a schema version and append-only revision. Publishing requir
 
 ## Future engine contracts
 
-Scheduling will need timezone-aware intervals and collision rules. Inventory will need immutable signed movements. Estimates/invoices will need exact decimal strings/integer minor units, tax snapshots, idempotent commands and correction histories. Documents will need scoped metadata plus private object bytes. Workflows will use allowlisted deterministic events/conditions/actions; no eval or arbitrary code. Reports need scoped server queries; backups must include database, credentials/identity, object bytes and tested restore, distinct from workspace JSON export. Import must be atomic, validate every row and never overwrite identity/history. AI is an optional adapter with an explicit data preview and confirmation; manual features remain complete.
+Shared scheduling now supplies explicit instants, retained booking zones and a native exclusion constraint; recurrence and crew availability remain later work. Inventory will need immutable signed movements. Estimates/invoices will need exact decimal strings/integer minor units, tax snapshots, idempotent commands and correction histories. Documents will need scoped metadata plus private object bytes. Workflows will use allowlisted deterministic events/conditions/actions; no eval or arbitrary code. Reports need scoped server queries; backups must include database, credentials/identity, object bytes and tested restore, distinct from workspace JSON export. Import must be atomic, validate every row and never overwrite identity/history. AI is an optional adapter with an explicit data preview and confirmation; manual features remain complete.
 
 See [API](api.md), [security](../SECURITY.md), [roadmap](../ROADMAP.md) and [extraction assessment](extraction-assessment.md).
 
@@ -69,3 +69,8 @@ A local administrator maintenance service validates an external, pre-enrolled op
 ## Credential lineage foundation
 
 Migration 6 adds transaction-bound credential/version/recovery metadata to a private sequential hash chain. `src/server/lineage` separates strict versioned cryptographic formats from a local offline assessor, reusing recovery locks, trust enrollment and signature checks. Two external witnesses bind the stream/epoch/head and opaque credential-state commitments; an independently retained latest digest supplies the freshness assumption that a hash chain cannot provide alone. Journal/key/pin custody and publication remain manual and separate from DB backups. Assessment preserves blockers and changes no identity/business data. See [trust, failure model and deferred acceptance](credential-lineage.md).
+
+
+## Shared relationship and scheduling phase
+
+The `scheduling` manifest supplies resource/appointment record definitions. Reference field targets and industry terms live in configuration; jobs/tasks link customers using the existing record API and forms. Migration 7 derives scoped FK links and interval projections from source records, with forced RLS, private triggers, a coordination epoch and GiST exclusion. Record/audit/projection/receipt commit atomically. The daily agenda consumes the same scoped snapshot and generated editor in both presets. A maintained Temporal polyfill handles local-time gaps/folds; stored booking instants survive business display-zone changes. See [the complete contract](shared-scheduling.md) for migration preservation, one-resource/24-hour bounds and deferred public/session/recurrence acceptance.
