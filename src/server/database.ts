@@ -1,13 +1,20 @@
+import { btree_gist } from "@electric-sql/pglite/contrib/btree_gist";
 import { PGlite } from "@electric-sql/pglite";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { SqlDatabase } from "../core/engine";
 /** Embedded PostgreSQL: no external database or environment credentials are read. */
 export async function createDatabase() {
-  const db = new PGlite();
+  const db = new PGlite({ extensions: { btree_gist } });
   try {
     await db.exec(
       await readFile(path.join(process.cwd(), "db/001_foundation.sql"), "utf8"),
+    );
+    await db.exec(
+      await readFile(
+        path.join(process.cwd(), "db/007_relationship_scheduling.sql"),
+        "utf8",
+      ),
     );
     return db;
   } catch (error) {

@@ -1,0 +1,18 @@
+{
+  "id": "scheduling",
+  "version": "1.0.0",
+  "engineApi": 1,
+  "name": "Shared scheduling",
+  "description": "Customer-linked appointments with exclusive resource conflict checks.",
+  "dependencies": [
+    "customers"
+  ],
+  "entities": [
+    "resources",
+    "appointments"
+  ],
+  "capabilities": [
+    "records:read",
+    "records:write"
+  ]
+}

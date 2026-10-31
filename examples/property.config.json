@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "id": "property-starter",
   "name": "Cedar Grove Property",
+  "timeZone": "America/Los_Angeles",
   "industry": "property",
   "modules": [
     {
@@ -18,6 +19,10 @@
     },
     {
       "id": "inventory",
+      "version": "1.0.0"
+    },
+    {
+      "id": "scheduling",
       "version": "1.0.0"
     }
   ],
@@ -58,8 +63,8 @@
     {
       "id": "tasks",
       "module": "tasks",
-      "singular": "Task",
-      "plural": "Tasks",
+      "singular": "Maintenance request",
+      "plural": "Maintenance requests",
       "titleField": "title",
       "fields": [
         {
@@ -67,6 +72,13 @@
           "label": "Task title",
           "type": "text",
           "required": true
+        },
+        {
+          "key": "customer",
+          "label": "Customer",
+          "type": "reference",
+          "required": false,
+          "target": "customers"
         },
         {
           "key": "status",
@@ -90,6 +102,13 @@
           "label": "Notes",
           "type": "longtext",
           "required": false
+        },
+        {
+          "key": "site",
+          "label": "Site or unit",
+          "type": "reference",
+          "required": false,
+          "target": "units"
         }
       ]
     },
@@ -115,6 +134,123 @@
         {
           "key": "notes",
           "label": "Reorder notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "resources",
+      "module": "scheduling",
+      "singular": "Worker or resource",
+      "plural": "Workers & resources",
+      "titleField": "name",
+      "fields": [
+        {
+          "key": "name",
+          "label": "Resource name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "kind",
+          "label": "Resource type",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Crew",
+            "Worker",
+            "Equipment"
+          ]
+        },
+        {
+          "key": "notes",
+          "label": "Resource notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "appointments",
+      "module": "scheduling",
+      "singular": "Maintenance appointment",
+      "plural": "Maintenance appointments",
+      "titleField": "title",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Appointment title",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "customer",
+          "label": "Customer",
+          "type": "reference",
+          "required": true,
+          "target": "customers"
+        },
+        {
+          "key": "work",
+          "label": "Maintenance request",
+          "type": "reference",
+          "required": true,
+          "target": "tasks"
+        },
+        {
+          "key": "site",
+          "label": "Site or unit",
+          "type": "reference",
+          "required": false,
+          "target": "units"
+        },
+        {
+          "key": "resource",
+          "label": "Assigned worker / resource",
+          "type": "reference",
+          "required": true,
+          "target": "resources"
+        },
+        {
+          "key": "start",
+          "label": "Start time",
+          "type": "datetime",
+          "required": true
+        },
+        {
+          "key": "end",
+          "label": "End time",
+          "type": "datetime",
+          "required": true
+        },
+        {
+          "key": "scheduled_date",
+          "label": "Scheduled date",
+          "type": "date",
+          "required": true
+        },
+        {
+          "key": "time_zone",
+          "label": "Booking time zone",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "status",
+          "label": "Appointment status",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Scheduled",
+            "In progress",
+            "Completed",
+            "Cancelled"
+          ]
+        },
+        {
+          "key": "notes",
+          "label": "Appointment notes",
           "type": "longtext",
           "required": false
         }
@@ -168,6 +304,8 @@
     "customers",
     "units",
     "tasks",
+    "resources",
+    "appointments",
     "items"
   ]
 }

@@ -1,11 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   activeEntities,
   type BusinessConfig,
   type RecordData,
 } from "../core/config";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
+import { Schedule, relatedLabel } from "./schedule";
+import { displayTime } from "../core/time";
 import { RecordForm } from "./record-form";
 import { downloadJson, ProjectPanel } from "./project-panel";
 type DemoResponse = {
@@ -37,13 +39,14 @@ export function Workspace() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [view, setView] = useState<"records" | "project" | "activity">(
-    "records",
-  );
+  const [view, setView] = useState<
+    "records" | "project" | "activity" | "schedule"
+  >("records");
   const [selected, setSelected] = useState("customers");
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [editor, setEditor] = useState<WorkspaceRecord | "new" | null>(null);
+  const archiveOperation = useRef("");
   const [archive, setArchive] = useState<WorkspaceRecord | null>(null);
   useEffect(() => {
     let active = true;
@@ -288,6 +291,15 @@ export function Workspace() {
                   </button>
                 );
               })}
+              {config!.modules.some((m) => m.id === "scheduling") && (
+                <button
+                  className={`nav-item ${view === "schedule" ? "active" : ""}`}
+                  disabled={busy}
+                  onClick={() => changeView("schedule")}
+                >
+                  Schedule
+                </button>
+              )}
               <span className="nav-label">YOUR SYSTEM</span>
               <button
                 className={`nav-item ${view === "project" ? "active" : ""}`}
@@ -350,6 +362,33 @@ export function Workspace() {
                   Start or reload demo
                 </button>
               </div>
+            )}
+            {view === "schedule" && (
+              <Schedule
+                records={workspace!.records}
+                zone={config!.timeZone ?? "UTC"}
+                canWrite={canWrite}
+                busy={busy}
+                onAdd={() => {
+                  setSelected("appointments");
+                  setView("records");
+                  setEditor("new");
+                  setArchive(null);
+                }}
+                onEdit={(record) => {
+                  setSelected("appointments");
+                  setView("records");
+                  setEditor(record);
+                  setArchive(null);
+                }}
+                onArchive={(record) => {
+                  setSelected("appointments");
+                  setView("records");
+                  setEditor(null);
+                  archiveOperation.current = crypto.randomUUID();
+                  setArchive(record);
+                }}
+              />
             )}
             {view === "records" && entity && (
               <>
@@ -461,7 +500,23 @@ export function Workspace() {
                                   .map((f) => (
                                     <div key={f.key}>
                                       <dt>{f.label}</dt>
-                                      <dd>{record.data[f.key]}</dd>
+                                      <dd>
+                                        {f.type === "reference"
+                                          ? relatedLabel(
+                                              record.data[f.key],
+                                              workspace!.records,
+                                            )
+                                          : f.type === "datetime"
+                                            ? displayTime(
+                                                String(record.data[f.key]),
+                                                String(
+                                                  record.data.time_zone ??
+                                                    config!.timeZone ??
+                                                    "UTC",
+                                                ),
+                                              )
+                                            : record.data[f.key]}
+                                      </dd>
                                     </div>
                                   ))}
                               </dl>
@@ -488,6 +543,8 @@ export function Workspace() {
                                 disabled={!canWrite || busy}
                                 aria-label={`${record.archived ? "Restore" : "Archive"} ${title}`}
                                 onClick={() => {
+                                  archiveOperation.current =
+                                    crypto.randomUUID();
                                   setArchive(record);
                                   setEditor(null);
                                 }}
@@ -530,6 +587,7 @@ export function Workspace() {
                               recordId: archive.id,
                               revision: archive.revision,
                               archived: !archive.archived,
+                              operationId: archiveOperation.current,
                             },
                             archive.archived
                               ? "Record restored."
@@ -554,16 +612,22 @@ export function Workspace() {
                   <RecordForm
                     key={`${workspace!.organizationId}-${entity.id}-${editor === "new" ? "new" : editor.id}`}
                     entity={entity}
+                    records={workspace!.records}
+                    businessZone={config!.timeZone ?? "UTC"}
                     record={editor === "new" ? undefined : editor}
                     busy={busy}
                     onCancel={() => setEditor(null)}
-                    onSave={async (recordData: RecordData) => {
+                    onSave={async (
+                      recordData: RecordData,
+                      operationId: string,
+                    ) => {
                       await mutate(
                         {
                           action: "save",
                           organizationId: workspace!.organizationId,
                           entity: entity.id,
                           data: recordData,
+                          operationId,
                           ...(editor === "new"
                             ? {}
                             : {

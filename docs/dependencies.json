@@ -684,6 +684,16 @@
       "source": "https://registry.npmjs.org/@jridgewell/trace-mapping/-/trace-mapping-0.3.31.tgz"
     },
     {
+      "path": "node_modules/@js-temporal/polyfill",
+      "name": "@js-temporal/polyfill",
+      "version": "0.5.1",
+      "license": "ISC",
+      "development": false,
+      "optional": false,
+      "integrity": "sha512-hloP58zRVCRSpgDxmqCWJNlizAlUgJFqG2ypq79DCvyv9tHjRYMDOcPFjzfl/A1/YxDvRCZz8wvZvmapQnKwFQ==",
+      "source": "https://registry.npmjs.org/@js-temporal/polyfill/-/polyfill-0.5.1.tgz"
+    },
+    {
       "path": "node_modules/@next/env",
       "name": "@next/env",
       "version": "16.4.3",
@@ -1262,6 +1272,16 @@
       "optional": false,
       "integrity": "sha512-3JasLuki1NRLQvY4wCoC37KZk4qxoBx2k2aFqLxT84IezqW0bkJKnNtxnZj/Fu1xsQivoc/lytxaRHJoGLjJ1A==",
       "source": "https://registry.npmjs.org/jose/-/jose-6.2.14.tgz"
+    },
+    {
+      "path": "node_modules/jsbi",
+      "name": "jsbi",
+      "version": "4.3.2",
+      "license": "Apache-2.0",
+      "development": false,
+      "optional": false,
+      "integrity": "sha512-9fqMSQbhJykSeii05nxKl4m6Eqn2P6rOlYiS+C5Dr/HPIU/7yZxu5qzbs40tgaFORiw2Amd0mirjxatXYMkIew==",
+      "source": "https://registry.npmjs.org/jsbi/-/jsbi-4.3.2.tgz"
     },
     {
       "path": "node_modules/kysely",

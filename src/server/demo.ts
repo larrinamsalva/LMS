@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { PGlite } from "@electric-sql/pglite";
 import { Engine, EngineError, type Principal } from "../core/engine";
+import { seedSchedule } from "../presets/schedule-samples";
 import { presets, sampleRecords } from "../presets";
 import { createDatabase, sqlDatabase } from "./database";
 export interface DemoSession {
@@ -78,7 +79,7 @@ export async function startDemo() {
       }
     });
     try {
-      for (const org of organizations)
+      for (const org of organizations) {
         for (const record of sampleRecords[org.industry])
           await rt.engine.saveRecord(
             principal,
@@ -86,6 +87,8 @@ export async function startDemo() {
             record.entity,
             record.data,
           );
+        await seedSchedule(rt.engine, principal, org.id);
+      }
     } catch (error) {
       for (const org of organizations)
         await rt.db.query("delete from lms.organizations where id=$1", [

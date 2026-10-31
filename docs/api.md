@@ -65,3 +65,8 @@ The [local identity adapter](local-auth.md) can validate a distinct signed auth 
 ## Custodian publication API
 
 `CheckpointPublisher({directory,trustFile,expectedRootDigest?})` runs on separate offline Linux custody storage with no database/HMAC/private signing key. `initialize(journal,input)` enrolls a new root using an independently reviewed checkpoint digest; `review(journal,input)` produces an expiring context; `publish(journal,input)` requires two purpose-specific signatures and confirmation; `resume(input)` completes only the exact unexpired intent; `verify(input)` requires an independently retained minimum receipt and returns the verified latest descendant/journal. Every result that reports activation says false. Strict schemas, durability sequence, custody separation, limits and CLI inputs are documented in [the publication contract](checkpoint-publication.md). No HTTP endpoint is added.
+
+
+## Shared scheduling and record command receipts
+
+`reference` fields declare a target entity and store an organization-scoped record UUID; `datetime` fields store explicit UTC instants. The optional `scheduling` manifest defines the shared `resources`/`appointments` contract; work target/terms are configuration. Existing `saveRecord(..., existing?, operationId?)` and `archiveRecord(..., archived, operationId?)` now support scoped immutable command receipts. Identical retries return the original result; altered retries and stale edits fail. The demo's existing save/archive JSON allow `operationId`; no persistent endpoint is mounted. See [field names, ranges, statuses, DST, roles, archive rules and retries](shared-scheduling.md).

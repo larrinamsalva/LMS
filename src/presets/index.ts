@@ -3,6 +3,7 @@ import {
   type BusinessConfig,
   type FieldDefinition,
 } from "../core/config";
+import { appointmentStatuses } from "../core/time";
 const field = (
   key: string,
   label: string,
@@ -16,6 +17,74 @@ const field = (
   required,
   ...(options ? { options } : {}),
 });
+const reference = (
+  key: string,
+  label: string,
+  target: string,
+  required = false,
+): FieldDefinition => ({ key, label, type: "reference", target, required });
+const scheduling = (industry: "property" | "cleaning") => [
+  {
+    id: "resources",
+    module: "scheduling",
+    singular:
+      industry === "cleaning" ? "Crew or resource" : "Worker or resource",
+    plural:
+      industry === "cleaning" ? "Crews & resources" : "Workers & resources",
+    titleField: "name",
+    fields: [
+      field("name", "Resource name", "text", true),
+      field("kind", "Resource type", "select", true, [
+        "Crew",
+        "Worker",
+        "Equipment",
+      ]),
+      field("notes", "Resource notes", "longtext"),
+    ],
+  },
+  {
+    id: "appointments",
+    module: "scheduling",
+    singular:
+      industry === "cleaning"
+        ? "Cleaning appointment"
+        : "Maintenance appointment",
+    plural:
+      industry === "cleaning"
+        ? "Cleaning appointments"
+        : "Maintenance appointments",
+    titleField: "title",
+    fields: [
+      field("title", "Appointment title", "text", true),
+      reference("customer", "Customer", "customers", true),
+      reference(
+        "work",
+        industry === "cleaning" ? "Cleaning job" : "Maintenance request",
+        industry === "cleaning" ? "jobs" : "tasks",
+        true,
+      ),
+      ...(industry === "property"
+        ? [reference("site", "Site or unit", "units")]
+        : []),
+      reference(
+        "resource",
+        industry === "cleaning"
+          ? "Assigned crew / resource"
+          : "Assigned worker / resource",
+        "resources",
+        true,
+      ),
+      field("start", "Start time", "datetime", true),
+      field("end", "End time", "datetime", true),
+      field("scheduled_date", "Scheduled date", "date", true),
+      field("time_zone", "Booking time zone", "text", true),
+      field("status", "Appointment status", "select", true, [
+        ...appointmentStatuses,
+      ]),
+      field("notes", "Appointment notes", "longtext"),
+    ],
+  },
+];
 const common = [
   {
     id: "customers",
@@ -38,6 +107,7 @@ const common = [
     titleField: "title",
     fields: [
       field("title", "Task title", "text", true),
+      reference("customer", "Customer", "customers"),
       field("status", "Status", "select", true, [
         "Open",
         "In progress",
@@ -66,12 +136,25 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
     id: "property-starter",
     name: "Cedar Grove Property",
     industry: "property",
-    modules: ["customers", "tasks", "property", "inventory"].map((id) => ({
-      id,
-      version: "1.0.0",
-    })),
+    timeZone: "America/Los_Angeles",
+    modules: ["customers", "tasks", "property", "inventory", "scheduling"].map(
+      (id) => ({
+        id,
+        version: "1.0.0",
+      }),
+    ),
     entities: [
-      ...common,
+      ...common.map((e) =>
+        e.id === "tasks"
+          ? {
+              ...e,
+              singular: "Maintenance request",
+              plural: "Maintenance requests",
+              fields: [...e.fields, reference("site", "Site or unit", "units")],
+            }
+          : e,
+      ),
+      ...scheduling("property"),
       {
         id: "units",
         module: "property",
@@ -94,19 +177,30 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
         ],
       },
     ],
-    navigation: ["customers", "units", "tasks", "items"],
+    navigation: [
+      "customers",
+      "units",
+      "tasks",
+      "resources",
+      "appointments",
+      "items",
+    ],
   }),
   cleaning: validateConfig({
     schemaVersion: 1,
     id: "cleaning-starter",
     name: "Bright Path Cleaning",
     industry: "cleaning",
-    modules: ["customers", "tasks", "cleaning", "inventory"].map((id) => ({
-      id,
-      version: "1.0.0",
-    })),
+    timeZone: "America/Los_Angeles",
+    modules: ["customers", "tasks", "cleaning", "inventory", "scheduling"].map(
+      (id) => ({
+        id,
+        version: "1.0.0",
+      }),
+    ),
     entities: [
       ...common,
+      ...scheduling("cleaning"),
       {
         id: "jobs",
         module: "cleaning",
@@ -115,6 +209,7 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
         titleField: "title",
         fields: [
           field("title", "Job title", "text", true),
+          reference("customer", "Customer", "customers"),
           field("service", "Service", "select", true, [
             "Standard clean",
             "Move-out clean",
@@ -131,7 +226,14 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
         ],
       },
     ],
-    navigation: ["customers", "jobs", "tasks", "items"],
+    navigation: [
+      "customers",
+      "jobs",
+      "tasks",
+      "resources",
+      "appointments",
+      "items",
+    ],
   }),
 };
 export const sampleRecords = {

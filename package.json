@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.14",
+    "@js-temporal/polyfill": "0.5.1",
     "better-auth": "1.7.14",
     "kysely": "0.29.7",
     "next": "16.4.3",

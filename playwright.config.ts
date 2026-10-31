@@ -22,6 +22,10 @@ export default defineConfig({
       },
     },
     {
+      name: "tablet",
+      use: { ...devices["iPad (gen 7)"], defaultBrowserType: "chromium" },
+    },
+    {
       name: "phone",
       use: { ...devices["iPhone 13"], defaultBrowserType: "chromium" },
     },

@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  isTimeZone,
+  normalizeInstant,
+  validateAppointment,
+  appointmentStatuses,
+} from "./time";
 import { moduleById } from "../modules/registry";
 const reserved = new Set([
   "__proto__",
@@ -19,9 +25,19 @@ export const fieldSchema = z
   .object({
     key,
     label,
-    type: z.enum(["text", "longtext", "email", "date", "number", "select"]),
+    type: z.enum([
+      "text",
+      "longtext",
+      "email",
+      "date",
+      "number",
+      "select",
+      "reference",
+      "datetime",
+    ]),
     required: z.boolean(),
     options: z.array(label).min(1).max(20).optional(),
+    target: key.optional(),
   })
   .strict()
   .superRefine((f, ctx) => {
@@ -29,6 +45,11 @@ export const fieldSchema = z
       ctx.addIssue({
         code: "custom",
         message: "Only select fields must have options.",
+      });
+    if ((f.type === "reference") !== !!f.target)
+      ctx.addIssue({
+        code: "custom",
+        message: "Only reference fields must name a target entity.",
       });
     if (f.options && new Set(f.options).size !== f.options.length)
       ctx.addIssue({ code: "custom", message: "Duplicate options." });
@@ -62,6 +83,11 @@ export const businessConfigSchema = z
     schemaVersion: z.literal(1),
     id: key,
     name: label,
+    timeZone: z
+      .string()
+      .max(80)
+      .refine(isTimeZone, "Use an IANA business time zone.")
+      .optional(),
     industry: z.enum(["property", "cleaning", "custom"]),
     modules: z
       .array(z.object({ id: key, version: z.literal("1.0.0") }).strict())
@@ -105,6 +131,64 @@ export const businessConfigSchema = z
       )
         error(`Entity ${entity.id} is not provided by ${entity.module}.`);
     }
+    for (const entity of config.entities) {
+      for (const field of entity.fields.filter((f) => f.type === "reference")) {
+        const target = config.entities.find((e) => e.id === field.target);
+        if (
+          !target ||
+          (field.required &&
+            enabled.has(entity.module) &&
+            !enabled.has(target.module))
+        )
+          error(`Reference target ${field.target} is unavailable.`);
+      }
+      if (entity.id === "appointments") {
+        if (
+          JSON.stringify(
+            entity.fields.find((f) => f.key === "status")?.options,
+          ) !== JSON.stringify(appointmentStatuses)
+        )
+          error("Scheduling status options must match the module contract.");
+
+        const work = config.entities.find(
+          (e) => e.id === entity.fields.find((f) => f.key === "work")?.target,
+        );
+        if (
+          !work?.fields.some(
+            (f) =>
+              f.key === "customer" &&
+              f.type === "reference" &&
+              f.target === "customers",
+          )
+        )
+          error("Scheduled work needs a customer reference.");
+        const required = {
+          title: "text",
+          customer: "reference",
+          work: "reference",
+          resource: "reference",
+          start: "datetime",
+          end: "datetime",
+          scheduled_date: "date",
+          time_zone: "text",
+          status: "select",
+        };
+        for (const [key, type] of Object.entries(required))
+          if (
+            !entity.fields.some(
+              (f) => f.key === key && f.type === type && f.required,
+            )
+          )
+            error(`Scheduling requires ${key}.`);
+        if (
+          entity.fields.find((f) => f.key === "customer")?.target !==
+            "customers" ||
+          entity.fields.find((f) => f.key === "resource")?.target !==
+            "resources"
+        )
+          error("Scheduling needs customer and resource targets.");
+      }
+    }
     for (const id of config.navigation) {
       const entity = config.entities.find((e) => e.id === id);
       if (!entity || !enabled.has(entity.module))
@@ -138,21 +222,30 @@ export function validateRecord(
   const fields: Record<string, z.ZodType> = {};
   for (const field of entity.fields) {
     let schema: z.ZodType =
-      field.type === "number"
-        ? z.number().finite().min(0).max(1000000)
-        : field.type === "select"
-          ? z.enum(field.options as [string, ...string[]])
-          : field.type === "date"
-            ? z.iso.date()
-            : field.type === "email"
-              ? z.email().max(254)
-              : z
-                  .string()
-                  .trim()
-                  .max(field.type === "longtext" ? 2000 : 200)
-                  .min(field.required ? 1 : 0);
+      field.type === "reference"
+        ? z.uuid()
+        : field.type === "datetime"
+          ? z.iso.datetime({ offset: true })
+          : field.type === "number"
+            ? z.number().finite().min(0).max(1000000)
+            : field.type === "select"
+              ? z.enum(field.options as [string, ...string[]])
+              : field.type === "date"
+                ? z.iso.date()
+                : field.type === "email"
+                  ? z.email().max(254)
+                  : z
+                      .string()
+                      .trim()
+                      .max(field.type === "longtext" ? 2000 : 200)
+                      .min(field.required ? 1 : 0);
     if (!field.required) schema = z.union([schema, z.literal("")]).optional();
     fields[field.key] = schema;
   }
-  return z.object(fields).strict().parse(value) as RecordData;
+  const result = z.object(fields).strict().parse(value) as RecordData;
+  for (const field of entity.fields)
+    if (field.type === "datetime" && result[field.key])
+      result[field.key] = normalizeInstant(String(result[field.key]));
+  if (entity.id === "appointments") validateAppointment(result);
+  return result;
 }

@@ -7,6 +7,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 ## What works in this foundation
 
 - One TypeScript engine and one responsive React workspace render **Property Manager** (customers, sites/units, maintenance tasks, supply catalog) and **Cleaning Company** (customers, cleaning jobs, service dates, crew notes, tasks, supply catalog).
+- Shared customer/work links, exclusive-resource scheduling, retained booking zones and a responsive daily agenda for both businesses.
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
@@ -14,7 +15,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Append-only database audit history; project JSON and organization-scoped workspace exports.
 - Accessible light/dark themes, phone layout and no-login **fictional-data-only** demo.
 
-This is a working foundation, **not production business software**. Scheduling conflict protection, staff administration UI, service pricing/quotes, stock ledgers, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
+This is a working foundation, **not production business software**. Advanced recurring scheduling, crew/staff administration UI, service pricing/quotes, stock ledgers, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
 
 ## Run locally
 
@@ -39,6 +40,10 @@ npm start
 ```
 
 Both commands bind to loopback by default. Publishing this single-process demo needs separate operational review, HTTPS, an exact `LMS_APP_ORIGIN` matching the public origin, resource/rate limits and a persistent shared session design. Nothing here deploys automatically or connects a production database. Real-business hosting remains gated on verified identity/session security, complete recovery acceptance and access-control review. The experimental PostgreSQL adapter is available only to trusted host code and maintenance commands.
+
+## Customer-linked scheduling
+
+Choose **Schedule** in either fictional workspace. Cleaning uses Customer → Cleaning job → Appointment → Crew/resource; property uses Customer/Site → Maintenance request → Appointment → Worker/resource. The same forms and engine handle both. Overlapping exclusive resources are rejected by PostgreSQL; UTC instants, DST choices, retries and archive history have documented rules. Follow [the workflow/upgrade guide](docs/shared-scheduling.md) and [verification evidence](docs/shared-scheduling-verification.md). Recurrence, live calendars and notifications remain deferred.
 
 ## Experimental durable PostgreSQL
 
@@ -78,7 +83,7 @@ npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-The checkpoint publication CLI and its filesystem tests require Linux with util-linux `flock`; the web demo does not require that utility. Browser tests use a **production build**, started automatically on loopback port 3100, with desktop and phone Chromium projects. `npm run check` includes type checking, unit and real-SQL integration/security tests, dependency inventory verification and the production build. `npm audit` is a separate current-registry check. If browser downloads are restricted, `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chromium` selects an installed Chromium; report its version when using this override. Never call unrun checks passing.
+The checkpoint publication CLI and its filesystem tests require Linux with util-linux `flock`; the web demo does not require that utility. Browser tests use a **production build**, started automatically on loopback port 3100, with desktop, tablet and phone Chromium projects. `npm run check` includes type checking, unit and real-SQL integration/security tests, dependency inventory verification and the production build. `npm audit` is a separate current-registry check. If browser downloads are restricted, `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chromium` selects an installed Chromium; report its version when using this override. Never call unrun checks passing.
 
 ## Architecture and extension points
 

@@ -15,3 +15,6 @@ Next.js has optional sharp/libvips platform dependencies carrying LGPL-3.0-or-la
 The durable adapter adds `pg` (MIT) and development-only `@types/pg` (MIT) and `tsx` (MIT; esbuild transitives MIT). PostgreSQL/Docker images and installed native client tools are external prerequisites with their own upstream notices, not relicensed or bundled by LMS. The exact npm additions appear in the regenerated dependency inventory.
 
 The local identity foundation uses Better Auth 1.7.14 (MIT) and Kysely 0.29.7 (MIT). Its core table contract informs migration 2; package notices remain authoritative. Better Auth telemetry is disabled, and no hosted identity account, external provider or email delivery is provisioned.
+
+
+Shared scheduling uses `@js-temporal/polyfill` 0.5.1 (ISC) and `jsbi` 4.3.2 (Apache-2.0); retain their installed LICENSE/NOTICE files. The `btree_gist` PostgreSQL contrib extension is used through installed PostgreSQL/PGlite packages under their upstream notices; no extension source is copied into LMS. Existing MIT/ForgeOS attribution remains unchanged.

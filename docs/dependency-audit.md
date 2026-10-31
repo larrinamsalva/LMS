@@ -42,3 +42,6 @@ Added exact Better Auth 1.7.14 (MIT) and direct Kysely 0.29.7 (MIT), retaining P
 
 
 PR #9 adds no npm package. The optional custodian publication CLI requires the host distribution's `flock` executable from util-linux on Linux; it is invoked separately and no binary/source is bundled. Upstream [flock.c](https://github.com/util-linux/util-linux/blob/master/sys-utils/flock.c) declares MIT; the broader util-linux distribution has mixed component licenses. Retain the distribution's notices and review its package copyright when redistributing a system image. The LMS/ForgeOS notices and npm inventory are unchanged.
+
+
+PR #10 pins `@js-temporal/polyfill` 0.5.1 (ISC) for maintained explicit-instant/DST behavior and locks `jsbi` 4.3.2 (Apache-2.0); the inventory now contains 188 dependency declarations. Migration 7 uses PostgreSQL's packaged `btree_gist` contrib extension; the embedded demo imports the already packaged PGlite contrib artifact. No mandatory external hosting/calendar/message service is added. Time-zone data consistency and packaged-release notice/source obligations remain deployment review items.

@@ -45,10 +45,20 @@ export const manifests: readonly ModuleManifest[] = [
     version: "1.0.0",
     engineApi: 1,
     name: "Cleaning jobs",
-    description:
-      "Job records and crew notes; no scheduling collision guarantee.",
+    description: "Customer-linked job records and crew notes.",
     dependencies: ["customers", "tasks"],
     entities: ["jobs"],
+    capabilities: ["records:read", "records:write"],
+  },
+  {
+    id: "scheduling",
+    version: "1.0.0",
+    engineApi: 1,
+    name: "Shared scheduling",
+    description:
+      "Customer-linked appointments with exclusive resource conflict checks.",
+    dependencies: ["customers"],
+    entities: ["resources", "appointments"],
     capabilities: ["records:read", "records:write"],
   },
   {
@@ -76,7 +86,6 @@ export const manifests: readonly ModuleManifest[] = [
 export const moduleById = new Map(manifests.map((m) => [m.id, m]));
 export const plannedModules = [
   "Staff assignments",
-  "Scheduling",
   "Service rates & quotes",
   "Inventory movements",
   "Invoices",
