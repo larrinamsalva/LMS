@@ -78,7 +78,7 @@ npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-Browser tests use a **production build**, started automatically on loopback port 3100, with desktop and phone Chromium projects. `npm run check` includes type checking, unit and real-SQL integration/security tests, dependency inventory verification and the production build. `npm audit` is a separate current-registry check. If browser downloads are restricted, `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chromium` selects an installed Chromium; report its version when using this override. Never call unrun checks passing.
+The checkpoint publication CLI and its filesystem tests require Linux with util-linux `flock`; the web demo does not require that utility. Browser tests use a **production build**, started automatically on loopback port 3100, with desktop and phone Chromium projects. `npm run check` includes type checking, unit and real-SQL integration/security tests, dependency inventory verification and the production build. `npm audit` is a separate current-registry check. If browser downloads are restricted, `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chromium` selects an installed Chromium; report its version when using this override. Never call unrun checks passing.
 
 ## Architecture and extension points
 
