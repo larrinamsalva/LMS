@@ -38,7 +38,7 @@ Connections to non-loopback hosts require TLS with certificate verification. A p
 
 A workspace JSON export is not a database backup. Native backups include schema, rows, memberships, configuration/audit history, policies and migration ledger. PostgreSQL cluster logins/passwords, future identity-provider state and document object bytes require separate recovery procedures. This foundation has no external objects/identity provider.
 
-Install PostgreSQL client tools matching or newer than the server, and keep `pg_dump`/`pg_restore` on PATH (or set `LMS_PG_BIN`). Create a private backup directory, then:
+Install PostgreSQL client tools matching or newer than the server, and keep `pg_dump`/`pg_restore` on PATH (or set `LMS_PG_BIN`). Create a private `backups` directory first (for example, `mkdir -m 700 backups` on Linux/macOS; on Windows restrict its ACL to your account), then:
 
 ```sh
 npm run db:backup -- --database lms_development --file backups/fictional.dump

@@ -5,8 +5,12 @@ import { Client } from "pg";
 import { ensureApplicationRole } from "./migrations";
 import { localTarget } from "./targets";
 function pgEnvironment(url: URL) {
+  // Remove inherited libpq settings entirely; an empty PGSERVICE is still a service selection.
+  const environment = { ...process.env };
+  for (const name of Object.keys(environment))
+    if (name.startsWith("PG")) delete environment[name];
   return {
-    ...process.env,
+    ...environment,
     PGHOST: url.hostname.replace(/^\[|\]$/g, ""),
     PGPORT: url.port || "5432",
     PGDATABASE: decodeURIComponent(url.pathname.slice(1)),
@@ -14,9 +18,6 @@ function pgEnvironment(url: URL) {
     PGPASSWORD: decodeURIComponent(url.password),
     PGCONNECT_TIMEOUT: "5",
     PGSSLMODE: "disable",
-    PGSERVICE: "",
-    PGOPTIONS: "",
-    PGPASSFILE: "",
   };
 }
 async function runTool(

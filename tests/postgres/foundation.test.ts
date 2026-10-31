@@ -347,12 +347,23 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
     const before = await engine.exportWorkspace(principal, fixture.property);
     const beforeAudit = (await engine.snapshot(principal, fixture.property))
       .audit;
-    await backupDatabase(
-      databaseUrl(names[0]),
-      names[0],
-      archive,
-      process.env.LMS_PG_BIN,
-    );
+    const previousService = process.env.PGSERVICE;
+    const previousOptions = process.env.PGOPTIONS;
+    process.env.PGSERVICE = "definitely_missing_lms_service";
+    process.env.PGOPTIONS = "-c role=lms_app";
+    try {
+      await backupDatabase(
+        databaseUrl(names[0]),
+        names[0],
+        archive,
+        process.env.LMS_PG_BIN,
+      );
+    } finally {
+      if (previousService === undefined) delete process.env.PGSERVICE;
+      else process.env.PGSERVICE = previousService;
+      if (previousOptions === undefined) delete process.env.PGOPTIONS;
+      else process.env.PGOPTIONS = previousOptions;
+    }
     expect((await stat(archive)).mode & 0o777).toBe(0o600);
     expect((await readFile(archive)).subarray(0, 5).toString()).toBe("PGDMP");
     await expect(
