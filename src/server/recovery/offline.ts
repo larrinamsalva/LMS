@@ -501,10 +501,15 @@ export class OfflineRecovery {
         hash,
         row.id,
       );
-      await client.query(
-        "update lms_private.recovery_cases set status='completed',completed_at=clock_timestamp() where id=$1",
+      const completed = await client.query(
+        "update lms_private.recovery_cases set status='completed',completed_at=clock_timestamp() where id=$1 and expires_at>clock_timestamp() and approved_at>clock_timestamp()-interval '5 minutes' returning id",
         [row.id],
       );
+      if (!completed.rows.length)
+        throw new EngineError(
+          "Recovery case or approval expired before completion.",
+          410,
+        );
       await client.query(
         "update lms_control.state set blocked=true,reason='recovered-offline'",
       );

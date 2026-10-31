@@ -509,6 +509,32 @@ describe("controlled offline recovery with independent signed evidence", () => {
       valid: true,
       activationBlocked: true,
     });
+    const late = await approved();
+    await admin.query(
+      "create function lms_private.delay_recovery() returns trigger language plpgsql as $$ begin perform pg_sleep(2);return new;end;$$;create trigger synthetic_recovery_delay after update of password on lms_identity.account for each row execute function lms_private.delay_recovery()",
+    );
+    await admin.query(
+      "update lms_private.recovery_cases set approved_at=clock_timestamp()-interval '298 seconds' where id=$1",
+      [late.caseId],
+    );
+    const started = Date.now();
+    try {
+      await expect(apply(late.caseId)).rejects.toMatchObject({ status: 410 });
+      expect(Date.now() - started).toBeGreaterThanOrEqual(2000);
+    } finally {
+      await admin.query(
+        "drop trigger synthetic_recovery_delay on lms_identity.account;drop function lms_private.delay_recovery()",
+      );
+    }
+    expect(await check(original)).toMatchObject({ valid: true });
+    expect(
+      (
+        await admin.query(
+          "select * from lms_identity.credential_events where operation_id=$1",
+          [late.caseId],
+        )
+      ).rows,
+    ).toHaveLength(0);
   });
   it("rejects duplicate recovery and competing approved cases after the credential version changes", async () => {
     const a = await approved(),

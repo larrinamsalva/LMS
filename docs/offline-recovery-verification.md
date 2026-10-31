@@ -7,7 +7,7 @@ Coverage:
 - Private trust file ownership/permissions, symlink rejection, unique people/keys, Ed25519 signatures, wrong subject/message/operator and unverified-email/boolean authority rejection.
 - Prior trust registration/cooling-off and correct established evidence; idle identity and persistent runtimes block maintenance.
 - Sole-owner recovery needs two independent signatures; all original business bytes and unrelated sessions survive while subject sessions/pending membership approvals are revoked.
-- Forgery, cross-case/stage replay, absent/self approval, expired case/approval, duplicate recovery, competing cases and concurrent recovery rejection.
+- Forgery, cross-case/stage replay, absent/self approval, expired case/approval (including expiry during deliberately delayed credential mutation), duplicate recovery, competing cases and concurrent recovery rejection.
 - Online password-change races are excluded; changed credential or membership versions invalidate approved cases.
 - Synthetic audit failure rolls password/session/review/case changes back together; completion/rejection history is secret-free and unavailable to ordinary roles.
 - Old/new native backups retain their credential/history bytes but cannot activate; cases are purged, old proofs cannot replay, and a pre-migration-5 archive stays blocked after upgrade.
