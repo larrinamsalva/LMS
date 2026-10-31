@@ -1,31 +1,29 @@
 # Controlled local recovery plan
 
-PR #6 implements the [offline recovery contract](offline-recovery.md): prior trust, independently signed verification/approval, expiring one-use cases, atomic credential/session/review/audit updates and a permanent activation blocker after recovery/restore. The original design below remains a record of the acceptance goals. **Live sign-in/reactivation is deliberately blocked until older-backup credential rollback has a separately reviewed solution.** No public reset endpoint exists.
+The implemented [offline recovery contract](offline-recovery.md) uses prior trust, independent signed verification/approval, expiring one-use cases and atomic credential/session/audit changes. This plan applies to provisioned fictional accounts only. No public reset or production account is enabled.
 
-**Original PR #5 design.** PR #5 implements password changes for an authenticated user who knows the current password. It deliberately ships no lost-password reset/recovery tool. There are no verified email addresses, recovery codes, trusted contact delivery, recovery MFA or public reset endpoint. An email address, organization selection, possession of a demo cookie or knowledge of a user UUID is not identity evidence.
+**Credential replacement is implemented; service activation is blocked.** Normal authentication and persistent adapter attachment refuse recovered/restored databases. Older backups can contain older password hashes. There is no unblock command while external credential-lineage/rollback protection and activation acceptance remain unresolved.
 
-A lost-access identity currently stays locked until a separately reviewed recovery implementation is accepted. Do not work around this by editing a password hash, enabling Better Auth's reset routes, adopting an existing organization through bootstrap, deleting an owner, or granting a replacement account membership manually. `auth:revoke-all` can end known fictional sessions as existing trusted local maintenance; it is containment, not password recovery or a complete recovery audit.
+## Required offline procedure
 
-## Proposed offline procedure
-
-| Step | Required control | Evidence to retain privately |
+| Step | Implemented control | Evidence retained privately |
 | --- | --- | --- |
-| Contain | Stop all identity/business hosts and keep the restored/affected database offline. Take a protected native backup and verify the target is a local fictional database. No production services or accounts. | Case UUID, database name, migration versions, backup receipt and containment time; no secrets |
-| Verify claimant | A previously established operator independently checks the original provisioning/ownership record and reliable offline evidence. Never use the unverified email as proof. Sole-owner recovery needs a second independently verified approval or an already established recovery factor. If reliable evidence is missing, refuse recovery. | Subject UUID, operator/approver identities and references to verification evidence; no identity-document copies or recovery secrets in SQL logs |
-| Review | Prepare an expiring one-use recovery case tied to the exact subject, credential version and operation UUID. Show effect: credential replacement, every session/approval revoked, roles unchanged. Require explicit confirmation. | Immutable preparation, approval, expiry and outcome records |
-| Apply | A future guarded maintenance command uses separate checked administrator credentials on the confirmed local target. It rechecks the case/version after locks, uses Better Auth hashing, revokes all subject sessions and pending approvals, changes credentials and appends a recovery audit atomically. No membership/config/history rewrite. | Subject/operator/approver UUIDs, operation/case IDs, action and server timestamps; no passwords, hashes, tokens or session IDs |
-| Accept | Deliver the replacement secret through a private local interaction. Perform a new sign-in and recent-auth check, verify original memberships and history, test old credentials/sessions/replay rejection and cross-organization denial. Continue using the existing owner handover flow if an owner later elects to transfer. | Verified local test outcomes and final operator acknowledgement; never “recovered” before verification |
+| Establish prior trust | A trusted registrar checks original provisioning/identity records and independently held operator keys before a case exists. The private registry digest must have been registered at least 24 hours earlier. Unverified email, names and claimed membership are insufficient. | Prior subject/evidence references, unique operator/person UUIDs and public keys; no documents, passwords or private keys |
+| Contain | Stop all identity/persistent hosts. Local administrator authority, exclusive maintenance locks and non-waiting table locks are required. Opening a case blocks subsequent runtime attachment. | Case/subject/database UUIDs, version bindings, expiry and opening event |
+| Verify and approve | One enrolled operator independently verifies prior evidence and signs the exact review. A different enrolled person/key independently approves it. Both are required for every recovery, including sole owners; refuse when evidence or independent approval is missing. | Stage-bound signatures in the private case; secret-free verification/approval events |
+| Apply | Explicit confirmation, unchanged credential/membership/instance versions, a live ten-minute case and approval no older than five minutes are required. Credential replacement, every subject session/pending approval, version rotation and credential/recovery audits commit together. Expiry is rechecked at completion. | One-use completion or rejection; no role/configuration/business-history rewrite |
+| Verify offline | Check old/new credentials using the same Better Auth codec, inspect retained roles/data/history and audit outcomes. No session/token is issued. Keep the recovered database blocked. | Offline verification and incident outcomes; never claim live sign-in, deployment or accepted service recovery |
 
-These controls are proposed requirements, not an implemented permission bypass. Do not create a recovery case by raw SQL or place passwords in command arguments. Operator authority needs its own reviewed authentication/evidence model; being a business admin must not automatically allow resetting another identity shared by multiple organizations.
+The registrar must establish real human independence/key custody; cryptographic signatures alone cannot prove physical identity facts or that two keys belong to different people. A database administrator remains trusted. Do not manufacture evidence after loss, automatically sign a server-generated review, edit password hashes, grant a replacement owner or remove the activation marker as a shortcut.
 
-## Acceptance before implementation can be enabled
+Follow [the exact registry, signing and CLI workflow](offline-recovery.md). Private keys remain on the respective operators' offline devices. `auth:revoke-all` remains containment, not independent recovery approval. Missing trust/evidence/key custody means refusal.
 
-- Explicit local-only targets and trusted operator verification; no unverified-mailbox or organization-admin reset authority.
-- Audited case preparation/approval/completion/rejection; secret-free append-only records, one-use expiry and subject/credential-version binding.
-- Atomic password/session/review changes with failure rollback; no implicit new session, role changes or sole-owner deletion.
-- Concurrent password change/recovery, sign-in/recovery, revocation/recovery and duplicate/stale case tests across hosts.
-- Backup/restore testing that addresses **older credential snapshots**, signing-key/role recovery, encryption, retention and off-device evidence. Session invalidation alone does not prevent old-password rollback.
-- Evidence that original memberships, configuration revisions and business audits survive and other users/organizations remain unaffected.
-- A private fictional-data rehearsal using the actual command. Public identity verification, TLS/proxy controls, MFA and production recovery remain separately gated.
+## Acceptance still required before activation
 
-The offline reset subset is now executable under the [PR #6 contract](offline-recovery.md). Normal activation, real-user verification/MFA and complete recovery acceptance remain future gates.
+- Independently protected credential lineage/epochs that detect older snapshots, including restoration outside a single database transaction.
+- Key/role/credential recovery, secret rotation, encrypted retention/off-device evidence and a full disaster-recovery rehearsal.
+- A separately reviewed activation command with authenticated operator authority and no unverified-mailbox bypass.
+- Verified new sign-in/recent-authentication, old password/session/proof rejection and organization permission tests after that activation procedure.
+- Public identity verification, MFA, TLS/proxy/session boundaries and general business-write session fencing before any real-user/public recovery service.
+
+The current native tests demonstrate preserved bytes, rejected replay, failure rollback and enforced quarantine of old/new/legacy archives, including failed cleanup. They deliberately do not claim rollback-resistant activation. See [verification evidence](offline-recovery-verification.md).
