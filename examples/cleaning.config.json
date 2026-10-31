@@ -1,0 +1,185 @@
+{
+  "schemaVersion": 1,
+  "id": "cleaning-starter",
+  "name": "Bright Path Cleaning",
+  "industry": "cleaning",
+  "modules": [
+    {
+      "id": "customers",
+      "version": "1.0.0"
+    },
+    {
+      "id": "tasks",
+      "version": "1.0.0"
+    },
+    {
+      "id": "cleaning",
+      "version": "1.0.0"
+    },
+    {
+      "id": "inventory",
+      "version": "1.0.0"
+    }
+  ],
+  "entities": [
+    {
+      "id": "customers",
+      "module": "customers",
+      "singular": "Customer",
+      "plural": "Customers",
+      "titleField": "name",
+      "fields": [
+        {
+          "key": "name",
+          "label": "Name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "email",
+          "label": "Email",
+          "type": "email",
+          "required": false
+        },
+        {
+          "key": "phone",
+          "label": "Phone",
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "notes",
+          "label": "Notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "tasks",
+      "module": "tasks",
+      "singular": "Task",
+      "plural": "Tasks",
+      "titleField": "title",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Task title",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "status",
+          "label": "Status",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Open",
+            "In progress",
+            "Done"
+          ]
+        },
+        {
+          "key": "due",
+          "label": "Due date",
+          "type": "date",
+          "required": false
+        },
+        {
+          "key": "notes",
+          "label": "Notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "items",
+      "module": "inventory",
+      "singular": "Supply item",
+      "plural": "Supply catalog",
+      "titleField": "name",
+      "fields": [
+        {
+          "key": "name",
+          "label": "Item name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "unit",
+          "label": "Unit / package",
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "notes",
+          "label": "Reorder notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "jobs",
+      "module": "cleaning",
+      "singular": "Cleaning job",
+      "plural": "Cleaning jobs",
+      "titleField": "title",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Job title",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "service",
+          "label": "Service",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Standard clean",
+            "Move-out clean",
+            "Deep clean"
+          ]
+        },
+        {
+          "key": "date",
+          "label": "Service date",
+          "type": "date",
+          "required": true
+        },
+        {
+          "key": "crew",
+          "label": "Crew notes",
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "status",
+          "label": "Status",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Planned",
+            "In progress",
+            "Done"
+          ]
+        },
+        {
+          "key": "notes",
+          "label": "Job notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "navigation": [
+    "customers",
+    "jobs",
+    "tasks",
+    "items"
+  ]
+}

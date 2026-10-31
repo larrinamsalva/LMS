@@ -1,0 +1,10 @@
+{
+  "id": "inventory",
+  "version": "1.0.0",
+  "engineApi": 1,
+  "name": "Item catalog",
+  "description": "Supply descriptions and reorder notes; stock movements come later.",
+  "dependencies": [],
+  "entities": ["items"],
+  "capabilities": ["records:read", "records:write"]
+}
