@@ -27,7 +27,8 @@
     "auth:revoke-all": "node --env-file=.env.postgres --env-file=.env.local-auth --import=tsx scripts/local-auth.ts revoke-all",
     "access:bootstrap": "node --env-file=.env.postgres --import=tsx scripts/access-bootstrap.ts",
     "recovery": "node --env-file=.env.postgres --import=tsx scripts/offline-recovery.ts",
-    "lineage": "node --env-file=.env.postgres --import=tsx scripts/credential-lineage.ts"
+    "lineage": "node --env-file=.env.postgres --import=tsx scripts/credential-lineage.ts",
+    "checkpoint": "node --env-file=.env.publication --import=tsx scripts/checkpoint-publication.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.14",

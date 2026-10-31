@@ -66,6 +66,10 @@ Follow [the offline recovery procedure](docs/offline-recovery.md) for provisione
 
 The [host-only credential lineage tools](docs/credential-lineage.md) add transaction-bound metadata and independently signed external checkpoints with a separately held latest digest and credential-state commitment key. Read-only assessment detects supported snapshot rollback and evidence/state mismatches. **Activation remains blocked**, including after a successful assessment; identity-specific recovery acceptance, durable independent freshness and key/role recovery are next phases. No public route or automatic signer is added. See [verified scope and limitations](docs/credential-lineage-verification.md).
 
+## Controlled checkpoint publication
+
+The [custodian-only checkpoint publisher](docs/checkpoint-publication.md) validates the existing checkpoint signatures, requires separate independent publication approvals and durably records immutable receipts on a protected Linux filesystem. Pending or conflicting history refuses verification; an independently retained root and latest receipt are required. This is a bounded local phase, with no mandatory hosting service and **no restored-database activation**. It does not provide a monotonic external witness or repair expired/corrupt intents. See [verification and limits](docs/checkpoint-publication-verification.md).
+
 ## Verify
 
 ```sh

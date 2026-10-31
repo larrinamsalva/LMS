@@ -13,7 +13,9 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 - [x] Experimental host-only verified password changes, atomic session/approval revocation, credential audits and recent-authentication controls
 - [x] Controlled fictional offline recovery: prior trust, two independent signed approvals, atomic reset and audit
 - [x] Experimental independent credential-lineage metadata, two-witness checkpoints and offline consistency assessment (activation stays blocked)
-- [ ] Durable independent latest-head publication, identity-specific recovery acceptance, key/role recovery and guarded activation
+- [x] Bounded custodian-only checkpoint publication: independent approvals, synced immutable receipts, interruption detection and exact unexpired resume
+- [ ] Independently monotonic high-water witness, fork reconciliation, expired/corrupt-intent repair and rotation
+- [ ] Identity-specific recovery acceptance, supported instance transitions, key/role recovery and guarded activation
 - [ ] MFA and real-user lifecycle
 - [ ] Membership UI and public session/transport acceptance
 - [x] Experimental host-only PostgreSQL adapter, local Compose setup, transactional migrations and dedicated network/concurrency tests
@@ -26,8 +28,20 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 - [ ] Estimate/invoice drafts with exact money, authorization, confirmation and correction history
 - [ ] Private documents, reports and scoped attachments
 - [ ] Deterministic configurable workflow rules, enabled only after explicit review
-- [ ] Guided builder: industry/workflow questionnaire, field/nav editor and branding upload
+- [ ] BuildPlan Studio: guided industry/workflow configuration, terminology/fields/navigation/branding and engine previews
 - [ ] Tested application export/deployment, verified end-to-end before success claims
 - [ ] Optional transparent AI, messaging and payment adapters; manual core remains usable
 
 [Staged plan and acceptance gates](docs/implementation-plan.md). No work on this roadmap authorizes production connections, outbound messages, live invoices, payments or changes to ForgeOS.
+
+
+## Next reviewable phases
+
+| Track | Next deliverable | Acceptance boundary |
+| --- | --- | --- |
+| Security/recovery | Independent monotonic witness/receipt custody; signed repair and key/role recovery; later identity-specific acceptance | No activation until the complete recovery, session and permission boundary is demonstrated |
+| Business modules | Fictional customer relationships and job/scheduling module; then crews, rates/quotes, inventory movements and invoice drafts | Shared engine/manifests, organization isolation, concurrency and mobile/accessibility checks; no live finance/messages |
+| BuildPlan Studio | Local guided questionnaire producing validated, versioned `BusinessConfig`; module selection and a preview using the same engine | Manual use works without AI; fictional preview, reusable configuration, rollback and data ownership |
+| Packaging | Tested local export/self-host packaging after configuration workflows stabilize | Verify setup/restore and any actual deployment before claiming success; production use stays separately gated |
+
+The business-module and BuildPlan Studio tracks can advance with fictional data while production security work remains blocked. Publication is not permission to activate a restored database or delay every useful demo improvement. See [publication scope/evidence](docs/checkpoint-publication.md) and [the staged plan](docs/implementation-plan.md).

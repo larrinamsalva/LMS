@@ -39,3 +39,6 @@ Added exact versions `pg` 8.23.1 (MIT), `@types/pg` 8.23.1 (MIT, development) an
 ## Local identity phase
 
 Added exact Better Auth 1.7.14 (MIT) and direct Kysely 0.29.7 (MIT), retaining PostgreSQL and existing lockfile/notice checks. Better Auth supplies password/session implementations; no custom password algorithm or JWT handling is introduced. All new transitive license declarations are included in the regenerated inventory. Telemetry is explicitly disabled and no provider/messaging SDK is configured.
+
+
+PR #9 adds no npm package. The optional custodian publication CLI requires the host distribution's `flock` executable from util-linux on Linux; it is invoked separately and no binary/source is bundled. Upstream [flock.c](https://github.com/util-linux/util-linux/blob/master/sys-utils/flock.c) declares MIT; the broader util-linux distribution has mixed component licenses. Retain the distribution's notices and review its package copyright when redistributing a system image. The LMS/ForgeOS notices and npm inventory are unchanged.

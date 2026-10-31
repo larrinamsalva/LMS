@@ -1,0 +1,9 @@
+# Checkpoint publication verification
+
+PR #9 is a bounded fictional-data publication phase. It does not implement an independently monotonic witness, long-outage/corrupt-intent repair, restored-instance acceptance or activation. [The workflow and failure contract](checkpoint-publication.md) describe custody assumptions and fail-closed behavior.
+
+Local `npm run check` passed: type checking, 45 unit/embedded-SQL tests, 186 dependency-license declarations and Next.js production build. All 8 desktop/phone browser tests passed using installed Chromium 153.0.8010.0. `npm audit` reported zero vulnerabilities at check time. Native PostgreSQL and GitHub CI results are pending and will be recorded from actual logs before review readiness. Native tests are required and never silently skipped; local embedded SQL is not evidence of native backup/restore behavior.
+
+Coverage includes existing credential/session/owner/recovery/lineage regressions, independent publication signatures/confirmation, parent compare-and-swap, competing publishers, old-store rollback against an independent receipt, missing/corrupt histories, unsupported instance transitions, stale approvals, every durable write boundary, exact partial-record completion, corrupt/expired intent refusal, lost response reconciliation, SIGKILL lock release and CLI secret-free errors. Native cases connect published receipts to an older PostgreSQL archive, a current restore and completed offline recovery while preserving business bytes and activation blockers.
+
+Operator keys/receipts are simulated within one test process and fixture clocks establish prior enrollment. Filesystem tests exercise real Linux locks and sync calls with injected interruptions, not a physical power cut or separate-device custody. No production database/account, deployment or public recovery/auth route is involved.
