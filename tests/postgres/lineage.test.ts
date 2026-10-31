@@ -367,9 +367,18 @@ describe("external credential lineage with native PostgreSQL and offline witness
   it("restores a witnessed fictional archive, verifies credentials and history, revokes transient state and leaves activation blocked", async () => {
     const before = await business();
     await publish(await propose());
+    const sid = randomUUID();
     await admin.query(
-      'insert into lms_identity.session(token,"userId","expiresAt") values($1,$2,clock_timestamp()+interval \'1 hour\')',
-      [randomUUID(), owner],
+      'insert into lms_identity.session(id,token,"userId","expiresAt") values($1,$2,$3,clock_timestamp()+interval \'1 hour\')',
+      [sid, randomUUID(), owner],
+    );
+    await admin.query(
+      "insert into lms_private.membership_reviews(organization_id,actor_id,session_id,target_id,action,next_role,expected_revision,reason) values($1,$2,$3,$4,'set-role','staff',0,'Fictional pending review')",
+      [org, owner, sid, other],
+    );
+    await admin.query(
+      "insert into lms_identity.verification(identifier,value,\"expiresAt\") values($1,$2,clock_timestamp()+interval '1 hour')",
+      [randomUUID(), "fictional pending verification"],
     );
     const restored = await restore(await backup("current"));
     const result = await assess(restored);
@@ -414,6 +423,58 @@ describe("external credential lineage with native PostgreSQL and offline witness
       activationAllowed: false,
     });
     await stillBlocked(current);
+  });
+  it("captures a supported Better Auth password change and invalidates its old cookie before external review", async () => {
+    await publish(await propose());
+    const host = await createLocalAuth(authOptions());
+    try {
+      const response = await host.handle(
+        new Request(authOptions().origin + "/api/local-auth/sign-in/email", {
+          method: "POST",
+          headers: {
+            origin: authOptions().origin,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            email: "owner@example.test",
+            password: original,
+          }),
+        }),
+      );
+      expect(response.status).toBe(200);
+      const headers = new Headers({
+        cookie: response.headers
+          .getSetCookie()
+          .map((c) => c.split(";")[0])
+          .join("; "),
+      });
+      const operationId = randomUUID();
+      expect(
+        await host.changePassword(headers, {
+          operationId,
+          currentPassword: original,
+          newPassword: replacement,
+          confirmation: "CHANGE PASSWORD AND SIGN OUT",
+        }),
+      ).toMatchObject({ success: true });
+      expect(await host.identity(headers)).toBeNull();
+      await expect(propose("advance")).rejects.toMatchObject({ status: 423 });
+    } finally {
+      await host.close();
+    }
+    const p = await propose("advance");
+    expect(
+      verifyChain(p.journal.streamId, p.journal.entries).payloads.filter(
+        (e) => e.kind === "credential-event",
+      ),
+    ).toHaveLength(1);
+    await publish(p);
+    await block();
+    expect(await assess()).toMatchObject({
+      credentialStateVerified: true,
+      activationAllowed: false,
+    });
+    await stillBlocked();
   });
   it("refuses an unwitnessed database tail, stale journal replay, and a missing independent latest pin", async () => {
     const older = await publish(await propose());
@@ -508,6 +569,9 @@ describe("external credential lineage with native PostgreSQL and offline witness
       "update lms_control.state set instance_id=gen_random_uuid()",
     );
     await expect(assess()).rejects.toThrow(/Unsupported database instance/);
+    await expect(propose("advance")).rejects.toThrow(
+      /Unsupported database instance/,
+    );
     await stillBlocked();
   });
   it("detects hash-only tampering, credential-version mismatches and missing database lineage or source audits", async () => {

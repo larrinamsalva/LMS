@@ -16,10 +16,22 @@ export async function readPrivateText(file: string, maxBytes: number) {
         "Use a private, process-owned regular file on a supported POSIX host.",
         403,
       );
-    const text = await handle.readFile("utf8");
-    if (Buffer.byteLength(text) > maxBytes)
+    // Bound allocation/reads even if a previously checked regular file grows.
+    const buffer = Buffer.alloc(maxBytes + 1);
+    let total = 0;
+    while (total < buffer.length) {
+      const { bytesRead } = await handle.read(
+        buffer,
+        total,
+        buffer.length - total,
+        total,
+      );
+      if (!bytesRead) break;
+      total += bytesRead;
+    }
+    if (total > maxBytes)
       throw new EngineError("Private evidence exceeds its size limit.", 403);
-    return text;
+    return buffer.subarray(0, total).toString("utf8");
   } finally {
     await handle.close();
   }

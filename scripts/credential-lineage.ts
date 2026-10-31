@@ -7,7 +7,9 @@ async function main() {
     !databaseName ||
     extra.length
   )
-    throw new Error("Use propose or assess --database lms_fictional_*");
+    throw new Error(
+      "Use propose or assess --database with an allowed fictional development/test/restore target",
+    );
   const service = new CredentialLineage({
     databaseUrl: process.env.LMS_ADMIN_DATABASE_URL ?? "",
     databaseName,

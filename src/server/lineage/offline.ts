@@ -6,6 +6,7 @@ import { readPrivateText } from "../recovery/private-file";
 import { EngineError } from "../../core/engine";
 import {
   commitmentKeySchema,
+  checkpointSchema,
   entrySchema,
   hexDigest,
   verifyChain,
@@ -41,6 +42,13 @@ async function privateJson(file: string, max: number): Promise<unknown> {
       403,
     );
   }
+}
+async function supportedRestore(client: Client): Promise<boolean> {
+  return (
+    await client.query(
+      "select to_regclass('lms_control.restore_blocker') is not null and exists(select 1 from pg_db_role_setting s where s.setdatabase=(select oid from pg_database where datname=current_database()) and s.setrole=0 and 'lms.restore_blocked=on'=any(s.setconfig)) as supported",
+    )
+  ).rows[0].supported;
 }
 async function snapshot(client: Client) {
   await client.query(
@@ -258,6 +266,15 @@ export class CredentialLineage extends OfflineRecovery {
             );
         }
         if (previous) {
+          if (
+            previous.checkpoints.at(-1)!.checkpoint.capturedInstanceId !==
+              state.control.instance_id &&
+            !(await supportedRestore(client))
+          )
+            throw new EngineError(
+              "Unsupported database instance or restore history.",
+              409,
+            );
           const priorStates =
             previous.checkpoints.at(-1)!.checkpoint.credentials;
           for (const current of credentialStates) {
@@ -308,7 +325,7 @@ export class CredentialLineage extends OfflineRecovery {
             entries: state.entries,
             checkpoints: previous?.checkpoints ?? [],
           },
-          checkpoint,
+          checkpoint: checkpointSchema.parse(checkpoint),
           activationAllowed: false as const,
         };
       },
@@ -381,11 +398,7 @@ export class CredentialLineage extends OfflineRecovery {
             "Current credential state or commitment key does not match the trusted checkpoint.",
             409,
           );
-        const restored = (
-          await client.query(
-            "select to_regclass('lms_control.restore_blocker') is not null and exists(select 1 from pg_db_role_setting s where s.setdatabase=(select oid from pg_database where datname=current_database()) and s.setrole=0 and 'lms.restore_blocked=on'=any(s.setconfig)) as supported",
-          )
-        ).rows[0].supported;
+        const restored = await supportedRestore(client);
         if (
           external.latest.capturedInstanceId !== state.control.instance_id &&
           !restored
