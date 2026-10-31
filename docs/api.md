@@ -2,7 +2,7 @@
 
 ## Core service (TypeScript)
 
-`Engine` in `src/core/engine.ts` accepts a `SqlDatabase` with parameterized `query`, `exec` and transactional callback methods. The supplied adapter is embedded PostgreSQL (PGlite). A future PostgreSQL pool adapter must use one checked-out connection per transaction, roll back on failure, reset transaction-local identity and pass the same security/concurrency tests.
+`Engine` in `src/core/engine.ts` accepts a `SqlDatabase` with parameterized `query`, `exec` and transactional callback methods. The public demo uses embedded PostgreSQL (PGlite). The separate experimental node-postgres adapter in `src/server/postgres/adapter.ts` implements the same interface with a bounded pool, one checked-out connection per transaction, rollback, identity cleanup and dedicated network security/concurrency tests. It is host-only and has no business HTTP endpoint; see [PostgreSQL setup](postgres-setup.md).
 
 `Principal { userId: UUID }` is **trusted server input**; never construct it from request JSON, organization selection or unsigned headers. The current HTTP transport constructs only fictional demo principals.
 

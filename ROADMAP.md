@@ -9,8 +9,10 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 - [x] Shared fictional property and cleaning workspaces with generated forms
 - [x] Accessible themes, responsive layouts, export and automated local checks
 - [ ] Verified real-user authentication, role administration and session revocation
-- [ ] Durable self-hosted PostgreSQL adapter, deployment instructions and concurrency acceptance
-- [ ] Complete backup/restore and validated atomic import; recovery rehearsal
+- [x] Experimental host-only PostgreSQL adapter, local Compose setup, transactional migrations and dedicated network/concurrency tests
+- [x] Native fictional backup/restore rehearsal with retained policies/history
+- [ ] Production hosting, verified authentication/session security and complete recovery acceptance
+- [ ] Complete production backup/restore and validated atomic import
 - [ ] Customer relationships, staff/crew assignments and scheduling with conflict protection
 - [ ] Property occupancy and maintenance workflows; cleaning rates, quotes and job evidence
 - [ ] Stock movement ledger, equipment and purchasing

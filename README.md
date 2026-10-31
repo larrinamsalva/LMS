@@ -14,7 +14,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Append-only database audit history; project JSON and organization-scoped workspace exports.
 - Accessible light/dark themes, phone layout and no-login **fictional-data-only** demo.
 
-This is a working foundation, **not production business software**. Scheduling conflict protection, staff administration, service pricing/quotes, stock ledgers, invoices, documents, complete backups/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
+This is a working foundation, **not production business software**. Scheduling conflict protection, staff administration, service pricing/quotes, stock ledgers, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
 
 ## Run locally
 
@@ -23,15 +23,13 @@ Requires Node.js **22 or newer** (verified on Node 24), npm and about 1 GB of fr
 ```sh
 git clone https://github.com/larrinamsalva/LMS.git
 cd LMS
-# Before the foundation PR is merged:
-git switch feat/configurable-foundation
 npm ci
 npm run dev
 ```
 
 Open **http://127.0.0.1:3000**, then choose **Explore the working demo**. Switch between the two businesses using **Business workspace**. Add a made-up customer, refresh, then explore **Project & modules** to disable the supply catalog, apply, and restore a revision. The same engine handles both workspaces.
 
-No environment file, database account or Docker is needed. The default embedded PostgreSQL database is in memory, **resets on server restart**, and is not a backup. Each browser receives separate fictional organizations; sessions expire after two hours. The process caps active sessions at 24, records at 250 per workspace, and config revisions at 40. Export anything you want to keep before expiry/restart. Do not enter real personal or business information.
+The public demo needs no environment file, database account or Docker. The default embedded PostgreSQL database is in memory, **resets on server restart**, and is not a backup. Each browser receives separate fictional organizations; sessions expire after two hours. The process caps active sessions at 24, records at 250 per workspace, and config revisions at 40. Export anything you want to keep before expiry/restart. Do not enter real personal or business information.
 
 For a production-mode **local demo**:
 
@@ -40,7 +38,13 @@ npm run build
 npm start
 ```
 
-Both commands bind to loopback by default. Publishing this single-process demo needs separate operational review, HTTPS, an exact `LMS_APP_ORIGIN` matching the public origin, resource/rate limits and a persistent shared session design. Nothing here deploys automatically or connects a production database. Real-business hosting is gated on identity, persistence, network PostgreSQL/concurrency and backup/restore acceptance.
+Both commands bind to loopback by default. Publishing this single-process demo needs separate operational review, HTTPS, an exact `LMS_APP_ORIGIN` matching the public origin, resource/rate limits and a persistent shared session design. Nothing here deploys automatically or connects a production database. Real-business hosting remains gated on verified identity/session security, complete recovery acceptance and access-control review. The experimental PostgreSQL adapter is available only to trusted host code and maintenance commands.
+
+## Experimental durable PostgreSQL
+
+A separate host-only PostgreSQL adapter now implements the existing engine interface. It adds a bounded pool, checked runtime roles, transactional checksum migrations, Docker Compose storage and native backup/restore commands. **The no-login website still uses its own temporary database.** No persistent business HTTP endpoints are exposed.
+
+Follow [the local PostgreSQL setup and recovery rehearsal](docs/postgres-setup.md). Setting up this optional backend does not provide verified user authentication or authorize real business use. See [migration rules](db/README.md) and [network verification results](docs/postgres-verification.md).
 
 ## Verify
 
@@ -61,7 +65,7 @@ Browser tests use a **production build**, started automatically on loopback port
 | `src/modules/registry.ts` | Explicit reviewed manifest registry (API v1) |
 | `src/presets/index.ts` | Property and cleaning configuration plus fictional fixtures |
 | `src/components/` | Shared generated forms, workspace and minimal config editor |
-| `src/server/` | Embedded database adapter and isolated fictional demo sessions |
+| `src/server/` | Temporary demo adapter/sessions and separate host-only PostgreSQL adapter |
 | `src/app/api/demo/route.ts` | Bounded same-origin demo transport; no real-business routes |
 | `db/001_foundation.sql` | RLS, memberships, immutable record scope and audit triggers |
 | `examples/` | Reusable validated configuration and manifest examples |
