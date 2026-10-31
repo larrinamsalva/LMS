@@ -1,0 +1,24 @@
+# Public roadmap
+
+LMS is a staged open-source project. Checkboxes describe delivered code, not a hosted service or production certification. This foundation PR remains subject to review.
+
+- [x] Independent MIT repository, upstream extraction and dependency/license assessment
+- [x] TypeScript configuration/record engine and explicit module manifests
+- [x] PostgreSQL organization isolation, role boundaries and append-only audit
+- [x] Configuration revisions, non-destructive module disabling and rollback
+- [x] Shared fictional property and cleaning workspaces with generated forms
+- [x] Accessible themes, responsive layouts, export and automated local checks
+- [ ] Verified real-user authentication, role administration and session revocation
+- [ ] Durable self-hosted PostgreSQL adapter, deployment instructions and concurrency acceptance
+- [ ] Complete backup/restore and validated atomic import; recovery rehearsal
+- [ ] Customer relationships, staff/crew assignments and scheduling with conflict protection
+- [ ] Property occupancy and maintenance workflows; cleaning rates, quotes and job evidence
+- [ ] Stock movement ledger, equipment and purchasing
+- [ ] Estimate/invoice drafts with exact money, authorization, confirmation and correction history
+- [ ] Private documents, reports and scoped attachments
+- [ ] Deterministic configurable workflow rules, enabled only after explicit review
+- [ ] Guided builder: industry/workflow questionnaire, field/nav editor and branding upload
+- [ ] Tested application export/deployment, verified end-to-end before success claims
+- [ ] Optional transparent AI, messaging and payment adapters; manual core remains usable
+
+[Staged plan and acceptance gates](docs/implementation-plan.md). No work on this roadmap authorizes production connections, outbound messages, live invoices, payments or changes to ForgeOS.
