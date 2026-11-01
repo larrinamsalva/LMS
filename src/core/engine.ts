@@ -1,4 +1,10 @@
 import { z } from "zod";
+import { blueprintJson, sha256 } from "./blueprint";
+import {
+  explainMigrationImpact,
+  impactReviewInput,
+  type MigrationReview,
+} from "./migration-review";
 import {
   validateBuildPlan,
   publishPlanConfirmation,
@@ -289,6 +295,104 @@ export class Engine {
           )
         ).rows
       : [];
+  }
+  /** Metadata-only, single-statement MVCC observation. No approval, lock or mutation is created. */
+  async reviewBuildPlanImpact(
+    principal: Principal,
+    organizationId: string,
+    input: unknown,
+  ): Promise<MigrationReview> {
+    return this.asUser(principal, async (tx) => {
+      await this.requireRole(tx, organizationId, ["owner", "admin"]);
+      const request = impactReviewInput.parse(input),
+        plan = validateBuildPlan(request.document);
+      await this.requireBuildPlans(tx);
+      await this.requireConfigurationStorage(tx, plan.configuration);
+      const observation = (
+        await tx.query<{
+          config: ConfigRevision;
+          role: string;
+          isolation: string;
+          records: [string, string, number, boolean][];
+          drafts: [string, number, number][];
+        }>(
+          `select
+        current_setting('transaction_isolation') as isolation,
+        (select jsonb_build_object('revision',revision,'document',document,'restored_from',restored_from) from lms.config_revisions where organization_id=$1 order by revision desc limit 1) as config,
+        (select role from lms.memberships where organization_id=$1) as role,
+        (select coalesce(jsonb_agg(jsonb_build_array(entity,id,revision,archived) order by entity,id),'[]'::jsonb) from lms.records where organization_id=$1) as records,
+        (select coalesce(jsonb_agg(jsonb_build_array(id,revision,base_revision) order by id,revision),'[]'::jsonb) from lms.build_plan_revisions where organization_id=$1) as drafts
+        where lms.has_role($1,array['owner','admin'])`,
+          [organizationId],
+        )
+      ).rows[0];
+      if (!observation?.config)
+        throw new EngineError(
+          "This workspace is unavailable for your role.",
+          403,
+        );
+      if (observation.isolation !== "read committed")
+        throw new EngineError(
+          "Data-impact planning requires fresh READ COMMITTED observations. No review was accepted.",
+          409,
+        );
+      if (request.draft) {
+        const latest = Math.max(
+          0,
+          ...observation.drafts
+            .filter((d) => d[0] === request.draft!.id)
+            .map((d) => d[1]),
+        );
+        if (latest !== request.draft.revision)
+          throw new EngineError(
+            "The saved BuildPlan changed or is unavailable. Reopen its latest revision before reviewing.",
+            409,
+          );
+      }
+      const digest = (value: unknown) =>
+        sha256(new TextEncoder().encode(blueprintJson(value)));
+      const state = {
+        stateDigest: await digest({
+          organizationId,
+          actor: principal.userId,
+          ...observation,
+        }),
+        proposalDigest: await digest(plan),
+      };
+      if (
+        request.expected &&
+        (request.expected.stateDigest !== state.stateDigest ||
+          request.expected.proposalDigest !== state.proposalDigest)
+      )
+        throw new EngineError(
+          "This data-impact review is stale. Configuration, drafts, records or access changed. Refresh the review before previewing or exporting.",
+          409,
+        );
+      const populations = new Map<
+        string,
+        { entity: string; active: number; archived: number }
+      >();
+      for (const [entity, , , archived] of observation.records) {
+        const count = populations.get(entity) ?? {
+          entity,
+          active: 0,
+          archived: 0,
+        };
+        if (archived) count.archived++;
+        else count.active++;
+        populations.set(entity, count);
+      }
+      return {
+        format: "lms-migration-review" as const,
+        version: 1 as const,
+        configurationRevision: observation.config.revision,
+        ...explainMigrationImpact(observation.config.document, plan, [
+          ...populations.values(),
+        ]),
+        state,
+        ...(request.draft ? { draft: request.draft } : {}),
+      };
+    }).catch(recordFailure);
   }
   async saveBuildPlan(
     principal: Principal,
@@ -681,18 +785,7 @@ export class Engine {
       organizationId,
     ]);
     const current = await this.current(tx, organizationId);
-    if (config.schemaVersion === 2) await this.requireBranding(tx);
-    if (config.modules.some((m) => m.id === "workforce"))
-      await this.requireWorkforce(tx);
-    if (config.modules.some((m) => m.id === "estimates"))
-      await this.requirePricing(tx);
-    if (
-      config.entities.some((e) =>
-        ["stock-locations", "stock-movements"].includes(e.id),
-      ) &&
-      config.modules.some((m) => m.id === "inventory")
-    )
-      await this.requireInventory(tx);
+    await this.requireConfigurationStorage(tx, config);
     if (current.revision !== expectedRevision)
       throw new EngineError(
         "Configuration changed. Reload before publishing.",
@@ -739,6 +832,23 @@ export class Engine {
       ],
     );
     return current.revision + 1;
+  }
+  private async requireConfigurationStorage(
+    tx: SqlConnection,
+    config: BusinessConfig,
+  ) {
+    if (config.schemaVersion === 2) await this.requireBranding(tx);
+    if (config.modules.some((m) => m.id === "workforce"))
+      await this.requireWorkforce(tx);
+    if (config.modules.some((m) => m.id === "estimates"))
+      await this.requirePricing(tx);
+    if (
+      config.entities.some((e) =>
+        ["stock-locations", "stock-movements"].includes(e.id),
+      ) &&
+      config.modules.some((m) => m.id === "inventory")
+    )
+      await this.requireInventory(tx);
   }
   async exportWorkspace(principal: Principal, organizationId: string) {
     return this.asUser(principal, async (tx) => {

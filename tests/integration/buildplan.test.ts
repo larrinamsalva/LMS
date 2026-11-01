@@ -1,3 +1,9 @@
+import {
+  impactRetention,
+  impactFreshness,
+  impactAuthorization,
+  impactConcurrency,
+} from "../helpers/migration-review";
 import { beforeAll, beforeEach, afterAll, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import type { PGlite } from "@electric-sql/pglite";
@@ -27,11 +33,12 @@ let db: PGlite, engine: Engine, a: string, b: string;
 const owner = { userId: randomUUID() },
   other = { userId: randomUUID() },
   staff = { userId: randomUUID() },
-  viewer = { userId: randomUUID() };
+  viewer = { userId: randomUUID() },
+  impactAdmin = { userId: randomUUID() };
 beforeAll(async () => {
   db = await createDatabase();
   engine = new Engine(sqlDatabase(db));
-  for (const p of [owner, other, staff, viewer])
+  for (const p of [owner, other, staff, viewer, impactAdmin])
     await db.query(
       "insert into lms.users values($1,'Fictional pricing principal')",
       [p.userId],
@@ -63,6 +70,7 @@ beforeEach(async () => {
   for (const [p, role] of [
     [staff, "staff"],
     [viewer, "viewer"],
+    [impactAdmin, "admin"],
   ] as const)
     await db.query("insert into lms.memberships values($1,$2,$3)", [
       a,
@@ -72,6 +80,26 @@ beforeEach(async () => {
 });
 afterAll(async () => {
   await db?.close();
+});
+it("plans empty/populated and disabled schemas while retaining linked records and protected stock history", async () => {
+  await impactRetention(engine, owner, a);
+});
+it("rejects stale impact reports after record, archive, draft, proposal and configuration changes", async () => {
+  await impactFreshness(engine, owner, a, other, b);
+});
+it("restricts impact metadata to owners/admins and rejects unsupported and cross-organization requests", async () => {
+  await impactAuthorization(
+    engine,
+    owner,
+    impactAdmin,
+    a,
+    [staff, viewer, other],
+    other,
+    b,
+  );
+});
+it("observes concurrent records consistently and never permits a populated schema change", async () => {
+  await impactConcurrency(engine, owner, a);
 });
 it("retains exact reviewed template baselines and user choices through explicit saves, publication and rollback", async () => {
   await templateUpdatePersistence(

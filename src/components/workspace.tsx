@@ -523,6 +523,15 @@ export function Workspace({
                 key={workspace!.organizationId}
                 workspace={workspace!}
                 busy={busy}
+                onReview={async (input) =>
+                  (
+                    await jsonRequest("/api/demo", {
+                      action: "review-impact",
+                      organizationId: workspace!.organizationId,
+                      input,
+                    })
+                  ).migrationReview
+                }
                 onSave={async (document, id, revision, baseRevision) => {
                   await mutate({
                     action: "save-plan",

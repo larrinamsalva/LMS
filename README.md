@@ -16,6 +16,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Blueprint packages: download validated configuration with a feature/setup summary, then import through explicit compatibility and Gallery comparison without overwriting saved choices.
 - Business Branding Studio: built-in marks/monograms, tagline, four reviewed light/dark palettes and real branded workspace previews, with versioned draft/package persistence and rollback.
 - Local template history: retained reviewed editions, verified saved comparison baselines and selective update review that keeps customizations until explicitly replaced.
+- Migration planning: scoped active/archived/disabled record metadata, stale-review detection, readable data-only impact reports and isolated previews; populated schema changes stay blocked.
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
@@ -76,6 +77,10 @@ Branding persists in configuration schema 2, BuildPlan 2 and Blueprint Package 2
 ## Review template updates
 
 Before updating an existing BuildPlan, use **Check for Template Updates** in Studio. Compare retained and newer reviewed editions, keep your own choices, preview selected replacements, then use them as unsaved choices. Exact saved baselines enable three-way review; imported hints alone remain informational. Format changes need explicit approval and populated schema changes remain blocked. [Workflow, trust limits and screenshots](docs/template-history.md) · [Verification](docs/template-history-verification.md).
+
+## Plan business changes
+
+In Studio, customize your proposed configuration and choose **Review Data Impact**. Inspect affected record counts, fields, module visibility, relationships, branding and history protections. Preview in an empty fictional Engine workspace or export a planning report after a freshness recheck. Compatible choices still need the existing explicit save/publication controls. Populated schema changes remain blocked; no migration executor or automatic record transformation is included. [Workflow, freshness/privacy contract and limits](docs/migration-planning.md) · [Verification and screenshots](docs/migration-planning-verification.md).
 
 ## Customer-linked scheduling
 

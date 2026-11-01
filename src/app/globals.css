@@ -1552,6 +1552,16 @@ legend {
   overflow-wrap: anywhere;
   line-height: 1.6;
 }
+.impact-review code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+}
+.impact-review li {
+  line-height: 1.65;
+  margin-block: 0.65rem;
+  overflow-wrap: anywhere;
+}
 .template-baseline {
   border-inline-start: 0.25rem solid var(--accent);
   padding-inline-start: 1rem;

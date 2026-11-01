@@ -1,3 +1,9 @@
+import {
+  impactRetention,
+  impactFreshness,
+  impactAuthorization,
+  impactConcurrency,
+} from "../helpers/migration-review";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { Client } from "pg";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -74,7 +80,8 @@ let cluster: Client,
 const owner = { userId: randomUUID() },
   other = { userId: randomUUID() },
   staff = { userId: randomUUID() },
-  viewer = { userId: randomUUID() };
+  viewer = { userId: randomUUID() },
+  impactAdmin = { userId: randomUUID() };
 async function client<T>(
   database: string,
   runtime: boolean,
@@ -115,7 +122,7 @@ beforeAll(async () => {
   await admin.connect();
   await migrate(admin);
   await provisionRuntime(admin, url(name, true));
-  for (const p of [owner, other, staff, viewer])
+  for (const p of [owner, other, staff, viewer, impactAdmin])
     await admin.query(
       "insert into lms.users values($1,'Fictional scheduling principal')",
       [p.userId],
@@ -136,6 +143,7 @@ beforeEach(async () => {
   for (const [p, role] of [
     [staff, "staff"],
     [viewer, "viewer"],
+    [impactAdmin, "admin"],
   ] as const)
     await admin.query("insert into lms.memberships values($1,$2,$3)", [
       a,
@@ -191,6 +199,43 @@ async function rawSave(
   );
 }
 describe("native BuildPlan artifacts and publication", () => {
+  it("refuses impact freshness claims under a retained repeatable-read snapshot", async () => {
+    const isolated = new Engine({
+      query: (sql, parameters) => db.query(sql, parameters),
+      exec: (sql) => db.exec(sql),
+      transaction: (fn) =>
+        db.transaction(async (tx) => {
+          await tx.exec("set transaction isolation level repeatable read");
+          return fn(tx);
+        }),
+    });
+    await expect(
+      isolated.reviewBuildPlanImpact(owner, a, {
+        document: planForConfig(presets.property),
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect((await engine.snapshot(owner, a)).config.revision).toBe(1);
+  });
+  it("plans empty/populated and disabled schemas while retaining linked records and protected stock history", async () => {
+    await impactRetention(engine, owner, a);
+  });
+  it("rejects stale impact reports after record, archive, draft, proposal and configuration changes", async () => {
+    await impactFreshness(engine, owner, a, other, b);
+  });
+  it("restricts impact metadata to owners/admins and rejects unsupported and cross-organization requests", async () => {
+    await impactAuthorization(
+      engine,
+      owner,
+      impactAdmin,
+      a,
+      [staff, viewer, other],
+      other,
+      b,
+    );
+  });
+  it("observes concurrent records consistently and never permits a populated schema change", async () => {
+    await impactConcurrency(engine, owner, a);
+  });
   it("retains reviewed baselines and unselected customizations under native permissions, history and publication guards", async () => {
     await templateUpdatePersistence(
       engine,
