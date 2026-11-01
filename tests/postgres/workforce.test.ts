@@ -617,7 +617,10 @@ describe("employee and crew availability with native PostgreSQL transactions", (
       } finally {
         await lease.close();
       }
-      expect(await migrate(c)).toEqual(["008_workforce_availability"]);
+      expect(await migrate(c)).toEqual([
+        "008_workforce_availability",
+        "009_service_estimates",
+      ]);
       expect(await snapshot()).toEqual(before!);
       expect(
         (await c.query("select * from lms.appointment_staff")).rows,

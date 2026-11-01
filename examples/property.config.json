@@ -28,6 +28,10 @@
     {
       "id": "workforce",
       "version": "1.0.0"
+    },
+    {
+      "id": "estimates",
+      "version": "1.0.0"
     }
   ],
   "entities": [
@@ -413,6 +417,208 @@
       ]
     },
     {
+      "id": "pricing-zones",
+      "module": "estimates",
+      "singular": "Pricing zone",
+      "plural": "Pricing zones",
+      "titleField": "name",
+      "fields": [
+        {
+          "key": "name",
+          "label": "Area name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "description",
+          "label": "Area description",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "services",
+      "module": "estimates",
+      "singular": "Service",
+      "plural": "Services",
+      "titleField": "name",
+      "fields": [
+        {
+          "key": "name",
+          "label": "Service name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "description",
+          "label": "Service description",
+          "type": "longtext",
+          "required": false
+        },
+        {
+          "key": "category",
+          "label": "Service category",
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "mode",
+          "label": "Pricing method",
+          "type": "select",
+          "required": true,
+          "options": ["Fixed", "Hourly", "Per unit", "Quantity"]
+        },
+        {
+          "key": "unit",
+          "label": "Pricing unit",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "kind",
+          "label": "Service kind",
+          "type": "select",
+          "required": true,
+          "options": ["Service", "Extra"]
+        },
+        {
+          "key": "parent",
+          "label": "Extra for service",
+          "type": "reference",
+          "required": false,
+          "target": "services"
+        },
+        {
+          "key": "notes",
+          "label": "Service notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "service-rates",
+      "module": "estimates",
+      "singular": "Service rate",
+      "plural": "Rates",
+      "titleField": "title",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Rate title",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "service",
+          "label": "Service",
+          "type": "reference",
+          "required": true,
+          "target": "services"
+        },
+        {
+          "key": "zone",
+          "label": "Pricing zone",
+          "type": "reference",
+          "required": true,
+          "target": "pricing-zones"
+        },
+        {
+          "key": "amount",
+          "label": "Unit price (USD)",
+          "type": "money",
+          "required": true
+        },
+        {
+          "key": "effective_from",
+          "label": "Effective from",
+          "type": "date",
+          "required": true
+        },
+        {
+          "key": "effective_until",
+          "label": "Effective until (exclusive)",
+          "type": "date",
+          "required": false
+        },
+        {
+          "key": "notes",
+          "label": "Rate notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "estimates",
+      "module": "estimates",
+      "singular": "Estimate draft",
+      "plural": "Estimates",
+      "titleField": "title",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Estimate title",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "customer",
+          "label": "Customer",
+          "type": "reference",
+          "required": true,
+          "target": "customers"
+        },
+        {
+          "key": "work",
+          "label": "Maintenance request",
+          "type": "reference",
+          "required": false,
+          "target": "tasks"
+        },
+        {
+          "key": "appointment",
+          "label": "Appointment",
+          "type": "reference",
+          "required": false,
+          "target": "appointments"
+        },
+        {
+          "key": "zone",
+          "label": "Pricing zone",
+          "type": "reference",
+          "required": true,
+          "target": "pricing-zones"
+        },
+        {
+          "key": "as_of",
+          "label": "Pricing date",
+          "type": "date",
+          "required": true
+        },
+        {
+          "key": "status",
+          "label": "Draft status",
+          "type": "select",
+          "required": true,
+          "options": ["Draft", "Reviewed draft", "Void"]
+        },
+        {
+          "key": "pricing",
+          "label": "Pricing details",
+          "type": "estimate",
+          "required": true
+        },
+        {
+          "key": "notes",
+          "label": "Estimate notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
       "id": "units",
       "module": "property",
       "singular": "Site or unit",
@@ -457,6 +663,10 @@
     "employees",
     "resource-memberships",
     "availability",
+    "pricing-zones",
+    "services",
+    "service-rates",
+    "estimates",
     "items"
   ]
 }

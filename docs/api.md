@@ -15,7 +15,7 @@
 | `exportWorkspace` | principal, organization | Version 1 JSON config/history/all retained records, including disabled/archived; owner/admin |
 | `asUser` | trusted principal, trusted SQL callback | Internal host/test boundary, **never** an endpoint for arbitrary client SQL |
 
-Core errors distinguish unavailable scope (403), missing record/config (404), stale revision/capacity (409) and invalid input (400). Database failures are not converted to empty records/totals. JSON strings are plain text; React escapes them. Custom records do not provide relational foreign keys, stock ledgers or finance semantics.
+Core errors distinguish unavailable scope (403), missing record/config (404), stale revision/capacity (409) and invalid input (400). Database failures are not converted to empty records/totals. JSON strings are plain text; React escapes them. Typed reference fields provide scoped record links; stock ledgers and live finance semantics remain separate modules.
 
 ## Configuration and module contract
 
@@ -77,3 +77,10 @@ The [local identity adapter](local-auth.md) can validate a distinct signed auth 
 The optional `workforce` manifest adds `employees`, `resource-memberships` and `availability` as ordinary records. Use existing `saveRecord`/`archiveRecord` revision and operation-ID arguments. Only owners/admins can mutate those entities; staff scheduling remains operational. Employee work roles never grant identity/membership permissions. Workforce periods reuse explicit-instant datetime fields and an IANA `time_zone`.
 
 Workspace snapshots and the existing version-1 JSON export add `staffAssignments`: trigger-maintained per-appointment-revision employee/membership snapshots with an `active` reservation flag. Released rows remain retained. This additive export metadata does not supply an import or production restore API. See [field contracts, enrollment, availability and concurrency rules](crews-availability.md). No public persistent route is added.
+
+
+## Services and internal estimates
+
+`estimates` provides `pricing-zones`, `services`, `service-rates` and `estimates`. Existing save/archive methods and operation UUIDs apply; only owners/admins write these records. `money` fields are canonical integer-cent strings; the restricted `estimate` field is normalized selection input with USD currency, line UUIDs/rate and service revisions, quantity strings, discount, explicit manual-tax configuration and `FICTIONAL DRAFT ONLY` acknowledgement. The Engine materializes and PostgreSQL verifies exact immutable pricing snapshots in the same transaction. Client calculations are never authoritative.
+
+Snapshots/exports add `estimateVersions` with retained status/pricing revisions. The host-only SQL `lms.prepare_estimate` is not an HTTP endpoint. [Complete schemas, rounding, current-price checks, original-input retries, status transitions and printing limits](services-estimates.md).

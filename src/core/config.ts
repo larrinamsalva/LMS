@@ -5,6 +5,13 @@ import {
   validateAppointment,
   appointmentStatuses,
 } from "./time";
+import {
+  pricingContract,
+  validatePricingRecord,
+  minorSchema,
+  estimateInputSchema,
+  type EstimateInput,
+} from "./pricing";
 import { moduleById } from "../modules/registry";
 import { workforceContract, validateWorkforceRecord } from "./workforce";
 const reserved = new Set([
@@ -35,6 +42,8 @@ export const fieldSchema = z
       "select",
       "reference",
       "datetime",
+      "money",
+      "estimate",
     ]),
     required: z.boolean(),
     options: z.array(label).min(1).max(20).optional(),
@@ -133,6 +142,30 @@ export const businessConfigSchema = z
         error(`Entity ${entity.id} is not provided by ${entity.module}.`);
     }
     for (const entity of config.entities) {
+      if (!pricingContract(entity))
+        error("Pricing fields must match the module contract.");
+      if (entity.id === "estimates") {
+        const workField = entity.fields.find((f) => f.key === "work");
+        const work = config.entities.find((e) => e.id === workField?.target);
+        if (
+          workField &&
+          (workField.type !== "reference" ||
+            !work?.fields.some(
+              (f) =>
+                f.key === "customer" &&
+                f.type === "reference" &&
+                f.target === "customers",
+            ))
+        )
+          error("Estimated work needs a typed customer reference.");
+        const appointment = entity.fields.find((f) => f.key === "appointment");
+        if (
+          appointment &&
+          (appointment.type !== "reference" ||
+            appointment.target !== "appointments")
+        )
+          error("Estimate appointment links must target appointments.");
+      }
       if (!workforceContract(entity))
         error("Workforce fields must match the module contract.");
       for (const field of entity.fields.filter((f) => f.type === "reference")) {
@@ -205,7 +238,7 @@ export class ConfigurationError extends Error {}
 export type BusinessConfig = z.infer<typeof businessConfigSchema>;
 export type EntityDefinition = z.infer<typeof entitySchema>;
 export type FieldDefinition = z.infer<typeof fieldSchema>;
-export type RecordData = Record<string, string | number>;
+export type RecordData = Record<string, string | number | EstimateInput>;
 export const validateConfig = (value: unknown): BusinessConfig =>
   businessConfigSchema.parse(value);
 export const activeEntities = (config: BusinessConfig) =>
@@ -225,23 +258,27 @@ export function validateRecord(
   const fields: Record<string, z.ZodType> = {};
   for (const field of entity.fields) {
     let schema: z.ZodType =
-      field.type === "reference"
-        ? z.uuid()
-        : field.type === "datetime"
-          ? z.iso.datetime({ offset: true })
-          : field.type === "number"
-            ? z.number().finite().min(0).max(1000000)
-            : field.type === "select"
-              ? z.enum(field.options as [string, ...string[]])
-              : field.type === "date"
-                ? z.iso.date()
-                : field.type === "email"
-                  ? z.email().max(254)
-                  : z
-                      .string()
-                      .trim()
-                      .max(field.type === "longtext" ? 2000 : 200)
-                      .min(field.required ? 1 : 0);
+      field.type === "money"
+        ? minorSchema
+        : field.type === "estimate"
+          ? estimateInputSchema
+          : field.type === "reference"
+            ? z.uuid()
+            : field.type === "datetime"
+              ? z.iso.datetime({ offset: true })
+              : field.type === "number"
+                ? z.number().finite().min(0).max(1000000)
+                : field.type === "select"
+                  ? z.enum(field.options as [string, ...string[]])
+                  : field.type === "date"
+                    ? z.iso.date()
+                    : field.type === "email"
+                      ? z.email().max(254)
+                      : z
+                          .string()
+                          .trim()
+                          .max(field.type === "longtext" ? 2000 : 200)
+                          .min(field.required ? 1 : 0);
     if (!field.required) schema = z.union([schema, z.literal("")]).optional();
     fields[field.key] = schema;
   }
@@ -251,5 +288,6 @@ export function validateRecord(
       result[field.key] = normalizeInstant(String(result[field.key]));
   if (entity.id === "appointments") validateAppointment(result);
   validateWorkforceRecord(entity.id, result);
+  validatePricingRecord(entity.id, result);
   return result;
 }

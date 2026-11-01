@@ -1147,3 +1147,100 @@ legend {
 .workforce-members .actions {
   margin-top: 8px;
 }
+
+.estimate-line {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  min-width: 0;
+}
+.money-totals {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0;
+}
+.money-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 0;
+}
+.money-totals dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.money-totals > div:last-child {
+  font-size: 1.2em;
+  font-weight: 700;
+}
+.estimate-print {
+  min-height: 0;
+  width: min(760px, calc(100% - 24px));
+  max-height: 90vh;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  background: var(--surface);
+  color: var(--text);
+}
+.estimate-print::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+.estimate-print .print-controls {
+  margin-bottom: 24px;
+}
+.estimate-print dl dd {
+  margin: 4px 0 14px;
+}
+.estimate-print .money-totals dd {
+  margin: 0;
+}
+.estimate-preview-lines {
+  padding-left: 24px;
+}
+.estimate-preview-lines li {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.estimate-preview-lines p {
+  margin-bottom: 8px;
+}
+@media print {
+  body > :not(#estimate-print-root) {
+    display: none !important;
+  }
+  #estimate-print-root {
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    width: auto;
+    max-width: none;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+    border: 0;
+    margin: 0;
+    padding: 12px;
+    box-shadow: none;
+  }
+  #estimate-print-root,
+  #estimate-print-root * {
+    background: white !important;
+    color: #111 !important;
+    border-color: #ccc !important;
+  }
+  #estimate-print-root .print-controls {
+    display: none !important;
+  }
+  #estimate-print-root::backdrop {
+    display: none;
+  }
+  .estimate-preview-lines li,
+  .money-totals {
+    break-inside: avoid;
+  }
+}

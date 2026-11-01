@@ -19,23 +19,36 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 1000 },
+        baseURL: "http://127.0.0.1:3100",
       },
     },
     {
       name: "tablet",
-      use: { ...devices["iPad (gen 7)"], defaultBrowserType: "chromium" },
+      use: {
+        ...devices["iPad (gen 7)"],
+        baseURL: "http://127.0.0.1:3101",
+        defaultBrowserType: "chromium",
+      },
     },
     {
       name: "phone",
-      use: { ...devices["iPhone 13"], defaultBrowserType: "chromium" },
+      use: {
+        ...devices["iPhone 13"],
+        baseURL: "http://127.0.0.1:3102",
+        defaultBrowserType: "chromium",
+      },
     },
   ],
-  webServer: {
-    command: "npm run start -- --port 3100",
-    url: "http://127.0.0.1:3100",
+  // Separate bounded demo runtimes per viewport; never raise the production demo session cap for tests.
+  webServer: [3100, 3101, 3102].map((port) => ({
+    command: `npm run start -- --port ${port}`,
+    url: `http://127.0.0.1:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
-    env: { NEXT_TELEMETRY_DISABLED: "1" },
-  },
+    env: {
+      NEXT_TELEMETRY_DISABLED: "1",
+      LMS_APP_ORIGIN: `http://127.0.0.1:${port}`,
+    },
+  })),
   reporter: [["list"], ["html", { open: "never" }]],
 });

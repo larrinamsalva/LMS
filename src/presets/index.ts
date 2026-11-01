@@ -4,6 +4,7 @@ import {
   type FieldDefinition,
 } from "../core/config";
 import { appointmentStatuses } from "../core/time";
+import { pricingModes, estimateStatuses } from "../core/pricing";
 import { availabilityKinds } from "../core/workforce";
 const field = (
   key: string,
@@ -185,6 +186,74 @@ const workforce = [
     ],
   },
 ];
+const pricing = (industry: "property" | "cleaning") => [
+  {
+    id: "pricing-zones",
+    module: "estimates",
+    singular: "Pricing zone",
+    plural: "Pricing zones",
+    titleField: "name",
+    fields: [
+      field("name", "Area name", "text", true),
+      field("description", "Area description", "longtext"),
+    ],
+  },
+  {
+    id: "services",
+    module: "estimates",
+    singular: "Service",
+    plural: "Services",
+    titleField: "name",
+    fields: [
+      field("name", "Service name", "text", true),
+      field("description", "Service description", "longtext"),
+      field("category", "Service category"),
+      field("mode", "Pricing method", "select", true, [...pricingModes]),
+      field("unit", "Pricing unit", "text", true),
+      field("kind", "Service kind", "select", true, ["Service", "Extra"]),
+      reference("parent", "Extra for service", "services"),
+      field("notes", "Service notes", "longtext"),
+    ],
+  },
+  {
+    id: "service-rates",
+    module: "estimates",
+    singular: "Service rate",
+    plural: "Rates",
+    titleField: "title",
+    fields: [
+      field("title", "Rate title", "text", true),
+      reference("service", "Service", "services", true),
+      reference("zone", "Pricing zone", "pricing-zones", true),
+      field("amount", "Unit price (USD)", "money", true),
+      field("effective_from", "Effective from", "date", true),
+      field("effective_until", "Effective until (exclusive)", "date"),
+      field("notes", "Rate notes", "longtext"),
+    ],
+  },
+  {
+    id: "estimates",
+    module: "estimates",
+    singular: "Estimate draft",
+    plural: "Estimates",
+    titleField: "title",
+    fields: [
+      field("title", "Estimate title", "text", true),
+      reference("customer", "Customer", "customers", true),
+      reference(
+        "work",
+        industry === "cleaning" ? "Cleaning job" : "Maintenance request",
+        industry === "cleaning" ? "jobs" : "tasks",
+      ),
+      reference("appointment", "Appointment", "appointments"),
+      reference("zone", "Pricing zone", "pricing-zones", true),
+      field("as_of", "Pricing date", "date", true),
+      field("status", "Draft status", "select", true, [...estimateStatuses]),
+      field("pricing", "Pricing details", "estimate", true),
+      field("notes", "Estimate notes", "longtext"),
+    ],
+  },
+];
 export const presets: Record<"property" | "cleaning", BusinessConfig> = {
   property: validateConfig({
     schemaVersion: 1,
@@ -199,6 +268,7 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
       "inventory",
       "scheduling",
       "workforce",
+      "estimates",
     ].map((id) => ({
       id,
       version: "1.0.0",
@@ -216,6 +286,7 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
       ),
       ...scheduling("property"),
       ...workforce,
+      ...pricing("property"),
       {
         id: "units",
         module: "property",
@@ -247,6 +318,10 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
       "employees",
       "resource-memberships",
       "availability",
+      "pricing-zones",
+      "services",
+      "service-rates",
+      "estimates",
       "items",
     ],
   }),
@@ -263,6 +338,7 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
       "inventory",
       "scheduling",
       "workforce",
+      "estimates",
     ].map((id) => ({
       id,
       version: "1.0.0",
@@ -271,6 +347,7 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
       ...common,
       ...scheduling("cleaning"),
       ...workforce,
+      ...pricing("cleaning"),
       {
         id: "jobs",
         module: "cleaning",
@@ -305,6 +382,10 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
       "employees",
       "resource-memberships",
       "availability",
+      "pricing-zones",
+      "services",
+      "service-rates",
+      "estimates",
       "items",
     ],
   }),

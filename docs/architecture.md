@@ -6,7 +6,7 @@ One engine. Any business. Your data. Your control.
 
 Next.js App Router + React + strict TypeScript retain practical ForgeOS compatibility. A framework-independent core validates versioned JSON business configurations and module manifests. The same record service, forms, SQL and audit history operate property and cleaning presets. Industry terminology, fields and enabled modules live in configuration. This foundation is not a complete property/cleaning product or website builder.
 
-The smallest vertical slice is operational custom records: customers, property units or cleaning jobs, and tasks. Create, edit, archive, search, export, configuration revision/rollback and audit review work. Optional inventory is a simple item catalog, not a stock ledger. Billing, service-rate calculations, quotes, advanced recurring scheduling, documents, reports and external actions remain staged modules. The UI labels their availability honestly.
+The smallest vertical slice is operational custom records: customers, property units or cleaning jobs, and tasks. Create, edit, archive, search, export, configuration revision/rollback and audit review work. Optional inventory is a simple item catalog, not a stock ledger. Billing, advanced pricing/tax models, advanced recurring scheduling, documents, reports and external actions remain staged modules. The UI labels their availability honestly.
 
 ## Boundaries
 
@@ -79,3 +79,8 @@ The `scheduling` manifest supplies resource/appointment record definitions. Refe
 ### Shared workforce module
 
 `workforce` provides employee profiles, dated resource membership and finite availability as existing configurable records. Trigger-maintained scoped projections resolve stable whole-appointment rosters and append allocation snapshots; the existing source/operation/audit transaction remains authoritative. Owners/admins administer profiles/availability through existing generated forms, while staff schedule. Worker/Crew/Equipment and old appointment contracts remain unchanged. Unenrolled legacy resources reserve no person; enrolled resources cannot bypass checks by archiving their last membership or hiding the module. See [workforce contract](crews-availability.md).
+
+
+### Shared pricing module
+
+One `estimates` module models areas, services/extras, dated rate records and internal drafts. The generic record API accepts a restricted structured estimate field; pure BigInt calculation powers previews, while epoch-ordered PostgreSQL materialization/guards independently verify exact prices/totals. Operation receipts bind original selections; append-only estimate versions retain pricing/status snapshots. No industry-specific calculator, live financial route or production activation is introduced. See [pricing contract](services-estimates.md).

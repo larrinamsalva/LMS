@@ -1,10 +1,8 @@
 import { z } from "zod";
 import { TimeError } from "./time";
-import {
-  recordWriteRoles,
-  workforceEntities,
-  type StaffAssignment,
-} from "./workforce";
+import { workforceEntities, type StaffAssignment } from "./workforce";
+import { recordWriteRoles } from "./permissions";
+import { PricingError, pricingEntities, type EstimateVersion } from "./pricing";
 import {
   activeEntities,
   getEntity,
@@ -58,8 +56,14 @@ export class EngineError extends Error {
   }
 }
 function recordFailure(error: unknown): never {
-  if (error instanceof TimeError) throw new EngineError(error.message, 400);
+  if (error instanceof TimeError || error instanceof PricingError)
+    throw new EngineError(error.message, 400);
   const e = error as { code?: string; message?: string; constraint?: string };
+  if (e.code === "23P01" && e.constraint === "exclusive_service_rate")
+    throw new EngineError(
+      "An active rate already covers this service, area and date range. Adjust its effective dates or archive it first.",
+      409,
+    );
   if (e.code === "23P01" && e.constraint === "one_worker_identity")
     throw new EngineError(
       "This Worker resource already has an effective employee during that period.",
@@ -172,6 +176,34 @@ export class Engine {
         ).rows
       : [];
   }
+  private async requirePricing(tx: SqlConnection) {
+    if (
+      !(
+        await tx.query<{ present: boolean }>(
+          "select to_regclass('lms.service_rates') is not null as present",
+        )
+      ).rows[0].present
+    )
+      throw new EngineError(
+        "Stop hosts and apply migration 9 before enabling or writing service pricing and estimates.",
+        409,
+      );
+  }
+  private async estimateHistory(tx: SqlConnection, organizationId: string) {
+    const exists = (
+      await tx.query<{ present: boolean }>(
+        "select to_regclass('lms.estimate_versions') is not null as present",
+      )
+    ).rows[0].present;
+    return exists
+      ? (
+          await tx.query<EstimateVersion>(
+            "select * from lms.estimate_versions where organization_id=$1 order by record_id,revision",
+            [organizationId],
+          )
+        ).rows
+      : [];
+  }
   private async command(
     tx: SqlConnection,
     organizationId: string,
@@ -241,6 +273,7 @@ export class Engine {
         history,
         audit,
         staffAssignments: await this.staffHistory(tx, organizationId),
+        estimateVersions: await this.estimateHistory(tx, organizationId),
       };
     });
   }
@@ -266,6 +299,7 @@ export class Engine {
           config.document.modules.some((m) => m.id === "workforce"))
       )
         await this.requireWorkforce(tx);
+      if (pricingEntities.includes(entityId)) await this.requirePricing(tx);
       const clean = validateRecord(getEntity(config.document, entityId), data);
       const replay = await this.command(tx, organizationId, operationId, {
         kind: "save",
@@ -277,11 +311,27 @@ export class Engine {
       if (existing) {
         id.parse(existing.id);
         revision.parse(existing.revision);
+      }
+      const stored =
+        entityId === "estimates"
+          ? (
+              await tx.query<{ data: RecordData }>(
+                "select lms.prepare_estimate($1,$2::jsonb,$3::uuid,$4::integer) as data",
+                [
+                  organizationId,
+                  clean,
+                  existing?.id ?? null,
+                  existing?.revision ?? null,
+                ],
+              )
+            ).rows[0].data
+          : clean;
+      if (existing) {
         const row = (
           await tx.query<WorkspaceRecord>(
             "update lms.records set data=$1,config_revision=$2 where organization_id=$3 and entity=$4 and id=$5 and revision=$6 and not archived returning *",
             [
-              clean,
+              stored,
               config.revision,
               organizationId,
               entityId,
@@ -311,7 +361,7 @@ export class Engine {
       return (
         await tx.query<WorkspaceRecord>(
           "insert into lms.records(organization_id,entity,data,config_revision,created_by,updated_by) values($1,$2,$3,$4,$5,$5) returning *",
-          [organizationId, entityId, clean, config.revision, principal.userId],
+          [organizationId, entityId, stored, config.revision, principal.userId],
         )
       ).rows[0];
     }).catch(recordFailure);
@@ -352,6 +402,8 @@ export class Engine {
           config.document.modules.some((m) => m.id === "workforce"))
       )
         await this.requireWorkforce(tx);
+      if (pricingEntities.includes(record.entity))
+        await this.requirePricing(tx);
       getEntity(config.document, record.entity);
       const replay = await this.command(tx, organizationId, operationId, {
         kind: "archive",
@@ -395,6 +447,8 @@ export class Engine {
       const current = await this.current(tx, organizationId);
       if (config.modules.some((m) => m.id === "workforce"))
         await this.requireWorkforce(tx);
+      if (config.modules.some((m) => m.id === "estimates"))
+        await this.requirePricing(tx);
       if (current.revision !== expectedRevision)
         throw new EngineError(
           "Configuration changed. Reload before publishing.",
@@ -483,6 +537,7 @@ export class Engine {
         history,
         records,
         staffAssignments: await this.staffHistory(tx, organizationId),
+        estimateVersions: await this.estimateHistory(tx, organizationId),
       };
     });
   }

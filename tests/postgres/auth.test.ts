@@ -113,6 +113,7 @@ beforeAll(async () => {
     "006_credential_lineage",
     "007_relationship_scheduling",
     "008_workforce_availability",
+    "009_service_estimates",
   ]);
   await provisionRuntime(admin, url(name, "business"));
   await provisionAuthRuntime(admin, url(name, "auth"));

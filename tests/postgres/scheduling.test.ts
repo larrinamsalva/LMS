@@ -574,6 +574,7 @@ describe("shared scheduling with native PostgreSQL constraints", () => {
       expect(await migrate(c)).toEqual([
         "007_relationship_scheduling",
         "008_workforce_availability",
+        "009_service_estimates",
       ]);
       expect(
         (

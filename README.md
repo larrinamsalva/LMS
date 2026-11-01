@@ -9,6 +9,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - One TypeScript engine and one responsive React workspace render **Property Manager** (customers, sites/units, maintenance tasks, supply catalog) and **Cleaning Company** (customers, cleaning jobs, service dates, crew notes, tasks, supply catalog).
 - Shared customer/work links, exclusive-resource scheduling, retained booking zones and a responsive daily agenda for both businesses.
 - Fictional employee profiles, effective-dated Worker/Crew membership, finite working hours/time off, and cross-crew employee conflict protection.
+- Services, dated area rates and fictional estimate drafts with exact USD cents, preserved pricing snapshots, revisions and printable preview.
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
@@ -16,7 +17,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Append-only database audit history; project JSON and organization-scoped workspace exports.
 - Accessible light/dark themes, phone layout and no-login **fictional-data-only** demo.
 
-This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, service pricing/quotes, stock ledgers, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
+This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, advanced pricing/currencies, stock ledgers, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
 
 ## Run locally
 
@@ -51,6 +52,12 @@ Choose **Schedule** in either fictional workspace. Cleaning uses Customer → Cl
 Open **Crews & availability** to add fictional profiles, dated memberships and work/time-off periods. Owners/admins manage these records; staff can schedule eligible rosters. PostgreSQL prevents a person being booked through different crews or Worker resources at once. Directory and schedule show employee allocation history on desktop, tablet and phone. Employee profiles never create login accounts or grant permissions.
 
 Existing unenrolled PR #10 resources remain explicitly resource-only. Enrolled resources require a stable, fully available roster; cancel/archive affected bookings before changing it. The single-resource appointment model remains. See [setup/workflows and limits](docs/crews-availability.md), [manifest](examples/workforce.module.json) and [verified tests](docs/crews-availability-verification.md). Weekly recurrence, payroll and timesheets remain deferred.
+
+## Services, rates and estimate drafts
+
+Open **Services & Rates** to maintain fictional services/extras and date-effective prices for named areas. Open **Estimates** to select a customer and linked work, load saved prices, enter quantities/discount/manual tax and review a printable internal draft. Owners/admins write; other members read. Exact cents and saved service/rate snapshots prevent floating-point totals and silent repricing. Nothing is sent or charged.
+
+This phase is USD only, with 1–10 lines and explicit tax/rounding/status rules. See [workflow and security contract](docs/services-estimates.md), [manifest](examples/estimates.module.json) and [actual verification](docs/services-estimates-verification.md). The separate native adapter provides durable pricing; the public no-login demo remains temporary.
 
 ## Experimental durable PostgreSQL
 

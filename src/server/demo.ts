@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import type { PGlite } from "@electric-sql/pglite";
 import { Engine, EngineError, type Principal } from "../core/engine";
+import { seedPricing } from "../presets/pricing-samples";
 import { seedSchedule } from "../presets/schedule-samples";
 import { presets, sampleRecords } from "../presets";
 import { createDatabase, sqlDatabase } from "./database";
@@ -88,6 +89,7 @@ export async function startDemo() {
             record.data,
           );
         await seedSchedule(rt.engine, principal, org.id);
+        await seedPricing(rt.engine, principal, org.id);
       }
     } catch (error) {
       for (const org of organizations)
