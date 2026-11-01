@@ -109,6 +109,11 @@ export function BlueprintPackageTools({
         clearly unverified. Imports stay in your browser; no key upload grants
         trust.
       </p>
+      <p className="muted">
+        Downloads retain built-in marks and text only. Private session logo
+        images and local asset references are excluded from all existing
+        blueprint formats.
+      </p>
       <button
         type="button"
         disabled={busy || !zip}

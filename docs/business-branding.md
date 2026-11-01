@@ -1,6 +1,6 @@
 # Business Branding Studio
 
-Branding changes presentation through the shared configuration Engine. It never edits customer, estimate, stock, scheduling, employee, membership or credential records. The no-login demo stays fictional, isolated and temporary. No upload, hosting service, font download, production authentication or deployment is added.
+Branding changes presentation through the shared configuration Engine. It never edits customer, estimate, stock, scheduling, employee, membership or credential records. The no-login demo stays fictional, isolated and temporary. This portable contract accepts built-in marks/text only; the separate [private logo preview](private-logos.md) does not extend it or add hosting, fonts, production authentication or deployment.
 
 ## Try it
 
@@ -77,9 +77,9 @@ Installation and its checksum ledger are atomic. No existing configuration, draf
 
 ## Limits and next phases
 
-This phase offers coordinated palettes and built-in marks/ASCII monograms only. Secure custom image upload requires separately reviewed content decoding/re-encoding, pixel/byte limits, metadata stripping, scoped private storage, authorization, retention, CSP and accessible fallback behavior. None of those controls is replaced by a public URL or inline SVG shortcut here.
+The portable format offers coordinated palettes and built-in marks/ASCII monograms only. The separate [Custom Business Logo](private-logos.md) uses strict raster sanitization, private temporary custody and accessible fallback. Its session overlay is never saved/exported/published as branding, and separate Engine previews receive no copied image. Portable image sharing requires a future explicitly versioned protocol and custody review.
 
-There are no external themes/fonts, logo upload, public media hosting, executable app export/deployment, real-business authentication, automatic template updates, payments, messaging or recovery activation. Publisher provenance, production acceptance, image custody and richer visual customization remain separate phases. MIT and ForgeOS attribution are retained. [Verification](business-branding-verification.md) · [Roadmap](../ROADMAP.md).
+There are no external themes/fonts, public media hosting, executable app export/deployment, real-business authentication, automatic template updates, payments, messaging or recovery activation. Detached publisher inspection is separate from production acceptance; durable/portable image custody and richer visual customization remain follow-ups. MIT and ForgeOS attribution are retained. [Original branding verification](business-branding-verification.md) · [Private-logo verification](private-logos-verification.md) · [Roadmap](../ROADMAP.md).
 
 ## Running-application examples
 

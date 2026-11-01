@@ -75,7 +75,9 @@ Only the strict 96 KiB LMS stored-ZIP format is accepted. Checksums detect damag
 
 Open **BuildPlan Studio → Customize → Brand Your Business**. Set a fictional business name/tagline, enable branding, choose a built-in mark or initials and a coordinated primary/secondary/accent palette. Light/dark samples update immediately; **Prepare workspace preview** uses the actual Engine. Saving and publishing remain separate explicit operations.
 
-Branding persists in configuration schema 2, BuildPlan 2 and Blueprint Package 2. Existing v1 files remain supported without automatic upgrade. Existing host-only databases need migration 12; their operational records are not rewritten. Image uploads, arbitrary CSS/colors, external fonts and logo URLs are deferred. [Workflow, compatibility, palette and migration contract](docs/business-branding.md) · [Verification](docs/business-branding-verification.md).
+Branding persists in configuration schema 2, BuildPlan 2 and Blueprint Package 2. Existing v1 files remain supported without automatic upgrade. Existing host-only databases need migration 12; their operational records are not rewritten. Arbitrary CSS/colors, external fonts and logo URLs remain unavailable. [Portable branding contract](docs/business-branding.md) · [Verification](docs/business-branding-verification.md).
+
+**Custom Business Logo** supports a separate private, temporary image preview. Explicitly stage a fictional PNG/JPEG/WebP, review its sanitized light/dark samples, then select it for the current organization's session identity. Replace/remove it or return to built-ins. Uploads are bounded, re-encoded and protected by the existing demo cookie, Engine roles and organization checks. Images expire and are **not** part of saved branding, exported JSON/ZIPs, signatures or publication; independent Engine previews keep built-in identity. [Setup, limits, custody and lifecycle](docs/private-logos.md) · [Test workflow](docs/private-logos-verification.md).
 
 ## Review template updates
 
