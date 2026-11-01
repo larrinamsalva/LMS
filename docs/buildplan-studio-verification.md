@@ -1,10 +1,11 @@
 # BuildPlan Studio verification
 
-PR #14 implements the guided builder as configuration over the existing Engine. This document records observed results; pending checks are not claimed passing.
+PR #14 implements the guided builder as configuration over the existing Engine. All three jobs on implementation commit `0b144e8` passed in [CI run 41269011536](https://github.com/larrinamsalva/LMS/actions/runs/41269011536); the final evidence was also recorded in PR #14.
 
 - Local `npm run check`: **92 tests in 21 files passed**, including 11 new unit/embedded/demo cases, TypeScript, production build and **188 dependency license declarations**.
 - All **33 local browser tests passed (2.6 minutes)** on Chromium **153.0.8010.0**, including the new builder workflows on desktop/tablet/phone, axe light/dark checks, real generated forms, import/export and retained publication/rollback. Three actual application screenshots were captured and visually inspected.
-- New native PostgreSQL suite: seven tests enabled; real PostgreSQL/backup/restore CI pending. PostgreSQL is not installed locally.
+- Native PostgreSQL CI: **122 tests in 11 files passed**, including seven new BuildPlan cases and all 115 prior cases, on PostgreSQL **16.15** with actual **16.15 dump/restore**. Startup and raw draft writes remained activation-blocked after restoration. PostgreSQL is not installed locally.
+- Standard GitHub Chromium CI: **33 browser tests passed**, together with all 92 foundation tests, type checking, build and license checks. These are the PR #14 implementation results; later gallery results are recorded separately.
 
 ## Coverage
 

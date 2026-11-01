@@ -12,6 +12,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Services, dated area rates and fictional estimate drafts with exact USD cents, preserved pricing snapshots, revisions and printable preview.
 - Shared product/location inventory, exact case conversion and an immutable receiving/usage/transfer/return/adjustment ledger with keyboard-scanner selection.
 - BuildPlan Studio: guided templates/features, safe optional fields, real Engine previews, temporary draft history and validated BuildPlan import/export.
+- Curated BuildPlan Gallery: five searchable business starters, feature/type filters, real previews and unsaved remixes through Studio.
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
@@ -49,7 +50,13 @@ Both commands bind to loopback by default. Publishing this single-process demo n
 
 Choose **Build My Business System** without signing in, or open **BuildPlan Studio** from a fictional workspace. Start with Property Management, Cleaning Business or Custom Business; select reviewed features and dependencies, customize terminology/navigation and supported optional fields, then open the actual generated workspace in a separate preview tab. Save/reopen temporary drafts and export a validated BuildPlan or engine configuration. Publication is a separate, explicit review through the existing Engine; populated schema changes remain blocked.
 
-[Step-by-step demonstration and screenshots](docs/buildplan-studio.md) · [Verification](docs/buildplan-studio-verification.md). No gallery, AI generator, hosting or automatic deployment is included. Export before the temporary demo expires or restarts.
+[Step-by-step demonstration and screenshots](docs/buildplan-studio.md) · [Verification](docs/buildplan-studio-verification.md). A curated starter gallery is available through **Browse Business Templates**. Community submissions, marketplace, AI generation, hosting and automatic deployment remain deferred. Export before the temporary demo expires or restarts.
+
+## Browse Business Templates
+
+In **BuildPlan Studio**, choose **Browse Business Templates**. Search five reviewed configurations: Basic Cleaning Business, Cleaning Crew & Scheduling, RV Park / Property Management, Property Maintenance and General Service Business. Cards show enabled modules, supported starting workflows, dependencies and limitations. These are starter configurations, not complete industry applications.
+
+**Preview Template** opens the same real Engine-powered fictional workspace mechanism as Studio. **Customize This Template** copies choices into an unsaved Studio plan; it never overwrites a saved plan or publishes automatically. Existing draft revisions, JSON export/import, impact review and publication protections apply. [Workflow and scope](docs/buildplan-gallery.md) · [Verification](docs/buildplan-gallery-verification.md).
 
 ## Customer-linked scheduling
 

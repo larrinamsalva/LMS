@@ -4,6 +4,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
+import { reviewedGallery, remixGalleryEntry } from "../../src/core/gallery";
 import { inventory, movement } from "../helpers/inventory";
 import {
   newBuildPlan,
@@ -531,5 +532,74 @@ describe("native BuildPlan artifacts and publication", () => {
     await expect(
       connectPostgres({ connectionString: url(restoreName, true) }),
     ).rejects.toThrow(/activation blocked/i);
+  });
+  it("stores all curated gallery configurations as ordinary drafts and enforces disabled modules", async () => {
+    const before = await engine.snapshot(owner, a),
+      entries = reviewedGallery();
+    for (const entry of entries)
+      await engine.saveBuildPlan(
+        owner,
+        a,
+        remixGalleryEntry(entry),
+        randomUUID(),
+        0,
+        1,
+      );
+    const after = await engine.snapshot(owner, a);
+    expect(after.buildPlans).toHaveLength(5);
+    expect(after.history).toEqual(before.history);
+    expect(after.records).toEqual(before.records);
+    expect(after.stockBalances).toEqual(before.stockBalances);
+    const basic = remixGalleryEntry(entries[0]);
+    await engine.publishConfig(other, b, basic.configuration, 1);
+    for (const entity of [
+      "appointments",
+      "employees",
+      "service-rates",
+      "stock-movements",
+    ])
+      await expect(engine.saveRecord(other, b, entity, {})).rejects.toThrow(
+        /disabled/,
+      );
+    expect((await engine.snapshot(staff, a)).buildPlans).toEqual([]);
+    expect(
+      (
+        await engine.asUser(other, (c) =>
+          c.query(
+            "select * from lms.build_plan_revisions where organization_id=$1",
+            [a],
+          ),
+        )
+      ).rows,
+    ).toEqual([]);
+  });
+  it("keeps saved remixes independent of catalog revisions and refuses populated-schema rewrites", async () => {
+    const entry = reviewedGallery()[0],
+      plan = remixGalleryEntry(entry),
+      id = randomUUID();
+    plan.configuration.name = "My gallery choice";
+    await engine.saveRecord(other, b, "customers", {
+      name: "Preserved real-SQL fictional client",
+    });
+    await engine.saveBuildPlan(other, b, plan, id, 0, 1);
+    entry.metadata.revision = 2;
+    entry.plan.configuration.name = "Future catalog choice";
+    const stored = (await engine.snapshot(other, b)).buildPlans[0];
+    expect(stored.document.configuration.name).toBe("My gallery choice");
+    expect(stored.document).not.toHaveProperty("metadata");
+    expect((await engine.snapshot(other, b)).config.revision).toBe(1);
+    plan.configuration = addCustomField(plan.configuration, "customers", {
+      key: "extra_gallery",
+      label: "Extra notes",
+      type: "text",
+      required: false,
+    });
+    await engine.saveBuildPlan(other, b, plan, id, 1, 1);
+    await expect(
+      engine.publishBuildPlan(other, b, approval(id, 2)),
+    ).rejects.toThrow(/migration/);
+    expect((await engine.snapshot(other, b)).records[0].data.name).toBe(
+      "Preserved real-SQL fictional client",
+    );
   });
 });

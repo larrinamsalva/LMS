@@ -7,6 +7,7 @@ import {
   requireDemoOrg,
   findSession,
 } from "../../src/server/demo";
+import { reviewedGallery, remixGalleryEntry } from "../../src/core/gallery";
 import { newBuildPlan } from "../../src/core/buildplan";
 afterAll(async () => {
   const rt = await runtime();
@@ -71,4 +72,46 @@ it("expires preview access and retires the whole fictional organization includin
   expect(
     (await rt.db.query("select * from lms.users where id=$1", [user])).rows,
   ).toEqual([]);
+});
+
+it("uses the same real preview engine for gallery templates and preserves its existing three-slot quota", async () => {
+  const { session } = await startDemo(),
+    rt = await runtime(),
+    source = session.organizations[0].id,
+    entries = reviewedGallery();
+  const plan = remixGalleryEntry(entries[0]),
+    op = randomUUID(),
+    org = await previewBuildPlan(session, source, plan, op);
+  expect((await previewBuildPlan(session, source, plan, op)).id).toBe(org.id);
+  await rt.engine.saveRecord(session.principal, org.id, "customers", {
+    name: "Gallery preview client",
+  });
+  await expect(
+    rt.engine.saveRecord(session.principal, org.id, "appointments", {}),
+  ).rejects.toThrow(/disabled/);
+  expect(
+    (await rt.engine.snapshot(session.principal, source)).records.some(
+      (r) => r.data.name === "Gallery preview client",
+    ),
+  ).toBe(false);
+  await previewBuildPlan(
+    session,
+    source,
+    remixGalleryEntry(entries[1]),
+    randomUUID(),
+  );
+  await previewBuildPlan(
+    session,
+    source,
+    remixGalleryEntry(entries[3]),
+    randomUUID(),
+  );
+  await expect(
+    previewBuildPlan(
+      session,
+      source,
+      remixGalleryEntry(entries[4]),
+      randomUUID(),
+    ),
+  ).rejects.toMatchObject({ status: 409 });
 });

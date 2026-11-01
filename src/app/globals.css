@@ -1340,3 +1340,27 @@ legend {
     align-items: stretch;
   }
 }
+
+.gallery-cards {
+  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+}
+.gallery-modules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+  padding: 0;
+}
+.gallery-modules li {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+}
+.gallery-cards ul {
+  line-height: 1.6;
+}
+.gallery-actions {
+  margin-top: auto;
+}

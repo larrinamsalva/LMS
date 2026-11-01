@@ -10,6 +10,7 @@ import {
   publishPlanConfirmation,
   addCustomField,
 } from "../../src/core/buildplan";
+import { reviewedGallery, remixGalleryEntry } from "../../src/core/gallery";
 let db: PGlite, engine: Engine, a: string, b: string;
 const owner = { userId: randomUUID() },
   other = { userId: randomUUID() },
@@ -206,4 +207,68 @@ it("limits drafts and retires only whole host-deleted sandboxes while direct sto
       )
     ).rows,
   ).toEqual([]);
+});
+
+it("stores gallery remixes as ordinary isolated drafts and preserves disabled-module behavior", async () => {
+  const before = await engine.snapshot(owner, a),
+    entries = reviewedGallery();
+  for (const entry of entries)
+    await engine.saveBuildPlan(
+      owner,
+      a,
+      remixGalleryEntry(entry),
+      randomUUID(),
+      0,
+      1,
+    );
+  const saved = await engine.snapshot(owner, a);
+  expect(saved.buildPlans).toHaveLength(5);
+  expect(saved.history).toEqual(before.history);
+  expect(saved.records).toEqual(before.records);
+  const basic = remixGalleryEntry(entries[0]);
+  await engine.publishConfig(other, b, basic.configuration, 1);
+  for (const entity of [
+    "appointments",
+    "employees",
+    "service-rates",
+    "stock-movements",
+  ])
+    await expect(engine.saveRecord(other, b, entity, {})).rejects.toThrow(
+      /disabled/,
+    );
+  expect((await engine.snapshot(staff, a)).buildPlans).toEqual([]);
+});
+it("keeps saved gallery choices independent of later metadata and protects populated schema publication", async () => {
+  const entry = reviewedGallery()[0],
+    plan = remixGalleryEntry(entry),
+    id = randomUUID();
+  plan.configuration.name = "My fictional cleaning";
+  await engine.saveRecord(other, b, "customers", {
+    name: "Retained gallery customer",
+  });
+  await engine.saveBuildPlan(other, b, plan, id, 0, 1);
+  entry.metadata.revision = 2;
+  entry.plan.configuration.name = "Changed upstream template";
+  const saved = (await engine.snapshot(other, b)).buildPlans[0];
+  expect(saved.document.configuration.name).toBe("My fictional cleaning");
+  expect(saved.document).not.toHaveProperty("metadata");
+  expect((await engine.snapshot(other, b)).config.revision).toBe(1);
+  plan.configuration = addCustomField(plan.configuration, "customers", {
+    key: "extra_gallery",
+    label: "Extra notes",
+    type: "text",
+    required: false,
+  });
+  await engine.saveBuildPlan(other, b, plan, id, 1, 1);
+  await expect(
+    engine.publishBuildPlan(other, b, {
+      id,
+      revision: 2,
+      configRevision: 1,
+      confirmation: publishPlanConfirmation,
+    }),
+  ).rejects.toThrow(/migration/);
+  expect((await engine.snapshot(other, b)).records[0].data.name).toBe(
+    "Retained gallery customer",
+  );
 });

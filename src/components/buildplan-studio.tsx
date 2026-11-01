@@ -23,6 +23,7 @@ import {
   type Template,
 } from "../core/buildplan";
 import { manifests, plannedModules } from "../modules/registry";
+import { BuildPlanGallery } from "./buildplan-gallery";
 import { downloadJson } from "./project-panel";
 const names = {
   property: "Property Management",
@@ -398,6 +399,7 @@ export function BuildPlanStudio({
   const [start] = useState(() => initial(workspace)),
     [plan, setPlan] = useState(start.plan),
     [step, setStep] = useState(0),
+    [browsing, setBrowsing] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [pending, setPending] = useState(false),
@@ -410,10 +412,11 @@ export function BuildPlanStudio({
       null,
     );
   const previewRequest = useRef<{ body: string; id: string } | null>(null),
+    previewCache = useRef(new Map<string, string>()),
     heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     heading.current?.focus();
-  }, [step]);
+  }, [step, browsing]);
   let valid: BuildPlan | undefined,
     validation = "";
   try {
@@ -452,6 +455,18 @@ export function BuildPlanStudio({
       setPending(false);
     }
   }
+  async function preparePreview(input: BuildPlan) {
+    const p = validateBuildPlan(input),
+      key = JSON.stringify(p),
+      cached = previewCache.current.get(key);
+    if (cached) return cached;
+    if (previewRequest.current?.body !== key)
+      previewRequest.current = { body: key, id: crypto.randomUUID() };
+    const url = await onPreview(p, previewRequest.current.id);
+    // Successful server previews are bounded by the existing three-slot session quota.
+    previewCache.current.set(key, url);
+    return url;
+  }
   function change(config: BusinessConfig) {
     setPlan((p) => ({ ...p, configuration: config }));
     setConfirmed(false);
@@ -486,6 +501,30 @@ export function BuildPlanStudio({
         (other) => other.id === item.id && other.revision > item.revision,
       ),
   );
+  if (browsing)
+    return (
+      <BuildPlanGallery
+        busy={working}
+        onBack={() => setBrowsing(false)}
+        onPreview={preparePreview}
+        onCustomize={(input, name) => {
+          const copy = validateBuildPlan(input);
+          setPlan(copy);
+          setDraftId(null);
+          setDraftRevision(0);
+          setBaseRevision(workspace.config.revision);
+          setSaved("");
+          setConfirmed(false);
+          setPreview(null);
+          setError("");
+          setStep(2);
+          setBrowsing(false);
+          setNotice(
+            `Loaded ${name} as unsaved Studio choices. Nothing was saved or published.`,
+          );
+        }}
+      />
+    );
   return (
     <div className="stack studio" aria-label="BuildPlan Studio">
       <section className="panel">
@@ -502,6 +541,14 @@ export function BuildPlanStudio({
           restart. Export your BuildPlan to keep your choices. No login or AI is
           required.
         </p>
+        <button
+          className="secondary"
+          type="button"
+          disabled={working}
+          onClick={() => setBrowsing(true)}
+        >
+          Browse Business Templates
+        </button>
         {start.warning && <p className="error">{start.warning}</p>}
         <nav className="studio-steps" aria-label="BuildPlan steps">
           {["Start", "Features", "Customize", "Review & try"].map(
@@ -579,9 +626,9 @@ export function BuildPlanStudio({
             <section className="subdued studio-unavailable">
               <h3>Planned, unavailable here</h3>
               <p>
-                {plannedModules.join(" · ")} · AI generation ·
-                Gallery/marketplace · Hosting/deployment. These features cannot
-                be enabled by a plan or imported code.
+                {plannedModules.join(" · ")} · AI generation · Community gallery
+                submissions/marketplace · Hosting/deployment. These features
+                cannot be enabled by a plan or imported code.
               </p>
             </section>
           </>
@@ -783,13 +830,8 @@ export function BuildPlanStudio({
                 onClick={() =>
                   void run(async () => {
                     const p = validateBuildPlan(plan),
-                      key = JSON.stringify(p);
-                    if (previewRequest.current?.body !== key)
-                      previewRequest.current = {
-                        body: key,
-                        id: crypto.randomUUID(),
-                      };
-                    const url = await onPreview(p, previewRequest.current.id);
+                      key = JSON.stringify(p),
+                      url = await preparePreview(p);
                     setPreview({ body: key, url });
                     setNotice(
                       "Preview ready. Open it in a new tab; your plan choices stay here.",
