@@ -29,6 +29,27 @@ import {
   type NativeObservation,
 } from "../../src/server/postgres/readiness-inspection";
 import { loadMigrations } from "../../src/server/postgres/migrations";
+it("catalog commitments retain exact contents across canonical JSON key ordering", () => {
+  const source: NativeObservation = {
+    signatures: {},
+    counts: {},
+    catalog: { tables: "reviewed", functions: "known" },
+    configurationSchemas: [1],
+    buildPlanVersions: [],
+  };
+  const persisted = JSON.parse(
+    JSON.stringify({
+      ...source,
+      catalog: { functions: "known", tables: "reviewed" },
+    }),
+  );
+  expect(() => sameNative(source, persisted, false)).not.toThrow();
+  persisted.catalog.functions = "altered";
+  expect(() => sameNative(source, persisted, false)).toThrow();
+  persisted.catalog.functions = "known";
+  persisted.catalog.unexpected = "extra";
+  expect(() => sameNative(source, persisted, false)).toThrow();
+});
 it("the host CLI writes a private sanitized blocked report, refuses overwrites and duplicate flags", async () => {
   const d = await directory(),
     trustFile = path.join(d, "trust.json"),

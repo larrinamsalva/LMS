@@ -19,6 +19,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Migration planning: scoped active/archived/disabled record metadata, stale-review detection, readable data-only impact reports and isolated previews; populated schema changes stay blocked.
 - Fictional rehearsal: generated Engine fixtures, selected invariant checks, private reports and separate upgrade-readiness statuses; no real-data migration or backup approval.
 - Host-only Native Upgrade Readiness: exact fictional lab allowlists, read-only preflight and explicitly confirmed private PostgreSQL same-schema backup/restore comparison; restored activation stays blocked. [Operator workflow](docs/native-upgrade-readiness.md).
+- Host-only upgrade blueprints and pinned private copy lifecycle: authoritative impact review, explicit copy/inspection checkpoints and logical retirement without applying proposals or deleting databases. [Workflow and limits](docs/native-upgrade-blueprints.md).
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
