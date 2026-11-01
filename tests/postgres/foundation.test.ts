@@ -318,7 +318,7 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
           "select count(*)::int as count from lms_meta.migrations",
         )
       ).rows[0].count,
-    ).toBe(9);
+    ).toBe(10);
   });
   it("rolls back failed migrations atomically and can subsequently initialize the empty database", async () => {
     await withClient(databaseUrl(names[2]), async (client) => {

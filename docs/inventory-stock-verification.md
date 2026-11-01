@@ -5,9 +5,9 @@ PR #13 adds the shared product/location/whole-unit ledger. This file records act
 ## Evidence
 
 - Focused local unit/embedded PostgreSQL run: **7 tests passed** (2 quantity/config tests and 5 ledger/security cases).
-- Full local type/build/license/regression checks: pending.
+- Full local `npm run check`: **81 tests in 18 files passed**, TypeScript passed, **188 dependency license declarations** verified and production build passed.
 - Real network PostgreSQL, concurrency and native dump/restore: pending GitHub CI (native PostgreSQL is not installed in this workspace).
-- Desktop/tablet/phone Chromium/accessibility: pending.
+- All **27 browser tests passed (2.3 minutes)** across desktop/tablet/phone using Chromium **153.0.8010.0**. Both inventory examples pass axe light/dark and overflow checks. Desktop/tablet/phone layouts were visually inspected; a separate phone viewport capture confirmed readable movement history.
 
 ## Coverage and acceptance
 
