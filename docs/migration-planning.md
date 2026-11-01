@@ -50,4 +50,6 @@ Owners/admins may already read operational records through existing authorized i
 
 A separate phase must specify supported old/new schemas and deterministic transformations, scoped identity/session/recent-auth controls, explicit owner approval, stable review fencing at execution time, backups with verified restore, rehearsal on independent fictional copies, relationship/invariant checks, concurrent-write exclusion, interruption/idempotency behavior, secret-free audits and failure rollback. It must preserve pricing snapshots, immutable compensating stock history, employee allocations and UTC scheduling semantics. Unsupported transforms must refuse. Recovery activation and production acceptance remain separate gates; this planning report supplies neither.
 
+The next bounded step, [Rehearse Business Changes](fictional-rehearsal.md), uses generated fixtures in an independent temporary Engine workspace. It adds explicit check outcomes and readiness statuses, not native transformation of existing records, verified business backups or execution authority.
+
 [Actual verification and screenshots](migration-planning-verification.md) · [Studio](buildplan-studio.md) · [Template history](template-history.md) · [Security](../SECURITY.md) · [Roadmap](../ROADMAP.md).

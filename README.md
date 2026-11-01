@@ -17,6 +17,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Business Branding Studio: built-in marks/monograms, tagline, four reviewed light/dark palettes and real branded workspace previews, with versioned draft/package persistence and rollback.
 - Local template history: retained reviewed editions, verified saved comparison baselines and selective update review that keeps customizations until explicitly replaced.
 - Migration planning: scoped active/archived/disabled record metadata, stale-review detection, readable data-only impact reports and isolated previews; populated schema changes stay blocked.
+- Fictional rehearsal: generated Engine fixtures, selected invariant checks, private reports and separate upgrade-readiness statuses; no real-data migration or backup approval.
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
@@ -81,6 +82,10 @@ Before updating an existing BuildPlan, use **Check for Template Updates** in Stu
 ## Plan business changes
 
 In Studio, customize your proposed configuration and choose **Review Data Impact**. Inspect affected record counts, fields, module visibility, relationships, branding and history protections. Preview in an empty fictional Engine workspace or export a planning report after a freshness recheck. Compatible choices still need the existing explicit save/publication controls. Populated schema changes remain blocked; no migration executor or automatic record transformation is included. [Workflow, freshness/privacy contract and limits](docs/migration-planning.md) · [Verification and screenshots](docs/migration-planning-verification.md).
+
+## Rehearse business changes
+
+Choose **Review Data Impact → Rehearse Business Changes**. Run generated fictional customer/work, scheduling, stock and estimate checks in a separate temporary workspace, inspect the six-part readiness checklist, and download a data-only report. Populated-field blockers remain; backup evidence, execution authorization and production acceptance are never granted by a fictional pass. Previews and rehearsals share three sandbox slots. [Workflow, actual native backup guarantees and limits](docs/fictional-rehearsal.md) · [Verification and screenshots](docs/fictional-rehearsal-verification.md).
 
 ## Customer-linked scheduling
 

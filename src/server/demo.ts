@@ -5,18 +5,41 @@ import { seedInventory } from "../presets/inventory-samples";
 import { seedPricing } from "../presets/pricing-samples";
 import { seedSchedule } from "../presets/schedule-samples";
 import { presets, sampleRecords } from "../presets";
-import { validateBuildPlan } from "../core/buildplan";
+import { blueprintJson } from "../core/blueprint";
+import {
+  rehearsalInput,
+  type RehearsalResult,
+  type RehearsalInput,
+} from "../core/rehearsal";
+import { runFictionalChecks } from "./rehearsal";
+import { validateBuildPlan, type BuildPlan } from "../core/buildplan";
 import { createDatabase, sqlDatabase } from "./database";
 export interface DemoOrganization {
   id: string;
   industry: "property" | "cleaning" | "custom";
   name?: string;
   preview?: boolean;
+  rehearsal?: boolean;
+}
+interface RetainedRehearsal {
+  result: RehearsalResult;
+  workspaceState?: { stateDigest: string; proposalDigest: string };
 }
 export interface DemoSession {
   principal: Principal;
   organizations: DemoOrganization[];
   previews: Map<string, { request: string; result: Promise<DemoOrganization> }>;
+  rehearsals: Map<
+    string,
+    {
+      request: string;
+      result: Promise<{
+        result: RehearsalResult;
+        workspaceState?: { stateDigest: string; proposalDigest: string };
+      }>;
+    }
+  >;
+  rehearsalOrganizations: Set<string>;
   expiresAt: number;
 }
 type Runtime = {
@@ -40,14 +63,17 @@ export async function runtime() {
 async function removeExpired(rt: Runtime) {
   for (const [token, session] of rt.sessions)
     if (session.expiresAt < Date.now()) {
-      rt.sessions.delete(token);
       await rt.db.transaction(async (tx) => {
-        for (const org of session.organizations)
-          await tx.query("delete from lms.organizations where id=$1", [org.id]);
+        for (const id of new Set([
+          ...session.organizations.map((o) => o.id),
+          ...session.rehearsalOrganizations,
+        ]))
+          await tx.query("delete from lms.organizations where id=$1", [id]);
         await tx.query("delete from lms.users where id=$1", [
           session.principal.userId,
         ]);
       });
+      rt.sessions.delete(token);
     }
 }
 export async function startDemo() {
@@ -116,6 +142,8 @@ export async function startDemo() {
       principal,
       organizations,
       previews: new Map(),
+      rehearsals: new Map(),
+      rehearsalOrganizations: new Set<string>(),
       expiresAt: Date.now() + lifetime,
     };
     rt.sessions.set(token, session);
@@ -158,7 +186,7 @@ export async function previewBuildPlan(
       );
     return previous.result;
   }
-  if (session.previews.size >= 3)
+  if (session.previews.size + session.rehearsals.size >= 3)
     throw new EngineError(
       "This temporary session supports three fresh previews. Reopen an existing preview or start again after the session ends.",
       409,
@@ -171,29 +199,7 @@ export async function previewBuildPlan(
     );
     if (!["owner", "admin"].includes(source.role))
       throw new EngineError("Only owners/admins can create previews.", 403);
-    const org: DemoOrganization = {
-      id: randomUUID(),
-      industry: plan.template,
-      name: plan.configuration.name,
-      preview: true,
-    };
-    await rt.db.transaction(async (tx) => {
-      await tx.query("select set_config('lms.user_id',$1,true)", [
-        session.principal.userId,
-      ]);
-      await tx.query("insert into lms.organizations values($1,$2)", [
-        org.id,
-        plan.configuration.name,
-      ]);
-      await tx.query("insert into lms.memberships values($1,$2,'owner')", [
-        org.id,
-        session.principal.userId,
-      ]);
-      await tx.query(
-        "insert into lms.config_revisions(organization_id,revision,document,created_by)values($1,1,$2,$3)",
-        [org.id, plan.configuration, session.principal.userId],
-      );
-    });
+    const org = await createPreviewOrganization(session, plan);
     session.organizations.push(org);
     return org;
   })();
@@ -204,4 +210,176 @@ export async function previewBuildPlan(
     session.previews.delete(operationId);
     throw error;
   }
+}
+
+async function createPreviewOrganization(
+  session: DemoSession,
+  plan: BuildPlan,
+  rehearsal = false,
+) {
+  const rt = await runtime();
+  const org: DemoOrganization = {
+    id: randomUUID(),
+    industry: plan.template,
+    name: plan.configuration.name,
+    preview: true,
+    ...(rehearsal ? { rehearsal: true } : {}),
+  };
+  if (rehearsal) session.rehearsalOrganizations.add(org.id);
+  await rt.db.transaction(async (tx) => {
+    await tx.query("select set_config('lms.user_id',$1,true)", [
+      session.principal.userId,
+    ]);
+    await tx.query("insert into lms.organizations values($1,$2)", [
+      org.id,
+      plan.configuration.name,
+    ]);
+    await tx.query("insert into lms.memberships values($1,$2,'owner')", [
+      org.id,
+      session.principal.userId,
+    ]);
+    await tx.query(
+      "insert into lms.config_revisions(organization_id,revision,document,created_by)values($1,1,$2,$3)",
+      [org.id, plan.configuration, session.principal.userId],
+    );
+  });
+
+  return org;
+}
+
+/** No persistent adapter or caller-supplied target is accepted. Cases and slots are private to this temporary session. */
+export async function rehearseBuildPlan(
+  session: DemoSession,
+  sourceOrganization: string,
+  input: unknown,
+): Promise<RehearsalResult> {
+  requireDemoOrg(session, sourceOrganization);
+  if (session.expiresAt < Date.now())
+    throw new EngineError("The fictional demo session ended.", 401);
+  if (session.organizations.find((o) => o.id === sourceOrganization)?.preview)
+    throw new EngineError(
+      "Return to the original business workspace to start a rehearsal.",
+      409,
+    );
+  const request = rehearsalInput.parse(input),
+    rt = await runtime();
+  const checked = await rt.engine.reviewBuildPlanImpact(
+    session.principal,
+    sourceOrganization,
+    requestForReview(request),
+  );
+  if (checked.overall === "blocked")
+    throw new EngineError(
+      "This proposal has a blocked project identity. Revise it before rehearsal.",
+      409,
+    );
+  const key = blueprintJson({ sourceOrganization, ...request });
+  let entry = session.rehearsals.get(request.operationId);
+  if (entry && entry.request !== key)
+    throw new EngineError(
+      "This rehearsal operation belongs to different choices or versions. Refresh and start a new rehearsal.",
+      409,
+    );
+  if (!entry) {
+    if (session.previews.size + session.rehearsals.size >= 3)
+      throw new EngineError(
+        "This temporary session supports three fresh previews or rehearsals in total. Reuse a retained result or export your choices before expiry.",
+        409,
+      );
+    const result = (async (): Promise<RetainedRehearsal> => {
+      let org: DemoOrganization | undefined;
+      const failed: RehearsalResult = {
+        version: 1,
+        status: "failed",
+        outcomes: [
+          { id: "configuration", status: "failed" },
+          { id: "fields", status: "not-run" },
+          { id: "relationships", status: "not-run" },
+          { id: "scheduling", status: "not-run" },
+          { id: "inventory", status: "not-run" },
+          { id: "estimates", status: "not-run" },
+        ],
+      };
+      async function discard() {
+        if (!org) return;
+        await rt.db.query("delete from lms.organizations where id=$1", [
+          org.id,
+        ]);
+        session.rehearsalOrganizations.delete(org.id);
+      }
+      try {
+        org = await createPreviewOrganization(session, checked.proposed, true);
+        const outcomes = await runFictionalChecks(
+          rt.engine,
+          session.principal,
+          org.id,
+          checked.proposed,
+        );
+        if (outcomes.status === "failed") {
+          await discard();
+          return { result: { version: 1, ...outcomes } };
+        }
+        await rt.engine.reviewBuildPlanImpact(
+          session.principal,
+          sourceOrganization,
+          requestForReview(request),
+        );
+        const workspace = await rt.engine.reviewBuildPlanImpact(
+          session.principal,
+          org.id,
+          { document: checked.proposed },
+        );
+        session.organizations.push(org);
+        return {
+          result: {
+            version: 1,
+            ...outcomes,
+            workspace: { organizationId: org.id },
+          },
+          workspaceState: workspace.state,
+        };
+      } catch {
+        try {
+          await discard();
+        } catch {
+          throw new EngineError(
+            "The isolated fictional rehearsal could not be retired. It remains private and reserved for expiry cleanup; no source data was changed.",
+            503,
+          );
+        }
+        return { result: failed };
+      }
+    })();
+    entry = { request: key, result };
+    session.rehearsals.set(request.operationId, entry);
+  }
+  const retained = await entry.result;
+  await rt.engine.reviewBuildPlanImpact(
+    session.principal,
+    sourceOrganization,
+    requestForReview(request),
+  );
+  if (retained.result.workspace && retained.workspaceState) {
+    requireDemoOrg(session, retained.result.workspace.organizationId);
+    try {
+      await rt.engine.reviewBuildPlanImpact(
+        session.principal,
+        retained.result.workspace.organizationId,
+        { document: checked.proposed, expected: retained.workspaceState },
+      );
+    } catch {
+      throw new EngineError(
+        "The fictional rehearsal workspace changed after its checks. Those outcomes are historical; start a new rehearsal explicitly before downloading a current report.",
+        409,
+      );
+    }
+  }
+  return structuredClone(retained.result);
+}
+function requestForReview(request: RehearsalInput) {
+  return {
+    document: request.document,
+    draft: request.draft,
+    expected: request.expected,
+  };
 }

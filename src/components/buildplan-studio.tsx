@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { DataImpactReview, type ReviewImpact } from "./migration-review";
 import type { MigrationReview } from "../core/migration-review";
+import type { Rehearse } from "./rehearsal";
 import type { WorkspaceSnapshot } from "../core/engine";
 import {
   configurationImpact,
@@ -396,6 +397,7 @@ export function BuildPlanStudio({
   onPublish,
   onPreview,
   onReview,
+  onRehearse,
 }: {
   workspace: WorkspaceSnapshot;
   busy: boolean;
@@ -408,6 +410,7 @@ export function BuildPlanStudio({
   onPublish: (input: unknown) => Promise<void>;
   onPreview: (plan: BuildPlan, operationId: string) => Promise<string>;
   onReview: ReviewImpact;
+  onRehearse: Rehearse;
 }) {
   const [start] = useState(() => initial(workspace)),
     [plan, setPlan] = useState(start.plan),
@@ -546,6 +549,7 @@ export function BuildPlanStudio({
       <DataImpactReview
         initial={dataImpact}
         onReview={onReview}
+        onRehearse={onRehearse}
         onBack={() => setDataImpact(null)}
         onPreview={preparePreview}
       />
