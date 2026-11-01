@@ -1,0 +1,13 @@
+{
+  "format": "lms-native-readiness-trust",
+  "version": 1,
+  "environment": "fictional-local-lab",
+  "fictionalOnly": true,
+  "maintenanceRole": "postgres",
+  "source": {
+    "database": "lms_test_native_source",
+    "instanceId": "REPLACE_WITH_VERIFIED_FICTIONAL_INSTANCE_UUID",
+    "organizations": ["REPLACE_WITH_EACH_VERIFIED_FICTIONAL_ORGANIZATION_UUID"]
+  },
+  "target": { "database": "lms_restore_native_copy" }
+}

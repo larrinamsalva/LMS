@@ -25,23 +25,41 @@ async function runTool(
   args: string[],
   url: URL,
   input: number | "ignore",
-  output: number | "ignore",
+  output: number | "ignore" | "pipe",
   binDirectory?: string,
+  signal?: AbortSignal,
 ) {
+  signal?.throwIfAborted();
   const executable = binDirectory ? path.join(binDirectory, name) : name;
-  await new Promise<void>((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
     const child = spawn(executable, args, {
       env: pgEnvironment(url),
       stdio: [input, output, "pipe"],
     });
     // Do not echo database credentials, archive SQL, or subprocess diagnostics to public logs.
     child.stderr?.resume();
-    const timer = setTimeout(() => {
+    let interrupted = false,
+      text = "";
+    let killTimer: ReturnType<typeof setTimeout> | undefined;
+    const interrupt = () => {
+      interrupted = true;
       child.kill("SIGTERM");
-      reject(new Error(`${name} timed out.`));
-    }, 60000);
-    child.once("error", () => {
+      killTimer ??= setTimeout(() => child.kill("SIGKILL"), 1000);
+    };
+    const timer = setTimeout(interrupt, 60000);
+    signal?.addEventListener("abort", interrupt, { once: true });
+    if (signal?.aborted) interrupt();
+    child.stdout?.on("data", (part: Buffer) => {
+      text += part.toString("utf8");
+      if (text.length > 1024) interrupt();
+    });
+    function finish() {
       clearTimeout(timer);
+      clearTimeout(killTimer);
+      signal?.removeEventListener("abort", interrupt);
+    }
+    child.once("error", () => {
+      finish();
       reject(
         new Error(
           `Unable to start ${name}. Install compatible PostgreSQL client tools.`,
@@ -49,22 +67,51 @@ async function runTool(
       );
     });
     child.once("close", (code) => {
-      clearTimeout(timer);
-      code === 0
-        ? resolve()
+      finish();
+      code === 0 && !interrupted
+        ? resolve(text)
         : reject(
             new Error(
-              `${name} failed (exit ${code}). Inspect the local target and client/server versions.`,
+              `${name} failed or was interrupted. Inspect the local target and client/server versions.`,
             ),
           );
     });
   });
+}
+/** Only bounded version output is returned; archive contents and diagnostics are never captured. */
+export async function backupToolVersions(
+  databaseUrl: string,
+  databaseName: string,
+  binDirectory?: string,
+  signal?: AbortSignal,
+) {
+  const target = localTarget(databaseUrl, databaseName);
+  const versions: Record<string, number> = {};
+  for (const name of ["pg_dump", "pg_restore"]) {
+    const output = await runTool(
+      name,
+      ["--version"],
+      target,
+      "ignore",
+      "pipe",
+      binDirectory,
+      signal,
+    );
+    const match = output.match(
+      new RegExp(`^${name} \\(PostgreSQL\\) ([0-9]+)\\.`),
+    );
+    if (!match)
+      throw new Error("Unsupported PostgreSQL client version output.");
+    versions[name] = Number(match[1]);
+  }
+  return versions;
 }
 export async function backupDatabase(
   databaseUrl: string,
   databaseName: string,
   file: string,
   binDirectory?: string,
+  control?: { signal?: AbortSignal },
 ) {
   const target = localTarget(databaseUrl, databaseName);
   const handle = await open(file, "wx", 0o600);
@@ -85,6 +132,7 @@ export async function backupDatabase(
       "ignore",
       handle.fd,
       binDirectory,
+      control?.signal,
     );
     success = true;
   } finally {
@@ -98,7 +146,13 @@ export async function restoreDatabase(
   databaseName: string,
   file: string,
   binDirectory?: string,
+  control?: {
+    signal?: AbortSignal;
+    beforeRestore?: (client: Client) => Promise<void>;
+    verify?: (client: Client) => Promise<void>;
+  },
 ) {
+  control?.signal?.throwIfAborted();
   const target = localTarget(databaseUrl, databaseName);
   if (
     !databaseName.startsWith("lms_restore_") &&
@@ -118,6 +172,7 @@ export async function restoreDatabase(
         .rows[0].held
     )
       throw new Error("Stop runtime hosts before restoring.");
+    await control?.beforeRestore?.(client);
     const tables = await client.query(
       "select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname not in ('pg_catalog','information_schema') and n.nspname not like 'pg_toast%' and c.relkind in ('r','p','v','m','S') limit 1",
     );
@@ -148,6 +203,7 @@ export async function restoreDatabase(
         handle.fd,
         "ignore",
         binDirectory,
+        control?.signal,
       );
       // Every supported archive is quarantined, including those predating the recovery schema.
       // Keep the target offline if any cleanup step fails; never report successful activation.
@@ -193,6 +249,9 @@ export async function restoreDatabase(
         await client.query("ROLLBACK");
         throw error;
       }
+      control?.signal?.throwIfAborted();
+      // Trusted host-only verification runs before releasing the existing restore lease.
+      await control?.verify?.(client);
     } finally {
       await handle.close();
     }

@@ -60,6 +60,8 @@ The manual Docker restore does not perform LMS post-restore token purging. Use o
 
 ## Run the network tests
 
+For a private, exact-allowlisted fictional test lab, [Native Upgrade Readiness](native-upgrade-readiness.md) adds read-only prerequisite reports and explicit isolated native copy comparison through `npm run db:readiness`. It uses these same backup/restore utilities and keeps restored activation blocked. It accepts no arbitrary archive or production data; public Studio checklists do not consume its reports.
+
 Use a disposable PostgreSQL cluster with administrator credentials and native dump/restore tools. Create an empty `lms_test_control` database. Set `LMS_TEST_ADMIN_URL` to its loopback URL and optionally `LMS_TEST_RUNTIME_PASSWORD` to a long fictional test password, then run:
 
 ```sh
