@@ -404,8 +404,8 @@ export function BuildPlanStudio({
   onReview,
   onRehearse,
 }: {
-  workspace: WorkspaceSnapshot;
   logoController: LogoController;
+  workspace: WorkspaceSnapshot;
   busy: boolean;
   onSave: (
     plan: BuildPlan,
@@ -880,7 +880,13 @@ export function BuildPlanStudio({
         )}
         {step === 2 && (
           <>
-            <BrandingStudio config={plan.configuration} onChange={change} logoController={logoController} organizationId={workspace.organizationId} canManageLogo={["owner", "admin"].includes(workspace.role)} />
+            <BrandingStudio
+              config={plan.configuration}
+              onChange={change}
+              logoController={logoController}
+              organizationId={workspace.organizationId}
+              canManageLogo={["owner", "admin"].includes(workspace.role)}
+            />
             <PlanCustomization
               key={plan.template}
               config={plan.configuration}
@@ -1072,7 +1078,11 @@ export function BuildPlanStudio({
             </div>
             <section className="studio-review" aria-labelledby="studio-preview">
               <h3 id="studio-preview">Try the actual generated workspace</h3>
-              <p className="muted">This separate organization uses the portable built-in identity. Private session logo images stay with the original organization and are not copied into this preview.</p>
+              <p className="muted">
+                This separate organization uses the portable built-in identity.
+                Private session logo images stay with the original organization
+                and are not copied into this preview.
+              </p>
               <p>
                 Open a fresh, empty fictional workspace using the shared Engine,
                 forms and business modules. Preview data stays separate from

@@ -35,7 +35,7 @@ export function BlueprintPackageTools({
       <p>
         Download a small ZIP containing your validated choices, a feature
         summary and compatibility checks. It contains no workspace records or
-        account credentials. Nothing is saved or published by downloading. Downloads retain built-in marks and text only; private session logo images and local asset references are excluded from existing blueprint formats.
+        account credentials. Nothing is saved or published by downloading.
       </p>
       <p className="muted">
         Use fictional text only; do not put private information or secrets in
@@ -108,6 +108,11 @@ export function BlueprintPackageTools({
         invalid claim rejects the import. Without one, a valid legacy package is
         clearly unverified. Imports stay in your browser; no key upload grants
         trust.
+      </p>
+      <p className="muted">
+        Downloads retain built-in marks and text only. Private session logo
+        images and local asset references are excluded from all existing
+        blueprint formats.
       </p>
       <button
         type="button"

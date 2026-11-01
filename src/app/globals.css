@@ -1584,7 +1584,6 @@ legend {
 }
 
 .provenance-digest { overflow-wrap: anywhere; }
-
 .private-logo { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 3.5rem; height: 3.5rem; background: #fff; border: 1px solid var(--border); border-radius: .4rem; padding: .2rem; overflow: hidden; }
 .private-logo-rectangle { width: 6rem; }
 .private-logo img { width: 100%; height: 100%; object-fit: contain; }

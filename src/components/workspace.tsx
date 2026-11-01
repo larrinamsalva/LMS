@@ -150,7 +150,14 @@ export function Workspace({
     }
   }
   const workspace = data?.workspace;
-  const logoController = usePrivateLogo(workspace?.organizationId), sessionLogo = logoController.state?.selected && workspace ? { organizationId: workspace.organizationId, asset: logoController.state.selected } : undefined;
+  const logoController = usePrivateLogo(workspace?.organizationId),
+    sessionLogo =
+      logoController.state?.selected && workspace
+        ? {
+            organizationId: workspace.organizationId,
+            asset: logoController.state.selected,
+          }
+        : undefined;
   const config = workspace?.config.document;
   const branding = config?.branding,
     theme = themeOverride ?? branding?.appearance ?? "light";
@@ -220,7 +227,11 @@ export function Workspace({
       <header className="topbar">
         <a className="brand" href="/" aria-label="LMS home">
           {(branding || sessionLogo) && config ? (
-            <BusinessIdentity name={config.name} branding={branding ?? defaultBranding(config.industry)} logo={sessionLogo} />
+            <BusinessIdentity
+              name={config.name}
+              branding={branding ?? defaultBranding(config.industry)}
+              logo={sessionLogo}
+            />
           ) : (
             <>
               <span className="brand-mark" aria-hidden="true">
@@ -338,7 +349,14 @@ export function Workspace({
           <aside className="sidebar">
             {(branding || sessionLogo) && config && (
               <div className="sidebar-identity">
-                <BusinessIdentity name={config.name} branding={branding ?? defaultBranding(config.industry)} logo={sessionLogo} />
+                <BusinessIdentity
+                  name={config.name}
+                  branding={branding ?? defaultBranding(config.industry)}
+                  logo={sessionLogo}
+                />
+                {sessionLogo && (
+                  <small>Private session logo preview · not published</small>
+                )}
               </div>
             )}
             <div className="workspace-picker">
@@ -483,17 +501,31 @@ export function Workspace({
                       : "Custom operations"}{" "}
                   / Fictional workspace
                 </span>
-                <div className={branding || sessionLogo ? "dashboard-identity" : undefined}>
-                  {(branding || sessionLogo) && <BusinessLogo name={config!.name} branding={branding ?? defaultBranding(config!.industry)} logo={sessionLogo} />}
+                <div
+                  className={
+                    branding || sessionLogo ? "dashboard-identity" : undefined
+                  }
+                >
+                  {(branding || sessionLogo) && (
+                    <BusinessLogo
+                      name={config!.name}
+                      branding={branding ?? defaultBranding(config!.industry)}
+                      logo={sessionLogo}
+                    />
+                  )}
                   <div>
                     <h1>{config!.name}</h1>
-                    {sessionLogo && <small>Private session logo preview · not published</small>}
                     <p className="muted">
                       {branding
                         ? branding.tagline ||
                           "Your business workspace, built with LMS."
                         : "A little structure. More room to get things done."}
                     </p>
+                    {sessionLogo && (
+                      <small>
+                        Private session logo preview · not published
+                      </small>
+                    )}
                   </div>
                 </div>
               </div>

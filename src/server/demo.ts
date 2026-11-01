@@ -167,13 +167,26 @@ export async function findSession(token: string | undefined) {
     );
   return session;
 }
-/** Uses the registered fictional session and the real Engine membership/role observation. */
-export async function logoAccess(session: DemoSession, organizationId: string, manage = false) {
+/** Reuses the actual demo session and Engine's organization membership/role observation. Never connects to persistent PostgreSQL. */
+export async function logoAccess(
+  session: DemoSession,
+  organizationId: string,
+  manage = false,
+) {
   const rt = await runtime();
-  if (session.expiresAt <= Date.now() || ![...rt.sessions.values()].includes(session)) throw new EngineError("The fictional logo session ended.", 401);
+  if (
+    session.expiresAt <= Date.now() ||
+    ![...rt.sessions.values()].includes(session)
+  )
+    throw new EngineError("The fictional logo session ended.", 401);
   requireDemoOrg(session, organizationId);
-  const snapshot = await rt.engine.snapshot(session.principal, organizationId), canManage = ["owner", "admin"].includes(snapshot.role);
-  if (manage && !canManage) throw new EngineError("Only owners/admins can manage private session logos.", 403);
+  const snapshot = await rt.engine.snapshot(session.principal, organizationId),
+    canManage = ["owner", "admin"].includes(snapshot.role);
+  if (manage && !canManage)
+    throw new EngineError(
+      "Only owners/admins can manage private session logos.",
+      403,
+    );
   return { logos: rt.logos, canManage };
 }
 export function requireDemoOrg(session: DemoSession, org: string) {

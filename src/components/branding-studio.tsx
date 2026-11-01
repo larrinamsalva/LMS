@@ -177,8 +177,8 @@ export function BrandingStudio({
           preview require valid branding.
         </p>
       )}
-      <CustomLogoStudio controller={logoController} canManage={canManageLogo} />
       <h4>Immediate light and dark appearance</h4>
+      <CustomLogoStudio controller={logoController} canManage={canManageLogo} />
       <p className="muted">
         These identity samples use the same marks and palette tokens as the
         workspace. Use Prepare workspace preview on the Review step to try the
@@ -200,7 +200,15 @@ export function BrandingStudio({
             <BusinessIdentity
               name={config.name || "Your business"}
               branding={brand}
-              logo={(logoController.state?.staged ?? logoController.state?.selected) ? { organizationId, asset: (logoController.state?.staged ?? logoController.state?.selected)! } : undefined}
+              logo={
+                (logoController.state?.staged ?? logoController.state?.selected)
+                  ? {
+                      organizationId,
+                      asset: (logoController.state?.staged ??
+                        logoController.state?.selected)!,
+                    }
+                  : undefined
+              }
             />
             <div className="brand-sample-nav">
               Customers · Selected navigation
@@ -218,7 +226,9 @@ export function BrandingStudio({
         ))}
       </div>
       <p className="muted">
-        Portable branding uses built-in marks and text only. Private session image previews are temporary. No image URL, HTML, scripts, external font or SVG upload is accepted.
+        Portable branding still uses built-in marks and text only. Session image
+        previews are private and temporary. No image URL, HTML, scripts,
+        external font or SVG upload is accepted.
       </p>
     </section>
   );
