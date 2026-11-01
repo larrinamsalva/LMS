@@ -26,6 +26,16 @@ import { manifests, plannedModules } from "../modules/registry";
 import { BuildPlanGallery } from "./buildplan-gallery";
 import { downloadJson } from "./project-panel";
 import { BrandingStudio } from "./branding-studio";
+import {
+  TemplateUpdates,
+  type TemplateUpdateSession,
+} from "./template-updates";
+import {
+  reviewedTemplateHistory,
+  savedTemplateBaseline,
+  planDigest,
+} from "../core/template-history";
+import { blueprintJson } from "../core/blueprint";
 import { BlueprintPackageTools, BlueprintReview } from "./blueprint-package";
 import {
   createBlueprintPackage,
@@ -399,6 +409,12 @@ export function BuildPlanStudio({
     [plan, setPlan] = useState(start.plan),
     [step, setStep] = useState(0),
     [browsing, setBrowsing] = useState(false),
+    [updates, setUpdates] = useState<TemplateUpdateSession | null>(null),
+    [startingPoint, setStartingPoint] = useState<{
+      id: string;
+      revision: number;
+      plan: BuildPlan;
+    } | null>(null),
     [reviewing, setReviewing] = useState<BlueprintPackage | null>(null),
     [packageDetails, setPackageDetails] = useState<BlueprintDetails>({
       name: "",
@@ -416,11 +432,16 @@ export function BuildPlanStudio({
       null,
     );
   const previewRequest = useRef<{ body: string; id: string } | null>(null),
+    baselineRequest = useRef<{
+      id: string;
+      baseRevision: number;
+      source: string;
+    } | null>(null),
     previewCache = useRef(new Map<string, string>()),
     heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     heading.current?.focus();
-  }, [step, browsing, reviewing]);
+  }, [step, browsing, reviewing, updates]);
   let valid: BuildPlan | undefined,
     validation = "";
   try {
@@ -483,6 +504,8 @@ export function BuildPlanStudio({
     void run(async () => {
       const p = validateBuildPlan(item.document);
       setPlan(p);
+      setStartingPoint(null);
+      baselineRequest.current = null;
       setPackageDetails({
         name: "",
         description: "A reusable fictional LMS business configuration.",
@@ -522,6 +545,12 @@ export function BuildPlanStudio({
         onCustomize={(input, name, metadata) => {
           const copy = validateBuildPlan(input);
           setPlan(copy);
+          setStartingPoint({
+            id: metadata.id,
+            revision: metadata.revision,
+            plan: copy,
+          });
+          baselineRequest.current = null;
           setPackageDetails({
             name: copy.configuration.name,
             description: metadata.purpose,
@@ -552,6 +581,8 @@ export function BuildPlanStudio({
         onPreview={preparePreview}
         onUse={() => {
           setPlan(validateBuildPlan(reviewing.plan));
+          setStartingPoint(null);
+          baselineRequest.current = null;
           setPackageDetails(reviewing.manifest.blueprint);
           setDraftId(null);
           setDraftRevision(0);
@@ -564,6 +595,33 @@ export function BuildPlanStudio({
           setReviewing(null);
           setNotice(
             "Blueprint loaded as unsaved Studio choices. Saved drafts, records and published configuration are unchanged.",
+          );
+        }}
+      />
+    );
+  if (updates)
+    return (
+      <TemplateUpdates
+        session={updates}
+        workspace={workspace}
+        onKeep={() => setUpdates(null)}
+        onPreview={preparePreview}
+        onUse={(next, captured) => {
+          if (
+            blueprintJson(validateBuildPlan(plan)) !==
+              blueprintJson(captured.plan) ||
+            workspace.config.revision !== captured.configRevision
+          )
+            throw new Error(
+              "The editor or workspace changed. Keep your version and check for updates again.",
+            );
+          setPlan(validateBuildPlan(next));
+          setConfirmed(false);
+          setPreview(null);
+          setUpdates(null);
+          setStep(3);
+          setNotice(
+            "Reviewed replacements loaded as unsaved Studio choices. Your draft ID/history, unselected customizations and all business records are retained. Save and review publication separately.",
           );
         }}
       />
@@ -592,6 +650,100 @@ export function BuildPlanStudio({
         >
           Browse Business Templates
         </button>
+        <button
+          className="secondary"
+          type="button"
+          disabled={working || !valid}
+          onClick={() =>
+            void run(async () => {
+              const p = validateBuildPlan(plan),
+                history = await reviewedTemplateHistory(),
+                baseline = await savedTemplateBaseline(
+                  history,
+                  workspace.buildPlans,
+                  draftId,
+                  draftRevision,
+                  p,
+                );
+              setUpdates({
+                history,
+                baseline,
+                plan: p,
+                configRevision: workspace.config.revision,
+                preferredId: startingPoint?.id,
+                hint: packageDetails.gallery,
+              });
+            })
+          }
+        >
+          Check for Template Updates
+        </button>
+        {startingPoint && !draftId && (
+          <section className="studio-review">
+            <h3>Optional: retain an exact reviewed starting point</h3>
+            <p>
+              Save the unmodified reviewed starter as draft revision one, while
+              keeping your customized editor choices. Then Save BuildPlan draft
+              to append your choices. This uses two of the existing twenty
+              revisions and establishes a repeatable comparison baseline.
+              Imported ZIP hints cannot create this link.
+            </p>
+            <button
+              className="secondary"
+              type="button"
+              disabled={working || !valid}
+              onClick={() =>
+                void run(async () => {
+                  const history = await reviewedTemplateHistory(),
+                    source = history.find(
+                      (h) =>
+                        h.entry.metadata.id === startingPoint.id &&
+                        h.entry.metadata.revision === startingPoint.revision,
+                    );
+                  if (
+                    !source ||
+                    (await planDigest(startingPoint.plan)) !== source.planSha256
+                  )
+                    throw new Error(
+                      "This starting point no longer matches reviewed local history.",
+                    );
+                  const sourceKey = source.sha256;
+                  if (
+                    !baselineRequest.current ||
+                    baselineRequest.current.source !== sourceKey
+                  )
+                    baselineRequest.current = {
+                      id: crypto.randomUUID(),
+                      baseRevision: workspace.config.revision,
+                      source: sourceKey,
+                    };
+                  const request = baselineRequest.current;
+                  await onSave(
+                    source.entry.plan,
+                    request.id,
+                    0,
+                    request.baseRevision,
+                  );
+                  setDraftId(request.id);
+                  setDraftRevision(1);
+                  setBaseRevision(request.baseRevision);
+                  setSaved(
+                    JSON.stringify({
+                      plan: source.entry.plan,
+                      baseRevision: request.baseRevision,
+                    }),
+                  );
+                  setConfirmed(false);
+                  setNotice(
+                    "Reviewed starting point saved as revision one. Your editor choices are unchanged; save them as the next draft revision.",
+                  );
+                })
+              }
+            >
+              Save reviewed starting point
+            </button>
+          </section>
+        )}
         {start.warning && <p className="error">{start.warning}</p>}
         <nav className="studio-steps" aria-label="BuildPlan steps">
           {["Start", "Features", "Customize", "Review & try"].map(
@@ -647,6 +799,8 @@ export function BuildPlanStudio({
                     aria-pressed={plan.template === type}
                     onClick={() => {
                       setPlan(newBuildPlan(type));
+                      setStartingPoint(null);
+                      baselineRequest.current = null;
                       setPackageDetails({
                         name: "",
                         description:
@@ -1111,6 +1265,8 @@ export function BuildPlanStudio({
                 );
               const imported = parseBuildPlanText(await file.text());
               setPlan(imported);
+              setStartingPoint(null);
+              baselineRequest.current = null;
               setPackageDetails({
                 name: "",
                 description: "A reusable fictional LMS business configuration.",

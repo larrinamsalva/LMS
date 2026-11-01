@@ -5,6 +5,10 @@ import { createDatabase, sqlDatabase } from "../../src/server/database";
 import { Engine } from "../../src/core/engine";
 import { presets } from "../../src/presets";
 import { brandingDrafts, brandingPublication } from "../helpers/branding";
+import {
+  templateUpdatePersistence,
+  templateUpdateConcurrency,
+} from "../helpers/template-updates";
 import { brandBuildPlan } from "../../src/core/buildplan";
 import { defaultBranding } from "../../src/core/branding";
 import {
@@ -68,6 +72,19 @@ beforeEach(async () => {
 });
 afterAll(async () => {
   await db?.close();
+});
+it("retains exact reviewed template baselines and user choices through explicit saves, publication and rollback", async () => {
+  await templateUpdatePersistence(
+    engine,
+    owner,
+    a,
+    [staff, viewer, other],
+    other,
+    b,
+  );
+});
+it("rejects competing template draft edits, stale publication and cross-organization baseline lookup", async () => {
+  await templateUpdateConcurrency(engine, owner, a, other, b);
 });
 it("retains branded draft revisions, exact retries, role protections and competing edits", async () => {
   await brandingDrafts(engine, owner, [staff, viewer, other], a, other, b);

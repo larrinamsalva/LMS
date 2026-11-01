@@ -6,6 +6,10 @@ import path from "node:path";
 import os from "node:os";
 import { reviewedGallery, remixGalleryEntry } from "../../src/core/gallery";
 import { brandingDrafts, brandingPublication } from "../helpers/branding";
+import {
+  templateUpdatePersistence,
+  templateUpdateConcurrency,
+} from "../helpers/template-updates";
 import { brandBuildPlan } from "../../src/core/buildplan";
 import { defaultBranding } from "../../src/core/branding";
 import {
@@ -187,6 +191,19 @@ async function rawSave(
   );
 }
 describe("native BuildPlan artifacts and publication", () => {
+  it("retains reviewed baselines and unselected customizations under native permissions, history and publication guards", async () => {
+    await templateUpdatePersistence(
+      engine,
+      owner,
+      a,
+      [staff, viewer, other],
+      other,
+      b,
+    );
+  });
+  it("serializes template update saves and refuses stale publication and cross-organization history", async () => {
+    await templateUpdateConcurrency(engine, owner, a, other, b);
+  });
   it("retains branded draft revisions and role/isolation boundaries during competing edits and exact retries", async () => {
     await brandingDrafts(engine, owner, [staff, viewer, other], a, other, b);
   });

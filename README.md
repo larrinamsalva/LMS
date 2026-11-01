@@ -15,6 +15,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Curated BuildPlan Gallery: five searchable business starters, feature/type filters, real previews and unsaved remixes through Studio.
 - Blueprint packages: download validated configuration with a feature/setup summary, then import through explicit compatibility and Gallery comparison without overwriting saved choices.
 - Business Branding Studio: built-in marks/monograms, tagline, four reviewed light/dark palettes and real branded workspace previews, with versioned draft/package persistence and rollback.
+- Local template history: retained reviewed editions, verified saved comparison baselines and selective update review that keeps customizations until explicitly replaced.
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
@@ -71,6 +72,10 @@ Only the strict 96 KiB LMS stored-ZIP format is accepted. Checksums detect damag
 Open **BuildPlan Studio → Customize → Brand Your Business**. Set a fictional business name/tagline, enable branding, choose a built-in mark or initials and a coordinated primary/secondary/accent palette. Light/dark samples update immediately; **Prepare workspace preview** uses the actual Engine. Saving and publishing remain separate explicit operations.
 
 Branding persists in configuration schema 2, BuildPlan 2 and Blueprint Package 2. Existing v1 files remain supported without automatic upgrade. Existing host-only databases need migration 12; their operational records are not rewritten. Image uploads, arbitrary CSS/colors, external fonts and logo URLs are deferred. [Workflow, compatibility, palette and migration contract](docs/business-branding.md) · [Verification](docs/business-branding-verification.md).
+
+## Review template updates
+
+Before updating an existing BuildPlan, use **Check for Template Updates** in Studio. Compare retained and newer reviewed editions, keep your own choices, preview selected replacements, then use them as unsaved choices. Exact saved baselines enable three-way review; imported hints alone remain informational. Format changes need explicit approval and populated schema changes remain blocked. [Workflow, trust limits and screenshots](docs/template-history.md) · [Verification](docs/template-history-verification.md).
 
 ## Customer-linked scheduling
 

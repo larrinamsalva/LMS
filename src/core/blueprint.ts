@@ -111,7 +111,7 @@ export function blueprintJson(value: unknown): string {
         : v;
   return JSON.stringify(sorted(value)) + "\n";
 }
-async function sha256(bytes: Uint8Array): Promise<string> {
+export async function sha256(bytes: Uint8Array): Promise<string> {
   if (!globalThis.crypto?.subtle)
     throw new BlueprintError(
       "Blueprint integrity checks require HTTPS or localhost in a supported browser.",

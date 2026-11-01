@@ -1474,8 +1474,15 @@ legend {
   display: flex;
   gap: 0.4rem;
 }
-.branding-studio .check-label { white-space: normal; line-height: 1.5; }
-.branding-studio input[type="radio"] { width: 16px; flex: 0 0 16px; accent-color: var(--accent); }
+.branding-studio .check-label {
+  white-space: normal;
+  line-height: 1.5;
+}
+.branding-studio input[type="radio"] {
+  width: 16px;
+  flex: 0 0 16px;
+  accent-color: var(--accent);
+}
 .brand-swatches > span {
   display: block;
   width: 2rem;
@@ -1526,6 +1533,36 @@ legend {
 }
 .brand-colors dd {
   margin: 0.3rem 0;
+}
+.template-update .check-label {
+  white-space: normal;
+  align-items: flex-start;
+  line-height: 1.6;
+}
+.template-update input[type="checkbox"] {
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+.template-values dt {
+  font-weight: 700;
+  margin-top: 0.75rem;
+}
+.template-values dd {
+  margin: 0.3rem 0;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+.template-baseline {
+  border-inline-start: 0.25rem solid var(--accent);
+  padding-inline-start: 1rem;
+}
+.template-digests {
+  padding-inline-start: 1.2rem;
+}
+.template-digests li {
+  margin-block: 1rem;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
 }
 @media (max-width: 700px) {
   .sidebar-identity {
