@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
   poweredByHeader: false,
-  serverExternalPackages: ["@electric-sql/pglite"],
+  serverExternalPackages: ["@electric-sql/pglite", "sharp"],
+  // Prevent a public optimizer proxy/cache of private cookie-protected images.
+  images: { unoptimized: true },
   async headers() {
     return [
       {

@@ -1,4 +1,14 @@
 import type { Branding } from "../core/branding";
+import { useState } from "react";
+import { privateLogoUrl, type LogoAsset } from "../core/private-logo";
+export type PrivateLogo = { organizationId: string; asset: LogoAsset };
+export function BusinessLogo({ logo, name, branding }: { logo?: PrivateLogo; name: string; branding: Branding }) {
+  return logo ? <LogoImage key={logo.organizationId + ":" + logo.asset.id} logo={logo} name={name} branding={branding} /> : <BrandMark branding={branding} />;
+}
+function LogoImage({ logo, name, branding }: { logo: PrivateLogo; name: string; branding: Branding }) {
+  const [failed, setFailed] = useState(false);
+  return failed ? <span className="logo-fallback"><BrandMark branding={branding} /><small>Logo unavailable · built-in fallback</small></span> : <span className={"private-logo private-logo-" + logo.asset.display}><img src={privateLogoUrl(logo.organizationId, logo.asset.id)} alt={name + " logo (temporary session preview)"} width={logo.asset.width} height={logo.asset.height} onError={() => setFailed(true)} /></span>;
+}
 /** Trusted inline geometry only. Nothing in a BuildPlan can provide SVG, HTML, CSS or a URL. */
 export function BrandMark({ branding }: { branding: Branding }) {
   return (
@@ -38,13 +48,15 @@ export function BrandMark({ branding }: { branding: Branding }) {
 export function BusinessIdentity({
   name,
   branding,
+  logo,
 }: {
   name: string;
   branding: Branding;
+  logo?: PrivateLogo;
 }) {
   return (
     <span className="business-identity">
-      <BrandMark branding={branding} />
+      <BusinessLogo name={name} branding={branding} logo={logo} />
       <span>
         <strong>{name}</strong>
         {branding.tagline && <small>{branding.tagline}</small>}

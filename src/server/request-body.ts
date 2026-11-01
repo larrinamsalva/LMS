@@ -18,6 +18,14 @@ export async function readJson(
     "application/json"
   )
     throw new BodyError("Use a JSON request.", 415);
+  const bytes = await readBytes(request, limit);
+  let raw: string;
+  try { raw = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+  catch { throw new SyntaxError("Invalid UTF-8"); }
+  return JSON.parse(raw);
+}
+/** Shared bounded binary reader: never buffers unbounded multipart input. */
+export async function readBytes(request: Request, limit: number): Promise<Uint8Array<ArrayBuffer>> {
   const claimed = Number(request.headers.get("content-length"));
   if (Number.isFinite(claimed) && claimed > limit)
     throw new BodyError("Request is too large.", 413);
@@ -45,11 +53,5 @@ export async function readJson(
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  let raw: string;
-  try {
-    raw = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-  } catch {
-    throw new SyntaxError("Invalid UTF-8");
-  }
-  return JSON.parse(raw);
+  return bytes;
 }

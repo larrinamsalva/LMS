@@ -14,6 +14,7 @@ import {
 import { runFictionalChecks } from "./rehearsal";
 import { validateBuildPlan, type BuildPlan } from "../core/buildplan";
 import { createDatabase, sqlDatabase } from "./database";
+import { LogoVault } from "./logo-vault";
 export interface DemoOrganization {
   id: string;
   industry: "property" | "cleaning" | "custom";
@@ -47,6 +48,7 @@ type Runtime = {
   engine: Engine;
   sessions: Map<string, DemoSession>;
   creating: number;
+  logos: LogoVault;
 };
 const host = globalThis as typeof globalThis & { lmsDemo?: Promise<Runtime> };
 const lifetime = 2 * 60 * 60 * 1000;
@@ -57,6 +59,7 @@ export async function runtime() {
     engine: new Engine(sqlDatabase(db)),
     sessions: new Map(),
     creating: 0,
+    logos: new LogoVault(),
   }));
   return host.lmsDemo;
 }
@@ -74,6 +77,7 @@ async function removeExpired(rt: Runtime) {
         ]);
       });
       rt.sessions.delete(token);
+      rt.logos.drop(session);
     }
 }
 export async function startDemo() {
@@ -154,6 +158,7 @@ export async function startDemo() {
 }
 export async function findSession(token: string | undefined) {
   const rt = await runtime();
+  rt.logos.sweep();
   const session = token ? rt.sessions.get(token) : undefined;
   if (!session || session.expiresAt < Date.now())
     throw new EngineError(
@@ -161,6 +166,15 @@ export async function findSession(token: string | undefined) {
       401,
     );
   return session;
+}
+/** Uses the registered fictional session and the real Engine membership/role observation. */
+export async function logoAccess(session: DemoSession, organizationId: string, manage = false) {
+  const rt = await runtime();
+  if (session.expiresAt <= Date.now() || ![...rt.sessions.values()].includes(session)) throw new EngineError("The fictional logo session ended.", 401);
+  requireDemoOrg(session, organizationId);
+  const snapshot = await rt.engine.snapshot(session.principal, organizationId), canManage = ["owner", "admin"].includes(snapshot.role);
+  if (manage && !canManage) throw new EngineError("Only owners/admins can manage private session logos.", 403);
+  return { logos: rt.logos, canManage };
 }
 export function requireDemoOrg(session: DemoSession, org: string) {
   if (!session.organizations.some((o) => o.id === org))

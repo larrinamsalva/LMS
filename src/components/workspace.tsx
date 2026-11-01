@@ -17,8 +17,9 @@ import { RecordForm } from "./record-form";
 import { EstimateForm } from "./estimate-form";
 import { Catalog, Estimates } from "./pricing-workspace";
 import { downloadJson, ProjectPanel } from "./project-panel";
-import { brandingVariables } from "../core/branding";
-import { BusinessIdentity, BrandMark } from "./business-brand";
+import { brandingVariables, defaultBranding } from "../core/branding";
+import { usePrivateLogo } from "./private-logo";
+import { BusinessIdentity, BusinessLogo } from "./business-brand";
 type DemoResponse = {
   session: {
     organizations: {
@@ -149,6 +150,7 @@ export function Workspace({
     }
   }
   const workspace = data?.workspace;
+  const logoController = usePrivateLogo(workspace?.organizationId), sessionLogo = logoController.state?.selected && workspace ? { organizationId: workspace.organizationId, asset: logoController.state.selected } : undefined;
   const config = workspace?.config.document;
   const branding = config?.branding,
     theme = themeOverride ?? branding?.appearance ?? "light";
@@ -217,8 +219,8 @@ export function Workspace({
       </div>
       <header className="topbar">
         <a className="brand" href="/" aria-label="LMS home">
-          {branding && config ? (
-            <BusinessIdentity name={config.name} branding={branding} />
+          {(branding || sessionLogo) && config ? (
+            <BusinessIdentity name={config.name} branding={branding ?? defaultBranding(config.industry)} logo={sessionLogo} />
           ) : (
             <>
               <span className="brand-mark" aria-hidden="true">
@@ -334,9 +336,9 @@ export function Workspace({
       ) : (
         <div className="workspace-shell">
           <aside className="sidebar">
-            {branding && config && (
+            {(branding || sessionLogo) && config && (
               <div className="sidebar-identity">
-                <BusinessIdentity name={config.name} branding={branding} />
+                <BusinessIdentity name={config.name} branding={branding ?? defaultBranding(config.industry)} logo={sessionLogo} />
               </div>
             )}
             <div className="workspace-picker">
@@ -481,10 +483,11 @@ export function Workspace({
                       : "Custom operations"}{" "}
                   / Fictional workspace
                 </span>
-                <div className={branding ? "dashboard-identity" : undefined}>
-                  {branding && <BrandMark branding={branding} />}
+                <div className={branding || sessionLogo ? "dashboard-identity" : undefined}>
+                  {(branding || sessionLogo) && <BusinessLogo name={config!.name} branding={branding ?? defaultBranding(config!.industry)} logo={sessionLogo} />}
                   <div>
                     <h1>{config!.name}</h1>
+                    {sessionLogo && <small>Private session logo preview · not published</small>}
                     <p className="muted">
                       {branding
                         ? branding.tagline ||
@@ -527,6 +530,7 @@ export function Workspace({
             )}
             {view === "studio" && (
               <BuildPlanStudio
+                logoController={logoController}
                 key={workspace!.organizationId}
                 workspace={workspace!}
                 busy={busy}

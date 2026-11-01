@@ -9,12 +9,19 @@ import {
 } from "../core/branding";
 import { type BusinessConfig } from "../core/config";
 import { BusinessIdentity } from "./business-brand";
+import { CustomLogoStudio, type LogoController } from "./private-logo";
 export function BrandingStudio({
   config,
   onChange,
+  logoController,
+  organizationId,
+  canManageLogo,
 }: {
   config: BusinessConfig;
   onChange: (config: BusinessConfig) => void;
+  logoController: LogoController;
+  organizationId: string;
+  canManageLogo: boolean;
 }) {
   const brand = config.branding ?? defaultBranding(config.industry),
     valid = brandingSchema.safeParse(brand);
@@ -170,6 +177,7 @@ export function BrandingStudio({
           preview require valid branding.
         </p>
       )}
+      <CustomLogoStudio controller={logoController} canManage={canManageLogo} />
       <h4>Immediate light and dark appearance</h4>
       <p className="muted">
         These identity samples use the same marks and palette tokens as the
@@ -192,6 +200,7 @@ export function BrandingStudio({
             <BusinessIdentity
               name={config.name || "Your business"}
               branding={brand}
+              logo={(logoController.state?.staged ?? logoController.state?.selected) ? { organizationId, asset: (logoController.state?.staged ?? logoController.state?.selected)! } : undefined}
             />
             <div className="brand-sample-nav">
               Customers · Selected navigation
@@ -209,9 +218,7 @@ export function BrandingStudio({
         ))}
       </div>
       <p className="muted">
-        Built-in marks and text only. Secure custom image uploads, storage and
-        branding files are a future phase. No image URL, HTML, scripts, external
-        font or SVG upload is accepted.
+        Portable branding uses built-in marks and text only. Private session image previews are temporary. No image URL, HTML, scripts, external font or SVG upload is accepted.
       </p>
     </section>
   );
