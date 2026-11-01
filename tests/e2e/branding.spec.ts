@@ -101,9 +101,16 @@ test("Gallery branding previews accessibly and survives draft, JSON and package 
   await page
     .locator(".branding-studio")
     .screenshot({ path: info.outputPath("branding-studio.png"), scale: "css" });
-  await expect(page.locator('input[type="file"][accept*="image"]')).toHaveCount(
-    0,
+  const privateLogoPicker = page.getByLabel(
+    "Select a logo image from this device",
+    { exact: true },
   );
+  await expect(privateLogoPicker).toHaveCount(1);
+  await expect(privateLogoPicker).toHaveAttribute(
+    "accept",
+    ".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp",
+  );
+  await expect(page.locator(".branding-studio img")).toHaveCount(0);
   await step(page, "4 · Review & try");
   await expect(
     page.getByText(/Branding changes\. Operational records/),
