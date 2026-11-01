@@ -1,4 +1,5 @@
 import { generatedInvariants, refusalAndFailure } from "../helpers/rehearsal";
+import { publisherBoundary } from "../helpers/blueprint-boundary";
 import {
   impactRetention,
   impactFreshness,
@@ -200,6 +201,9 @@ async function rawSave(
   );
 }
 describe("native BuildPlan artifacts and publication", () => {
+  it("never treats publisher verification as publication permission or a populated-schema/RLS bypass", async () => {
+    await publisherBoundary(engine, owner, a, [staff, viewer, other], other, b);
+  });
   it("refuses impact freshness claims under a retained repeatable-read snapshot", async () => {
     const isolated = new Engine({
       query: (sql, parameters) => db.query(sql, parameters),

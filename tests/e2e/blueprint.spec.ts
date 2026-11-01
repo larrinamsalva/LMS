@@ -2,6 +2,10 @@ import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
 import { importBlueprintPackage } from "../../src/core/blueprint";
+import {
+  testAttestation,
+  testPublisher,
+} from "../helpers/blueprint-provenance";
 async function step(page: Page, name: string) {
   await page
     .getByRole("navigation", { name: "BuildPlan steps", exact: true })
@@ -118,9 +122,62 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
     await target
       .getByLabel("Import Blueprint Package", { exact: true })
       .setInputFiles(upload);
+    const attestationInput = target.getByLabel(
+        "Detached publisher attestation (optional)",
+        { exact: true },
+      ),
+      claim = await testAttestation(bytes, testPublisher());
+    for (const [buffer, error] of [
+      [Buffer.from(claim), /Unknown publisher key/],
+      [
+        Buffer.from(
+          new TextDecoder().decode(claim).replace('"Ed25519"', '"RSA"'),
+        ),
+        /Unsupported publisher signature algorithm/,
+      ],
+      [Buffer.alloc(8193), /8 KiB/],
+    ] as const) {
+      await attestationInput.setInputFiles({
+        name: "publisher.attestation.json",
+        mimeType: "application/json",
+        buffer,
+      });
+      await target
+        .getByRole("button", { name: "Verify Blueprint", exact: true })
+        .click();
+      await expect(
+        target.getByRole("alert").filter({ hasText: error }),
+      ).toBeVisible();
+      await expect(
+        target.getByRole("button", {
+          name: "Use as unsaved Studio choices",
+          exact: true,
+        }),
+      ).toHaveCount(0);
+      expect(await snapshot(target)).toEqual(before);
+    }
+    await target.screenshot({
+      path: info.outputPath("publisher-claim-rejected.png"),
+      fullPage: true,
+      scale: "css",
+    });
+    // Deliberately remove the claim. This is an unsigned import, never a verified fallback.
+    await attestationInput.setInputFiles([]);
+    await target
+      .getByRole("button", { name: "Verify Blueprint", exact: true })
+      .click();
     await expect(
       target.getByRole("heading", { name: "Review Blueprint", exact: true }),
     ).toBeFocused();
+    await expect(
+      target.getByText("Unverified publisher · unsigned package", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(target.getByText(/Passed · exact ZIP profile/)).toBeVisible();
+    await expect(
+      target.getByText(/No detached attestation supplied/),
+    ).toBeVisible();
     await expect(
       target.getByRole("heading", {
         name: "My cleaning blueprint",
@@ -141,9 +198,21 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
     ).toBeVisible();
     await accessible(target);
     await target
+      .getByRole("region", { name: "Verify Blueprint", exact: true })
+      .screenshot({
+        path: info.outputPath("publisher-inspection-light.png"),
+        scale: "css",
+      });
+    await target
       .getByRole("button", { name: "Switch to dark theme", exact: true })
       .click();
     await accessible(target);
+    await target
+      .getByRole("region", { name: "Verify Blueprint", exact: true })
+      .screenshot({
+        path: info.outputPath("publisher-inspection-dark.png"),
+        scale: "css",
+      });
     await target
       .getByText("Compare with my unsaved Studio choices", { exact: true })
       .click();
@@ -167,6 +236,9 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
     await target
       .getByLabel("Import Blueprint Package", { exact: true })
       .setInputFiles({ ...upload, buffer: corrupted });
+    await target
+      .getByRole("button", { name: "Verify Blueprint", exact: true })
+      .click();
     await expect(
       target.getByRole("alert").filter({ hasText: /checksum failed/ }),
     ).toBeVisible();
@@ -179,12 +251,18 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
     await target
       .getByLabel("Import Blueprint Package", { exact: true })
       .setInputFiles({ ...upload, buffer: Buffer.alloc(98305) });
+    await target
+      .getByRole("button", { name: "Verify Blueprint", exact: true })
+      .click();
     await expect(
       target.getByRole("alert").filter({ hasText: /96 KiB/ }),
     ).toBeVisible();
     await target
       .getByLabel("Import Blueprint Package", { exact: true })
       .setInputFiles(upload);
+    await target
+      .getByRole("button", { name: "Verify Blueprint", exact: true })
+      .click();
     await expect(
       target.getByRole("heading", { name: "Review Blueprint", exact: true }),
     ).toBeFocused();

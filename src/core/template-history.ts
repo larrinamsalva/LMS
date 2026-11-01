@@ -1,11 +1,11 @@
 import { z } from "zod";
-import basic1 from "../templates/history/basic-cleaning.1.json";
-import basic2 from "../templates/history/basic-cleaning.2.json";
-import crews1 from "../templates/history/cleaning-crews.1.json";
-import property1 from "../templates/history/rv-property.1.json";
-import maintenance1 from "../templates/history/property-maintenance.1.json";
-import maintenance2 from "../templates/history/property-maintenance.2.json";
-import general1 from "../templates/history/general-service.1.json";
+import basic1 from "../templates/history/basic-cleaning.1.json" with { type: "json" };
+import basic2 from "../templates/history/basic-cleaning.2.json" with { type: "json" };
+import crews1 from "../templates/history/cleaning-crews.1.json" with { type: "json" };
+import property1 from "../templates/history/rv-property.1.json" with { type: "json" };
+import maintenance1 from "../templates/history/property-maintenance.1.json" with { type: "json" };
+import maintenance2 from "../templates/history/property-maintenance.2.json" with { type: "json" };
+import general1 from "../templates/history/general-service.1.json" with { type: "json" };
 import { validateGalleryEntry, type GalleryEntry } from "./gallery";
 import {
   validateBuildPlan,

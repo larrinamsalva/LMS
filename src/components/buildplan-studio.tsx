@@ -41,11 +41,14 @@ import {
 import { blueprintJson } from "../core/blueprint";
 import { BlueprintPackageTools, BlueprintReview } from "./blueprint-package";
 import {
+  ATTESTATION_LIMIT,
+  inspectBlueprintPackage,
+  type InspectedBlueprint,
+} from "../core/blueprint-provenance";
+import {
   createBlueprintPackage,
-  importBlueprintPackage,
   BLUEPRINT_PACKAGE_LIMIT,
   type BlueprintDetails,
-  type BlueprintPackage,
 } from "../core/blueprint";
 const names = {
   property: "Property Management",
@@ -423,7 +426,7 @@ export function BuildPlanStudio({
       revision: number;
       plan: BuildPlan;
     } | null>(null),
-    [reviewing, setReviewing] = useState<BlueprintPackage | null>(null),
+    [reviewing, setReviewing] = useState<InspectedBlueprint | null>(null),
     [packageDetails, setPackageDetails] = useState<BlueprintDetails>({
       name: "",
       description: "A reusable fictional LMS business configuration.",
@@ -592,16 +595,16 @@ export function BuildPlanStudio({
   if (reviewing)
     return (
       <BlueprintReview
-        blueprint={reviewing}
+        inspection={reviewing}
         workspace={workspace}
         choices={plan}
         onCancel={() => setReviewing(null)}
         onPreview={preparePreview}
         onUse={() => {
-          setPlan(validateBuildPlan(reviewing.plan));
+          setPlan(validateBuildPlan(reviewing.blueprint.plan));
           setStartingPoint(null);
           baselineRequest.current = null;
-          setPackageDetails(reviewing.manifest.blueprint);
+          setPackageDetails(reviewing.blueprint.manifest.blueprint);
           setDraftId(null);
           setDraftRevision(0);
           setBaseRevision(workspace.config.revision);
@@ -1219,17 +1222,34 @@ export function BuildPlanStudio({
             );
           })
         }
-        onImport={(file) =>
+        onImport={(file, attestation) =>
           void run(async () => {
             if (file.size > BLUEPRINT_PACKAGE_LIMIT)
               throw new Error(
                 "Choose a blueprint package no larger than 96 KiB.",
               );
-            setReviewing(
-              await importBlueprintPackage(
-                new Uint8Array(await file.arrayBuffer()),
-              ),
-            );
+            if (attestation && attestation.size > ATTESTATION_LIMIT)
+              throw new Error(
+                "Publisher attestation must be no larger than 8 KiB.",
+              );
+            const [zip, claim] = await Promise.all([
+              file.arrayBuffer(),
+              attestation?.arrayBuffer(),
+            ]);
+            try {
+              setReviewing(
+                await inspectBlueprintPackage(
+                  new Uint8Array(zip),
+                  claim === undefined ? undefined : new Uint8Array(claim),
+                ),
+              );
+            } catch (error) {
+              if (attestation)
+                throw new Error(
+                  `Publisher verification rejected. No import was accepted. ${error instanceof Error ? error.message : "Invalid attestation or package."}`,
+                );
+              throw error;
+            }
           })
         }
       />

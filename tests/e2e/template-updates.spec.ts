@@ -291,6 +291,9 @@ test("imported hints stay informational and branded updates require explicit for
       buffer: Buffer.from(bytes),
     });
   await page
+    .getByRole("button", { name: "Verify Blueprint", exact: true })
+    .click();
+  await page
     .getByRole("button", { name: "Use as unsaved Studio choices", exact: true })
     .click();
   await expect(

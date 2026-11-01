@@ -30,7 +30,8 @@
     "access:bootstrap": "node --env-file=.env.postgres --import=tsx scripts/access-bootstrap.ts",
     "recovery": "node --env-file=.env.postgres --import=tsx scripts/offline-recovery.ts",
     "lineage": "node --env-file=.env.postgres --import=tsx scripts/credential-lineage.ts",
-    "checkpoint": "node --env-file=.env.publication --import=tsx scripts/checkpoint-publication.ts"
+    "checkpoint": "node --env-file=.env.publication --import=tsx scripts/checkpoint-publication.ts",
+    "blueprint": "node --import=tsx scripts/blueprint-provenance.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.14",
@@ -50,6 +51,7 @@
     "@types/pg": "8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "esbuild": "0.28.2",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vitest": "5.0.5"
