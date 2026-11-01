@@ -5,7 +5,18 @@ import {
   type RecordData,
 } from "../core/config";
 import type { WorkspaceRecord } from "../core/engine";
+import { decimalToMinor, minorToDecimal } from "../core/pricing";
 import { localTime, wallToInstant, normalizeInstant } from "../core/time";
+export type RecordFormProps = {
+  entity: EntityDefinition;
+  record?: WorkspaceRecord;
+  records: WorkspaceRecord[];
+  businessZone: string;
+  workforceEnabled: boolean;
+  busy: boolean;
+  onSave: (data: RecordData, operationId: string) => Promise<void>;
+  onCancel: () => void;
+};
 export function RecordForm({
   entity,
   record,
@@ -15,16 +26,7 @@ export function RecordForm({
   busy,
   onSave,
   onCancel,
-}: {
-  entity: EntityDefinition;
-  record?: WorkspaceRecord;
-  records: WorkspaceRecord[];
-  businessZone: string;
-  workforceEnabled: boolean;
-  busy: boolean;
-  onSave: (data: RecordData, operationId: string) => Promise<void>;
-  onCancel: () => void;
-}) {
+}: RecordFormProps) {
   const prefix = useId(),
     formRef = useRef<HTMLFormElement>(null),
     command = useRef<{ body: string; id: string } | null>(null);
@@ -32,6 +34,7 @@ export function RecordForm({
     Object.fromEntries(
       entity.fields.map((field) => {
         let value = String(record?.data[field.key] ?? "");
+        if (field.type === "money" && value) value = minorToDecimal(value);
         if (field.type === "datetime" && value)
           value = localTime(
             value,
@@ -134,6 +137,14 @@ export function RecordForm({
                 : "Resource-only reservation: no employee identity or employee availability is reserved. Add dated memberships in Crews & availability to enroll it."}
         </p>
       )}
+      {entity.module === "estimates" && (
+        <p className="muted">
+          Fictional catalog only. Prices use exact USD cents. Effective-until
+          dates are exclusive. Archive linked active rates/extras before their
+          service. A priced service keeps its method, unit and extra
+          relationship.
+        </p>
+      )}
       {entity.module === "workforce" && (
         <p className="muted">
           Fictional profiles never create login accounts or grant access.
@@ -153,15 +164,17 @@ export function RecordForm({
             const data = Object.fromEntries(
               entity.fields.map((field) => [
                 field.key,
-                field.type === "datetime" && values[field.key]
-                  ? wallToInstant(
-                      values[field.key],
-                      zone,
-                      occurrences[field.key] ?? "reject",
-                    )
-                  : field.type === "number" && values[field.key] !== ""
-                    ? Number(values[field.key])
-                    : values[field.key],
+                field.type === "money"
+                  ? decimalToMinor(values[field.key])
+                  : field.type === "datetime" && values[field.key]
+                    ? wallToInstant(
+                        values[field.key],
+                        zone,
+                        occurrences[field.key] ?? "reject",
+                      )
+                    : field.type === "number" && values[field.key] !== ""
+                      ? Number(values[field.key])
+                      : values[field.key],
               ]),
             );
             const clean = validateRecord(entity, data),
@@ -262,6 +275,7 @@ export function RecordForm({
                     name={field.key}
                     value={value}
                     onChange={(e) => change(field.key, e.target.value)}
+                    inputMode={field.type === "money" ? "decimal" : undefined}
                     type={
                       field.type === "number"
                         ? "number"

@@ -1,6 +1,6 @@
 # Database migrations
 
-`001_foundation.sql` remains unchanged from PR #1. The public demonstration executes it plus the shared business migrations 7 and 8 in a fresh, temporary PGlite database; identity/recovery migrations remain separate. Persistent PostgreSQL uses the **same schema and engine**, through `src/server/postgres/migrations.ts` and a separately provisioned runtime login.
+`001_foundation.sql` remains unchanged from PR #1. The public demonstration executes it plus the shared business migrations 7, 8 and 9 in a fresh, temporary PGlite database; identity/recovery migrations remain separate. Persistent PostgreSQL uses the **same schema and engine**, through `src/server/postgres/migrations.ts` and a separately provisioned runtime login.
 
 ## Network migration contract
 
@@ -19,7 +19,7 @@ Keep historical SQL unchanged. Add the next numbered SQL file, register it expli
 
 Version 1 remains immutable. Version 2 adds only the private local identity schema and its separate role boundary. Initialization validates both service roles. Fixture seeding lives in test support, outside migrations. There are no real accounts, passwords, invoices or sample personal data in schema SQL.
 
-Migration 2 follows the Better Auth 1.7.14 core schema, without providers/plugins. Existing version-1 databases upgrade transactionally without rewriting business rows or the original checksum. New network tests rehearse this upgrade. The temporary PGlite demo loads shared business migrations 1, 7 and 8, without identity/recovery schemas.
+Migration 2 follows the Better Auth 1.7.14 core schema, without providers/plugins. Existing version-1 databases upgrade transactionally without rewriting business rows or the original checksum. New network tests rehearse this upgrade. The temporary PGlite demo loads shared business migrations 1, 7, 8 and 9, without identity/recovery schemas.
 
 Migration 3 adds access revisions, private session-bound membership reviews, durable confirmation/bootstrap receipts and three private owner commands with invoker wrappers. It backfills revision zero without changing existing roles/records; the network suite rehearses version 2 → 3. Raw membership DML remains denied. All new tables force RLS. Definer/helper search paths are empty and PUBLIC execution is revoked. See [owner contracts](../docs/owner-access.md). Roll back code only after reviewing schema compatibility; recovery uses a verified offline backup, never destructive down SQL.
 
@@ -47,3 +47,10 @@ Stop all hosts first; the existing exclusive maintenance lease/table locks prote
 `008_workforce_availability.sql` adds scoped membership/availability projections and retained per-revision employee allocations. The existing organization epoch orders their checks with bookings; a new GiST exclusion prevents the same employee being reserved through different Worker/Crew resources. Source record permissions restrict workforce administration to owners/admins; projections force RLS and grant runtime reads only. Work windows, time off and effective rosters are checked transactionally; invalidating changes refuse rather than silently alter reserved people.
 
 Stop hosts and back up before the normal `db:migrate` command. The exclusive maintenance/table locks and migration transaction apply, preserving migrations 1–7, original records/configuration and audits. Untracked workforce entities refuse upgrade. Existing resource-only appointments receive no fabricated people; explicit enrollment requires cancellation/archive of blocking bookings. [Setup, enrollment, failure behavior and limits](../docs/crews-availability.md). All restored databases remain activation-blocked.
+
+
+## Migration 9: exact service pricing and internal estimates
+
+`009_service_estimates.sql` adds dated service/area rates, scoped estimate lines and append-only estimate versions. Owner/admin source guards, exact integer/numeric calculations, original pricing snapshots and an exclusion constraint enforce the internal-draft contract. The existing organization epoch orders rate changes and draft preparation. The existing receipt projection is replaced additively to bind normalized original estimate selections while independently checking derived source pricing; applied migration 7/checksum is untouched.
+
+Back up and stop hosts before the standard migration command. Installation is transactional under maintenance/table locks; existing business/identity/history rows are preserved. Untracked pricing entities refuse upgrade, and pricing writes/activation refuse on pre-9 databases. [Input, rounding, grants, retries, upgrade and limits](../docs/services-estimates.md). New tables and receipts persist in native backups; restore never unblocks activation.

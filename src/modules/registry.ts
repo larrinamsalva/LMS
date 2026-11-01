@@ -73,6 +73,17 @@ export const manifests: readonly ModuleManifest[] = [
     capabilities: ["records:read", "records:write"],
   },
   {
+    id: "estimates",
+    version: "1.0.0",
+    engineApi: 1,
+    name: "Services & estimates",
+    description:
+      "Saved service-area rates and fictional internal estimate drafts.",
+    dependencies: ["customers"],
+    entities: ["pricing-zones", "services", "service-rates", "estimates"],
+    capabilities: ["records:read", "records:write"],
+  },
+  {
     id: "inventory",
     version: "1.0.0",
     engineApi: 1,
@@ -96,7 +107,6 @@ export const manifests: readonly ModuleManifest[] = [
 ];
 export const moduleById = new Map(manifests.map((m) => [m.id, m]));
 export const plannedModules = [
-  "Service rates & quotes",
   "Inventory movements",
   "Invoices",
   "Documents",

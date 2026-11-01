@@ -12,11 +12,7 @@ export const availabilityKinds = [
   "Vacation",
   "Unavailable",
 ] as const;
-/** Profile/job titles never grant application permissions. */
-export const recordWriteRoles = (entity: string) =>
-  workforceEntities.includes(entity)
-    ? ["owner", "admin"]
-    : ["owner", "admin", "staff"];
+export { recordWriteRoles } from "./permissions";
 
 export function workforceContract(entity: EntityDefinition) {
   if (!workforceEntities.includes(entity.id)) return true;

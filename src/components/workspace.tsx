@@ -8,9 +8,12 @@ import {
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { Schedule, relatedLabel } from "./schedule";
 import { Workforce } from "./workforce";
-import { recordWriteRoles } from "../core/workforce";
+import { recordWriteRoles } from "../core/permissions";
+import { money, type EstimatePricing } from "../core/pricing";
 import { displayTime } from "../core/time";
 import { RecordForm } from "./record-form";
+import { EstimateForm } from "./estimate-form";
+import { Catalog, Estimates } from "./pricing-workspace";
 import { downloadJson, ProjectPanel } from "./project-panel";
 type DemoResponse = {
   session: {
@@ -42,7 +45,13 @@ export function Workspace() {
   const [notice, setNotice] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [view, setView] = useState<
-    "records" | "project" | "activity" | "schedule" | "workforce"
+    | "records"
+    | "project"
+    | "activity"
+    | "schedule"
+    | "workforce"
+    | "catalog"
+    | "estimates"
   >("records");
   const [selected, setSelected] = useState("customers");
   const [query, setQuery] = useState("");
@@ -134,6 +143,22 @@ export function Workspace() {
   const canAdmin = workspace
     ? ["owner", "admin"].includes(workspace.role)
     : false;
+  const Editor = entity?.id === "estimates" ? EstimateForm : RecordForm;
+  function openRecord(entityId: string, record?: WorkspaceRecord) {
+    setSelected(entityId);
+    setView("records");
+    setEditor(record ?? "new");
+    setArchive(null);
+    setError("");
+  }
+  function archiveRecord(record: WorkspaceRecord) {
+    setSelected(record.entity);
+    setView("records");
+    setEditor(null);
+    setArchive(record);
+    archiveOperation.current = crypto.randomUUID();
+    setError("");
+  }
   function changeView(next: typeof view, entityId?: string) {
     setView(next);
     if (entityId) setSelected(entityId);
@@ -291,7 +316,12 @@ export function Workspace() {
                         ? "page"
                         : undefined
                     }
-                    onClick={() => changeView("records", id)}
+                    onClick={() =>
+                      changeView(
+                        id === "estimates" ? "estimates" : "records",
+                        id,
+                      )
+                    }
                   >
                     <span>{item.plural}</span>
                     <span className="nav-count">{count}</span>
@@ -305,6 +335,15 @@ export function Workspace() {
                   onClick={() => changeView("schedule")}
                 >
                   Schedule
+                </button>
+              )}
+              {config!.modules.some((m) => m.id === "estimates") && (
+                <button
+                  className={`nav-item ${view === "catalog" ? "active" : ""}`}
+                  disabled={busy}
+                  onClick={() => changeView("catalog")}
+                >
+                  Services & Rates
                 </button>
               )}
               <span className="nav-label">YOUR SYSTEM</span>
@@ -435,6 +474,29 @@ export function Workspace() {
                 }}
               />
             )}
+            {view === "catalog" && (
+              <Catalog
+                records={workspace!.records}
+                canManage={canAdmin}
+                busy={busy}
+                onAdd={(id) => openRecord(id)}
+                onEdit={(r) => openRecord(r.entity, r)}
+                onArchive={archiveRecord}
+              />
+            )}
+            {view === "estimates" && (
+              <Estimates
+                records={workspace!.records}
+                versions={workspace!.estimateVersions}
+                businessName={config!.name}
+                theme={theme}
+                canManage={canAdmin}
+                busy={busy}
+                onAdd={(id) => openRecord(id)}
+                onEdit={(r) => openRecord(r.entity, r)}
+                onArchive={archiveRecord}
+              />
+            )}
             {view === "records" && entity && (
               <>
                 <section
@@ -560,7 +622,19 @@ export function Workspace() {
                                                     "UTC",
                                                 ),
                                               )
-                                            : record.data[f.key]}
+                                            : f.type === "money"
+                                              ? money(
+                                                  String(record.data[f.key]),
+                                                )
+                                              : f.type === "estimate"
+                                                ? money(
+                                                    (
+                                                      record.data[
+                                                        f.key
+                                                      ] as EstimatePricing
+                                                    ).totalMinor,
+                                                  )
+                                                : String(record.data[f.key])}
                                       </dd>
                                     </div>
                                   ))}
@@ -654,7 +728,7 @@ export function Workspace() {
                   </section>
                 )}
                 {editor && (
-                  <RecordForm
+                  <Editor
                     key={`${workspace!.organizationId}-${entity.id}-${editor === "new" ? "new" : editor.id}`}
                     entity={entity}
                     records={workspace!.records}

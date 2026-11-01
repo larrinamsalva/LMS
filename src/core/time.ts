@@ -76,7 +76,7 @@ export function wallToInstant(
     );
   return (choice === "later" ? late : early).toInstant().toString();
 }
-export function validateAppointment(data: Record<string, string | number>) {
+export function validateAppointment(data: Record<string, unknown>) {
   const zone = String(data.time_zone),
     start = instant(String(data.start)),
     end = instant(String(data.end));

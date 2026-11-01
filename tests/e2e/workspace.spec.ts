@@ -183,6 +183,7 @@ test("light and dark themes have accessible labels, contrast and responsive form
 test("HTTP boundary rejects CSRF, forged scope, missing sessions and unavailable actions", async ({
   page,
   request,
+  baseURL,
 }) => {
   expect((await request.get("/api/demo")).status()).toBe(401);
   expect((await request.get("/api/local-auth/get-session")).status()).toBe(404);
@@ -239,13 +240,13 @@ test("HTTP boundary rejects CSRF, forged scope, missing sessions and unavailable
   expect(
     (
       await page.request.post("/api/demo", {
-        headers: { Origin: "http://127.0.0.1:3100" },
+        headers: { Origin: baseURL! },
         data: { action: "send-invoice", organizationId },
       })
     ).status(),
   ).toBe(400);
   const second = await request.post("/api/demo", {
-    headers: { Origin: "http://127.0.0.1:3100" },
+    headers: { Origin: baseURL! },
     data: { action: "start" },
   });
   expect(second.status()).toBe(200);
