@@ -13,6 +13,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Shared product/location inventory, exact case conversion and an immutable receiving/usage/transfer/return/adjustment ledger with keyboard-scanner selection.
 - BuildPlan Studio: guided templates/features, safe optional fields, real Engine previews, temporary draft history and validated BuildPlan import/export.
 - Curated BuildPlan Gallery: five searchable business starters, feature/type filters, real previews and unsaved remixes through Studio.
+- Blueprint packages: download validated configuration with a feature/setup summary, then import through explicit compatibility and Gallery comparison without overwriting saved choices.
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
@@ -20,7 +21,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Append-only database audit history; project JSON and organization-scoped workspace exports.
 - Accessible light/dark themes, phone layout and no-login **fictional-data-only** demo.
 
-This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, advanced pricing/currencies, fractional stock/purchasing, invoices, documents, complete production recovery/import, workflow automation, advanced builder extensions and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
+This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, advanced pricing/currencies, fractional stock/purchasing, invoices, documents, complete production recovery/import, workflow automation, advanced builder extensions and executable application export/deployment are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
 
 ## Run locally
 
@@ -57,6 +58,12 @@ Choose **Build My Business System** without signing in, or open **BuildPlan Stud
 In **BuildPlan Studio**, choose **Browse Business Templates**. Search five reviewed configurations: Basic Cleaning Business, Cleaning Crew & Scheduling, RV Park / Property Management, Property Maintenance and General Service Business. Cards show enabled modules, supported starting workflows, dependencies and limitations. These are starter configurations, not complete industry applications.
 
 **Preview Template** opens the same real Engine-powered fictional workspace mechanism as Studio. **Customize This Template** copies choices into an unsaved Studio plan; it never overwrites a saved plan or publishes automatically. Existing draft revisions, JSON export/import, impact review and publication protections apply. [Workflow and scope](docs/buildplan-gallery.md) · [Verification](docs/buildplan-gallery-verification.md).
+
+## Download and reuse a blueprint
+
+In Studio, enter a fictional **Blueprint name** and **Blueprint description**, then choose **Download Blueprint Package**. The ZIP includes a validated BuildPlan, enabled modules/dependencies, version metadata, hashes and human-readable instructions. **Import Blueprint Package** opens a read-only **Review Blueprint** screen; accepting it creates unsaved Studio choices. Saved drafts, business records and published configuration stay intact until separately authorized operations.
+
+Only the strict 96 KiB LMS stored-ZIP format is accepted. Checksums detect damage, not a trusted author. Gallery revision hints are unverified and upgrades are never automatic. Existing BuildPlan v1 JSON import/export remains compatible. [Example workflow, package format and limits](docs/blueprint-packages.md) · [Verification](docs/blueprint-packages-verification.md).
 
 ## Customer-linked scheduling
 

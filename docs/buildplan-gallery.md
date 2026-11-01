@@ -38,6 +38,8 @@ The collection is constructed from the same property/cleaning/custom builders an
 
 `reviewedGallery()` and `remixGalleryEntry()` return detached copies. Saving stores the ordinary complete BuildPlan snapshot under the existing draft/revision rules, never a live reference to a gallery ID. A later gallery revision cannot silently update saved choices. There is no automatic update/subscription operation. Future incompatible template versions need an explicit reviewed compatibility process; existing imports must refuse rather than silently migrate or rewrite populated schemas.
 
+The [blueprint package extension](blueprint-packages.md) retains an optional Gallery ID/revision hint outside BuildPlan v1. Studio can compare customized choices with the currently bundled reviewed starter, including a newer revision when available. A package hint is unverified, never proof of origin; comparison neither merges choices nor overwrites saved plans. Export a ZIP to retain package-only details; plain saved drafts still store configuration only.
+
 Adding a curated entry requires a source-code review: choose existing modules, resolve dependencies, declare only workflows backed by enabled modules, provide honest limitations, and run gallery, Engine, PostgreSQL and responsive browser checks. Do not change the portable envelope to carry gallery branding/provenance without a separately justified backward-compatible design.
 
 ## Previews and security

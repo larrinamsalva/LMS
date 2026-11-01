@@ -5,6 +5,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { reviewedGallery, remixGalleryEntry } from "../../src/core/gallery";
+import {
+  createBlueprintPackage,
+  importBlueprintPackage,
+  compareBlueprints,
+} from "../../src/core/blueprint";
 import { inventory, movement } from "../helpers/inventory";
 import {
   newBuildPlan,
@@ -178,6 +183,105 @@ async function rawSave(
   );
 }
 describe("native BuildPlan artifacts and publication", () => {
+  it("imports packages without database writes and preserves RLS, permissions, draft history and exact retries", async () => {
+    await engine.saveRecord(owner, a, "customers", {
+      name: "Native fictional customer - never packaged",
+    });
+    const original = planForConfig(presets.property),
+      originalId = randomUUID();
+    await engine.saveBuildPlan(owner, a, original, originalId, 0, 1);
+    const before = await engine.snapshot(owner, a),
+      plan = structuredClone(original);
+    plan.configuration.name = "Packaged PostgreSQL choices";
+    const bytes = await createBlueprintPackage(plan, {
+        name: "Property package",
+        description: "Fictional reusable choices.",
+      }),
+      imported = await importBlueprintPackage(bytes);
+    compareBlueprints(before.config.document, imported.plan.configuration);
+    expect(new TextDecoder().decode(bytes)).not.toContain(
+      "Native fictional customer - never packaged",
+    );
+    expect(await engine.snapshot(owner, a)).toEqual(before);
+    for (const p of [staff, viewer, other])
+      await expect(
+        engine.saveBuildPlan(p, a, imported.plan, randomUUID(), 0, 1),
+      ).rejects.toMatchObject({ status: 403 });
+    for (const p of [staff, viewer])
+      await expect(
+        rawTransaction(
+          (c) => rawSave(c, imported.plan, randomUUID(), 1, p.userId),
+          p.userId,
+        ),
+      ).rejects.toMatchObject({ code: "42501" });
+    const id = randomUUID();
+    await Promise.all([
+      engine.saveBuildPlan(owner, a, imported.plan, id, 0, 1),
+      engine.saveBuildPlan(owner, a, imported.plan, id, 0, 1),
+    ]);
+    const after = await engine.snapshot(owner, a);
+    expect(after.history).toEqual(before.history);
+    expect(after.records).toEqual(before.records);
+    expect(after.buildPlans.find((p) => p.id === originalId)?.document).toEqual(
+      original,
+    );
+    expect(after.buildPlans).toHaveLength(2);
+    expect(after.audit.filter((e) => e.record_id === id)).toHaveLength(1);
+    expect(
+      (
+        await engine.asUser(other, (c) =>
+          c.query(
+            "select * from lms.build_plan_revisions where organization_id=$1",
+            [a],
+          ),
+        )
+      ).rows,
+    ).toEqual([]);
+  });
+  it("refuses packaged populated-schema changes and retains explicit compatible publication and rollback history", async () => {
+    await engine.saveRecord(owner, a, "customers", {
+      name: "Retained native package customer",
+    });
+    const original = planForConfig(presets.property),
+      plan = structuredClone(original);
+    plan.configuration = addCustomField(plan.configuration, "customers", {
+      key: "extra_package",
+      label: "New notes",
+      type: "text",
+      required: false,
+    });
+    const imported = await importBlueprintPackage(
+        await createBlueprintPackage(plan, {
+          name: "Schema proposal",
+          description: "Not migration authorization.",
+        }),
+      ),
+      id = randomUUID();
+    await engine.saveBuildPlan(owner, a, imported.plan, id, 0, 1);
+    await expect(
+      engine.publishBuildPlan(owner, a, { ...approval(id), confirmation: "" }),
+    ).rejects.toThrow();
+    await expect(
+      engine.publishBuildPlan(owner, a, approval(id)),
+    ).rejects.toThrow(/migration/);
+    expect((await engine.snapshot(owner, a)).config.revision).toBe(1);
+    original.configuration.name = "Compatible packaged rename";
+    const compatible = await importBlueprintPackage(
+        await createBlueprintPackage(original, {
+          name: "Rename",
+          description: "Fictional rename only.",
+        }),
+      ),
+      compatibleId = randomUUID();
+    await engine.saveBuildPlan(owner, a, compatible.plan, compatibleId, 0, 1);
+    await engine.publishBuildPlan(owner, a, approval(compatibleId));
+    await engine.publishConfig(owner, a, presets.property, 2, 1);
+    const after = await engine.snapshot(owner, a);
+    expect(after.config.revision).toBe(3);
+    expect(after.records[0].data.name).toBe("Retained native package customer");
+    expect(after.buildPlans).toHaveLength(2);
+    expect(after.history).toHaveLength(3);
+  });
   it("keeps all templates as validated versioned artifacts with RLS, exact retries, immutable audits and role checks", async () => {
     const plan = planForConfig(presets.property),
       id = randomUUID();

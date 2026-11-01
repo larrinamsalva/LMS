@@ -11,6 +11,11 @@ import {
   addCustomField,
 } from "../../src/core/buildplan";
 import { reviewedGallery, remixGalleryEntry } from "../../src/core/gallery";
+import {
+  createBlueprintPackage,
+  importBlueprintPackage,
+  compareBlueprints,
+} from "../../src/core/blueprint";
 let db: PGlite, engine: Engine, a: string, b: string;
 const owner = { userId: randomUUID() },
   other = { userId: randomUUID() },
@@ -60,6 +65,94 @@ beforeEach(async () => {
 });
 afterAll(async () => {
   await db?.close();
+});
+it("keeps blueprint import/export read-only, then saves detached choices with existing scopes and exact retry protection", async () => {
+  await engine.saveRecord(owner, a, "customers", {
+    name: "Retained fictional customer - never packaged",
+  });
+  const original = planForConfig(presets.property),
+    originalId = randomUUID();
+  await engine.saveBuildPlan(owner, a, original, originalId, 0, 1);
+  const before = await engine.snapshot(owner, a),
+    plan = structuredClone(original);
+  plan.configuration.name = "Packaged property choices";
+  const bytes = await createBlueprintPackage(plan, {
+      name: "Property package",
+      description: "Fictional reusable choices.",
+    }),
+    imported = await importBlueprintPackage(bytes);
+  compareBlueprints(before.config.document, imported.plan.configuration);
+  expect(new TextDecoder().decode(bytes)).not.toContain(
+    "Retained fictional customer - never packaged",
+  );
+  expect(await engine.snapshot(owner, a)).toEqual(before);
+  for (const principal of [staff, viewer, other])
+    await expect(
+      engine.saveBuildPlan(principal, a, imported.plan, randomUUID(), 0, 1),
+    ).rejects.toMatchObject({ status: 403 });
+  const id = randomUUID();
+  await engine.saveBuildPlan(owner, a, imported.plan, id, 0, 1);
+  await engine.saveBuildPlan(owner, a, imported.plan, id, 0, 1);
+  const after = await engine.snapshot(owner, a);
+  expect(after.history).toEqual(before.history);
+  expect(after.records).toEqual(before.records);
+  expect(after.buildPlans.find((p) => p.id === originalId)?.document).toEqual(
+    original,
+  );
+  expect(after.buildPlans).toHaveLength(2);
+  expect(after.audit.filter((e) => e.record_id === id)).toHaveLength(1);
+});
+it("requires unchanged migration-impact and confirmation checks for packaged choices and retains rollback history", async () => {
+  await engine.saveRecord(owner, a, "customers", {
+    name: "Preserved through package review",
+  });
+  const original = planForConfig(presets.property),
+    plan = structuredClone(original);
+  plan.configuration = addCustomField(plan.configuration, "customers", {
+    key: "extra_package",
+    label: "New notes",
+    type: "text",
+    required: false,
+  });
+  const imported = await importBlueprintPackage(
+      await createBlueprintPackage(plan, {
+        name: "Schema proposal",
+        description: "Not migration authorization.",
+      }),
+    ),
+    id = randomUUID();
+  await engine.saveBuildPlan(owner, a, imported.plan, id, 0, 1);
+  for (const confirmation of ["", publishPlanConfirmation])
+    await expect(
+      engine.publishBuildPlan(owner, a, {
+        id,
+        revision: 1,
+        configRevision: 1,
+        confirmation,
+      }),
+    ).rejects.toThrow();
+  expect((await engine.snapshot(owner, a)).config.revision).toBe(1);
+  original.configuration.name = "Compatible packaged rename";
+  const compatible = await importBlueprintPackage(
+      await createBlueprintPackage(original, {
+        name: "Rename",
+        description: "Fictional rename only.",
+      }),
+    ),
+    compatibleId = randomUUID();
+  await engine.saveBuildPlan(owner, a, compatible.plan, compatibleId, 0, 1);
+  await engine.publishBuildPlan(owner, a, {
+    id: compatibleId,
+    revision: 1,
+    configRevision: 1,
+    confirmation: publishPlanConfirmation,
+  });
+  await engine.publishConfig(owner, a, presets.property, 2, 1);
+  const after = await engine.snapshot(owner, a);
+  expect(after.config.revision).toBe(3);
+  expect(after.records[0].data.name).toBe("Preserved through package review");
+  expect(after.buildPlans).toHaveLength(2);
+  expect(after.history).toHaveLength(3);
 });
 it("saves immutable scoped draft revisions with exact retries, reopens choices and audits once", async () => {
   const plan = planForConfig(presets.property),
