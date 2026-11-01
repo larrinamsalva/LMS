@@ -791,7 +791,10 @@ describe("exact internal estimates with native PostgreSQL", () => {
       } finally {
         await legacy.close();
       }
-      expect(await migrate(db)).toEqual(["009_service_estimates"]);
+      expect(await migrate(db)).toEqual([
+        "009_service_estimates",
+        "010_inventory_ledger",
+      ]);
       expect(await snap()).toEqual(before);
       expect(
         (await db.query("select * from lms.estimate_versions")).rows,

@@ -1244,3 +1244,21 @@ legend {
     break-inside: avoid;
   }
 }
+
+.stock-scanner {
+  margin-block: 1.25rem;
+  display: grid;
+  gap: 0.65rem;
+  max-width: 36rem;
+}
+.stock-low {
+  font-weight: 650;
+  border-inline-start: 0.25rem solid var(--accent);
+  padding-inline-start: 0.6rem;
+}
+.stock-identifiers {
+  overflow-wrap: anywhere;
+}
+.workforce-card p {
+  overflow-wrap: anywhere;
+}

@@ -93,7 +93,11 @@
           "label": "Status",
           "type": "select",
           "required": true,
-          "options": ["Open", "In progress", "Done"]
+          "options": [
+            "Open",
+            "In progress",
+            "Done"
+          ]
         },
         {
           "key": "due",
@@ -133,6 +137,155 @@
           "label": "Reorder notes",
           "type": "longtext",
           "required": false
+        },
+        {
+          "key": "category",
+          "label": "Product category",
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "sku",
+          "label": "SKU",
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "barcode",
+          "label": "Barcode",
+          "type": "text",
+          "required": false
+        },
+        {
+          "key": "case_size",
+          "label": "Units per case",
+          "type": "stock",
+          "required": false
+        },
+        {
+          "key": "minimum",
+          "label": "Minimum stock per location",
+          "type": "stock",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "stock-locations",
+      "module": "inventory",
+      "singular": "Storage location",
+      "plural": "Storage locations",
+      "titleField": "name",
+      "fields": [
+        {
+          "key": "name",
+          "label": "Location name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "notes",
+          "label": "Location notes",
+          "type": "longtext",
+          "required": false
+        }
+      ]
+    },
+    {
+      "id": "stock-movements",
+      "module": "inventory",
+      "singular": "Stock movement",
+      "plural": "Stock movements",
+      "titleField": "title",
+      "fields": [
+        {
+          "key": "title",
+          "label": "Movement title",
+          "type": "text",
+          "required": true
+        },
+        {
+          "key": "product",
+          "label": "Product",
+          "type": "reference",
+          "required": true,
+          "target": "items"
+        },
+        {
+          "key": "product_revision",
+          "label": "Selected product revision",
+          "type": "number",
+          "required": true
+        },
+        {
+          "key": "action",
+          "label": "Stock action",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Receiving",
+            "Usage",
+            "Transfer",
+            "Return",
+            "Adjustment increase",
+            "Adjustment decrease"
+          ]
+        },
+        {
+          "key": "quantity",
+          "label": "Quantity",
+          "type": "stock",
+          "required": true
+        },
+        {
+          "key": "package",
+          "label": "Quantity packaging",
+          "type": "select",
+          "required": true,
+          "options": [
+            "Units",
+            "Cases"
+          ]
+        },
+        {
+          "key": "location",
+          "label": "Storage location",
+          "type": "reference",
+          "required": true,
+          "target": "stock-locations"
+        },
+        {
+          "key": "destination",
+          "label": "Transfer destination",
+          "type": "reference",
+          "required": false,
+          "target": "stock-locations"
+        },
+        {
+          "key": "occurred_on",
+          "label": "Movement date",
+          "type": "date",
+          "required": true
+        },
+        {
+          "key": "work",
+          "label": "Linked cleaning job",
+          "type": "reference",
+          "required": false,
+          "target": "jobs"
+        },
+        {
+          "key": "correction",
+          "label": "Corrects movement (owner/admin)",
+          "type": "reference",
+          "required": false,
+          "target": "stock-movements"
+        },
+        {
+          "key": "reason",
+          "label": "Movement reason",
+          "type": "longtext",
+          "required": true
         }
       ]
     },
@@ -154,7 +307,11 @@
           "label": "Resource type",
           "type": "select",
           "required": true,
-          "options": ["Crew", "Worker", "Equipment"]
+          "options": [
+            "Crew",
+            "Worker",
+            "Equipment"
+          ]
         },
         {
           "key": "notes",
@@ -227,7 +384,12 @@
           "label": "Appointment status",
           "type": "select",
           "required": true,
-          "options": ["Scheduled", "In progress", "Completed", "Cancelled"]
+          "options": [
+            "Scheduled",
+            "In progress",
+            "Completed",
+            "Cancelled"
+          ]
         },
         {
           "key": "notes",
@@ -267,7 +429,10 @@
           "label": "Employee status",
           "type": "select",
           "required": true,
-          "options": ["Active", "Inactive"]
+          "options": [
+            "Active",
+            "Inactive"
+          ]
         },
         {
           "key": "email",
@@ -374,7 +539,12 @@
           "label": "Period type",
           "type": "select",
           "required": true,
-          "options": ["Working hours", "Day off", "Vacation", "Unavailable"]
+          "options": [
+            "Working hours",
+            "Day off",
+            "Vacation",
+            "Unavailable"
+          ]
         },
         {
           "key": "start",
@@ -453,7 +623,12 @@
           "label": "Pricing method",
           "type": "select",
           "required": true,
-          "options": ["Fixed", "Hourly", "Per unit", "Quantity"]
+          "options": [
+            "Fixed",
+            "Hourly",
+            "Per unit",
+            "Quantity"
+          ]
         },
         {
           "key": "unit",
@@ -466,7 +641,10 @@
           "label": "Service kind",
           "type": "select",
           "required": true,
-          "options": ["Service", "Extra"]
+          "options": [
+            "Service",
+            "Extra"
+          ]
         },
         {
           "key": "parent",
@@ -588,7 +766,11 @@
           "label": "Draft status",
           "type": "select",
           "required": true,
-          "options": ["Draft", "Reviewed draft", "Void"]
+          "options": [
+            "Draft",
+            "Reviewed draft",
+            "Void"
+          ]
         },
         {
           "key": "pricing",
@@ -629,7 +811,11 @@
           "label": "Service",
           "type": "select",
           "required": true,
-          "options": ["Standard clean", "Move-out clean", "Deep clean"]
+          "options": [
+            "Standard clean",
+            "Move-out clean",
+            "Deep clean"
+          ]
         },
         {
           "key": "date",
@@ -648,7 +834,11 @@
           "label": "Status",
           "type": "select",
           "required": true,
-          "options": ["Planned", "In progress", "Done"]
+          "options": [
+            "Planned",
+            "In progress",
+            "Done"
+          ]
         },
         {
           "key": "notes",
@@ -672,6 +862,8 @@
     "services",
     "service-rates",
     "estimates",
-    "items"
+    "items",
+    "stock-locations",
+    "stock-movements"
   ]
 }

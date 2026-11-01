@@ -5,6 +5,7 @@ import {
 } from "../core/config";
 import { appointmentStatuses } from "../core/time";
 import { pricingModes, estimateStatuses } from "../core/pricing";
+import { stockActions } from "../core/inventory";
 import { availabilityKinds } from "../core/workforce";
 const field = (
   key: string,
@@ -129,6 +130,58 @@ const common = [
       field("name", "Item name", "text", true),
       field("unit", "Unit / package"),
       field("notes", "Reorder notes", "longtext"),
+      field("category", "Product category"),
+      field("sku", "SKU"),
+      field("barcode", "Barcode"),
+      field("case_size", "Units per case", "stock"),
+      field("minimum", "Minimum stock per location", "stock"),
+    ],
+  },
+];
+const inventory = (industry: "property" | "cleaning") => [
+  {
+    id: "stock-locations",
+    module: "inventory",
+    singular: "Storage location",
+    plural: "Storage locations",
+    titleField: "name",
+    fields: [
+      field("name", "Location name", "text", true),
+      field("notes", "Location notes", "longtext"),
+    ],
+  },
+  {
+    id: "stock-movements",
+    module: "inventory",
+    singular: "Stock movement",
+    plural: "Stock movements",
+    titleField: "title",
+    fields: [
+      field("title", "Movement title", "text", true),
+      reference("product", "Product", "items", true),
+      field("product_revision", "Selected product revision", "number", true),
+      field("action", "Stock action", "select", true, [...stockActions]),
+      field("quantity", "Quantity", "stock", true),
+      field("package", "Quantity packaging", "select", true, [
+        "Units",
+        "Cases",
+      ]),
+      reference("location", "Storage location", "stock-locations", true),
+      reference("destination", "Transfer destination", "stock-locations"),
+      field("occurred_on", "Movement date", "date", true),
+      reference(
+        "work",
+        industry === "cleaning"
+          ? "Linked cleaning job"
+          : "Linked maintenance request",
+        industry === "cleaning" ? "jobs" : "tasks",
+      ),
+      reference(
+        "correction",
+        "Corrects movement (owner/admin)",
+        "stock-movements",
+      ),
+      field("reason", "Movement reason", "longtext", true),
     ],
   },
 ];
@@ -284,6 +337,7 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
             }
           : e,
       ),
+      ...inventory("property"),
       ...scheduling("property"),
       ...workforce,
       ...pricing("property"),
@@ -323,6 +377,8 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
       "service-rates",
       "estimates",
       "items",
+      "stock-locations",
+      "stock-movements",
     ],
   }),
   cleaning: validateConfig({
@@ -345,6 +401,7 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
     })),
     entities: [
       ...common,
+      ...inventory("cleaning"),
       ...scheduling("cleaning"),
       ...workforce,
       ...pricing("cleaning"),
@@ -387,6 +444,8 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
       "service-rates",
       "estimates",
       "items",
+      "stock-locations",
+      "stock-movements",
     ],
   }),
 };

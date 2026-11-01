@@ -98,7 +98,7 @@ test("configuration validation, retained module data, rollback and export work t
   await page
     .getByLabel("Business name", { exact: true })
     .fill("Cedar Grove Fictional");
-  await page.getByRole("checkbox", { name: "Item catalog" }).uncheck();
+  await page.getByRole("checkbox", { name: "Inventory & stock" }).uncheck();
   await page
     .getByRole("button", { name: "Apply configuration", exact: true })
     .click();

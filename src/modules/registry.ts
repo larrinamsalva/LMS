@@ -87,11 +87,11 @@ export const manifests: readonly ModuleManifest[] = [
     id: "inventory",
     version: "1.0.0",
     engineApi: 1,
-    name: "Item catalog",
+    name: "Inventory & stock",
     description:
-      "Supply descriptions and reorder notes; stock movements come later.",
+      "Shared products, storage locations and an immutable exact stock ledger.",
     dependencies: [],
-    entities: ["items"],
+    entities: ["items", "stock-locations", "stock-movements"],
     capabilities: ["records:read", "records:write"],
   },
   {
@@ -107,7 +107,6 @@ export const manifests: readonly ModuleManifest[] = [
 ];
 export const moduleById = new Map(manifests.map((m) => [m.id, m]));
 export const plannedModules = [
-  "Inventory movements",
   "Invoices",
   "Documents",
   "Reports",

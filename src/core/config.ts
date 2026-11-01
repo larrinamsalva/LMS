@@ -12,6 +12,11 @@ import {
   estimateInputSchema,
   type EstimateInput,
 } from "./pricing";
+import {
+  inventoryContract,
+  validateInventoryRecord,
+  stockSchema,
+} from "./inventory";
 import { moduleById } from "../modules/registry";
 import { workforceContract, validateWorkforceRecord } from "./workforce";
 const reserved = new Set([
@@ -43,6 +48,7 @@ export const fieldSchema = z
       "reference",
       "datetime",
       "money",
+      "stock",
       "estimate",
     ]),
     required: z.boolean(),
@@ -142,6 +148,8 @@ export const businessConfigSchema = z
         error(`Entity ${entity.id} is not provided by ${entity.module}.`);
     }
     for (const entity of config.entities) {
+      if (!inventoryContract(entity))
+        error("Inventory fields must match the module contract.");
       if (!pricingContract(entity))
         error("Pricing fields must match the module contract.");
       if (entity.id === "estimates") {
@@ -258,27 +266,29 @@ export function validateRecord(
   const fields: Record<string, z.ZodType> = {};
   for (const field of entity.fields) {
     let schema: z.ZodType =
-      field.type === "money"
-        ? minorSchema
-        : field.type === "estimate"
-          ? estimateInputSchema
-          : field.type === "reference"
-            ? z.uuid()
-            : field.type === "datetime"
-              ? z.iso.datetime({ offset: true })
-              : field.type === "number"
-                ? z.number().finite().min(0).max(1000000)
-                : field.type === "select"
-                  ? z.enum(field.options as [string, ...string[]])
-                  : field.type === "date"
-                    ? z.iso.date()
-                    : field.type === "email"
-                      ? z.email().max(254)
-                      : z
-                          .string()
-                          .trim()
-                          .max(field.type === "longtext" ? 2000 : 200)
-                          .min(field.required ? 1 : 0);
+      field.type === "stock"
+        ? stockSchema
+        : field.type === "money"
+          ? minorSchema
+          : field.type === "estimate"
+            ? estimateInputSchema
+            : field.type === "reference"
+              ? z.uuid()
+              : field.type === "datetime"
+                ? z.iso.datetime({ offset: true })
+                : field.type === "number"
+                  ? z.number().finite().min(0).max(1000000)
+                  : field.type === "select"
+                    ? z.enum(field.options as [string, ...string[]])
+                    : field.type === "date"
+                      ? z.iso.date()
+                      : field.type === "email"
+                        ? z.email().max(254)
+                        : z
+                            .string()
+                            .trim()
+                            .max(field.type === "longtext" ? 2000 : 200)
+                            .min(field.required ? 1 : 0);
     if (!field.required) schema = z.union([schema, z.literal("")]).optional();
     fields[field.key] = schema;
   }
@@ -289,5 +299,6 @@ export function validateRecord(
   if (entity.id === "appointments") validateAppointment(result);
   validateWorkforceRecord(entity.id, result);
   validatePricingRecord(entity.id, result);
+  validateInventoryRecord(entity.id, result);
   return result;
 }

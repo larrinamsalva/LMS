@@ -27,7 +27,8 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 - [ ] Richer crew permissions, skill certification, recurring work-hour templates, split rosters and multiple-resource appointments
 - [x] Shared service/extra catalog, dated area rates and exact-money fictional estimate drafts with pricing snapshots/history/print preview
 - [ ] Advanced pricing, currencies and tax models; richer job evidence, property occupancy and maintenance workflows
-- [ ] Stock movement ledger, equipment and purchasing
+- [x] Shared whole-unit stock ledger, product/location catalog, exact case conversion, compensating corrections and keyboard-scanner selection
+- [ ] Fractional stock, camera scanning, lots/expiry, inventory permissions, equipment and reviewed purchasing
 - [ ] Reviewed invoice-draft conversion, exact-money correction history and later production financial acceptance
 - [ ] Private documents, reports and scoped attachments
 - [ ] Deterministic configurable workflow rules, enabled only after explicit review
@@ -43,11 +44,11 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 | Track | Next deliverable | Acceptance boundary |
 | --- | --- | --- |
 | Security/recovery | Independent monotonic witness/receipt custody; signed repair and key/role recovery; later identity-specific acceptance | No activation until the complete recovery, session and permission boundary is demonstrated |
-| Business modules | Inventory movements; BuildPlan Studio configuration previews; later advanced pricing, richer crew eligibility and reviewed invoice drafts | Shared engine/manifests, organization isolation, concurrency and mobile/accessibility checks; no live finance/messages |
+| Business modules | BuildPlan Studio configuration previews; later fractional inventory/equipment; later advanced pricing, richer crew eligibility and reviewed invoice drafts | Shared engine/manifests, organization isolation, concurrency and mobile/accessibility checks; no live finance/messages |
 | BuildPlan Studio | Local guided questionnaire producing validated, versioned `BusinessConfig`; module selection and a preview using the same engine | Manual use works without AI; fictional preview, reusable configuration, rollback and data ownership |
 | Packaging | Tested local export/self-host packaging after configuration workflows stabilize | Verify setup/restore and any actual deployment before claiming success; production use stays separately gated |
 
 The business-module and BuildPlan Studio tracks can advance with fictional data while production security work remains blocked. Publication is not permission to activate a restored database or delay every useful demo improvement. See [publication scope/evidence](docs/checkpoint-publication.md) and [the staged plan](docs/implementation-plan.md).
 
 
-After PR #12: inventory movement tracking beyond the supply catalog, then BuildPlan Studio questionnaires, validated configuration and previews using shared customer/work/crew/pricing relationships. Recurrence, external calendars, messaging/payments and AI optimization stay deferred. Security/recovery acceptance remains a separate gate; useful fictional workflows do not activate production services.
+After PR #13: BuildPlan Studio questionnaires, validated configuration and previews using shared customer/work/crew/pricing relationships. Recurrence, external calendars, messaging/payments and AI optimization stay deferred. Security/recovery acceptance remains a separate gate; useful fictional workflows do not activate production services.

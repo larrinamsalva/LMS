@@ -327,8 +327,8 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
         migrate(client, [
           ...files,
           {
-            version: 10,
-            name: "010_intentional_failure",
+            version: 11,
+            name: "011_intentional_failure",
             sql: "create table public.partial_migration(id integer); select definitely_missing_function();",
           },
         ]),
@@ -349,6 +349,7 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
         "007_relationship_scheduling",
         "008_workforce_availability",
         "009_service_estimates",
+        "010_inventory_ledger",
       ]);
     });
   });

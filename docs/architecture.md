@@ -84,3 +84,5 @@ The `scheduling` manifest supplies resource/appointment record definitions. Refe
 ### Shared pricing module
 
 One `estimates` module models areas, services/extras, dated rate records and internal drafts. The generic record API accepts a restricted structured estimate field; pure BigInt calculation powers previews, while epoch-ordered PostgreSQL materialization/guards independently verify exact prices/totals. Operation receipts bind original selections; append-only estimate versions retain pricing/status snapshots. No industry-specific calculator, live financial route or production activation is introduced. See [pricing contract](services-estimates.md).
+
+Inventory reuses source records, organization epochs, operation receipts and trigger audits. Additive migration 10 projects source movements into scoped whole-unit balances and immutable historical snapshots. Catalog/product revision checks and compensating movements keep past quantities stable. The public demo loads business migrations only; native credentials/recovery blockers remain separate. [Inventory design and limitations](inventory-stock.md).
