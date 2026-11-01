@@ -22,6 +22,7 @@
     "db:backup": "node --env-file=.env.postgres --import=tsx scripts/postgres.ts backup",
     "db:restore": "node --env-file=.env.postgres --import=tsx scripts/postgres.ts restore",
     "db:readiness": "node --env-file=.env.postgres --import=tsx scripts/native-readiness.ts",
+    "db:upgrade-blueprint": "node --env-file=.env.postgres --import=tsx scripts/upgrade-blueprint.ts",
     "test:postgres": "vitest run --config vitest.postgres.config.ts",
     "auth:init": "node --env-file=.env.postgres --env-file=.env.local-auth --import=tsx scripts/local-auth.ts init",
     "auth:provision": "node --env-file=.env.postgres --env-file=.env.local-auth --import=tsx scripts/local-auth.ts provision",

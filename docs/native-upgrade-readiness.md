@@ -81,6 +81,8 @@ After restore's lease closes, both existing runtime-lease paths must specificall
 
 ## Failure and future requirements
 
+[Upgrade blueprints and private copy lifecycle](native-upgrade-blueprints.md) add a separate host-only design report and pinned prepare/copy/inspect/retire tracking using this utility. They accept no uploaded readiness report as authority, preserve source data and quarantine, and perform no migration or physical database retirement.
+
 - Partial/corrupt copies, altered history, missing evidence, failed verification, interruption or cleanup failure return `blocked` / `not-verified`, regardless of earlier passes. No automatic resume/retry, older-result fallback or force option exists. A new invocation rechecks authority/state and refuses populated/quarantined destinations.
 - Archives occupy newly minted private subdirectories in the approved private work directory. Normal failure removes its archive and empty directory. Unexpected residual files/permissions prevent cleanup and therefore readiness. The utility does not recursively erase unknown contents or drop databases. Inspect residual `lms-native-rehearsal-*` directories locally through trusted maintenance procedures.
 - SIGKILL, power loss or OS/disk failure can leave private artifacts/incomplete evidence. No atomic cross-database/file publication or physical power-loss certification is claimed. Existing durable quarantine protects attempts reaching restore. Keep hosts stopped and inspect; do not attach a partially restored destination or remove blockers.

@@ -263,7 +263,12 @@ export function sameNative(
   target: NativeObservation,
   restored: boolean,
 ) {
-  assert(JSON.stringify(source.catalog) === JSON.stringify(target.catalog));
+  const names = Object.keys(source.catalog).sort();
+  assert(
+    JSON.stringify(names) ===
+      JSON.stringify(Object.keys(target.catalog).sort()),
+  );
+  assert(names.every((name) => source.catalog[name] === target.catalog[name]));
   for (const table of readinessTables) {
     if (restored && transientTables.has(table))
       assert(target.counts[table] === 0);
