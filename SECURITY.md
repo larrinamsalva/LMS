@@ -2,6 +2,12 @@
 
 Version 0.1 is an experimental fictional-data demo. Do not use it for real businesses until the [roadmap acceptance gates](ROADMAP.md) are satisfied. Report a suspected vulnerability privately through GitHub Security Advisories if enabled for this repository; otherwise contact the maintainer privately. Do not post secrets or personal data in public issues. No support-response SLA is offered.
 
+## Host-only native readiness
+
+The [native readiness coordinator](docs/native-upgrade-readiness.md) is restricted to privately attested fictional test databases on one literal loopback PostgreSQL 16 endpoint. Exact instance/organization allowlists, approved actual maintenance superuser/ownership, server/destination identity, offline/migration leases, source table fences, private files, empty targets and strict original migration/version checks fail closed. It performs no source DML/DDL or schema transformation and never clears an activation marker. Existing native backup/restore remains the sole archive implementation; no arbitrary archive, public route, hook input or report-as-approval path is exposed.
+
+Success requires scoped retained-data/catalog comparisons, transient-state purge, continued refusal by both runtime lease paths, unchanged source evidence and completed archive cleanup. Partial/failing/interrupted/unclean operations never report verified readiness. Reports exclude rows, IDs, hashes, credentials, raw errors and commands. Fictional provenance and physical locality depend on trusted host/operator/server custody; allowlist names and email spelling cannot classify data or resist administrator compromise. External lineage/latest-checkpoint acceptance, recovery identity/approval, production acceptance, real-data handling and power-loss/disaster recovery remain unverified. Public Studio backup statuses are unchanged; restored databases remain blocked.
+
 ## Verified design boundaries
 
 - Every business table enables and forces PostgreSQL RLS. The ordinary `lms_app` role is not the owner, superuser or a BYPASSRLS role. Direct database tests cover organization isolation, insert/update rejection, scope reassignment, viewer/staff permissions and append-only history.

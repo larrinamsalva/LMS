@@ -52,6 +52,8 @@ Those tests are bounded regression evidence for the checked source/environment. 
 
 ## Future authorized execution
 
+The separate [host-only Native Upgrade Readiness](native-upgrade-readiness.md) now inspects an exact allowlisted fictional PostgreSQL lab and can verify a private same-schema dump/restore. It never copies browser data into a public rehearsal or promotes this business's backup/authorization statuses. Native schema transformation and recovery activation remain unavailable.
+
 Native isolated business-schema transformation remains deferred. A future executor needs supported old/new schemas and deterministic transforms, separately verified identity/session/recent-auth permission and explicit approval, private actual backups with successful restore comparison, rehearsal on authorized copies under appropriate privacy controls, transaction-time review fencing, concurrency exclusion, interruption/idempotency design, failure rollback, audited data/relationship invariants and complete recovery acceptance. It must preserve pricing snapshots, compensating stock histories, UTC bookings, staff allocations, ownership/memberships and all existing records/revisions. No force-unblock or destructive shortcut is supplied here.
 
 MIT licensing, ForgeOS attribution, strict v1/v2 BuildPlan/package readers, local template history, original operation receipts and all recovery/credential/checkpoint/publication protections remain. [Verification and screenshots](fictional-rehearsal-verification.md) · [Impact planning](migration-planning.md) · [Security](../SECURITY.md) · [Roadmap](../ROADMAP.md).
