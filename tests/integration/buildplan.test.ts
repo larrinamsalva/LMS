@@ -1,3 +1,4 @@
+import { generatedInvariants, refusalAndFailure } from "../helpers/rehearsal";
 import {
   impactRetention,
   impactFreshness,
@@ -80,6 +81,60 @@ beforeEach(async () => {
 });
 afterAll(async () => {
   await db?.close();
+});
+async function rehearsalSandbox(plan: ReturnType<typeof planForConfig>) {
+  const target = randomUUID();
+  await db.transaction(async (tx) => {
+    await tx.query("select set_config('lms.user_id',$1,true)", [owner.userId]);
+    await tx.query(
+      "insert into lms.organizations values($1,'Fictional rehearsal fixture')",
+      [target],
+    );
+    await tx.query("insert into lms.memberships values($1,$2,'owner')", [
+      target,
+      owner.userId,
+    ]);
+    await tx.query(
+      "insert into lms.config_revisions(organization_id,revision,document,created_by)values($1,1,$2,$3)",
+      [target, plan.configuration, owner.userId],
+    );
+  });
+  return target;
+}
+it("runs independent fictional fixture invariants for property and cleaning without changing source history", async () => {
+  const sourceCustomer = await engine.saveRecord(owner, a, "customers", {
+    name: "PRIVATE SOURCE CUSTOMER",
+  });
+  await engine.archiveRecord(
+    owner,
+    a,
+    sourceCustomer.id,
+    sourceCustomer.revision,
+    true,
+  );
+  for (const industry of ["property", "cleaning"] as const) {
+    const plan = planForConfig(presets[industry]);
+    plan.configuration = addCustomField(plan.configuration, "customers", {
+      key: "extra_native",
+      label: "Fictional fixture note",
+      type: "text",
+      required: false,
+    });
+    const target = await rehearsalSandbox(plan);
+    await generatedInvariants(engine, owner, a, target, plan);
+  }
+});
+it("refuses nonempty and unauthorized targets and sanitizes failed fixture checks without source mutation", async () => {
+  await engine.saveRecord(owner, a, "customers", {
+    name: "PRIVATE SOURCE CUSTOMER",
+  });
+  const plan = planForConfig(presets.property),
+    target = await rehearsalSandbox(plan);
+  await refusalAndFailure(engine, owner, a, target, plan, [
+    staff,
+    viewer,
+    other,
+  ]);
 });
 it("plans empty/populated and disabled schemas while retaining linked records and protected stock history", async () => {
   await impactRetention(engine, owner, a);

@@ -12,6 +12,7 @@ import {
   runtime as demoRuntime,
   startDemo,
   previewBuildPlan,
+  rehearseBuildPlan,
 } from "../../../server/demo";
 export const runtime = "nodejs";
 const headers = {
@@ -22,6 +23,13 @@ const org = z.uuid();
 const rev = z.number().int().min(1);
 const command = z.discriminatedUnion("action", [
   z.object({ action: z.literal("start") }).strict(),
+  z
+    .object({
+      action: z.literal("rehearse-plan"),
+      organizationId: org,
+      input: z.unknown(),
+    })
+    .strict(),
   z
     .object({
       action: z.literal("review-impact"),
@@ -170,6 +178,23 @@ export async function POST(request: NextRequest) {
     requireDemoOrg(session, organizationId);
     const { engine } = await demoRuntime();
     let previewOrganizationId: string | undefined;
+    if (input.action === "rehearse-plan") {
+      const rehearsal = await rehearseBuildPlan(
+        session,
+        organizationId,
+        input.input,
+      );
+      return NextResponse.json(
+        {
+          rehearsal,
+          session: {
+            organizations: session.organizations,
+            expiresAt: session.expiresAt,
+          },
+        },
+        { headers },
+      );
+    }
     if (input.action === "review-impact")
       return NextResponse.json(
         {

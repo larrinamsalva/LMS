@@ -26,6 +26,7 @@ type DemoResponse = {
       industry: "property" | "cleaning" | "custom";
       name?: string;
       preview?: boolean;
+      rehearsal?: boolean;
     }[];
     expiresAt: number;
   };
@@ -52,6 +53,10 @@ export function Workspace({
   previewMode = false,
 }: { initialOrganizationId?: string; previewMode?: boolean } = {}) {
   const [data, setData] = useState<DemoResponse | null>(null);
+  const isRehearsal =
+    data?.session.organizations.some(
+      (o) => o.id === data.workspace.organizationId && o.rehearsal,
+    ) ?? false;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -344,13 +349,15 @@ export function Workspace({
               >
                 {data.session.organizations.map((org) => (
                   <option key={org.id} value={org.id}>
-                    {org.preview
-                      ? `${org.name} · Preview`
-                      : org.industry === "custom"
-                        ? "Custom Business"
-                        : org.industry === "property"
-                          ? "Property Manager"
-                          : "Cleaning Company"}
+                    {org.rehearsal
+                      ? `${org.name} · Fictional rehearsal`
+                      : org.preview
+                        ? `${org.name} · Preview`
+                        : org.industry === "custom"
+                          ? "Custom Business"
+                          : org.industry === "property"
+                            ? "Property Manager"
+                            : "Cleaning Company"}
                   </option>
                 ))}
               </select>
@@ -421,7 +428,7 @@ export function Workspace({
                 </button>
               )}
               <span className="nav-label">YOUR SYSTEM</span>
-              {!previewMode && (
+              {!previewMode && !isRehearsal && (
                 <button
                   className={`nav-item ${view === "studio" ? "active" : ""}`}
                   disabled={!canAdmin || busy}
@@ -492,11 +499,11 @@ export function Workspace({
                 <small>{workspace!.role} · demo identity</small>
               </span>
             </div>
-            {previewMode && (
+            {(previewMode || isRehearsal) && (
               <p className="panel" role="status">
-                BuildPlan preview · Real shared Engine and forms · Empty
-                fictional workspace. Your plan choices remain in the original
-                Studio tab.
+                {isRehearsal
+                  ? "Fictional rehearsal · Generated test records only · No source data copied and no migration performed. Manual edits invalidate retained check evidence."
+                  : "BuildPlan preview · Real shared Engine and forms · Empty fictional workspace. Your plan choices remain in the original Studio tab."}
               </p>
             )}
             <div role="status" className="status-message">
@@ -532,6 +539,19 @@ export function Workspace({
                     })
                   ).migrationReview
                 }
+                onRehearse={async (input) => {
+                  const response = await jsonRequest("/api/demo", {
+                    action: "rehearse-plan",
+                    organizationId: workspace!.organizationId,
+                    input,
+                  });
+                  setData((current) =>
+                    current
+                      ? { ...current, session: response.session }
+                      : current,
+                  );
+                  return response.rehearsal;
+                }}
                 onSave={async (document, id, revision, baseRevision) => {
                   await mutate({
                     action: "save-plan",

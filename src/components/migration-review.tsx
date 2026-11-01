@@ -7,6 +7,11 @@ import {
 } from "../core/migration-review";
 import type { BuildPlan } from "../core/buildplan";
 import { downloadJson } from "./project-panel";
+import {
+  RehearsalReview,
+  type Rehearse,
+  type RehearsalMemory,
+} from "./rehearsal";
 export type ReviewImpact = (
   input: ImpactReviewInput,
 ) => Promise<MigrationReview>;
@@ -15,11 +20,13 @@ export function DataImpactReview({
   onReview,
   onBack,
   onPreview,
+  onRehearse,
 }: {
   initial: MigrationReview;
   onReview: ReviewImpact;
   onBack: () => void;
   onPreview: (plan: BuildPlan) => Promise<string>;
+  onRehearse: Rehearse;
 }) {
   const [report, setReport] = useState(initial),
     [pending, setPending] = useState(false),
@@ -27,17 +34,25 @@ export function DataImpactReview({
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [preview, setPreview] = useState("");
+  const [rehearsing, setRehearsing] = useState(false);
+  const rehearsalMemory = useRef<RehearsalMemory>({});
   const heading = useRef<HTMLHeadingElement>(null),
     sequence = useRef(0);
   useEffect(() => {
     heading.current?.focus();
-  }, []);
+  }, [rehearsing]);
   // A report is never a lease. Recheck periodically, on returning to the tab, and before each output.
   useEffect(() => {
     let live = true,
       checking = false;
     const check = async () => {
-      if (document.visibilityState === "hidden" || checking || pending || stale)
+      if (
+        document.visibilityState === "hidden" ||
+        checking ||
+        pending ||
+        stale ||
+        rehearsing
+      )
         return;
       checking = true;
       const token = ++sequence.current;
@@ -69,7 +84,7 @@ export function DataImpactReview({
       clearInterval(timer);
       window.removeEventListener("focus", check);
     };
-  }, [onReview, report, pending, stale]);
+  }, [onReview, report, pending, stale, rehearsing]);
   async function action(kind: "refresh" | "export" | "preview" | "verify") {
     sequence.current++;
     setPending(true);
@@ -113,6 +128,16 @@ export function DataImpactReview({
       setPending(false);
     }
   }
+  if (rehearsing)
+    return (
+      <RehearsalReview
+        review={report}
+        onReview={onReview}
+        onRun={onRehearse}
+        memory={rehearsalMemory.current}
+        onBack={() => setRehearsing(false)}
+      />
+    );
   return (
     <div className="stack studio impact-review" aria-label="Data impact review">
       <section className="panel">
@@ -147,6 +172,13 @@ export function DataImpactReview({
           </p>
         )}
         <div className="actions">
+          <button
+            type="button"
+            disabled={pending || stale || report.overall === "blocked"}
+            onClick={() => setRehearsing(true)}
+          >
+            Rehearse Business Changes
+          </button>
           <button
             type="button"
             className="secondary"
