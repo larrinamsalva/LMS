@@ -270,6 +270,16 @@ export class Engine {
         409,
       );
   }
+  private async requireBranding(tx: SqlConnection) {
+    const result = await tx.query<{ present: boolean }>(
+      "select exists(select 1 from pg_catalog.pg_trigger where tgrelid='lms.config_revisions'::regclass and tgname='configuration_branding_guard' and tgenabled='O') as present",
+    );
+    if (!result.rows[0].present)
+      throw new EngineError(
+        "Stop hosts and apply migration 12 before using branded configurations.",
+        409,
+      );
+  }
   private async buildPlanHistory(tx: SqlConnection, organizationId: string) {
     return (await this.hasBuildPlans(tx))
       ? (
@@ -295,6 +305,7 @@ export class Engine {
     return this.asUser(principal, async (tx) => {
       await this.requireRole(tx, organizationId, ["owner", "admin"]);
       await this.requireBuildPlans(tx);
+      if (clean.version === 2) await this.requireBranding(tx);
       await tx.query(
         "select id from lms.organizations where id=$1 for update",
         [organizationId],
@@ -670,6 +681,7 @@ export class Engine {
       organizationId,
     ]);
     const current = await this.current(tx, organizationId);
+    if (config.schemaVersion === 2) await this.requireBranding(tx);
     if (config.modules.some((m) => m.id === "workforce"))
       await this.requireWorkforce(tx);
     if (config.modules.some((m) => m.id === "estimates"))

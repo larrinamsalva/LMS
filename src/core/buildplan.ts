@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { brandingSchema, type Branding } from "./branding";
 import {
   ConfigurationError,
   validateConfig,
@@ -107,7 +108,7 @@ export function selectModules(
 const envelope = z
   .object({
     format: z.literal("lms-build-plan"),
-    version: z.literal(1),
+    version: z.union([z.literal(1), z.literal(2)]),
     engineApi: z.literal(1),
     templateVersion: z.literal(1),
     template: z.enum(templates),
@@ -116,7 +117,7 @@ const envelope = z
   .strict();
 export interface BuildPlan {
   format: "lms-build-plan";
-  version: 1;
+  version: 1 | 2;
   engineApi: 1;
   templateVersion: 1;
   template: Template;
@@ -126,6 +127,10 @@ export function validateBuildPlan(input: unknown): BuildPlan {
   const raw = envelope.parse(input),
     config = validateConfig(raw.configuration),
     base = builderTemplate(raw.template);
+  if (raw.version !== config.schemaVersion)
+    throw new ConfigurationError(
+      "BuildPlan 1 needs configuration schema 1; branded BuildPlan 2 needs schema 2.",
+    );
   if (config.industry !== raw.template)
     throw new ConfigurationError("BuildPlan template and industry differ.");
   if (
@@ -206,7 +211,27 @@ export function planForConfig(config: BusinessConfig): BuildPlan {
   }
   return validateBuildPlan({
     ...newBuildPlan(config.industry),
+    version: config.schemaVersion,
     configuration: next,
+  });
+}
+export function brandBuildPlan(plan: BuildPlan, branding: Branding): BuildPlan {
+  return validateBuildPlan({
+    ...plan,
+    version: 2,
+    configuration: {
+      ...plan.configuration,
+      schemaVersion: 2,
+      branding: brandingSchema.parse(branding),
+    },
+  });
+}
+export function unbrandBuildPlan(plan: BuildPlan): BuildPlan {
+  const { branding: _branding, ...configuration } = plan.configuration;
+  return validateBuildPlan({
+    ...plan,
+    version: 1,
+    configuration: { ...configuration, schemaVersion: 1 },
   });
 }
 export function parseBuildPlanText(text: string): BuildPlan {

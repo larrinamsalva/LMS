@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { brandingSchema, brandText } from "./branding";
 import {
   isTimeZone,
   normalizeInstant,
@@ -97,7 +98,8 @@ export const entitySchema = z
   });
 export const businessConfigSchema = z
   .object({
-    schemaVersion: z.literal(1),
+    schemaVersion: z.union([z.literal(1), z.literal(2)]),
+    branding: brandingSchema.optional(),
     id: key,
     name: label,
     timeZone: z
@@ -118,6 +120,17 @@ export const businessConfigSchema = z
     const enabled = new Set(config.modules.map((m) => m.id));
     const error = (message: string) =>
       ctx.addIssue({ code: "custom", message });
+    if ((config.schemaVersion === 2) !== !!config.branding)
+      error(
+        "Configuration schema 2 requires branding; legacy schema 1 cannot contain branding.",
+      );
+    if (
+      config.schemaVersion === 2 &&
+      !brandText(80).safeParse(config.name).success
+    )
+      error(
+        "Branded display names require plain single-line text without markup.",
+      );
     if (enabled.size !== config.modules.length) error("Duplicate modules.");
     for (const m of config.modules) {
       const manifest = moduleById.get(m.id);
@@ -346,5 +359,7 @@ export function configurationImpact(
         JSON.stringify(next.entities.find((n) => n.id === e.id)?.fields),
     ),
     timeZoneChanged: previous.timeZone !== next.timeZone,
+    brandingChanged:
+      JSON.stringify(previous.branding) !== JSON.stringify(next.branding),
   };
 }

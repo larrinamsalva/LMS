@@ -4,6 +4,7 @@ import {
   parseBuildPlanText,
   moduleRequirements,
   type BuildPlan,
+  unbrandBuildPlan,
 } from "./buildplan";
 import { type BusinessConfig } from "./config";
 import { reviewedGallery, validateGallery, type GalleryEntry } from "./gallery";
@@ -52,7 +53,7 @@ const fileSchema = (path: "buildplan.json" | "README.txt", max: number) =>
       sha256: z.string().regex(/^[a-f0-9]{64}$/),
     })
     .strict();
-const manifestSchema = z
+const legacyManifestSchema = z
   .object({
     format: z.literal("lms-blueprint-package"),
     version: z.literal(1),
@@ -72,6 +73,25 @@ const manifestSchema = z
     ]),
   })
   .strict();
+const brandedManifestSchema = legacyManifestSchema
+  .extend({
+    version: z.literal(2),
+    compatibility: z
+      .object({
+        buildPlan: z.literal(2),
+        engineApi: z.literal(1),
+        template: z.literal(1),
+        configurationSchema: z.literal(2),
+        branding: z.literal(1),
+        modules: z.array(dependencySchema).min(1).max(12),
+      })
+      .strict(),
+  })
+  .strict();
+const manifestSchema = z.discriminatedUnion("version", [
+  legacyManifestSchema,
+  brandedManifestSchema,
+]);
 export interface BlueprintPackage {
   manifest: z.infer<typeof manifestSchema>;
   plan: BuildPlan;
@@ -110,7 +130,7 @@ export function blueprintModules(plan: BuildPlan) {
     dependencies: moduleRequirements(plan.configuration, m.id).sort(),
   }));
 }
-export function blueprintSummary(
+function legacyBlueprintSummary(
   plan: BuildPlan,
   details: BlueprintDetails,
 ): string {
@@ -159,6 +179,31 @@ export function blueprintSummary(
     "",
   ].join("\n");
 }
+export function blueprintSummary(
+  plan: BuildPlan,
+  details: BlueprintDetails,
+): string {
+  if (plan.version === 1) return legacyBlueprintSummary(plan, details);
+  const brand = plan.configuration.branding!;
+  return legacyBlueprintSummary(unbrandBuildPlan(plan), details)
+    .replace(
+      "BuildPlan 1 / Engine API 1 / Template 1 / Configuration schema 1",
+      "BuildPlan 2 / Engine API 1 / Template 1 / Configuration schema 2 / Branding 1",
+    )
+    .replace(
+      "SETUP AND SAFE REUSE",
+      [
+        "BRANDING",
+        `Mark: ${brand.mark}`,
+        `Monogram: ${brand.monogram}`,
+        `Tagline: ${brand.tagline ?? ""}`,
+        `Palette: ${brand.palette}`,
+        `Default appearance: ${brand.appearance}`,
+        "",
+        "SETUP AND SAFE REUSE",
+      ].join("\n"),
+    );
+}
 export async function createBlueprintPackage(
   input: unknown,
   metadata: BlueprintDetails,
@@ -174,13 +219,14 @@ export async function createBlueprintPackage(
     summary = blueprintText(blueprintSummary(plan, details));
   const manifest = manifestSchema.parse({
     format: "lms-blueprint-package",
-    version: 1,
+    version: plan.version,
     blueprint: details,
     compatibility: {
-      buildPlan: 1,
+      buildPlan: plan.version,
       engineApi: 1,
       template: 1,
-      configurationSchema: 1,
+      configurationSchema: plan.configuration.schemaVersion,
+      ...(plan.version === 2 ? { branding: 1 } : {}),
       modules: blueprintModules(plan),
     },
     files: [
@@ -234,6 +280,10 @@ export async function importBlueprintPackage(
     const planText = decodeBlueprintText(files["buildplan.json"]),
       plan = parseBuildPlanText(planText),
       summary = decodeBlueprintText(files["README.txt"]);
+    if (manifest.version !== plan.version)
+      throw new BlueprintError(
+        "Package and BuildPlan versions do not match. Branded plans require package 2.",
+      );
     if (blueprintJson(plan) !== planText)
       throw new BlueprintError(
         "BuildPlan must use canonical JSON without duplicate keys.",
@@ -276,6 +326,19 @@ export function compareBlueprints(
   add("Business type", before.industry, after.industry);
   add("Project identity", before.id, after.id);
   add("Time zone", before.timeZone ?? "UTC", after.timeZone ?? "UTC");
+  for (const key of [
+    "version",
+    "tagline",
+    "monogram",
+    "mark",
+    "palette",
+    "appearance",
+  ] as const)
+    add(
+      `Branding: ${key}`,
+      String(before.branding?.[key] ?? "LMS default"),
+      String(after.branding?.[key] ?? "LMS default"),
+    );
   for (const id of new Set(
     [...before.modules, ...after.modules].map((m) => m.id),
   ))

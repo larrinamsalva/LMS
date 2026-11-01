@@ -4,6 +4,9 @@ import type { PGlite } from "@electric-sql/pglite";
 import { createDatabase, sqlDatabase } from "../../src/server/database";
 import { Engine } from "../../src/core/engine";
 import { presets } from "../../src/presets";
+import { brandingDrafts, brandingPublication } from "../helpers/branding";
+import { brandBuildPlan } from "../../src/core/buildplan";
+import { defaultBranding } from "../../src/core/branding";
 import {
   newBuildPlan,
   planForConfig,
@@ -65,6 +68,56 @@ beforeEach(async () => {
 });
 afterAll(async () => {
   await db?.close();
+});
+it("retains branded draft revisions, exact retries, role protections and competing edits", async () => {
+  await brandingDrafts(engine, owner, [staff, viewer, other], a, other, b);
+});
+it("publishes reviewed branding, rejects concurrent stale writes and rolls back without changing operational history", async () => {
+  await brandingPublication(engine, owner, a, other, b);
+});
+it("rejects unsafe branding and mismatched versions through direct SQL with no residual writes", async () => {
+  const safe = brandBuildPlan(
+    planForConfig(presets.property),
+    defaultBranding("property"),
+  );
+  const bad = [
+    {
+      ...safe.configuration,
+      branding: { ...safe.configuration.branding, css: "body{}" },
+    },
+    {
+      ...safe.configuration,
+      branding: { ...safe.configuration.branding, palette: "bad" },
+    },
+    {
+      ...safe.configuration,
+      branding: {
+        ...safe.configuration.branding,
+        tagline: "<script>bad</script>",
+      },
+    },
+    { ...safe.configuration, schemaVersion: 1 },
+  ];
+  const before = await engine.snapshot(owner, a);
+  for (const document of bad) {
+    await expect(
+      engine.asUser(owner, (tx) =>
+        tx.query(
+          "insert into lms.config_revisions(organization_id,revision,document,created_by)values($1,2,$2,$3)",
+          [a, document, owner.userId],
+        ),
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
+    await expect(
+      engine.asUser(owner, (tx) =>
+        tx.query(
+          "insert into lms.build_plan_revisions(organization_id,id,revision,base_revision,document,created_by)values($1,$2,1,1,$3,$4)",
+          [a, randomUUID(), { ...safe, configuration: document }, owner.userId],
+        ),
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
+  }
+  expect(await engine.snapshot(owner, a)).toEqual(before);
 });
 it("keeps blueprint import/export read-only, then saves detached choices with existing scopes and exact retry protection", async () => {
   await engine.saveRecord(owner, a, "customers", {

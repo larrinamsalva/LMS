@@ -1,6 +1,6 @@
 # Database migrations
 
-`001_foundation.sql` remains unchanged from PR #1. The public demonstration executes it plus the shared business migrations 7, 8, 9, 10 and 11 in a fresh, temporary PGlite database; identity/recovery migrations remain separate. Persistent PostgreSQL uses the **same schema and engine**, through `src/server/postgres/migrations.ts` and a separately provisioned runtime login.
+`001_foundation.sql` remains unchanged from PR #1. The public demonstration executes it plus the shared business migrations 7, 8, 9, 10, 11 and 12 in a fresh, temporary PGlite database; identity/recovery migrations remain separate. Persistent PostgreSQL uses the **same schema and engine**, through `src/server/postgres/migrations.ts` and a separately provisioned runtime login.
 
 ## Network migration contract
 
@@ -20,6 +20,8 @@ Keep historical SQL unchanged. Add the next numbered SQL file, register it expli
 Version 1 remains immutable. Version 2 adds only the private local identity schema and its separate role boundary. Initialization validates both service roles. Fixture seeding lives in test support, outside migrations. There are no real accounts, passwords, invoices or sample personal data in schema SQL.
 
 Migration 2 follows the Better Auth 1.7.14 core schema, without providers/plugins. Existing version-1 databases upgrade transactionally without rewriting business rows or the original checksum. New network tests rehearse this upgrade. The temporary PGlite demo loads shared business migrations 1, 7, 8, 9, 10 and 11, without identity/recovery schemas.
+
+The current demo additionally loads migration 12, the explicit branding extension described below.
 
 Migration 3 adds access revisions, private session-bound membership reviews, durable confirmation/bootstrap receipts and three private owner commands with invoker wrappers. It backfills revision zero without changing existing roles/records; the network suite rehearses version 2 → 3. Raw membership DML remains denied. All new tables force RLS. Definer/helper search paths are empty and PUBLIC execution is revoked. See [owner contracts](../docs/owner-access.md). Roll back code only after reviewing schema compatibility; recovery uses a verified offline backup, never destructive down SQL.
 
@@ -66,3 +68,9 @@ Stop hosts and back up before standard `db:migrate`; exclusive maintenance/table
 `011_build_plan_studio.sql` adds forced-RLS owner/admin draft revisions with scoped configuration anchors, append-only/size/version/quota guards, the existing audit trigger and native recovery online-write gate. The organization epoch orders drafts with publication/raw writers. Full template/configuration validation stays in the shared TypeScript Engine; stored plans are revalidated before use and never executed.
 
 Stop hosts, back up and use standard `db:migrate`. The existing maintenance/table locks and atomic checksum transaction apply. New draft writes require migration 11; legacy partial snapshots remain readable. Applied SQL 1–10 and existing data/audits remain unchanged. A narrow inventory-guard replacement preserves host expiry cleanup of whole temporary organizations after the parent is deleted, while every direct ledger-row delete still refuses. No user-level deletion, migration override, public persistent endpoint or recovery activation is added. [Contract and procedure](../docs/buildplan-studio.md).
+
+## Migration 12: safe business branding
+
+`012_business_branding.sql` retains old schemas/history and adds explicit configuration/BuildPlan v2 support with private branding validation. Only known palette/mark IDs and bounded plain text/monograms are accepted; CSS, image URLs, markup, unknown fields and mismatched versions refuse through SQL as well as TypeScript. Existing actor/role, forced-RLS, mutation epoch, revision/quota/audit and online guards remain. No PUBLIC/runtime function access, new table or operational rewrite is introduced.
+
+Stop all hosts and take a native backup before standard `db:migrate`. Installation/adoption validation and checksum history commit atomically under existing maintenance/table locks. Missing migration 12 refuses branded writes. New tests rehearse failed installation rollback, unchanged migration-11 data after upgrade, preserved v1/v2 draft and configuration backup/restore, and continued restored-database activation refusal. Do not downgrade SQL or clear recovery markers. [Format and migration procedure](../docs/business-branding.md).
