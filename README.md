@@ -11,6 +11,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Fictional employee profiles, effective-dated Worker/Crew membership, finite working hours/time off, and cross-crew employee conflict protection.
 - Services, dated area rates and fictional estimate drafts with exact USD cents, preserved pricing snapshots, revisions and printable preview.
 - Shared product/location inventory, exact case conversion and an immutable receiving/usage/transfer/return/adjustment ledger with keyboard-scanner selection.
+- BuildPlan Studio: guided templates/features, safe optional fields, real Engine previews, temporary draft history and validated BuildPlan import/export.
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
@@ -18,7 +19,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Append-only database audit history; project JSON and organization-scoped workspace exports.
 - Accessible light/dark themes, phone layout and no-login **fictional-data-only** demo.
 
-This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, advanced pricing/currencies, fractional stock/purchasing, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
+This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, advanced pricing/currencies, fractional stock/purchasing, invoices, documents, complete production recovery/import, workflow automation, advanced builder extensions and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
 
 ## Run locally
 
@@ -43,6 +44,12 @@ npm start
 ```
 
 Both commands bind to loopback by default. Publishing this single-process demo needs separate operational review, HTTPS, an exact `LMS_APP_ORIGIN` matching the public origin, resource/rate limits and a persistent shared session design. Nothing here deploys automatically or connects a production database. Real-business hosting remains gated on verified identity/session security, complete recovery acceptance and access-control review. The experimental PostgreSQL adapter is available only to trusted host code and maintenance commands.
+
+## BuildPlan Studio
+
+Choose **Build My Business System** without signing in, or open **BuildPlan Studio** from a fictional workspace. Start with Property Management, Cleaning Business or Custom Business; select reviewed features and dependencies, customize terminology/navigation and supported optional fields, then open the actual generated workspace in a separate preview tab. Save/reopen temporary drafts and export a validated BuildPlan or engine configuration. Publication is a separate, explicit review through the existing Engine; populated schema changes remain blocked.
+
+[Step-by-step demonstration and screenshots](docs/buildplan-studio.md) · [Verification](docs/buildplan-studio-verification.md). No gallery, AI generator, hosting or automatic deployment is included. Export before the temporary demo expires or restarts.
 
 ## Customer-linked scheduling
 

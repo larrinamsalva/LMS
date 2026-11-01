@@ -6,6 +6,7 @@ import {
   type RecordData,
 } from "../core/config";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
+import { BuildPlanStudio } from "./buildplan-studio";
 import { Inventory } from "./inventory";
 import { Schedule, relatedLabel } from "./schedule";
 import { Workforce } from "./workforce";
@@ -18,7 +19,12 @@ import { Catalog, Estimates } from "./pricing-workspace";
 import { downloadJson, ProjectPanel } from "./project-panel";
 type DemoResponse = {
   session: {
-    organizations: { id: string; industry: "property" | "cleaning" }[];
+    organizations: {
+      id: string;
+      industry: "property" | "cleaning" | "custom";
+      name?: string;
+      preview?: boolean;
+    }[];
     expiresAt: number;
   };
   workspace: WorkspaceSnapshot;
@@ -39,13 +45,17 @@ async function jsonRequest(url: string, input?: unknown) {
     throw new Error(value.error ?? "The request could not be completed.");
   return value;
 }
-export function Workspace() {
+export function Workspace({
+  initialOrganizationId,
+  previewMode = false,
+}: { initialOrganizationId?: string; previewMode?: boolean } = {}) {
   const [data, setData] = useState<DemoResponse | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [view, setView] = useState<
+    | "studio"
     | "records"
     | "project"
     | "activity"
@@ -69,7 +79,12 @@ export function Workspace() {
     } catch {
       /* preference is optional */
     }
-    void fetch("/api/demo", { cache: "no-store" })
+    void fetch(
+      initialOrganizationId
+        ? `/api/demo?organizationId=${encodeURIComponent(initialOrganizationId)}`
+        : "/api/demo",
+      { cache: "no-store" },
+    )
       .then(async (response) => {
         if (response.ok) {
           const value = await response.json();
@@ -82,14 +97,16 @@ export function Workspace() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialOrganizationId]);
   async function mutate(input: unknown, message = "") {
     setBusy(true);
     setError("");
     setNotice("");
     try {
-      setData(await jsonRequest("/api/demo", input));
+      const value = await jsonRequest("/api/demo", input);
+      setData(value);
       setNotice(message);
+      return value;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "The request failed.";
@@ -242,6 +259,17 @@ export function Workspace() {
                 ? "Preparing your workspace…"
                 : "Explore the working demo →"}
             </button>
+            <button
+              className="secondary"
+              disabled={busy}
+              onClick={() =>
+                void mutate({ action: "start" })
+                  .then(() => setView("studio"))
+                  .catch(() => {})
+              }
+            >
+              Build My Business System
+            </button>
             <a
               className="text-link"
               href="https://github.com/larrinamsalva/LMS#readme"
@@ -295,9 +323,13 @@ export function Workspace() {
               >
                 {data.session.organizations.map((org) => (
                   <option key={org.id} value={org.id}>
-                    {org.industry === "property"
-                      ? "Property Manager"
-                      : "Cleaning Company"}
+                    {org.preview
+                      ? `${org.name} · Preview`
+                      : org.industry === "custom"
+                        ? "Custom Business"
+                        : org.industry === "property"
+                          ? "Property Manager"
+                          : "Cleaning Company"}
                   </option>
                 ))}
               </select>
@@ -335,7 +367,7 @@ export function Workspace() {
                       )
                     }
                   >
-                    <span>{item.plural}</span>
+                    <span>{item.navigationLabel ?? item.plural}</span>
                     <span className="nav-count">{count}</span>
                   </button>
                 );
@@ -368,6 +400,15 @@ export function Workspace() {
                 </button>
               )}
               <span className="nav-label">YOUR SYSTEM</span>
+              {!previewMode && (
+                <button
+                  className={`nav-item ${view === "studio" ? "active" : ""}`}
+                  disabled={!canAdmin || busy}
+                  onClick={() => changeView("studio")}
+                >
+                  BuildPlan Studio
+                </button>
+              )}
               {entities.some((e) => e.id === "employees") && (
                 <button
                   className={`nav-item ${view === "workforce" ? "active" : ""}`}
@@ -407,7 +448,9 @@ export function Workspace() {
                 <span className="eyebrow">
                   {config!.industry === "property"
                     ? "Property operations"
-                    : "Cleaning operations"}{" "}
+                    : config!.industry === "cleaning"
+                      ? "Cleaning operations"
+                      : "Custom operations"}{" "}
                   / Fictional workspace
                 </span>
                 <h1>{config!.name}</h1>
@@ -420,6 +463,13 @@ export function Workspace() {
                 <small>{workspace!.role} · demo identity</small>
               </span>
             </div>
+            {previewMode && (
+              <p className="panel" role="status">
+                BuildPlan preview · Real shared Engine and forms · Empty
+                fictional workspace. Your plan choices remain in the original
+                Studio tab.
+              </p>
+            )}
             <div role="status" className="status-message">
               {busy ? "Working…" : notice}
             </div>
@@ -438,6 +488,39 @@ export function Workspace() {
                   Start or reload demo
                 </button>
               </div>
+            )}
+            {view === "studio" && (
+              <BuildPlanStudio
+                key={workspace!.organizationId}
+                workspace={workspace!}
+                busy={busy}
+                onSave={async (document, id, revision, baseRevision) => {
+                  await mutate({
+                    action: "save-plan",
+                    organizationId: workspace!.organizationId,
+                    document,
+                    id,
+                    revision,
+                    baseRevision,
+                  });
+                }}
+                onPublish={async (input) => {
+                  await mutate({
+                    action: "publish-plan",
+                    organizationId: workspace!.organizationId,
+                    input,
+                  });
+                }}
+                onPreview={async (document, operationId) => {
+                  const result = await mutate({
+                    action: "preview-plan",
+                    organizationId: workspace!.organizationId,
+                    document,
+                    operationId,
+                  });
+                  return `/?organizationId=${encodeURIComponent(result.previewOrganizationId)}&preview=1`;
+                }}
+              />
             )}
             {view === "schedule" && (
               <Schedule

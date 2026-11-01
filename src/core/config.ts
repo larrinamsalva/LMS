@@ -77,6 +77,7 @@ export const entitySchema = z
     singular: label,
     plural: label,
     titleField: key,
+    navigationLabel: label.optional(),
     fields: z.array(fieldSchema).min(1).max(16),
   })
   .strict()
@@ -301,4 +302,49 @@ export function validateRecord(
   validatePricingRecord(entity.id, result);
   validateInventoryRecord(entity.id, result);
   return result;
+}
+
+/** The same impact rules power Studio review and Engine publication. Includes archived/disabled records. */
+export function configurationImpact(
+  previous: BusinessConfig,
+  next: BusinessConfig,
+  populated: readonly string[],
+) {
+  return {
+    identityChanged:
+      previous.id !== next.id || previous.industry !== next.industry,
+    migrationEntities: previous.entities
+      .filter((old) => {
+        const entity = next.entities.find((e) => e.id === old.id);
+        return (
+          populated.includes(old.id) &&
+          (!entity ||
+            entity.module !== old.module ||
+            entity.titleField !== old.titleField ||
+            JSON.stringify(entity.fields) !== JSON.stringify(old.fields))
+        );
+      })
+      .map((e) => e.id),
+    disabledModules: previous.modules
+      .filter((m) => !next.modules.some((n) => n.id === m.id))
+      .map((m) => m.id),
+    nameChanged: previous.name !== next.name,
+    labelsChanged: previous.entities.some((e) => {
+      const n = next.entities.find((n) => n.id === e.id);
+      return (
+        n &&
+        (e.singular !== n.singular ||
+          e.plural !== n.plural ||
+          e.navigationLabel !== n.navigationLabel)
+      );
+    }),
+    navigationChanged:
+      JSON.stringify(previous.navigation) !== JSON.stringify(next.navigation),
+    fieldsChanged: previous.entities.some(
+      (e) =>
+        JSON.stringify(e.fields) !==
+        JSON.stringify(next.entities.find((n) => n.id === e.id)?.fields),
+    ),
+    timeZoneChanged: previous.timeZone !== next.timeZone,
+  };
 }

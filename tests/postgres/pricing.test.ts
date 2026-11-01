@@ -794,6 +794,7 @@ describe("exact internal estimates with native PostgreSQL", () => {
       expect(await migrate(db)).toEqual([
         "009_service_estimates",
         "010_inventory_ledger",
+        "011_build_plan_studio",
       ]);
       expect(await snap()).toEqual(before);
       expect(

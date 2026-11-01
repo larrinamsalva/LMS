@@ -1,6 +1,6 @@
 # Database migrations
 
-`001_foundation.sql` remains unchanged from PR #1. The public demonstration executes it plus the shared business migrations 7, 8, 9 and 10 in a fresh, temporary PGlite database; identity/recovery migrations remain separate. Persistent PostgreSQL uses the **same schema and engine**, through `src/server/postgres/migrations.ts` and a separately provisioned runtime login.
+`001_foundation.sql` remains unchanged from PR #1. The public demonstration executes it plus the shared business migrations 7, 8, 9, 10 and 11 in a fresh, temporary PGlite database; identity/recovery migrations remain separate. Persistent PostgreSQL uses the **same schema and engine**, through `src/server/postgres/migrations.ts` and a separately provisioned runtime login.
 
 ## Network migration contract
 
@@ -19,7 +19,7 @@ Keep historical SQL unchanged. Add the next numbered SQL file, register it expli
 
 Version 1 remains immutable. Version 2 adds only the private local identity schema and its separate role boundary. Initialization validates both service roles. Fixture seeding lives in test support, outside migrations. There are no real accounts, passwords, invoices or sample personal data in schema SQL.
 
-Migration 2 follows the Better Auth 1.7.14 core schema, without providers/plugins. Existing version-1 databases upgrade transactionally without rewriting business rows or the original checksum. New network tests rehearse this upgrade. The temporary PGlite demo loads shared business migrations 1, 7, 8, 9 and 10, without identity/recovery schemas.
+Migration 2 follows the Better Auth 1.7.14 core schema, without providers/plugins. Existing version-1 databases upgrade transactionally without rewriting business rows or the original checksum. New network tests rehearse this upgrade. The temporary PGlite demo loads shared business migrations 1, 7, 8, 9, 10 and 11, without identity/recovery schemas.
 
 Migration 3 adds access revisions, private session-bound membership reviews, durable confirmation/bootstrap receipts and three private owner commands with invoker wrappers. It backfills revision zero without changing existing roles/records; the network suite rehearses version 2 → 3. Raw membership DML remains denied. All new tables force RLS. Definer/helper search paths are empty and PUBLIC execution is revoked. See [owner contracts](../docs/owner-access.md). Roll back code only after reviewing schema compatibility; recovery uses a verified offline backup, never destructive down SQL.
 
@@ -60,3 +60,9 @@ Back up and stop hosts before the standard migration command. Installation is tr
 `010_inventory_ledger.sql` adds scoped forced-RLS balances and append-only movements, unique product identities, exact whole-unit/case conversion and owner/admin adjustment guards. Existing organization epochs order raw and Engine posts against stock/catalog changes; original request receipts deduplicate retries. Transfers update both balances atomically, with nonnegative/overflow checks. The relationship guard's single archive exception treats immutable stock movements as historical links. Applied SQL 1–9 is untouched.
 
 Stop hosts and back up before standard `db:migrate`; exclusive maintenance/table locks and the runner transaction refuse incomplete adoption. No original records, configurations, memberships or audits are rewritten and no opening stock is invented. New stock entities with an untracked history refuse migration. Existing populated catalog field enrichment needs a reviewed configuration migration. [Contract, command examples and failure behavior](../docs/inventory-stock.md). Native restores remain activation-blocked.
+
+## Migration 11: BuildPlan Studio drafts
+
+`011_build_plan_studio.sql` adds forced-RLS owner/admin draft revisions with scoped configuration anchors, append-only/size/version/quota guards, the existing audit trigger and native recovery online-write gate. The organization epoch orders drafts with publication/raw writers. Full template/configuration validation stays in the shared TypeScript Engine; stored plans are revalidated before use and never executed.
+
+Stop hosts, back up and use standard `db:migrate`. The existing maintenance/table locks and atomic checksum transaction apply. New draft writes require migration 11; legacy partial snapshots remain readable. Applied SQL 1–10 and existing data/audits remain unchanged. A narrow inventory-guard replacement preserves host expiry cleanup of whole temporary organizations after the parent is deleted, while every direct ledger-row delete still refuses. No user-level deletion, migration override, public persistent endpoint or recovery activation is added. [Contract and procedure](../docs/buildplan-studio.md).

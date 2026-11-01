@@ -638,7 +638,10 @@ describe("native inventory boundary", () => {
       } finally {
         await legacy.close();
       }
-      expect(await migrate(db)).toEqual(["010_inventory_ledger"]);
+      expect(await migrate(db)).toEqual([
+        "010_inventory_ledger",
+        "011_build_plan_studio",
+      ]);
       expect(await snap()).toEqual(before);
       expect((await db.query("select * from lms.stock_balances")).rows).toEqual(
         [],

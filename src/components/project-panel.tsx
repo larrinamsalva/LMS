@@ -44,8 +44,9 @@ export function ProjectPanel({
         <span className="eyebrow">Project configuration · schema v1</span>
         <h2>A workspace that fits the work</h2>
         <p className="muted">
-          This small configuration editor demonstrates the engine. The guided
-          website builder is planned.
+          This configuration editor retains direct publication and rollback. Use
+          BuildPlan Studio for guided choices, draft plans and interactive
+          fictional previews.
         </p>
         <form
           onSubmit={(event) => {
@@ -174,7 +175,10 @@ export function ProjectPanel({
             <ol className="navigation-order">
               {draft.navigation.map((id, index) => (
                 <li key={id}>
-                  <span>{draft.entities.find((e) => e.id === id)?.plural}</span>
+                  <span>
+                    {draft.entities.find((e) => e.id === id)?.navigationLabel ??
+                      draft.entities.find((e) => e.id === id)?.plural}
+                  </span>
                   <button
                     className="quiet"
                     type="button"

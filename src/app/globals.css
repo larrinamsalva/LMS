@@ -1262,3 +1262,81 @@ legend {
 .workforce-card p {
   overflow-wrap: anywhere;
 }
+
+.studio {
+  min-width: 0;
+}
+.studio-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.3rem;
+}
+.studio-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 1rem;
+  margin-block: 1rem;
+}
+.studio-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.studio-card input {
+  width: 100%;
+}
+.studio-card input[type="checkbox"] {
+  width: auto;
+}
+.studio-card small {
+  color: var(--muted);
+  line-height: 1.6;
+}
+.studio-review {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.2rem;
+  margin-block: 1rem;
+  overflow-wrap: anywhere;
+}
+.studio-review ul {
+  padding-left: 1.2rem;
+  line-height: 1.7;
+}
+.studio-unavailable {
+  padding: 1rem;
+  border-radius: 12px;
+}
+.studio-saved {
+  list-style: none;
+  padding: 0;
+}
+.studio-saved > li {
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.studio-saved button {
+  margin: 0.5rem;
+}
+.studio fieldset {
+  min-width: 0;
+}
+.studio input[type="file"] {
+  max-width: 100%;
+}
+@media (max-width: 700px) {
+  .studio-steps button {
+    flex: 1 1 40%;
+  }
+  .studio .actions {
+    align-items: stretch;
+  }
+}
