@@ -668,6 +668,17 @@ it("serializes competing imports and exports and refuses lost authority or expir
   );
   await expect(
     vault.stage(
+      secondOwner,
+      otherOrg,
+      zip,
+      0,
+      randomUUID(),
+      async () => {},
+      "companion",
+    ),
+  ).rejects.toMatchObject({ status: 423 });
+  await expect(
+    vault.stage(
       { expiresAt: owner.expiresAt },
       randomUUID(),
       zip,

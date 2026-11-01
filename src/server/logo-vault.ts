@@ -152,8 +152,8 @@ export class LogoVault {
         "Choose a nonempty logo no larger than 1 MiB.",
         413,
       );
-    const input = Buffer.from(bytes),
-      c = this.collection(owner, org),
+    const c = this.collection(owner, org),
+      input = Buffer.from(bytes),
       digest = createHash("sha256")
         .update(String(revision))
         .update(kind === "image" ? ":upload:" : ":companion:")

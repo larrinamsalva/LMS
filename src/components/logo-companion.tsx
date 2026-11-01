@@ -29,6 +29,9 @@ export function LogoCompanionTools({
     },
     [],
   );
+  useEffect(() => {
+    if (review) heading.current?.focus();
+  }, [review]);
   async function inspect() {
     const ticket = ++sequence.current;
     setReview(null);
@@ -44,7 +47,6 @@ export function LogoCompanionTools({
       const { manifest } = await inspectLogoCompanion(bytes);
       if (sequence.current === ticket) {
         setReview({ bytes, manifest });
-        setTimeout(() => heading.current?.focus(), 0);
       }
     } catch (error) {
       if (sequence.current === ticket)
