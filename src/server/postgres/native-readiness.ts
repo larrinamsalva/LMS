@@ -175,7 +175,9 @@ async function authority(c: Client, trust: Trust, database: string) {
   const row = (
     await c.query(`select current_database() as database,current_user as role,session_user as login,r.rolsuper,
     pg_get_userbyid(d.datdba)=current_user as owned,d.oid::text as oid,current_setting('server_version_num')::int/10000 as major,
-    pg_is_in_recovery() as recovering,(select system_identifier::text from pg_control_system()) as cluster from pg_roles r join pg_database d on d.datname=current_database() where r.rolname=current_user`)
+    pg_is_in_recovery() as recovering,(select system_identifier::text from pg_control_system()) as cluster,
+    jsonb_build_array(d.encoding,d.datlocprovider,d.datcollate,d.datctype,d.daticulocale,d.datcollversion)::text as locale
+    from pg_roles r join pg_database d on d.datname=current_database() where r.rolname=current_user`)
   ).rows[0];
   assert(
     row &&
@@ -187,7 +189,11 @@ async function authority(c: Client, trust: Trust, database: string) {
       !row.recovering &&
       row.major === 16,
   );
-  return { oid: row.oid as string, cluster: row.cluster as string };
+  return {
+    oid: row.oid as string,
+    cluster: row.cluster as string,
+    locale: row.locale as string,
+  };
 }
 async function alone(c: Client) {
   assert(
@@ -344,6 +350,7 @@ export async function nativeReadiness(
       const pin = await authority(target, trust, trust.target.database);
       targetOid = pin.oid;
       assert(pin.cluster === sourceIdentityPin.cluster);
+      assert(pin.locale === sourceIdentityPin.locale);
       out.versions.target.postgresMajor = 16;
       await target.query("begin read only");
       await maintenance(target);
@@ -389,7 +396,8 @@ export async function nativeReadiness(
             const pin = await authority(c, trust, trust.target.database);
             assert(
               pin.oid === targetOid &&
-                pin.cluster === sourceIdentityPin.cluster,
+                pin.cluster === sourceIdentityPin.cluster &&
+                pin.locale === sourceIdentityPin.locale,
             );
             await alone(c);
             await empty(c);

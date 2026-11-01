@@ -182,7 +182,7 @@ it("preservation comparison distinguishes purged transient state from retained h
   const observation: NativeObservation = {
     signatures: Object.fromEntries(readinessTables.map((t) => [t, "original"])),
     counts: Object.fromEntries(readinessTables.map((t) => [t, 0])),
-    catalog: "reviewed",
+    catalog: { tables: "reviewed" },
     configurationSchemas: [1, 2],
     buildPlanVersions: [1, 2],
   };
@@ -198,7 +198,7 @@ it("preservation comparison distinguishes purged transient state from retained h
   same.counts["lms_identity.session"] = 1;
   expect(() => sameNative(observation, same, true)).toThrow();
   same.counts["lms_identity.session"] = 0;
-  same.catalog = "altered";
+  same.catalog.tables = "altered";
   expect(() => sameNative(observation, same, true)).toThrow();
 });
 it("the closed table inventory covers every original migration table and the native ledger", async () => {

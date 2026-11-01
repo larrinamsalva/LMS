@@ -68,7 +68,7 @@ const assert = (truth: unknown) => {
 export interface NativeObservation {
   signatures: Record<string, string>;
   counts: Record<string, number>;
-  catalog: string;
+  catalog: Record<string, string>;
   configurationSchemas: number[];
   buildPlanVersions: number[];
 }
@@ -217,29 +217,41 @@ export async function observeNative(
     counts[table] = rows.length;
   }
   assert(versions.size > 0);
-  const catalog: string[] = [];
+  const catalog: Record<string, string> = {};
+  // pg_dump may serialize a default ACL as NULL rather than an explicit default.
+  // Compare PostgreSQL's actual grant entries, retaining PUBLIC, grantor and grant options.
+  const acl = (
+    value: string,
+    kind: string,
+    owner: string,
+  ) => `array(select jsonb_build_array(pg_get_userbyid(x.grantor),case when x.grantee=0 then 'PUBLIC' else pg_get_userbyid(x.grantee) end,x.privilege_type,x.is_grantable)
+    from aclexplode(coalesce(${value},acldefault('${kind}',${owner}))) x order by x.grantor,x.grantee,x.privilege_type,x.is_grantable)`;
   const queries = [
     `select jsonb_build_array(n.nspname,c.relname,c.relrowsecurity,c.relforcerowsecurity,
-      array(select a::text from unnest(c.relacl) a order by a::text),
-      array(select jsonb_build_array(a.attname,format_type(a.atttypid,a.atttypmod),a.attnotnull,pg_get_expr(d.adbin,d.adrelid)) from pg_attribute a left join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum where a.attrelid=c.oid and a.attnum>0 and not a.attisdropped order by a.attnum))::text as document
+      ${acl("c.relacl", "r", "c.relowner")},
+      array(select jsonb_build_array(a.attname,format_type(a.atttypid,a.atttypmod),a.attnotnull,pg_get_expr(d.adbin,d.adrelid),${acl("a.attacl", "c", "c.relowner")}) from pg_attribute a left join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum where a.attrelid=c.oid and a.attnum>0 and not a.attisdropped order by a.attnum))::text as document
       from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname=any($1) and c.relkind='r' and c.relname<>'restore_blocker'`,
     `select jsonb_build_array(n.nspname,c.relname,x.conname,pg_get_constraintdef(x.oid),x.convalidated)::text as document from pg_constraint x join pg_class c on c.oid=x.conrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname=any($1) and c.relname<>'restore_blocker'`,
     `select to_jsonb(p)::text as document from pg_policies p where schemaname=any($1) and tablename<>'restore_blocker'`,
-    `select jsonb_build_array(n.nspname,p.proname,pg_get_function_identity_arguments(p.oid),pg_get_functiondef(p.oid),array(select a::text from unnest(p.proacl) a order by a::text))::text as document from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname=any($1)`,
+    `select jsonb_build_array(n.nspname,p.proname,pg_get_function_identity_arguments(p.oid),pg_get_functiondef(p.oid),${acl("p.proacl", "f", "p.proowner")})::text as document from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname=any($1)`,
     `select jsonb_build_array(n.nspname,c.relname,t.tgname,t.tgenabled,pg_get_triggerdef(t.oid))::text as document from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname=any($1) and not t.tgisinternal`,
     `select jsonb_build_array(schemaname,tablename,indexname,indexdef)::text as document from pg_indexes where schemaname=any($1) and tablename<>'restore_blocker'`,
   ];
-  for (const sql of queries) {
+  for (const [index, sql] of queries.entries()) {
     const rows = (await client.query(sql, [schemas])).rows;
     assert(rows.length <= 10000);
-    catalog.push(...rows.map((r) => r.document as string));
+    catalog[
+      ["tables", "constraints", "policies", "functions", "triggers", "indexes"][
+        index
+      ]
+    ] = createHmac("sha256", key)
+      .update(JSON.stringify(rows.map((r) => r.document as string).sort()))
+      .digest("hex");
   }
   return {
     signatures,
     counts,
-    catalog: createHmac("sha256", key)
-      .update(JSON.stringify(catalog.sort()))
-      .digest("hex"),
+    catalog,
     configurationSchemas: [...versions].sort(),
     buildPlanVersions: [...plans].sort(),
   };
@@ -250,7 +262,7 @@ export function sameNative(
   target: NativeObservation,
   restored: boolean,
 ) {
-  assert(source.catalog === target.catalog);
+  assert(JSON.stringify(source.catalog) === JSON.stringify(target.catalog));
   for (const table of readinessTables) {
     if (restored && transientTables.has(table))
       assert(target.counts[table] === 0);

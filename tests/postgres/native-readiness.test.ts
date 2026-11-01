@@ -14,6 +14,7 @@ import { mkdtemp, readFile, writeFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import * as backup from "../../src/server/postgres/backup";
+import * as inspection from "../../src/server/postgres/readiness-inspection";
 import {
   nativeReadiness,
   nativeTrustSchema,
@@ -156,6 +157,29 @@ beforeEach(async () => {
     binDirectory: process.env.LMS_PG_BIN,
   };
   await savedTrust();
+  const compare = inspection.sameNative;
+  vi.spyOn(inspection, "sameNative").mockImplementation(
+    (source, target, restored) => {
+      // Static diagnostic labels only: never log rows, identifiers, errors or fingerprints.
+      const differences = Object.keys(source.catalog)
+        .filter((k) => source.catalog[k] !== target.catalog[k])
+        .map((k) => "catalog-" + k);
+      for (const table of inspection.readinessTables) {
+        if (restored && inspection.transientTables.has(table)) {
+          if (target.counts[table] !== 0) differences.push(table);
+        } else if (
+          !(restored && table === "lms_control.state") &&
+          source.signatures[table] !== target.signatures[table]
+        )
+          differences.push(table);
+      }
+      if (differences.length)
+        console.info(
+          "Native preservation mismatch categories: " + differences.join(", "),
+        );
+      return compare(source, target, restored);
+    },
+  );
 });
 afterEach(async () => {
   vi.restoreAllMocks();
@@ -168,6 +192,45 @@ afterAll(async () => {
   await cluster?.end();
 });
 describe("host-only native upgrade readiness", () => {
+  it("refuses a fresh destination with different encoding/collation before copying", async () => {
+    await cluster.query(`drop database "${targetName}"`);
+    await cluster.query(
+      `create database "${targetName}" template template0 encoding 'SQL_ASCII' lc_collate 'C' lc_ctype 'C'`,
+    );
+    const before = await sourceState(),
+      result = await nativeReadiness(options);
+    expect(result.result).toBe("blocked");
+    expect(result.checks.find((c) => c.id === "target")?.status).toBe(
+      "blocked",
+    );
+    expect(await sourceState()).toBe(before);
+    expect(await readdir(directory)).toEqual(["trust.json"]);
+  });
+  it.each([
+    "grant select on lms.records to lms_auth_service",
+    "grant select(data) on lms.records to lms_auth_service",
+  ])("refuses actual changed grants after restore: %s", async (grant) => {
+    const original = backup.restoreDatabase;
+    vi.spyOn(backup, "restoreDatabase").mockImplementation(
+      async (a, b, c, d, control) =>
+        original(a, b, c, d, {
+          ...control,
+          verify: async (client) => {
+            await client.query(grant);
+            await control?.verify?.(client);
+          },
+        }),
+    );
+    const before = await sourceState(),
+      result = await nativeReadiness(options);
+    expect(result.result).toBe("blocked");
+    expect(result.backupReadiness).toBe("not-verified");
+    expect(result.checks.find((c) => c.id === "integrity")?.status).toBe(
+      "blocked",
+    );
+    expect(await sourceState()).toBe(before);
+    await blockedTarget();
+  });
   it("preflight is read-only, checks supported state and never claims a verified restore", async () => {
     const before = await sourceState(),
       result = await nativeReadiness({ ...options, mode: "preflight" });
@@ -243,7 +306,7 @@ describe("host-only native upgrade readiness", () => {
     );
     const before = await sourceState(),
       result = await nativeReadiness(options);
-    expect(result.result).toBe("rehearsal-complete");
+    expect(result.result, JSON.stringify(result)).toBe("rehearsal-complete");
     expect(result.backupReadiness).toBe("verified-fictional-round-trip");
     expect(result.checks.every((c) => c.status === "passed")).toBe(true);
     expect(result.versions.source.configurationSchemas).toEqual([1, 2]);
@@ -408,7 +471,7 @@ describe("host-only native upgrade readiness", () => {
       await c.query("delete from lms_meta.migrations where version=13");
       await c.query("set session_replication_role=replica");
       await c.query(
-        "update lms.config_revisions set document=jsonb_set(document,'{schemaVersion}','99')",
+        `update lms.config_revisions set document=jsonb_set(document,'{modules,0,version}','"99.0.0"')`,
       );
       await c.query("set session_replication_role=origin");
     });
@@ -475,7 +538,7 @@ describe("host-only native upgrade readiness", () => {
     });
     const before = await sourceState(),
       result = await nativeReadiness(options);
-    expect(result.result).toBe("rehearsal-complete");
+    expect(result.result, JSON.stringify(result)).toBe("rehearsal-complete");
     expect(competing).toBe("blocked");
     expect(await sourceState()).toBe(before);
   });
