@@ -22,6 +22,13 @@ export const logoAssetSchema = z
     bytes: z.number().int().positive().max(logoLimits.outputBytes),
     display: logoDisplay,
     expiresAt: z.number().int().positive(),
+    companion: z
+      .object({
+        version: z.literal(1),
+        imageSha256: z.string().regex(/^[a-f0-9]{64}$/),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 export type LogoAsset = z.infer<typeof logoAssetSchema>;
@@ -35,6 +42,14 @@ export const logoStateSchema = z
   })
   .strict();
 export type LogoState = z.infer<typeof logoStateSchema>;
+export const logoDownloadSchema = z
+  .object({
+    organizationId: z.uuid(),
+    assetId: z.uuid(),
+    revision: z.number().int().nonnegative(),
+    format: z.enum(["png", "companion"]),
+  })
+  .strict();
 export const logoCommandSchema = z
   .object({
     action: z.enum(["select", "remove", "layout"]),

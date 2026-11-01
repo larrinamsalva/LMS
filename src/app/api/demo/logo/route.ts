@@ -2,20 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { EngineError } from "../../../../core/engine";
 import { logoCommandSchema, logoLimits } from "../../../../core/private-logo";
-import { cookieName, findSession, logoAccess } from "../../../../server/demo";
+import { logoAccess } from "../../../../server/demo";
 import {
   BodyError,
   readBytes,
   readJson,
 } from "../../../../server/request-body";
+import {
+  logoHeaders as headers,
+  logoFailure as failure,
+  logoRequestAccess as access,
+} from "../../../../server/logo-request";
 import { sameOrigin } from "../../../../server/request-origin";
 export const runtime = "nodejs";
-const headers = {
-  "Cache-Control": "private, no-store, max-age=0",
-  "X-Content-Type-Options": "nosniff",
-  "Cross-Origin-Resource-Policy": "same-origin",
-  Vary: "Cookie",
-};
 function parameters(request: NextRequest, upload = false) {
   const pairs = [...request.nextUrl.searchParams.entries()];
   if (new Set(pairs.map((p) => p[0])).size !== pairs.length)
@@ -26,40 +25,13 @@ function parameters(request: NextRequest, upload = false) {
           organizationId: z.uuid(),
           revision: z.string().regex(/^\d{1,3}$/),
           operationId: z.uuid(),
+          kind: z.enum(["image", "companion"]).optional(),
         })
         .strict()
     : z
         .object({ organizationId: z.uuid(), assetId: z.uuid().optional() })
         .strict();
   return schema.parse(Object.fromEntries(pairs));
-}
-function failure(error: unknown) {
-  const known = error instanceof EngineError || error instanceof BodyError;
-  return NextResponse.json(
-    {
-      error: known
-        ? error.message
-        : "Private logo request refused. Check the image, current revision and fictional session.",
-    },
-    {
-      status: known
-        ? error.status
-        : error instanceof z.ZodError || error instanceof SyntaxError
-          ? 400
-          : 503,
-      headers,
-    },
-  );
-}
-async function access(
-  request: NextRequest,
-  organizationId: string,
-  manage = false,
-) {
-  if (request.headers.get("sec-fetch-site") === "cross-site")
-    throw new EngineError("Use this application's own private logo view.", 403);
-  const session = await findSession(request.cookies.get(cookieName)?.value);
-  return { session, ...(await logoAccess(session, organizationId, manage)) };
 }
 export async function GET(request: NextRequest) {
   try {
@@ -101,6 +73,7 @@ export async function POST(request: NextRequest) {
         organizationId: string;
         revision: string;
         operationId: string;
+        kind?: "image" | "companion";
       },
       { session, logos } = await access(request, p.organizationId, true);
     if (request.headers.get("content-type") !== "application/octet-stream")
@@ -119,6 +92,7 @@ export async function POST(request: NextRequest) {
         async () => {
           await logoAccess(session, p.organizationId, true);
         },
+        p.kind,
       ),
       { headers },
     );

@@ -7,6 +7,8 @@ import {
   type logoCommandSchema,
 } from "../core/private-logo";
 import type { z } from "zod";
+import { LOGO_COMPANION_LIMIT } from "../core/logo-companion";
+import { LogoCompanionTools } from "./logo-companion";
 export type LogoController = ReturnType<typeof usePrivateLogo>;
 /** Asset state is deliberately separate from configuration, drafts, comparisons and exports. */
 export function usePrivateLogo(organizationId?: string) {
@@ -23,6 +25,7 @@ export function usePrivateLogo(organizationId?: string) {
       body?: BodyInit,
       revision?: number,
       operationId?: string,
+      kind?: "companion",
     ) {
       if (!organizationId) return false;
       const ticket = ++sequence.current,
@@ -34,6 +37,7 @@ export function usePrivateLogo(organizationId?: string) {
         if (method === "POST") {
           query.set("revision", String(revision));
           query.set("operationId", operationId!);
+          if (kind) query.set("kind", kind);
         }
         const response = await fetch(`/api/demo/logo?${query}`, {
           method,
@@ -99,10 +103,70 @@ export function usePrivateLogo(organizationId?: string) {
     return () => clearTimeout(timer);
   }, [deadline, request]);
   return {
+    scope: organizationId,
     state,
     busy,
     error,
     refresh: () => request(),
+    stageCompanion: (bytes: Uint8Array<ArrayBuffer>) =>
+      state && bytes.length > 0 && bytes.length <= LOGO_COMPANION_LIMIT
+        ? request(
+            "POST",
+            new Uint8Array(bytes),
+            state.revision,
+            crypto.randomUUID(),
+            "companion",
+          )
+        : Promise.resolve(false),
+    save: async (format: "png" | "companion") => {
+      if (!organizationId || !state?.selected) return false;
+      const ticket = ++sequence.current;
+      setBusy(true);
+      setError("");
+      try {
+        const response = await fetch("/api/demo/logo/download", {
+          method: "POST",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            organizationId,
+            assetId: state.selected.id,
+            revision: state.revision,
+            format,
+          }),
+        });
+        if (!response.ok) {
+          if (
+            [401, 403].includes(response.status) &&
+            sequence.current === ticket
+          )
+            setReceived(null);
+          throw new Error(
+            (await response.json()).error ?? "Logo download refused.",
+          );
+        }
+        const blob = await response.blob();
+        if (sequence.current !== ticket) return false;
+        const url = URL.createObjectURL(blob),
+          anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download =
+          format === "png"
+            ? "lms-sanitized-logo.png"
+            : "lms-logo-companion.zip";
+        anchor.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+        return true;
+      } catch (error) {
+        if (sequence.current === ticket)
+          setError(
+            error instanceof Error ? error.message : "Logo download refused.",
+          );
+        return false;
+      } finally {
+        if (sequence.current === ticket) setBusy(false);
+      }
+    },
     stage: async (file: File) => {
       if (file.size > logoLimits.inputBytes || !file.size) {
         setError("Choose a nonempty logo no larger than 1 MiB.");
@@ -147,8 +211,8 @@ export function CustomLogoStudio({
       <h4 id="custom-logo-heading">Custom Business Logo</h4>
       <p>
         Private, temporary image preview for this organization only. It is
-        separate from saved branding and is never included in JSON, blueprint
-        ZIPs, signatures or configuration publication.
+        separate from saved branding and is never included in BuildPlan JSON,
+        blueprint ZIPs, signatures or configuration publication.
       </p>
       <p className="muted">
         Static PNG, JPEG or WebP · up to 1 MiB, 4096 pixels per side and
@@ -157,7 +221,9 @@ export function CustomLogoStudio({
         fictional logo only.
       </p>
       {!canManage && (
-        <p>Only owners/admins can stage, select, replace or remove logos.</p>
+        <p>
+          Only owners/admins can save, stage, select, replace or remove logos.
+        </p>
       )}
       {error && (
         <p className="error" role="alert">
@@ -274,6 +340,11 @@ export function CustomLogoStudio({
           </button>
         )}
       </div>
+      <LogoCompanionTools
+        key={controller.scope}
+        controller={controller}
+        canManage={canManage}
+      />
       <p className="muted">
         Separate Engine previews are independent organizations and keep their
         portable built-in mark; private images are not copied to them. Select an

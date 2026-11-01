@@ -79,6 +79,8 @@ Branding persists in configuration schema 2, BuildPlan 2 and Blueprint Package 2
 
 **Custom Business Logo** supports a separate private, temporary image preview. Explicitly stage a fictional PNG/JPEG/WebP, review its sanitized light/dark samples, then select it for the current organization's session identity. Replace/remove it or return to built-ins. Uploads are bounded, re-encoded and protected by the existing demo cookie, Engine roles and organization checks. Images expire and are **not** part of saved branding, exported JSON/ZIPs, signatures or publication; independent Engine previews keep built-in identity. [Setup, limits, custody and lifecycle](docs/private-logos.md) · [Test workflow](docs/private-logos-verification.md).
 
+**Save My Logo** downloads the selected sanitized PNG or a separate version-1 logo companion with layout and integrity metadata. In a fresh demo, review the companion, sanitize/stage it again, then explicitly select it. Image integrity is distinct from publisher authenticity; this unsigned companion does not alter signed blueprints or publish branding. [Step-by-step workflow and strict format](docs/logo-companions.md) · [Verification](docs/logo-companions-verification.md).
+
 ## Review template updates
 
 Before updating an existing BuildPlan, use **Check for Template Updates** in Studio. Compare retained and newer reviewed editions, keep your own choices, preview selected replacements, then use them as unsaved choices. Exact saved baselines enable three-way review; imported hints alone remain informational. Format changes need explicit approval and populated schema changes remain blocked. [Workflow, trust limits and screenshots](docs/template-history.md) · [Verification](docs/template-history-verification.md).

@@ -1588,3 +1588,5 @@ legend {
 .private-logo-rectangle { width: 6rem; }
 .private-logo img { width: 100%; height: 100%; object-fit: contain; }
 .logo-fallback { display: inline-flex; flex-direction: column; max-width: 9rem; font-size: .75rem; }
+
+.logo-digest { overflow-wrap: anywhere; font-family: monospace; }

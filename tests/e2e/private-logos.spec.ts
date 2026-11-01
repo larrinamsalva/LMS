@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
 import { logoFixture } from "../helpers/logo-fixtures";
+import { inspectLogoCompanion } from "../../src/core/logo-companion";
 import { importBlueprintPackage } from "../../src/core/blueprint";
 async function step(page: Page, name: string) {
   await page
@@ -107,6 +108,25 @@ test("private raster staging, explicit selection, replacement, isolated preview,
     "src",
     src!,
   );
+  for (const [name, filename] of [
+    ["Download sanitized PNG", "lms-sanitized-logo.png"],
+    ["Download logo companion", "lms-logo-companion.zip"],
+  ]) {
+    const pending = page.waitForEvent("download");
+    await page.getByRole("button", { name, exact: true }).click();
+    const downloaded = await pending,
+      saved = await readFile((await downloaded.path())!);
+    expect(downloaded.suggestedFilename()).toBe(filename);
+    if (filename.endsWith("zip"))
+      expect((await inspectLogoCompanion(saved)).manifest.display).toBe(
+        "rectangle",
+      );
+    else
+      expect([...saved.subarray(0, 8)]).toEqual([
+        137, 80, 78, 71, 13, 10, 26, 10,
+      ]);
+  }
+  expect(await snapshot(page)).toEqual(before);
   await fits(page);
   await page
     .getByRole("region", { name: "Custom Business Logo", exact: true })
