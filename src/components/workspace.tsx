@@ -7,6 +7,8 @@ import {
 } from "../core/config";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { Schedule, relatedLabel } from "./schedule";
+import { Workforce } from "./workforce";
+import { recordWriteRoles } from "../core/workforce";
 import { displayTime } from "../core/time";
 import { RecordForm } from "./record-form";
 import { downloadJson, ProjectPanel } from "./project-panel";
@@ -40,7 +42,7 @@ export function Workspace() {
   const [notice, setNotice] = useState("");
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [view, setView] = useState<
-    "records" | "project" | "activity" | "schedule"
+    "records" | "project" | "activity" | "schedule" | "workforce"
   >("records");
   const [selected, setSelected] = useState("customers");
   const [query, setQuery] = useState("");
@@ -125,6 +127,10 @@ export function Workspace() {
   const canWrite = workspace
     ? ["owner", "admin", "staff"].includes(workspace.role)
     : false;
+  const canEditEntity =
+    !!workspace &&
+    !!entity &&
+    recordWriteRoles(entity.id).includes(workspace.role);
   const canAdmin = workspace
     ? ["owner", "admin"].includes(workspace.role)
     : false;
@@ -135,6 +141,7 @@ export function Workspace() {
     setArchive(null);
     setQuery("");
     setNotice("");
+    setError("");
   }
   return (
     <div className="app" data-theme={theme}>
@@ -301,6 +308,15 @@ export function Workspace() {
                 </button>
               )}
               <span className="nav-label">YOUR SYSTEM</span>
+              {entities.some((e) => e.id === "employees") && (
+                <button
+                  className={`nav-item ${view === "workforce" ? "active" : ""}`}
+                  disabled={busy}
+                  onClick={() => changeView("workforce")}
+                >
+                  Crews & availability
+                </button>
+              )}
               <button
                 className={`nav-item ${view === "project" ? "active" : ""}`}
                 disabled={!canAdmin || busy}
@@ -368,6 +384,7 @@ export function Workspace() {
                 records={workspace!.records}
                 zone={config!.timeZone ?? "UTC"}
                 canWrite={canWrite}
+                assignments={workspace!.staffAssignments}
                 busy={busy}
                 onAdd={() => {
                   setSelected("appointments");
@@ -383,6 +400,34 @@ export function Workspace() {
                 }}
                 onArchive={(record) => {
                   setSelected("appointments");
+                  setView("records");
+                  setEditor(null);
+                  archiveOperation.current = crypto.randomUUID();
+                  setArchive(record);
+                }}
+              />
+            )}
+            {view === "workforce" && (
+              <Workforce
+                records={workspace!.records}
+                assignments={workspace!.staffAssignments}
+                zone={config!.timeZone ?? "UTC"}
+                canManage={canAdmin}
+                busy={busy}
+                onAdd={(entityId) => {
+                  setSelected(entityId);
+                  setView("records");
+                  setEditor("new");
+                  setArchive(null);
+                }}
+                onEdit={(record) => {
+                  setSelected(record.entity);
+                  setView("records");
+                  setEditor(record);
+                  setArchive(null);
+                }}
+                onArchive={(record) => {
+                  setSelected(record.entity);
                   setView("records");
                   setEditor(null);
                   archiveOperation.current = crypto.randomUUID();
@@ -427,7 +472,7 @@ export function Workspace() {
                       <h2 id="records-heading">{entity.plural}</h2>
                     </div>
                     <button
-                      disabled={!canWrite || busy}
+                      disabled={!canEditEntity || busy}
                       onClick={() => {
                         setEditor("new");
                         setArchive(null);
@@ -528,7 +573,7 @@ export function Workspace() {
                               {!record.archived && (
                                 <button
                                   className="secondary"
-                                  disabled={!canWrite || busy}
+                                  disabled={!canEditEntity || busy}
                                   aria-label={`Edit ${title}`}
                                   onClick={() => {
                                     setEditor(record);
@@ -540,7 +585,7 @@ export function Workspace() {
                               )}
                               <button
                                 className="quiet"
-                                disabled={!canWrite || busy}
+                                disabled={!canEditEntity || busy}
                                 aria-label={`${record.archived ? "Restore" : "Archive"} ${title}`}
                                 onClick={() => {
                                   archiveOperation.current =
@@ -614,9 +659,15 @@ export function Workspace() {
                     entity={entity}
                     records={workspace!.records}
                     businessZone={config!.timeZone ?? "UTC"}
+                    workforceEnabled={config!.modules.some(
+                      (m) => m.id === "workforce",
+                    )}
                     record={editor === "new" ? undefined : editor}
                     busy={busy}
-                    onCancel={() => setEditor(null)}
+                    onCancel={() => {
+                      setEditor(null);
+                      setError("");
+                    }}
                     onSave={async (
                       recordData: RecordData,
                       operationId: string,

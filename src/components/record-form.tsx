@@ -11,6 +11,7 @@ export function RecordForm({
   record,
   records,
   businessZone,
+  workforceEnabled,
   busy,
   onSave,
   onCancel,
@@ -19,6 +20,7 @@ export function RecordForm({
   record?: WorkspaceRecord;
   records: WorkspaceRecord[];
   businessZone: string;
+  workforceEnabled: boolean;
   busy: boolean;
   onSave: (data: RecordData, operationId: string) => Promise<void>;
   onCancel: () => void;
@@ -39,6 +41,9 @@ export function RecordForm({
           if (field.key === "time_zone") value = businessZone;
           if (field.key === "status") value = "Scheduled";
         }
+        if (!record && field.key === "time_zone") value = businessZone;
+        if (!record && entity.id === "employees" && field.key === "status")
+          value = "Active";
         return [field.key, value];
       }),
     );
@@ -113,6 +118,31 @@ export function RecordForm({
           status and notes can be edited.
         </p>
       )}
+      {entity.id === "appointments" && values.resource && (
+        <p className="muted" role="status">
+          {!workforceEnabled
+            ? "Retained workforce rules still apply when this resource is enrolled. Enable Employees & crews to manage its roster."
+            : records.find((r) => r.id === values.resource)?.data.kind ===
+                "Equipment"
+              ? "Equipment reservation: resource availability applies; no employee roster."
+              : records.some(
+                    (r) =>
+                      r.entity === "resource-memberships" &&
+                      r.data.resource === values.resource,
+                  )
+                ? "Staffed reservation: every effective member needs covering work hours and no time off or competing employee assignment."
+                : "Resource-only reservation: no employee identity or employee availability is reserved. Add dated memberships in Crews & availability to enroll it."}
+        </p>
+      )}
+      {entity.module === "workforce" && (
+        <p className="muted">
+          Fictional profiles never create login accounts or grant access.
+          Memberships and periods use the zone below. Publish a finite work
+          window for each employee; time off always takes priority. Choose
+          exactly one employee or resource for a period. Reserved work must be
+          cancelled or archived before changing its roster or availability.
+        </p>
+      )}
       <form
         ref={formRef}
         onSubmit={async (event) => {
@@ -159,7 +189,10 @@ export function RecordForm({
                 (entity.id !== "appointments" ||
                   field.key !== "work" ||
                   !values.customer ||
-                  r.data.customer === values.customer),
+                  r.data.customer === values.customer) &&
+                (entity.id !== "resource-memberships" ||
+                  field.key !== "resource" ||
+                  ["Worker", "Crew"].includes(String(r.data.kind))),
             );
             return (
               <div
@@ -176,8 +209,10 @@ export function RecordForm({
                     name={field.key}
                     disabled={
                       !!record &&
-                      entity.id === "appointments" &&
-                      ["customer", "work", "site"].includes(field.key)
+                      ((entity.id === "appointments" &&
+                        ["customer", "work", "site"].includes(field.key)) ||
+                        (entity.id === "resource-memberships" &&
+                          ["employee", "resource"].includes(field.key)))
                     }
                     required={field.required}
                     value={value}

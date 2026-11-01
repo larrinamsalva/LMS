@@ -1,6 +1,6 @@
 # Experimental account lifecycle: password changes and recent sign-in
 
-This phase implements a **host-only**, self-service password change for provisioned fictional accounts. It adds no public reset/authentication or deletion endpoint. The later [controlled offline reset](offline-recovery.md) is a separate administrator boundary with activation blocked. The separate no-login demo remains temporary and uses shared business migrations 1 and 7 only. The [offline recovery phase](offline-recovery.md) now implements the guarded reset subset; activation remains blocked.
+This phase implements a **host-only**, self-service password change for provisioned fictional accounts. It adds no public reset/authentication or deletion endpoint. The later [controlled offline reset](offline-recovery.md) is a separate administrator boundary with activation blocked. The separate no-login demo remains temporary and uses shared business migrations 1, 7 and 8 only. The [offline recovery phase](offline-recovery.md) now implements the guarded reset subset; activation remains blocked.
 
 ## Setup and host contract
 

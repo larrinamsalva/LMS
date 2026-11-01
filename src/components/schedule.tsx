@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
+import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 export function relatedLabel(
   value: string | number | undefined,
@@ -15,6 +16,7 @@ export function relatedLabel(
 }
 export function Schedule({
   records,
+  assignments,
   zone,
   canWrite,
   busy,
@@ -23,6 +25,7 @@ export function Schedule({
   onArchive,
 }: {
   records: WorkspaceRecord[];
+  assignments: StaffAssignment[];
   zone: string;
   canWrite: boolean;
   busy: boolean;
@@ -147,6 +150,16 @@ export function Schedule({
               <div>
                 <dt>Resource</dt>
                 <dd>{relatedLabel(r.data.resource, records)}</dd>
+              </div>
+              <div>
+                <dt>Employee reservation</dt>
+                <dd>
+                  {assignments
+                    .filter((s) => s.appointment_id === r.id && s.active)
+                    .map((s) => s.employee_name)
+                    .join(", ") ||
+                    "No active employee allocation (resource-only or released)"}
+                </dd>
               </div>
               {r.data.site && (
                 <div>

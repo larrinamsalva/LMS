@@ -4,6 +4,7 @@ import {
   type FieldDefinition,
 } from "../core/config";
 import { appointmentStatuses } from "../core/time";
+import { availabilityKinds } from "../core/workforce";
 const field = (
   key: string,
   label: string,
@@ -130,6 +131,60 @@ const common = [
     ],
   },
 ];
+const workforce = [
+  {
+    id: "employees",
+    module: "workforce",
+    singular: "Employee profile",
+    plural: "Employees",
+    titleField: "name",
+    fields: [
+      field("name", "Employee name", "text", true),
+      field("role", "Work role", "text", true),
+      field("skills", "Skills", "longtext"),
+      field("status", "Employee status", "select", true, [
+        "Active",
+        "Inactive",
+      ]),
+      field("email", "Contact email", "email"),
+      field("phone", "Contact phone"),
+      field("notes", "Profile notes", "longtext"),
+    ],
+  },
+  {
+    id: "resource-memberships",
+    module: "workforce",
+    singular: "Dated membership",
+    plural: "Dated memberships",
+    titleField: "title",
+    fields: [
+      field("title", "Membership title", "text", true),
+      reference("employee", "Employee", "employees", true),
+      reference("resource", "Worker or crew", "resources", true),
+      field("start", "Effective start", "datetime", true),
+      field("end", "Effective end", "datetime", true),
+      field("time_zone", "Membership time zone", "text", true),
+      field("notes", "Membership notes", "longtext"),
+    ],
+  },
+  {
+    id: "availability",
+    module: "workforce",
+    singular: "Availability period",
+    plural: "Availability periods",
+    titleField: "title",
+    fields: [
+      field("title", "Period title", "text", true),
+      reference("employee", "Employee", "employees"),
+      reference("resource", "Resource", "resources"),
+      field("kind", "Period type", "select", true, [...availabilityKinds]),
+      field("start", "Period start", "datetime", true),
+      field("end", "Period end", "datetime", true),
+      field("time_zone", "Period time zone", "text", true),
+      field("notes", "Availability notes", "longtext"),
+    ],
+  },
+];
 export const presets: Record<"property" | "cleaning", BusinessConfig> = {
   property: validateConfig({
     schemaVersion: 1,
@@ -137,12 +192,17 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
     name: "Cedar Grove Property",
     industry: "property",
     timeZone: "America/Los_Angeles",
-    modules: ["customers", "tasks", "property", "inventory", "scheduling"].map(
-      (id) => ({
-        id,
-        version: "1.0.0",
-      }),
-    ),
+    modules: [
+      "customers",
+      "tasks",
+      "property",
+      "inventory",
+      "scheduling",
+      "workforce",
+    ].map((id) => ({
+      id,
+      version: "1.0.0",
+    })),
     entities: [
       ...common.map((e) =>
         e.id === "tasks"
@@ -155,6 +215,7 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
           : e,
       ),
       ...scheduling("property"),
+      ...workforce,
       {
         id: "units",
         module: "property",
@@ -183,6 +244,9 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
       "tasks",
       "resources",
       "appointments",
+      "employees",
+      "resource-memberships",
+      "availability",
       "items",
     ],
   }),
@@ -192,15 +256,21 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
     name: "Bright Path Cleaning",
     industry: "cleaning",
     timeZone: "America/Los_Angeles",
-    modules: ["customers", "tasks", "cleaning", "inventory", "scheduling"].map(
-      (id) => ({
-        id,
-        version: "1.0.0",
-      }),
-    ),
+    modules: [
+      "customers",
+      "tasks",
+      "cleaning",
+      "inventory",
+      "scheduling",
+      "workforce",
+    ].map((id) => ({
+      id,
+      version: "1.0.0",
+    })),
     entities: [
       ...common,
       ...scheduling("cleaning"),
+      ...workforce,
       {
         id: "jobs",
         module: "cleaning",
@@ -232,6 +302,9 @@ export const presets: Record<"property" | "cleaning", BusinessConfig> = {
       "tasks",
       "resources",
       "appointments",
+      "employees",
+      "resource-memberships",
+      "availability",
       "items",
     ],
   }),
