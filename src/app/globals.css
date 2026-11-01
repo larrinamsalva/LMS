@@ -1582,3 +1582,5 @@ legend {
     font-size: 1rem;
   }
 }
+
+.provenance-digest { overflow-wrap: anywhere; }

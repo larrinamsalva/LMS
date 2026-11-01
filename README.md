@@ -67,9 +67,9 @@ In **BuildPlan Studio**, choose **Browse Business Templates**. Search five revie
 
 ## Download and reuse a blueprint
 
-In Studio, enter a fictional **Blueprint name** and **Blueprint description**, then choose **Download Blueprint Package**. The ZIP includes a validated BuildPlan, enabled modules/dependencies, version metadata, hashes and human-readable instructions. **Import Blueprint Package** opens a read-only **Review Blueprint** screen; accepting it creates unsaved Studio choices. Saved drafts, business records and published configuration stay intact until separately authorized operations.
+In Studio, enter a fictional **Blueprint name** and **Blueprint description**, then choose **Download Blueprint Package**. The ZIP includes a validated BuildPlan, enabled modules/dependencies, version metadata, hashes and human-readable instructions. Choose **Import Blueprint Package**, optionally supply its detached publisher attestation, then **Verify Blueprint** to open read-only **Review Blueprint**. Accepting it creates unsaved Studio choices. Saved drafts, business records and published configuration stay intact until separately authorized operations.
 
-Only the strict 96 KiB LMS stored-ZIP format is accepted. Checksums detect damage, not a trusted author. Gallery revision hints are unverified and upgrades are never automatic. Existing BuildPlan v1 JSON import/export remains compatible. [Example workflow, package format and limits](docs/blueprint-packages.md) · [Verification](docs/blueprint-packages-verification.md).
+Only the strict 96 KiB LMS stored-ZIP format is accepted. Checksums detect damage, not a trusted author. Detached Ed25519 verification uses a separately reviewed public-key registry; **no real publisher key is enrolled yet**. Unsigned v1/v2 packages stay importable as unverified; invalid claimed signatures refuse. Gallery hints, locally reviewed content and publisher identity are shown separately. Signatures provide no latest-version, publication, migration or activation authority. [Import, offline signing, retirement and trust limits](docs/blueprint-provenance.md) · [Actual verification](docs/blueprint-provenance-verification.md) · [Unchanged ZIP contracts](docs/blueprint-packages.md).
 
 ## Brand Your Business
 

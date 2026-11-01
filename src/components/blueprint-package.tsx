@@ -3,11 +3,12 @@ import type { WorkspaceSnapshot } from "../core/engine";
 import { configurationImpact } from "../core/config";
 import type { BuildPlan } from "../core/buildplan";
 import { manifests } from "../modules/registry";
+import type { InspectedBlueprint } from "../core/blueprint-provenance";
+import { BlueprintVerification } from "./blueprint-verification";
 import {
   blueprintModules,
   compareBlueprints,
   reviewGalleryCompatibility,
-  type BlueprintPackage,
   type BlueprintDetails,
   type BlueprintDifference,
 } from "../core/blueprint";
@@ -24,8 +25,10 @@ export function BlueprintPackageTools({
   valid: boolean;
   onDetails: (d: BlueprintDetails) => void;
   onDownload: () => void;
-  onImport: (file: File) => void;
+  onImport: (file: File, attestation?: File) => void;
 }) {
+  const [zip, setZip] = useState<File | null>(null),
+    [attestation, setAttestation] = useState<File | null>(null);
   return (
     <section className="panel" aria-labelledby="blueprint-tools-heading">
       <h2 id="blueprint-tools-heading">Keep and reuse your blueprint</h2>
@@ -79,19 +82,40 @@ export function BlueprintPackageTools({
           type="file"
           accept=".zip,application/zip"
           disabled={busy}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            e.target.value = "";
-            if (file) onImport(file);
-          }}
+          onChange={(e) => setZip(e.target.files?.[0] ?? null)}
         />
       </p>
       <p className="muted">
         Up to 96 KiB. Only the unchanged LMS stored-ZIP profile is supported.
         Every file, checksum, version and dependency is checked before review.
-        Checksums are not author signatures. BuildPlan v1 JSON import/export
+        Checksums are not author signatures. BuildPlan v1/v2 JSON import/export
         remains available below.
       </p>
+      <p>
+        <label htmlFor="blueprint-attestation">
+          Detached publisher attestation (optional)
+        </label>
+        <input
+          id="blueprint-attestation"
+          type="file"
+          accept=".json,application/json"
+          disabled={busy}
+          onChange={(e) => setAttestation(e.target.files?.[0] ?? null)}
+        />
+      </p>
+      <p className="muted">
+        Choose the separate attestation file if supplied (up to 8 KiB). An
+        invalid claim rejects the import. Without one, a valid legacy package is
+        clearly unverified. Imports stay in your browser; no key upload grants
+        trust.
+      </p>
+      <button
+        type="button"
+        disabled={busy || !zip}
+        onClick={() => zip && onImport(zip, attestation ?? undefined)}
+      >
+        Verify Blueprint
+      </button>
       <p className="muted">
         The blueprint name, description and Gallery hint travel in the ZIP only.
         Temporary saved drafts retain BuildPlan choices; reimport the ZIP to
@@ -128,14 +152,14 @@ function Differences({
   );
 }
 export function BlueprintReview({
-  blueprint,
+  inspection,
   workspace,
   choices,
   onCancel,
   onUse,
   onPreview,
 }: {
-  blueprint: BlueprintPackage;
+  inspection: InspectedBlueprint;
   workspace: WorkspaceSnapshot;
   choices: BuildPlan;
   onCancel: () => void;
@@ -149,7 +173,8 @@ export function BlueprintReview({
   useEffect(() => {
     heading.current?.focus();
   }, []);
-  const { plan, manifest } = blueprint,
+  const { blueprint } = inspection,
+    { plan, manifest } = blueprint,
     impact = configurationImpact(
       workspace.config.document,
       plan.configuration,
@@ -188,11 +213,6 @@ export function BlueprintReview({
           have not changed. Using this package replaces only unsaved editor
           choices. Cancel returns to those choices.
         </p>
-        <p className="muted">
-          File integrity and supported configuration have been checked. Package
-          text and Gallery references are untrusted input; no author identity or
-          endorsement is verified.
-        </p>
         <div className="actions">
           <button type="button" disabled={pending} onClick={onUse}>
             Use as unsaved Studio choices
@@ -208,6 +228,7 @@ export function BlueprintReview({
           <a href="#blueprint-preview">Jump to workspace preview</a>
         </div>
       </section>
+      <BlueprintVerification inspection={inspection} />
       <section className="panel">
         <h3>Included features and required dependencies</h3>
         <ul>

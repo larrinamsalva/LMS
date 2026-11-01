@@ -1,4 +1,5 @@
 import { generatedInvariants, refusalAndFailure } from "../helpers/rehearsal";
+import { publisherBoundary } from "../helpers/blueprint-boundary";
 import {
   impactRetention,
   impactFreshness,
@@ -81,6 +82,9 @@ beforeEach(async () => {
 });
 afterAll(async () => {
   await db?.close();
+});
+it("never grants publication, cross-organization access or populated-schema permission from a verified publisher signature", async () => {
+  await publisherBoundary(engine, owner, a, [staff, viewer, other], other, b);
 });
 async function rehearsalSandbox(plan: ReturnType<typeof planForConfig>) {
   const target = randomUUID();

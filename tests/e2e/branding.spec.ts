@@ -98,7 +98,9 @@ test("Gallery branding previews accessibly and survives draft, JSON and package 
     await fits(page); // Both immediate light/dark samples are present and checked.
   }
   await page.getByRole("radio", { name: /Plum & pearl/ }).check();
-  await page.locator(".branding-studio").screenshot({ path: info.outputPath("branding-studio.png"), scale: "css" });
+  await page
+    .locator(".branding-studio")
+    .screenshot({ path: info.outputPath("branding-studio.png"), scale: "css" });
   await expect(page.locator('input[type="file"][accept*="image"]')).toHaveCount(
     0,
   );
@@ -205,6 +207,9 @@ test("Gallery branding previews accessibly and survives draft, JSON and package 
       mimeType: "application/zip",
       buffer: zipBytes,
     });
+  await page
+    .getByRole("button", { name: "Verify Blueprint", exact: true })
+    .click();
   await expect(
     page.getByRole("heading", { name: "Review Blueprint", exact: true }),
   ).toBeFocused();
