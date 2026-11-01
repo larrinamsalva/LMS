@@ -11,6 +11,7 @@ import {
   requireDemoOrg,
   runtime as demoRuntime,
   startDemo,
+  previewBuildPlan,
 } from "../../../server/demo";
 export const runtime = "nodejs";
 const headers = {
@@ -21,6 +22,31 @@ const org = z.uuid();
 const rev = z.number().int().min(1);
 const command = z.discriminatedUnion("action", [
   z.object({ action: z.literal("start") }).strict(),
+  z
+    .object({
+      action: z.literal("save-plan"),
+      organizationId: org,
+      document: z.unknown(),
+      id: org,
+      revision: z.number().int().min(0).max(19),
+      baseRevision: rev,
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("publish-plan"),
+      organizationId: org,
+      input: z.unknown(),
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("preview-plan"),
+      organizationId: org,
+      document: z.unknown(),
+      operationId: org,
+    })
+    .strict(),
   z
     .object({
       action: z.literal("save"),
@@ -136,6 +162,31 @@ export async function POST(request: NextRequest) {
         : input.organizationId;
     requireDemoOrg(session, organizationId);
     const { engine } = await demoRuntime();
+    let previewOrganizationId: string | undefined;
+    if (input.action === "save-plan")
+      await engine.saveBuildPlan(
+        session.principal,
+        organizationId,
+        input.document,
+        input.id,
+        input.revision,
+        input.baseRevision,
+      );
+    if (input.action === "publish-plan")
+      await engine.publishBuildPlan(
+        session.principal,
+        organizationId,
+        input.input,
+      );
+    if (input.action === "preview-plan")
+      previewOrganizationId = (
+        await previewBuildPlan(
+          session,
+          organizationId,
+          input.document,
+          input.operationId,
+        )
+      ).id;
     if (input.action === "save")
       await engine.saveRecord(
         session.principal,
@@ -164,6 +215,7 @@ export async function POST(request: NextRequest) {
       );
     const response = NextResponse.json(
       {
+        ...(previewOrganizationId ? { previewOrganizationId } : {}),
         session: {
           organizations: session.organizations,
           expiresAt: session.expiresAt,

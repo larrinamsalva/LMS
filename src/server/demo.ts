@@ -5,10 +5,18 @@ import { seedInventory } from "../presets/inventory-samples";
 import { seedPricing } from "../presets/pricing-samples";
 import { seedSchedule } from "../presets/schedule-samples";
 import { presets, sampleRecords } from "../presets";
+import { validateBuildPlan } from "../core/buildplan";
 import { createDatabase, sqlDatabase } from "./database";
+export interface DemoOrganization {
+  id: string;
+  industry: "property" | "cleaning" | "custom";
+  name?: string;
+  preview?: boolean;
+}
 export interface DemoSession {
   principal: Principal;
-  organizations: { id: string; industry: "property" | "cleaning" }[];
+  organizations: DemoOrganization[];
+  previews: Map<string, { request: string; result: Promise<DemoOrganization> }>;
   expiresAt: number;
 }
 type Runtime = {
@@ -107,6 +115,7 @@ export async function startDemo() {
     const session = {
       principal,
       organizations,
+      previews: new Map(),
       expiresAt: Date.now() + lifetime,
     };
     rt.sessions.set(token, session);
@@ -128,4 +137,71 @@ export async function findSession(token: string | undefined) {
 export function requireDemoOrg(session: DemoSession, org: string) {
   if (!session.organizations.some((o) => o.id === org))
     throw new EngineError("Demo workspace unavailable.", 403);
+}
+
+/** Demo-only provisioning. It always uses the private, in-memory runtime, never a configured PostgreSQL URL. */
+export async function previewBuildPlan(
+  session: DemoSession,
+  sourceOrganization: string,
+  input: unknown,
+  operationId: string,
+) {
+  requireDemoOrg(session, sourceOrganization);
+  const plan = validateBuildPlan(input),
+    request = JSON.stringify({ sourceOrganization, plan });
+  const previous = session.previews.get(operationId);
+  if (previous) {
+    if (previous.request !== request)
+      throw new EngineError(
+        "This preview operation belongs to different choices.",
+        409,
+      );
+    return previous.result;
+  }
+  if (session.previews.size >= 3)
+    throw new EngineError(
+      "This temporary session supports three fresh previews. Reopen an existing preview or start again after the session ends.",
+      409,
+    );
+  const result = (async () => {
+    const rt = await runtime();
+    const source = await rt.engine.snapshot(
+      session.principal,
+      sourceOrganization,
+    );
+    if (!["owner", "admin"].includes(source.role))
+      throw new EngineError("Only owners/admins can create previews.", 403);
+    const org: DemoOrganization = {
+      id: randomUUID(),
+      industry: plan.template,
+      name: plan.configuration.name,
+      preview: true,
+    };
+    await rt.db.transaction(async (tx) => {
+      await tx.query("select set_config('lms.user_id',$1,true)", [
+        session.principal.userId,
+      ]);
+      await tx.query("insert into lms.organizations values($1,$2)", [
+        org.id,
+        plan.configuration.name,
+      ]);
+      await tx.query("insert into lms.memberships values($1,$2,'owner')", [
+        org.id,
+        session.principal.userId,
+      ]);
+      await tx.query(
+        "insert into lms.config_revisions(organization_id,revision,document,created_by)values($1,1,$2,$3)",
+        [org.id, plan.configuration, session.principal.userId],
+      );
+    });
+    session.organizations.push(org);
+    return org;
+  })();
+  session.previews.set(operationId, { request, result });
+  try {
+    return await result;
+  } catch (error) {
+    session.previews.delete(operationId);
+    throw error;
+  }
 }

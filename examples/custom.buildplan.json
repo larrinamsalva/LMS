@@ -1,0 +1,830 @@
+{
+  "format": "lms-build-plan",
+  "version": 1,
+  "engineApi": 1,
+  "templateVersion": 1,
+  "template": "custom",
+  "configuration": {
+    "schemaVersion": 1,
+    "id": "custom-starter",
+    "name": "My fictional business",
+    "timeZone": "America/Los_Angeles",
+    "industry": "custom",
+    "modules": [
+      {
+        "id": "customers",
+        "version": "1.0.0"
+      },
+      {
+        "id": "tasks",
+        "version": "1.0.0"
+      },
+      {
+        "id": "inventory",
+        "version": "1.0.0"
+      },
+      {
+        "id": "scheduling",
+        "version": "1.0.0"
+      },
+      {
+        "id": "workforce",
+        "version": "1.0.0"
+      },
+      {
+        "id": "estimates",
+        "version": "1.0.0"
+      }
+    ],
+    "entities": [
+      {
+        "id": "customers",
+        "module": "customers",
+        "singular": "Customer",
+        "plural": "Customers",
+        "titleField": "name",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Name",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "email",
+            "label": "Email",
+            "type": "email",
+            "required": false
+          },
+          {
+            "key": "phone",
+            "label": "Phone",
+            "type": "text",
+            "required": false
+          },
+          {
+            "key": "notes",
+            "label": "Notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "tasks",
+        "module": "tasks",
+        "singular": "Work item",
+        "plural": "Work items",
+        "titleField": "title",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Task title",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "customer",
+            "label": "Customer",
+            "type": "reference",
+            "required": false,
+            "target": "customers"
+          },
+          {
+            "key": "status",
+            "label": "Status",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Open",
+              "In progress",
+              "Done"
+            ]
+          },
+          {
+            "key": "due",
+            "label": "Due date",
+            "type": "date",
+            "required": false
+          },
+          {
+            "key": "notes",
+            "label": "Notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "items",
+        "module": "inventory",
+        "singular": "Supply item",
+        "plural": "Supply catalog",
+        "titleField": "name",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Item name",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "unit",
+            "label": "Unit / package",
+            "type": "text",
+            "required": false
+          },
+          {
+            "key": "notes",
+            "label": "Reorder notes",
+            "type": "longtext",
+            "required": false
+          },
+          {
+            "key": "category",
+            "label": "Product category",
+            "type": "text",
+            "required": false
+          },
+          {
+            "key": "sku",
+            "label": "SKU",
+            "type": "text",
+            "required": false
+          },
+          {
+            "key": "barcode",
+            "label": "Barcode",
+            "type": "text",
+            "required": false
+          },
+          {
+            "key": "case_size",
+            "label": "Units per case",
+            "type": "stock",
+            "required": false
+          },
+          {
+            "key": "minimum",
+            "label": "Minimum stock per location",
+            "type": "stock",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "stock-locations",
+        "module": "inventory",
+        "singular": "Storage location",
+        "plural": "Storage locations",
+        "titleField": "name",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Location name",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Location notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "stock-movements",
+        "module": "inventory",
+        "singular": "Stock movement",
+        "plural": "Stock movements",
+        "titleField": "title",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Movement title",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "product",
+            "label": "Product",
+            "type": "reference",
+            "required": true,
+            "target": "items"
+          },
+          {
+            "key": "product_revision",
+            "label": "Selected product revision",
+            "type": "number",
+            "required": true
+          },
+          {
+            "key": "action",
+            "label": "Stock action",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Receiving",
+              "Usage",
+              "Transfer",
+              "Return",
+              "Adjustment increase",
+              "Adjustment decrease"
+            ]
+          },
+          {
+            "key": "quantity",
+            "label": "Quantity",
+            "type": "stock",
+            "required": true
+          },
+          {
+            "key": "package",
+            "label": "Quantity packaging",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Units",
+              "Cases"
+            ]
+          },
+          {
+            "key": "location",
+            "label": "Storage location",
+            "type": "reference",
+            "required": true,
+            "target": "stock-locations"
+          },
+          {
+            "key": "destination",
+            "label": "Transfer destination",
+            "type": "reference",
+            "required": false,
+            "target": "stock-locations"
+          },
+          {
+            "key": "occurred_on",
+            "label": "Movement date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "work",
+            "label": "Linked maintenance request",
+            "type": "reference",
+            "required": false,
+            "target": "tasks"
+          },
+          {
+            "key": "correction",
+            "label": "Corrects movement (owner/admin)",
+            "type": "reference",
+            "required": false,
+            "target": "stock-movements"
+          },
+          {
+            "key": "reason",
+            "label": "Movement reason",
+            "type": "longtext",
+            "required": true
+          }
+        ]
+      },
+      {
+        "id": "resources",
+        "module": "scheduling",
+        "singular": "Worker or resource",
+        "plural": "Workers & resources",
+        "titleField": "name",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Resource name",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "kind",
+            "label": "Resource type",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Crew",
+              "Worker",
+              "Equipment"
+            ]
+          },
+          {
+            "key": "notes",
+            "label": "Resource notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "appointments",
+        "module": "scheduling",
+        "singular": "Maintenance appointment",
+        "plural": "Maintenance appointments",
+        "titleField": "title",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Appointment title",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "customer",
+            "label": "Customer",
+            "type": "reference",
+            "required": true,
+            "target": "customers"
+          },
+          {
+            "key": "work",
+            "label": "Maintenance request",
+            "type": "reference",
+            "required": true,
+            "target": "tasks"
+          },
+          {
+            "key": "resource",
+            "label": "Assigned worker / resource",
+            "type": "reference",
+            "required": true,
+            "target": "resources"
+          },
+          {
+            "key": "start",
+            "label": "Start time",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "End time",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "scheduled_date",
+            "label": "Scheduled date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "time_zone",
+            "label": "Booking time zone",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "status",
+            "label": "Appointment status",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Scheduled",
+              "In progress",
+              "Completed",
+              "Cancelled"
+            ]
+          },
+          {
+            "key": "notes",
+            "label": "Appointment notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "employees",
+        "module": "workforce",
+        "singular": "Employee profile",
+        "plural": "Employees",
+        "titleField": "name",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Employee name",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "role",
+            "label": "Work role",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "skills",
+            "label": "Skills",
+            "type": "longtext",
+            "required": false
+          },
+          {
+            "key": "status",
+            "label": "Employee status",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Active",
+              "Inactive"
+            ]
+          },
+          {
+            "key": "email",
+            "label": "Contact email",
+            "type": "email",
+            "required": false
+          },
+          {
+            "key": "phone",
+            "label": "Contact phone",
+            "type": "text",
+            "required": false
+          },
+          {
+            "key": "notes",
+            "label": "Profile notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "resource-memberships",
+        "module": "workforce",
+        "singular": "Dated membership",
+        "plural": "Dated memberships",
+        "titleField": "title",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Membership title",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "employee",
+            "label": "Employee",
+            "type": "reference",
+            "required": true,
+            "target": "employees"
+          },
+          {
+            "key": "resource",
+            "label": "Worker or crew",
+            "type": "reference",
+            "required": true,
+            "target": "resources"
+          },
+          {
+            "key": "start",
+            "label": "Effective start",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Effective end",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "time_zone",
+            "label": "Membership time zone",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Membership notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "availability",
+        "module": "workforce",
+        "singular": "Availability period",
+        "plural": "Availability periods",
+        "titleField": "title",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Period title",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "employee",
+            "label": "Employee",
+            "type": "reference",
+            "required": false,
+            "target": "employees"
+          },
+          {
+            "key": "resource",
+            "label": "Resource",
+            "type": "reference",
+            "required": false,
+            "target": "resources"
+          },
+          {
+            "key": "kind",
+            "label": "Period type",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Working hours",
+              "Day off",
+              "Vacation",
+              "Unavailable"
+            ]
+          },
+          {
+            "key": "start",
+            "label": "Period start",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "end",
+            "label": "Period end",
+            "type": "datetime",
+            "required": true
+          },
+          {
+            "key": "time_zone",
+            "label": "Period time zone",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Availability notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "pricing-zones",
+        "module": "estimates",
+        "singular": "Pricing zone",
+        "plural": "Pricing zones",
+        "titleField": "name",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Area name",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "description",
+            "label": "Area description",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "services",
+        "module": "estimates",
+        "singular": "Service",
+        "plural": "Services",
+        "titleField": "name",
+        "fields": [
+          {
+            "key": "name",
+            "label": "Service name",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "description",
+            "label": "Service description",
+            "type": "longtext",
+            "required": false
+          },
+          {
+            "key": "category",
+            "label": "Service category",
+            "type": "text",
+            "required": false
+          },
+          {
+            "key": "mode",
+            "label": "Pricing method",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Fixed",
+              "Hourly",
+              "Per unit",
+              "Quantity"
+            ]
+          },
+          {
+            "key": "unit",
+            "label": "Pricing unit",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "kind",
+            "label": "Service kind",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Service",
+              "Extra"
+            ]
+          },
+          {
+            "key": "parent",
+            "label": "Extra for service",
+            "type": "reference",
+            "required": false,
+            "target": "services"
+          },
+          {
+            "key": "notes",
+            "label": "Service notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "service-rates",
+        "module": "estimates",
+        "singular": "Service rate",
+        "plural": "Rates",
+        "titleField": "title",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Rate title",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "service",
+            "label": "Service",
+            "type": "reference",
+            "required": true,
+            "target": "services"
+          },
+          {
+            "key": "zone",
+            "label": "Pricing zone",
+            "type": "reference",
+            "required": true,
+            "target": "pricing-zones"
+          },
+          {
+            "key": "amount",
+            "label": "Unit price (USD)",
+            "type": "money",
+            "required": true
+          },
+          {
+            "key": "effective_from",
+            "label": "Effective from",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "effective_until",
+            "label": "Effective until (exclusive)",
+            "type": "date",
+            "required": false
+          },
+          {
+            "key": "notes",
+            "label": "Rate notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "estimates",
+        "module": "estimates",
+        "singular": "Estimate draft",
+        "plural": "Estimates",
+        "titleField": "title",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Estimate title",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "customer",
+            "label": "Customer",
+            "type": "reference",
+            "required": true,
+            "target": "customers"
+          },
+          {
+            "key": "work",
+            "label": "Maintenance request",
+            "type": "reference",
+            "required": false,
+            "target": "tasks"
+          },
+          {
+            "key": "appointment",
+            "label": "Appointment",
+            "type": "reference",
+            "required": false,
+            "target": "appointments"
+          },
+          {
+            "key": "zone",
+            "label": "Pricing zone",
+            "type": "reference",
+            "required": true,
+            "target": "pricing-zones"
+          },
+          {
+            "key": "as_of",
+            "label": "Pricing date",
+            "type": "date",
+            "required": true
+          },
+          {
+            "key": "status",
+            "label": "Draft status",
+            "type": "select",
+            "required": true,
+            "options": [
+              "Draft",
+              "Reviewed draft",
+              "Void"
+            ]
+          },
+          {
+            "key": "pricing",
+            "label": "Pricing details",
+            "type": "estimate",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Estimate notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      },
+      {
+        "id": "custom-notes",
+        "module": "custom-records",
+        "singular": "Custom note",
+        "plural": "Custom notes",
+        "titleField": "title",
+        "fields": [
+          {
+            "key": "title",
+            "label": "Title",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "notes",
+            "label": "Notes",
+            "type": "longtext",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "navigation": [
+      "customers",
+      "tasks",
+      "resources",
+      "appointments",
+      "employees",
+      "resource-memberships",
+      "availability",
+      "pricing-zones",
+      "services",
+      "service-rates",
+      "estimates",
+      "items",
+      "stock-locations",
+      "stock-movements"
+    ]
+  }
+}

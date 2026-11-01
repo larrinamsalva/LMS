@@ -334,6 +334,7 @@ beforeAll(async () => {
       "008_workforce_availability",
       "009_service_estimates",
       "010_inventory_ledger",
+      "011_build_plan_studio",
     ]);
     expect(await business(source)).toEqual(before);
   } finally {
@@ -824,6 +825,7 @@ describe("external credential lineage with native PostgreSQL and offline witness
         "008_workforce_availability",
         "009_service_estimates",
         "010_inventory_ledger",
+        "011_build_plan_studio",
       ]);
       expect(
         (

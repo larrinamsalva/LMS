@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  validateBuildPlan,
+  publishPlanConfirmation,
+  type BuildPlanRevision,
+} from "./buildplan";
 import { TimeError } from "./time";
 import { workforceEntities, type StaffAssignment } from "./workforce";
 import {
@@ -10,6 +15,7 @@ import { recordWriteRoles, movementWriteRoles } from "./permissions";
 import { PricingError, pricingEntities, type EstimateVersion } from "./pricing";
 import {
   activeEntities,
+  configurationImpact,
   getEntity,
   validateConfig,
   validateRecord,
@@ -250,6 +256,135 @@ export class Engine {
       ).rows,
     };
   }
+  private async hasBuildPlans(tx: SqlConnection) {
+    return (
+      await tx.query<{ present: boolean }>(
+        "select to_regclass('lms.build_plan_revisions') is not null as present",
+      )
+    ).rows[0].present;
+  }
+  private async requireBuildPlans(tx: SqlConnection) {
+    if (!(await this.hasBuildPlans(tx)))
+      throw new EngineError(
+        "Stop hosts and apply migration 11 before saving BuildPlans.",
+        409,
+      );
+  }
+  private async buildPlanHistory(tx: SqlConnection, organizationId: string) {
+    return (await this.hasBuildPlans(tx))
+      ? (
+          await tx.query<BuildPlanRevision>(
+            "select id,revision,base_revision,document,created_by,created_at from lms.build_plan_revisions where organization_id=$1 order by created_at desc,id,revision desc",
+            [organizationId],
+          )
+        ).rows
+      : [];
+  }
+  async saveBuildPlan(
+    principal: Principal,
+    organizationId: string,
+    document: unknown,
+    draftId: string,
+    expectedRevision: number,
+    baseRevision: number,
+  ) {
+    const clean = validateBuildPlan(document);
+    id.parse(draftId);
+    z.number().int().min(0).max(19).parse(expectedRevision);
+    revision.parse(baseRevision);
+    return this.asUser(principal, async (tx) => {
+      await this.requireRole(tx, organizationId, ["owner", "admin"]);
+      await this.requireBuildPlans(tx);
+      await tx.query(
+        "select id from lms.organizations where id=$1 for update",
+        [organizationId],
+      );
+      const replay = (
+        await tx.query<BuildPlanRevision & { matches: boolean }>(
+          "select *,document=$4::jsonb and base_revision=$5 and created_by=lms.current_user_id() as matches from lms.build_plan_revisions where organization_id=$1 and id=$2 and revision=$3",
+          [organizationId, draftId, expectedRevision + 1, clean, baseRevision],
+        )
+      ).rows[0];
+      if (replay) {
+        if (!replay.matches)
+          throw new EngineError(
+            "BuildPlan changed or this revision belongs to another request.",
+            409,
+          );
+        return replay;
+      }
+      const latest = (
+        await tx.query<{ revision: number }>(
+          "select coalesce(max(revision),0)::int as revision from lms.build_plan_revisions where organization_id=$1 and id=$2",
+          [organizationId, draftId],
+        )
+      ).rows[0].revision;
+      if (latest !== expectedRevision)
+        throw new EngineError(
+          "BuildPlan changed; reopen the latest revision before saving.",
+          409,
+        );
+      return (
+        await tx.query<BuildPlanRevision>(
+          "insert into lms.build_plan_revisions(organization_id,id,revision,base_revision,document,created_by)values($1,$2,$3,$4,$5,$6)returning *",
+          [
+            organizationId,
+            draftId,
+            expectedRevision + 1,
+            baseRevision,
+            clean,
+            principal.userId,
+          ],
+        )
+      ).rows[0];
+    }).catch(recordFailure);
+  }
+  async publishBuildPlan(
+    principal: Principal,
+    organizationId: string,
+    input: unknown,
+  ) {
+    const selected = z
+      .object({
+        id: z.uuid(),
+        revision: z.number().int().min(1).max(20),
+        configRevision: revision,
+        confirmation: z.literal(publishPlanConfirmation),
+      })
+      .strict()
+      .parse(input);
+    return this.asUser(principal, async (tx) => {
+      await this.requireRole(tx, organizationId, ["owner", "admin"]);
+      await this.requireBuildPlans(tx);
+      await tx.query(
+        "select id from lms.organizations where id=$1 for update",
+        [organizationId],
+      );
+      const latest = (
+        await tx.query<BuildPlanRevision>(
+          "select * from lms.build_plan_revisions where organization_id=$1 and id=$2 order by revision desc limit 1",
+          [organizationId, selected.id],
+        )
+      ).rows[0];
+      if (
+        !latest ||
+        latest.revision !== selected.revision ||
+        latest.base_revision !== selected.configRevision
+      )
+        throw new EngineError(
+          "Review and save the latest BuildPlan against the current configuration before publishing.",
+          409,
+        );
+      const plan = validateBuildPlan(latest.document);
+      return this.publishInTransaction(
+        tx,
+        principal,
+        organizationId,
+        plan.configuration,
+        selected.configRevision,
+      );
+    }).catch(recordFailure);
+  }
   private async command(
     tx: SqlConnection,
     organizationId: string,
@@ -318,6 +453,13 @@ export class Engine {
         records,
         history,
         audit,
+        populatedEntities: (
+          await tx.query<{ entity: string }>(
+            "select distinct entity from lms.records where organization_id=$1 order by entity",
+            [organizationId],
+          )
+        ).rows.map((r) => r.entity),
+        buildPlans: await this.buildPlanHistory(tx, organizationId),
         staffAssignments: await this.staffHistory(tx, organizationId),
         estimateVersions: await this.estimateHistory(tx, organizationId),
         ...(await this.inventoryHistory(tx, organizationId)),
@@ -504,85 +646,87 @@ export class Engine {
   ) {
     const config = validateConfig(document);
     revision.parse(expectedRevision);
-    return this.asUser(principal, async (tx) => {
-      await this.requireRole(tx, organizationId, ["owner", "admin"]);
-      await tx.query(
-        "select id from lms.organizations where id=$1 for update",
+    return this.asUser(principal, (tx) =>
+      this.publishInTransaction(
+        tx,
+        principal,
+        organizationId,
+        config,
+        expectedRevision,
+        restoredFrom,
+      ),
+    );
+  }
+  private async publishInTransaction(
+    tx: SqlConnection,
+    principal: Principal,
+    organizationId: string,
+    config: BusinessConfig,
+    expectedRevision: number,
+    restoredFrom?: number,
+  ) {
+    await this.requireRole(tx, organizationId, ["owner", "admin"]);
+    await tx.query("select id from lms.organizations where id=$1 for update", [
+      organizationId,
+    ]);
+    const current = await this.current(tx, organizationId);
+    if (config.modules.some((m) => m.id === "workforce"))
+      await this.requireWorkforce(tx);
+    if (config.modules.some((m) => m.id === "estimates"))
+      await this.requirePricing(tx);
+    if (
+      config.entities.some((e) =>
+        ["stock-locations", "stock-movements"].includes(e.id),
+      ) &&
+      config.modules.some((m) => m.id === "inventory")
+    )
+      await this.requireInventory(tx);
+    if (current.revision !== expectedRevision)
+      throw new EngineError(
+        "Configuration changed. Reload before publishing.",
+        409,
+      );
+    if (current.revision >= 40)
+      throw new EngineError("Demo configuration history limit reached.", 409);
+    const populated = (
+      await tx.query<{ entity: string }>(
+        "select distinct entity from lms.records where organization_id=$1",
         [organizationId],
-      );
-      const current = await this.current(tx, organizationId);
-      if (config.modules.some((m) => m.id === "workforce"))
-        await this.requireWorkforce(tx);
-      if (config.modules.some((m) => m.id === "estimates"))
-        await this.requirePricing(tx);
-      if (
-        config.entities.some((e) =>
-          ["stock-locations", "stock-movements"].includes(e.id),
-        ) &&
-        config.modules.some((m) => m.id === "inventory")
       )
-        await this.requireInventory(tx);
-      if (current.revision !== expectedRevision)
-        throw new EngineError(
-          "Configuration changed. Reload before publishing.",
-          409,
-        );
-      if (current.revision >= 40)
-        throw new EngineError("Demo configuration history limit reached.", 409);
-      if (
-        config.id !== current.document.id ||
-        config.industry !== current.document.industry
-      )
-        throw new EngineError("Project identity is immutable.");
-      for (const old of current.document.entities) {
-        const next = config.entities.find((e) => e.id === old.id);
-        const populated =
-          (
-            await tx.query<{ count: number }>(
-              "select count(*)::int as count from lms.records where organization_id=$1 and entity=$2",
-              [organizationId, old.id],
-            )
-          ).rows[0].count > 0;
-        if (
-          populated &&
-          (!next ||
-            next.module !== old.module ||
-            JSON.stringify(next.fields) !== JSON.stringify(old.fields) ||
-            next.titleField !== old.titleField)
-        )
-          throw new EngineError(
-            "Populated entity fields require a reviewed schema migration. Disable the module to retain its records.",
-          );
-      }
-      if (restoredFrom !== undefined) {
-        revision.parse(restoredFrom);
-        const target = (
-          await tx.query<ConfigRevision>(
-            "select revision,document,restored_from from lms.config_revisions where organization_id=$1 and revision=$2",
-            [organizationId, restoredFrom],
-          )
-        ).rows[0];
-        if (
-          !target ||
-          JSON.stringify(validateConfig(target.document)) !==
-            JSON.stringify(config)
-        )
-          throw new EngineError(
-            "Rollback must match a retained configuration.",
-          );
-      }
-      await tx.query(
-        "insert into lms.config_revisions(organization_id,revision,document,restored_from,created_by) values($1,$2,$3,$4,$5)",
-        [
-          organizationId,
-          current.revision + 1,
-          config,
-          restoredFrom ?? null,
-          principal.userId,
-        ],
+    ).rows.map((r) => r.entity);
+    const impact = configurationImpact(current.document, config, populated);
+    if (impact.identityChanged)
+      throw new EngineError("Project identity is immutable.");
+    if (impact.migrationEntities.length)
+      throw new EngineError(
+        "Populated entity fields require a reviewed schema migration. Disable the module to retain its records.",
       );
-      return current.revision + 1;
-    });
+    if (restoredFrom !== undefined) {
+      revision.parse(restoredFrom);
+      const target = (
+        await tx.query<ConfigRevision>(
+          "select revision,document,restored_from from lms.config_revisions where organization_id=$1 and revision=$2",
+          [organizationId, restoredFrom],
+        )
+      ).rows[0];
+      if (
+        !target ||
+        JSON.stringify(validateConfig(target.document)) !==
+          JSON.stringify(config)
+      )
+        throw new EngineError("Rollback must match a retained configuration.");
+    }
+    await tx.query(
+      "insert into lms.config_revisions(organization_id,revision,document,restored_from,created_by) values($1,$2,$3,$4,$5)",
+      [
+        organizationId,
+        current.revision + 1,
+        config,
+        restoredFrom ?? null,
+        principal.userId,
+      ],
+    );
+    return current.revision + 1;
   }
   async exportWorkspace(principal: Principal, organizationId: string) {
     return this.asUser(principal, async (tx) => {
@@ -611,6 +755,7 @@ export class Engine {
         records,
         staffAssignments: await this.staffHistory(tx, organizationId),
         estimateVersions: await this.estimateHistory(tx, organizationId),
+        buildPlans: await this.buildPlanHistory(tx, organizationId),
         ...(await this.inventoryHistory(tx, organizationId)),
       };
     });
