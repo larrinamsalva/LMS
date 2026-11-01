@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { DataImpactReview, type ReviewImpact } from "./migration-review";
+import type { MigrationReview } from "../core/migration-review";
 import type { WorkspaceSnapshot } from "../core/engine";
 import {
   configurationImpact,
@@ -393,6 +395,7 @@ export function BuildPlanStudio({
   onSave,
   onPublish,
   onPreview,
+  onReview,
 }: {
   workspace: WorkspaceSnapshot;
   busy: boolean;
@@ -404,12 +407,14 @@ export function BuildPlanStudio({
   ) => Promise<void>;
   onPublish: (input: unknown) => Promise<void>;
   onPreview: (plan: BuildPlan, operationId: string) => Promise<string>;
+  onReview: ReviewImpact;
 }) {
   const [start] = useState(() => initial(workspace)),
     [plan, setPlan] = useState(start.plan),
     [step, setStep] = useState(0),
     [browsing, setBrowsing] = useState(false),
     [updates, setUpdates] = useState<TemplateUpdateSession | null>(null),
+    [dataImpact, setDataImpact] = useState<MigrationReview | null>(null),
     [startingPoint, setStartingPoint] = useState<{
       id: string;
       revision: number;
@@ -441,7 +446,7 @@ export function BuildPlanStudio({
     heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     heading.current?.focus();
-  }, [step, browsing, reviewing, updates]);
+  }, [step, browsing, reviewing, updates, dataImpact]);
   let valid: BuildPlan | undefined,
     validation = "";
   try {
@@ -536,6 +541,15 @@ export function BuildPlanStudio({
         (other) => other.id === item.id && other.revision > item.revision,
       ),
   );
+  if (dataImpact)
+    return (
+      <DataImpactReview
+        initial={dataImpact}
+        onReview={onReview}
+        onBack={() => setDataImpact(null)}
+        onPreview={preparePreview}
+      />
+    );
   if (browsing)
     return (
       <BuildPlanGallery
@@ -677,6 +691,25 @@ export function BuildPlanStudio({
           }
         >
           Check for Template Updates
+        </button>
+        <button
+          type="button"
+          className="secondary"
+          disabled={working || !valid}
+          onClick={() =>
+            void run(async () => {
+              setDataImpact(
+                await onReview({
+                  document: validateBuildPlan(plan),
+                  ...(draftId && draftRevision > 0
+                    ? { draft: { id: draftId, revision: draftRevision } }
+                    : {}),
+                }),
+              );
+            })
+          }
+        >
+          Review Data Impact
         </button>
         {startingPoint && !draftId && (
           <section className="studio-review">

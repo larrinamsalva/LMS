@@ -62,4 +62,6 @@ No new SQL migration, permission, endpoint or operation receipt format is introd
 
 This phase supports selective configuration replacement, not automatic merging or arbitrary schema upgrades. There is no durable portable ancestry receipt, signed template publisher, remote latest-version assurance, field migration executor, custom entity/core-contract update, or automatic refresh of deployed applications. Updating one choice does not mark an entire starter edition as adopted: subsequent checks still compare from the retained exact baseline, showing any choices you deliberately kept. Saved drafts remain bounded and temporary in the public demo; export before expiry/restart.
 
+Studio's separate [Review Data Impact](migration-planning.md) explains a proposal against published configuration and current authorized population metadata. It can preview and export a planning report but supplies no schema-migration executor or publication bypass.
+
 [Verification and screenshots](template-history-verification.md) · [Studio](buildplan-studio.md) · [Packages](blueprint-packages.md) · [Security](../SECURITY.md) · [Roadmap](../ROADMAP.md).

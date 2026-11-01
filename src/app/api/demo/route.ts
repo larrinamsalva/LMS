@@ -24,6 +24,13 @@ const command = z.discriminatedUnion("action", [
   z.object({ action: z.literal("start") }).strict(),
   z
     .object({
+      action: z.literal("review-impact"),
+      organizationId: org,
+      input: z.unknown(),
+    })
+    .strict(),
+  z
+    .object({
       action: z.literal("save-plan"),
       organizationId: org,
       document: z.unknown(),
@@ -163,6 +170,17 @@ export async function POST(request: NextRequest) {
     requireDemoOrg(session, organizationId);
     const { engine } = await demoRuntime();
     let previewOrganizationId: string | undefined;
+    if (input.action === "review-impact")
+      return NextResponse.json(
+        {
+          migrationReview: await engine.reviewBuildPlanImpact(
+            session.principal,
+            organizationId,
+            input.input,
+          ),
+        },
+        { headers },
+      );
     if (input.action === "save-plan")
       await engine.saveBuildPlan(
         session.principal,

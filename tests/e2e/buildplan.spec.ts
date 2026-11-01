@@ -270,6 +270,7 @@ test("property publication protects populated schemas and history; custom templa
     page.getByRole("heading", {
       name: "Fictional Property Studio",
       exact: true,
+      level: 1,
     }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Project & modules" }).click();

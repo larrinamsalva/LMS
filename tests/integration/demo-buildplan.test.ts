@@ -9,6 +9,7 @@ import {
 } from "../../src/server/demo";
 import { reviewedGallery, remixGalleryEntry } from "../../src/core/gallery";
 import { newBuildPlan } from "../../src/core/buildplan";
+import { planForConfig, addCustomField } from "../../src/core/buildplan";
 import { brandBuildPlan } from "../../src/core/buildplan";
 import { defaultBranding } from "../../src/core/branding";
 import {
@@ -23,6 +24,41 @@ afterAll(async () => {
   const rt = await runtime();
   await rt.db.close();
   delete (globalThis as typeof globalThis & { lmsDemo?: unknown }).lmsDemo;
+});
+it("plans populated-field impact and previews only empty fictional records without changing source data, drafts or histories", async () => {
+  const { session } = await startDemo(),
+    rt = await runtime(),
+    source = session.organizations[0].id;
+  const before = await rt.engine.snapshot(session.principal, source),
+    plan = planForConfig(before.config.document);
+  plan.configuration = addCustomField(plan.configuration, "customers", {
+    key: "extra_impact",
+    label: "Planning only",
+    type: "text",
+    required: false,
+  });
+  const review = await rt.engine.reviewBuildPlanImpact(
+    session.principal,
+    source,
+    { document: plan },
+  );
+  expect(review.overall).toBe("migration-review");
+  const checked = await rt.engine.reviewBuildPlanImpact(
+    session.principal,
+    source,
+    { document: plan, expected: review.state },
+  );
+  const preview = await previewBuildPlan(
+    session,
+    source,
+    checked.proposed,
+    randomUUID(),
+  );
+  const generated = await rt.engine.snapshot(session.principal, preview.id);
+  expect(generated.config.document).toEqual(plan.configuration);
+  expect(generated.records).toEqual([]);
+  expect(generated.buildPlans).toEqual([]);
+  expect(await rt.engine.snapshot(session.principal, source)).toEqual(before);
 });
 it("previews explicitly reviewed template choices through the same isolated Engine without changing source history", async () => {
   const { session } = await startDemo(),
