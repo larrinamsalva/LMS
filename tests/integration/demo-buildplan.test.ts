@@ -11,10 +11,48 @@ import { reviewedGallery, remixGalleryEntry } from "../../src/core/gallery";
 import { newBuildPlan } from "../../src/core/buildplan";
 import { brandBuildPlan } from "../../src/core/buildplan";
 import { defaultBranding } from "../../src/core/branding";
+import {
+  reviewedTemplateHistory,
+  latestTemplate,
+} from "../../src/core/template-history";
+import {
+  reviewTemplateUpdate,
+  useTemplateChanges,
+} from "../../src/core/template-update";
 afterAll(async () => {
   const rt = await runtime();
   await rt.db.close();
   delete (globalThis as typeof globalThis & { lmsDemo?: unknown }).lmsDemo;
+});
+it("previews explicitly reviewed template choices through the same isolated Engine without changing source history", async () => {
+  const { session } = await startDemo(),
+    rt = await runtime(),
+    source = session.organizations[0].id,
+    before = await rt.engine.snapshot(session.principal, source),
+    history = await reviewedTemplateHistory(),
+    base = history.find(
+      (h) =>
+        h.entry.metadata.id === "property-maintenance" &&
+        h.entry.metadata.revision === 1,
+    )!,
+    review = reviewTemplateUpdate(
+      base.entry.plan,
+      latestTemplate(history, "property-maintenance")!,
+      undefined,
+      1,
+    );
+  const plan = useTemplateChanges(review, ["branding"], {
+    current: base.entry.plan,
+    config: before.config.document,
+    populated: before.populatedEntities,
+    revision: 1,
+    allowVersionChange: true,
+  });
+  const preview = await previewBuildPlan(session, source, plan, randomUUID());
+  expect(
+    (await rt.engine.snapshot(session.principal, preview.id)).config.document,
+  ).toEqual(plan.configuration);
+  expect(await rt.engine.snapshot(session.principal, source)).toEqual(before);
 });
 it("previews exact branded configuration through the shared Engine without changing the source workspace", async () => {
   const { session } = await startDemo(),

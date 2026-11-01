@@ -40,6 +40,8 @@ The collection is constructed from the same property/cleaning/custom builders an
 
 The [blueprint package extension](blueprint-packages.md) retains an optional Gallery ID/revision hint outside BuildPlan v1. Studio can compare customized choices with the currently bundled reviewed starter, including a newer revision when available. A package hint is unverified, never proof of origin; comparison neither merges choices nor overwrites saved plans. Export a ZIP to retain package-only details; plain saved drafts still store configuration only.
 
+[Template history and safe update review](template-history.md) retains immutable reviewed editions and separately pinned digests. Gallery defaults remain edition 1 in this phase; Basic Cleaning and Property Maintenance have explicit newer editions through **Check for Template Updates**. Exact saved starting-point content enables three-way comparison; unknown roots and imported hints remain informational. Every selected replacement requires review and becomes unsaved choices before the existing save/publication steps. This does not provide authenticated portable provenance or automatic migration.
+
 Adding a curated entry requires a source-code review: choose existing modules, resolve dependencies, declare only workflows backed by enabled modules, provide honest limitations, and run gallery, Engine, PostgreSQL and responsive browser checks. Do not change the portable envelope to carry gallery branding/provenance without a separately justified backward-compatible design.
 
 ## Previews and security
