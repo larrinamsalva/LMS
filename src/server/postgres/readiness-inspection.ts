@@ -231,7 +231,8 @@ export async function observeNative(
       ${acl("c.relacl", "r", "c.relowner")},
       array(select jsonb_build_array(a.attname,format_type(a.atttypid,a.atttypmod),a.attnotnull,pg_get_expr(d.adbin,d.adrelid),${acl("a.attacl", "c", "c.relowner")}) from pg_attribute a left join pg_attrdef d on d.adrelid=a.attrelid and d.adnum=a.attnum where a.attrelid=c.oid and a.attnum>0 and not a.attisdropped order by a.attnum))::text as document
       from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname=any($1) and c.relkind='r' and c.relname<>'restore_blocker'`,
-    `select jsonb_build_array(n.nspname,c.relname,x.conname,pg_get_constraintdef(x.oid),x.convalidated)::text as document from pg_constraint x join pg_class c on c.oid=x.conrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname=any($1) and c.relname<>'restore_blocker'`,
+    // PostgreSQL's own formatter preserves precedence while normalizing equivalent AND nesting after dump/reparse.
+    `select jsonb_build_array(n.nspname,c.relname,x.conname,pg_get_constraintdef(x.oid,true),x.convalidated)::text as document from pg_constraint x join pg_class c on c.oid=x.conrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname=any($1) and c.relname<>'restore_blocker'`,
     `select to_jsonb(p)::text as document from pg_policies p where schemaname=any($1) and tablename<>'restore_blocker'`,
     `select jsonb_build_array(n.nspname,p.proname,pg_get_function_identity_arguments(p.oid),pg_get_functiondef(p.oid),${acl("p.proacl", "f", "p.proowner")})::text as document from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname=any($1)`,
     `select jsonb_build_array(n.nspname,c.relname,t.tgname,t.tgenabled,pg_get_triggerdef(t.oid))::text as document from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname=any($1) and not t.tgisinternal`,

@@ -192,6 +192,30 @@ afterAll(async () => {
   await cluster?.end();
 });
 describe("host-only native upgrade readiness", () => {
+  it("refuses a weakened restored constraint even when its name and validation status are retained", async () => {
+    const original = backup.restoreDatabase;
+    vi.spyOn(backup, "restoreDatabase").mockImplementation(
+      async (a, b, c, d, control) =>
+        original(a, b, c, d, {
+          ...control,
+          verify: async (client) => {
+            await client.query(
+              "alter table lms.service_rates drop constraint service_rates_check; alter table lms.service_rates add constraint service_rates_check check(starts_on>=date '2020-01-01')",
+            );
+            await control?.verify?.(client);
+          },
+        }),
+    );
+    const before = await sourceState(),
+      result = await nativeReadiness(options);
+    expect(result.result).toBe("blocked");
+    expect(result.checks.find((c) => c.id === "integrity")?.status).toBe(
+      "blocked",
+    );
+    expect(result.backupReadiness).toBe("not-verified");
+    expect(await sourceState()).toBe(before);
+    await blockedTarget();
+  });
   it("refuses a fresh destination with different encoding/collation before copying", async () => {
     await cluster.query(`drop database "${targetName}"`);
     await cluster.query(

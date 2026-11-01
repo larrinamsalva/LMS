@@ -75,6 +75,8 @@ Only expected differences are empty session/verification/pending-membership-revi
 
 ACL comparison expands PostgreSQL's default ACLs and compares actual table/column/function grant entries, grantors, PUBLIC entries and grant options. A NULL default and an explicit equivalent default have the same meaning; changed permissions still refuse. [PostgreSQL ACL functions](https://www.postgresql.org/docs/16/functions-info.html).
 
+Constraint definitions use PostgreSQL's own precedence-preserving formatter within the same supported server. This handles equivalent nested/flat AND groups produced by dump/reparse; constraints are not omitted or normalized by stripping parentheses. A restored constraint with removed bounds still refuses, even with its original name and validated status.
+
 After restore's lease closes, both existing runtime-lease paths must specifically refuse **activation**. Source data/history/catalog are compared again under source fences. Reports contain a neutral lab label, fixed steps/statuses, version numbers and generic remaining requirements. No URLs, passwords, operational values, raw errors, signing material, record/organization IDs, hashes, archive bytes or executable commands are included.
 
 ## Failure and future requirements
