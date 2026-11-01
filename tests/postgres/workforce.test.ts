@@ -622,6 +622,7 @@ describe("employee and crew availability with native PostgreSQL transactions", (
         "009_service_estimates",
         "010_inventory_ledger",
         "011_build_plan_studio",
+        "012_business_branding",
       ]);
       expect(await snapshot()).toEqual(before!);
       expect(

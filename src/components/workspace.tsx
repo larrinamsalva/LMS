@@ -17,6 +17,8 @@ import { RecordForm } from "./record-form";
 import { EstimateForm } from "./estimate-form";
 import { Catalog, Estimates } from "./pricing-workspace";
 import { downloadJson, ProjectPanel } from "./project-panel";
+import { brandingVariables } from "../core/branding";
+import { BusinessIdentity, BrandMark } from "./business-brand";
 type DemoResponse = {
   session: {
     organizations: {
@@ -53,7 +55,7 @@ export function Workspace({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [themeOverride, setTheme] = useState<"light" | "dark" | null>(null);
   const [view, setView] = useState<
     | "studio"
     | "records"
@@ -75,7 +77,8 @@ export function Workspace({
   useEffect(() => {
     let active = true;
     try {
-      if (localStorage.getItem("lms-theme-v1") === "dark") setTheme("dark");
+      const saved = localStorage.getItem("lms-theme-v1");
+      if (saved === "light" || saved === "dark") setTheme(saved);
     } catch {
       /* preference is optional */
     }
@@ -142,6 +145,8 @@ export function Workspace({
   }
   const workspace = data?.workspace;
   const config = workspace?.config.document;
+  const branding = config?.branding,
+    theme = themeOverride ?? branding?.appearance ?? "light";
   const entities = config ? activeEntities(config) : [];
   const entity = entities.find((e) => e.id === selected) ?? entities[0];
   const records =
@@ -190,7 +195,12 @@ export function Workspace({
     setError("");
   }
   return (
-    <div className="app" data-theme={theme}>
+    <div
+      className="app"
+      data-theme={theme}
+      data-brand={branding?.palette}
+      style={branding ? brandingVariables(branding, theme) : undefined}
+    >
       <a className="skip-link" href="#main">
         Skip to workspace
       </a>
@@ -202,12 +212,18 @@ export function Workspace({
       </div>
       <header className="topbar">
         <a className="brand" href="/" aria-label="LMS home">
-          <span className="brand-mark" aria-hidden="true">
-            L<span>•</span>
-          </span>
-          <span>
-            LMS<small>Living Management System</small>
-          </span>
+          {branding && config ? (
+            <BusinessIdentity name={config.name} branding={branding} />
+          ) : (
+            <>
+              <span className="brand-mark" aria-hidden="true">
+                L<span>•</span>
+              </span>
+              <span>
+                LMS<small>Living Management System</small>
+              </span>
+            </>
+          )}
         </a>
         <div className="topbar-actions">
           <a
@@ -313,6 +329,11 @@ export function Workspace({
       ) : (
         <div className="workspace-shell">
           <aside className="sidebar">
+            {branding && config && (
+              <div className="sidebar-identity">
+                <BusinessIdentity name={config.name} branding={branding} />
+              </div>
+            )}
             <div className="workspace-picker">
               <label htmlFor="business-workspace">Business workspace</label>
               <select
@@ -453,10 +474,18 @@ export function Workspace({
                       : "Custom operations"}{" "}
                   / Fictional workspace
                 </span>
-                <h1>{config!.name}</h1>
-                <p className="muted">
-                  A little structure. More room to get things done.
-                </p>
+                <div className={branding ? "dashboard-identity" : undefined}>
+                  {branding && <BrandMark branding={branding} />}
+                  <div>
+                    <h1>{config!.name}</h1>
+                    <p className="muted">
+                      {branding
+                        ? branding.tagline ||
+                          "Your business workspace, built with LMS."
+                        : "A little structure. More room to get things done."}
+                    </p>
+                  </div>
+                </div>
               </div>
               <span className="revision-label">
                 Configuration v{workspace!.config.revision}

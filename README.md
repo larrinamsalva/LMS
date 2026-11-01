@@ -14,6 +14,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - BuildPlan Studio: guided templates/features, safe optional fields, real Engine previews, temporary draft history and validated BuildPlan import/export.
 - Curated BuildPlan Gallery: five searchable business starters, feature/type filters, real previews and unsaved remixes through Studio.
 - Blueprint packages: download validated configuration with a feature/setup summary, then import through explicit compatibility and Gallery comparison without overwriting saved choices.
+- Business Branding Studio: built-in marks/monograms, tagline, four reviewed light/dark palettes and real branded workspace previews, with versioned draft/package persistence and rollback.
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
@@ -64,6 +65,12 @@ In **BuildPlan Studio**, choose **Browse Business Templates**. Search five revie
 In Studio, enter a fictional **Blueprint name** and **Blueprint description**, then choose **Download Blueprint Package**. The ZIP includes a validated BuildPlan, enabled modules/dependencies, version metadata, hashes and human-readable instructions. **Import Blueprint Package** opens a read-only **Review Blueprint** screen; accepting it creates unsaved Studio choices. Saved drafts, business records and published configuration stay intact until separately authorized operations.
 
 Only the strict 96 KiB LMS stored-ZIP format is accepted. Checksums detect damage, not a trusted author. Gallery revision hints are unverified and upgrades are never automatic. Existing BuildPlan v1 JSON import/export remains compatible. [Example workflow, package format and limits](docs/blueprint-packages.md) · [Verification](docs/blueprint-packages-verification.md).
+
+## Brand Your Business
+
+Open **BuildPlan Studio → Customize → Brand Your Business**. Set a fictional business name/tagline, enable branding, choose a built-in mark or initials and a coordinated primary/secondary/accent palette. Light/dark samples update immediately; **Prepare workspace preview** uses the actual Engine. Saving and publishing remain separate explicit operations.
+
+Branding persists in configuration schema 2, BuildPlan 2 and Blueprint Package 2. Existing v1 files remain supported without automatic upgrade. Existing host-only databases need migration 12; their operational records are not rewritten. Image uploads, arbitrary CSS/colors, external fonts and logo URLs are deferred. [Workflow, compatibility, palette and migration contract](docs/business-branding.md) · [Verification](docs/business-branding-verification.md).
 
 ## Customer-linked scheduling
 

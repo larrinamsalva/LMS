@@ -5,6 +5,9 @@ import { mkdtemp, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { reviewedGallery, remixGalleryEntry } from "../../src/core/gallery";
+import { brandingDrafts, brandingPublication } from "../helpers/branding";
+import { brandBuildPlan } from "../../src/core/buildplan";
+import { defaultBranding } from "../../src/core/branding";
 import {
   createBlueprintPackage,
   importBlueprintPackage,
@@ -44,7 +47,8 @@ const control = localTarget(raw, controlName),
   suffix = randomBytes(5).toString("hex"),
   name = "lms_test_buildplan_" + suffix,
   restoreName = "lms_restore_buildplan_" + suffix,
-  legacyName = "lms_test_buildplan_legacy_" + suffix;
+  legacyName = "lms_test_buildplan_legacy_" + suffix,
+  brandLegacyName = "lms_test_brand_legacy_" + suffix;
 function url(database = name, runtime = false) {
   const u = new URL(control);
   u.pathname = "/" + database;
@@ -101,7 +105,7 @@ async function org(c: Client, id: string, actor: string, config: unknown) {
 beforeAll(async () => {
   cluster = new Client({ connectionString: control.toString() });
   await cluster.connect();
-  for (const n of [name, restoreName, legacyName])
+  for (const n of [name, restoreName, legacyName, brandLegacyName])
     await cluster.query(`create database "${n}"`);
   admin = new Client({ connectionString: url() });
   await admin.connect();
@@ -139,7 +143,7 @@ afterAll(async () => {
   await db?.close();
   await admin?.end();
   if (cluster) {
-    for (const n of [name, restoreName, legacyName])
+    for (const n of [name, restoreName, legacyName, brandLegacyName])
       await cluster.query(`drop database if exists "${n}" with(force)`);
     await cluster.end();
   }
@@ -183,6 +187,136 @@ async function rawSave(
   );
 }
 describe("native BuildPlan artifacts and publication", () => {
+  it("retains branded draft revisions and role/isolation boundaries during competing edits and exact retries", async () => {
+    await brandingDrafts(engine, owner, [staff, viewer, other], a, other, b);
+  });
+  it("publishes branding under native locks and rolls back without changing stock, customers or operational history", async () => {
+    await brandingPublication(engine, owner, a, other, b);
+  });
+  it("enforces raw branding contracts and version pairings in PostgreSQL without new private-function access", async () => {
+    const safe = brandBuildPlan(
+        planForConfig(presets.property),
+        defaultBranding("property"),
+      ),
+      before = await engine.snapshot(owner, a);
+    for (const patch of [
+      { css: "body{}" },
+      { logoUrl: "https://unsafe.invalid/x.svg" },
+      { palette: "bad" },
+      { mark: "<svg>" },
+      { tagline: "<script>bad</script>" },
+      { version: 2 },
+      { monogram: "<X>" },
+    ]) {
+      const document = {
+        ...safe.configuration,
+        branding: { ...safe.configuration.branding, ...patch },
+      };
+      await expect(
+        rawTransaction((c) =>
+          rawSave(c, { ...safe, configuration: document }, randomUUID()),
+        ),
+      ).rejects.toMatchObject({ code: "23514" });
+      await expect(
+        rawTransaction((c) =>
+          c.query(
+            "insert into lms.config_revisions(organization_id,revision,document,created_by)values($1,2,$2,$3)",
+            [a, document, owner.userId],
+          ),
+        ),
+      ).rejects.toMatchObject({ code: "23514" });
+    }
+    for (const document of [
+      { ...safe, version: 1 },
+      { ...safe, version: 3 },
+      { ...safe, configuration: { ...safe.configuration, schemaVersion: 1 } },
+    ])
+      await expect(
+        rawTransaction((c) => rawSave(c, document, randomUUID())),
+      ).rejects.toMatchObject({ code: "23514" });
+    for (const p of [staff, viewer, other])
+      await expect(
+        rawTransaction(
+          (c) => rawSave(c, safe, randomUUID(), 1, p.userId),
+          p.userId,
+        ),
+      ).rejects.toMatchObject({ code: "42501" });
+    await expect(
+      rawTransaction((c) =>
+        c.query("select lms_private.valid_branding_configuration($1)", [
+          safe.configuration,
+        ]),
+      ),
+    ).rejects.toMatchObject({ code: "42501" });
+    expect(await engine.snapshot(owner, a)).toEqual(before);
+  });
+  it("upgrades migration-11 databases transactionally, refuses attached hosts and rolls failed installation back", async () => {
+    await client(brandLegacyName, false, async (c) => {
+      const files = await loadMigrations();
+      await migrate(c, files.slice(0, 11));
+      await c.query(
+        "insert into lms.users values($1,'Fictional legacy brand owner')",
+        [owner.userId],
+      );
+      const id = randomUUID();
+      await org(c, id, owner.userId, presets.property);
+      const legacy = await connectPostgres({
+          connectionString: url(brandLegacyName, true),
+        }),
+        e = new Engine(legacy),
+        base = planForConfig(presets.property);
+      await e.saveRecord(owner, id, "customers", {
+        name: "Preserved at branding upgrade",
+      });
+      await e.saveBuildPlan(owner, id, base, randomUUID(), 0, 1);
+      const before = await e.snapshot(owner, id),
+        branded = brandBuildPlan(base, defaultBranding("property"));
+      try {
+        await expect(
+          e.saveBuildPlan(owner, id, branded, randomUUID(), 0, 1),
+        ).rejects.toMatchObject({
+          status: 409,
+          message: expect.stringContaining("migration 12"),
+        });
+        await expect(migrate(c)).rejects.toThrow(/Stop runtime/);
+      } finally {
+        await legacy.close();
+      }
+      const broken = [
+        ...files.slice(0, 11),
+        { ...files[11], sql: files[11].sql + "\nselect 1/0;" },
+      ];
+      await expect(migrate(c, broken)).rejects.toThrow(/division by zero/);
+      expect(
+        (
+          await c.query(
+            "select count(*)::int as count from lms_meta.migrations",
+          )
+        ).rows[0].count,
+      ).toBe(11);
+      expect(
+        (
+          await c.query(
+            "select to_regprocedure('lms_private.configuration_branding_guard()') as present",
+          )
+        ).rows[0].present,
+      ).toBeNull();
+      expect(await migrate(c)).toEqual(["012_business_branding"]);
+      const upgraded = await connectPostgres({
+        connectionString: url(brandLegacyName, true),
+      });
+      try {
+        const engine = new Engine(upgraded);
+        expect(await engine.snapshot(owner, id)).toEqual(before);
+        await engine.saveBuildPlan(owner, id, branded, randomUUID(), 0, 1);
+        expect((await engine.snapshot(owner, id)).records).toEqual(
+          before.records,
+        );
+      } finally {
+        await upgraded.close();
+      }
+    });
+  });
   it("imports packages without database writes and preserves RLS, permissions, draft history and exact retries", async () => {
     await engine.saveRecord(owner, a, "customers", {
       name: "Native fictional customer - never packaged",
@@ -564,7 +698,10 @@ describe("native BuildPlan artifacts and publication", () => {
       } finally {
         await legacy.close();
       }
-      expect(await migrate(c)).toEqual(["011_build_plan_studio"]);
+      expect(await migrate(c)).toEqual([
+        "011_build_plan_studio",
+        "012_business_branding",
+      ]);
       expect(await snapshot()).toEqual(before);
       expect(
         (await c.query("select * from lms.build_plan_revisions")).rows,
@@ -578,13 +715,26 @@ describe("native BuildPlan artifacts and publication", () => {
     plan.configuration.name = "Restored fictional plan";
     await engine.saveBuildPlan(owner, a, plan, id, 1, 1);
     await engine.publishBuildPlan(owner, a, approval(id, 2));
+    const branded = brandBuildPlan(plan, {
+        ...defaultBranding("property"),
+        monogram: "RV",
+        tagline: "Retained fictional branding.",
+        mark: "home",
+        appearance: "dark",
+      }),
+      brandedId = randomUUID();
+    await engine.saveBuildPlan(owner, a, branded, brandedId, 0, 2);
+    await engine.publishBuildPlan(owner, a, approval(brandedId, 1, 2));
     await db.close();
     db = await connectPostgres({
       connectionString: url(name, true),
       maxConnections: 4,
     });
     engine = new Engine(db);
-    expect((await engine.snapshot(owner, a)).buildPlans).toHaveLength(2);
+    expect((await engine.snapshot(owner, a)).buildPlans).toHaveLength(3);
+    expect((await engine.snapshot(owner, a)).config.document.branding).toEqual(
+      branded.configuration.branding,
+    );
     const file = path.join(directory, "plans.dump");
     await backupDatabase(url(), name, file, process.env.LMS_PG_BIN);
     await restoreDatabase(
@@ -601,7 +751,7 @@ describe("native BuildPlan artifacts and publication", () => {
             [a],
           )
         ).rows,
-      ).toHaveLength(2);
+      ).toHaveLength(3);
       expect(
         (
           await c.query(
@@ -613,11 +763,27 @@ describe("native BuildPlan artifacts and publication", () => {
       expect(
         (
           await c.query(
+            "select document from lms.config_revisions where organization_id=$1 and revision=3",
+            [a],
+          )
+        ).rows[0].document.branding,
+      ).toEqual(branded.configuration.branding);
+      expect(
+        (
+          await c.query(
+            "select document from lms.build_plan_revisions where organization_id=$1 and id=$2",
+            [a, brandedId],
+          )
+        ).rows[0].document,
+      ).toEqual(branded);
+      expect(
+        (
+          await c.query(
             "select * from lms.audit_events where organization_id=$1 and entity='build-plan'",
             [a],
           )
         ).rows,
-      ).toHaveLength(2);
+      ).toHaveLength(3);
       expect(
         (await c.query("select lms_control.is_blocked()as blocked")).rows[0]
           .blocked,

@@ -1,6 +1,6 @@
 # Blueprint packages and compatibility review
 
-Blueprint packages keep a customized **configuration**, not an executable application or a database. Everything works locally without a cloud account. Start LMS using the [README](../README.md); use HTTPS or localhost for the browser's SHA-256 integrity checks. No additional dependency, database migration, endpoint or activation permission is introduced.
+Blueprint packages keep a customized **configuration**, not an executable application or a database. Everything works locally without a cloud account. Start LMS using the [README](../README.md); use HTTPS or localhost for the browser's SHA-256 integrity checks. Packaging introduces no dependency, endpoint or activation permission. Persisting the separate branding extension requires migration 12 as documented in [Business Branding Studio](business-branding.md).
 
 ## Try a fictional cleaning blueprint
 
@@ -69,6 +69,10 @@ The strict manifest has exactly:
 
 `README.txt` must equal the v1 `blueprintSummary` output for the validated plan and details. Its feature/entity labels come from saved configuration, not mutable Gallery copy. Developers must preserve this v1 protocol text/algorithm, or introduce an explicitly supported version before changing it. Module/core-field changes must follow existing registry/template version rules. Browser rendering treats all package text as text, never HTML, links to execute, SQL or scripts.
 
+## Explicit package v2 branding extension
+
+Legacy unbranded packages remain v1 with the exact contract above. Branded BuildPlan 2 uses **package version 2**: the same files/archive profile/limits/integrity rules, with `compatibility.buildPlan: 2`, `configurationSchema: 2`, and required `branding: 1`. Other compatibility fields remain Engine API 1 / template 1 / module 1.0.0. The v2 README adds saved branding choices; the v1 summary algorithm/bytes remain unchanged. Package/BuildPlan/configuration mismatches refuse rather than stripping branding. A real PR16 v1 ZIP is preserved as an exact-byte regression fixture. [Branding schema, migration, themes and compatibility](business-branding.md).
+
 ## Safe Gallery comparison
 
 Gallery metadata remains separate from BuildPlan v1. Customizing a reviewed card supplies an ID/revision **hint** to the package; imports cannot establish trusted authorship from that claim. The current bundled catalog is independently validated before comparison. A newer bundled revision produces a readable comparison of the user's customized choices against the current starter: modules, business identity/name, time zone, terminology, navigation and fields. Same-revision choices can also be compared. A newer claimed revision unavailable in this LMS release, missing reference or different business type produces an explanation, never an automatic update.
@@ -79,6 +83,6 @@ This is a two-way configuration comparison. There is no historical template down
 
 The package is entirely untrusted configuration until structural/compatibility validation succeeds, and still has no trusted publisher identity afterward. An attacker can create a different valid package and recompute all hashes. Neither checksums nor this comparison provide signatures, supply-chain approval or anti-rollback evidence. The credential-lineage/checkpoint-publication trust protocols are separate and unchanged.
 
-Public previews remain isolated, no-login, fictional and temporary. Persistent adapters stay host-only, recovery activation remains blocked, and no package can restore a database or grant a role. No record, account, secret, environment file, dependency installer, generated application, public upload, hosting/deployment, branding, marketplace, AI, payment or messaging feature is added.
+Public previews remain isolated, no-login, fictional and temporary. Persistent adapters stay host-only, recovery activation remains blocked, and no package can restore a database or grant a role. No record, account, secret, environment file, dependency installer, generated application, public upload, hosting/deployment, custom image-logo storage, marketplace, AI, payment or messaging feature is added.
 
-Follow-ups: reviewed template provenance/history and explicit migration UX; separate branding; tested executable app/self-host export only after its complete setup, security and recovery boundaries are reviewed. [Verification](blueprint-packages-verification.md) · [Roadmap](../ROADMAP.md).
+Follow-ups: reviewed template provenance/history and explicit migration UX; secure custom image branding; tested executable app/self-host export only after its complete setup, security and recovery boundaries are reviewed. Safe built-in branding is available in the separate versioned extension. [Verification](blueprint-packages-verification.md) · [Roadmap](../ROADMAP.md).

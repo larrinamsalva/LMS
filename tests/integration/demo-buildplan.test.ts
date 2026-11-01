@@ -9,10 +9,28 @@ import {
 } from "../../src/server/demo";
 import { reviewedGallery, remixGalleryEntry } from "../../src/core/gallery";
 import { newBuildPlan } from "../../src/core/buildplan";
+import { brandBuildPlan } from "../../src/core/buildplan";
+import { defaultBranding } from "../../src/core/branding";
 afterAll(async () => {
   const rt = await runtime();
   await rt.db.close();
   delete (globalThis as typeof globalThis & { lmsDemo?: unknown }).lmsDemo;
+});
+it("previews exact branded configuration through the shared Engine without changing the source workspace", async () => {
+  const { session } = await startDemo(),
+    rt = await runtime(),
+    source = session.organizations[0].id,
+    before = await rt.engine.snapshot(session.principal, source),
+    plan = brandBuildPlan(newBuildPlan("cleaning"), {
+      ...defaultBranding("cleaning"),
+      monogram: "FC",
+      tagline: "Fictional shine.",
+    });
+  const preview = await previewBuildPlan(session, source, plan, randomUUID());
+  expect(
+    (await rt.engine.snapshot(session.principal, preview.id)).config.document,
+  ).toEqual(plan.configuration);
+  expect(await rt.engine.snapshot(session.principal, source)).toEqual(before);
 });
 it("materializes isolated real-Engine previews with bounded concurrent/idempotent creation", async () => {
   const { session } = await startDemo(),

@@ -28,7 +28,7 @@ The cleaning preview can change Customers to Clients, add an Access notes field,
 
 ## Safe choices and imports
 
-A portable BuildPlan is strict JSON with `format: "lms-build-plan"`, `version: 1`, `engineApi: 1`, `templateVersion: 1`, a property/cleaning/custom `template`, and `configuration: BusinessConfig` schema 1. Its configuration goes through the existing engine validator and a bounded reviewed-template contract. Imports are validated, never dependency-repaired silently. Only deliberate feature choices invoke dependency resolution.
+A portable BuildPlan is strict JSON with `format: "lms-build-plan"`, `engineApi: 1`, `templateVersion: 1`, a property/cleaning/custom `template`, and `configuration: BusinessConfig`. Legacy `version: 1` pairs with configuration schema 1; the explicit branded `version: 2` pairs with configuration schema 2 and branding 1. Both go through the same engine validator and bounded reviewed-template contract. Imports are validated, never dependency-repaired silently. Only deliberate feature choices invoke dependency resolution.
 
 Only known module IDs/versions/capabilities and template entities are accepted. Template industry, core field identities/types/requiredness/options/references and entity identity/title fields remain reviewed. Added fields must be optional, use a generated `extra_` key and one of the five supported types, and target customers, work/tasks, jobs, units or custom notes. A builder-generated Custom notes entity is available via Custom records. Modules may be disabled while retaining their entity definitions and data.
 
@@ -62,7 +62,7 @@ The no-login demo needs no database/environment credentials. For the optional na
 
 The separate [curated gallery](buildplan-gallery.md) now provides five bundled starting configurations. This phase still excludes community galleries/marketplaces, AI generation, branding uploads, arbitrary new entities/core field editing, data migrations, business-data import, real-user account acceptance, external hosting, automatic deployment and production recovery activation. Manually extended legacy configurations outside the reviewed templates are preserved by the existing editor; Studio explains when it must start fresh template choices. Physical devices/assistive technologies and deployment packaging need separate acceptance.
 
-The separate blueprint package phase adds strict local packaging and informational compatibility comparison. Next: reviewed provenance/history, branding, explicit configuration migrations, executable application packaging, business-module extensions and the later community gallery/AI tracks. [Roadmap](../ROADMAP.md) · [Security](../SECURITY.md) · [API](api.md).
+The separate blueprint package phase adds strict local packaging and informational compatibility comparison. [Business Branding Studio](business-branding.md) adds built-in marks and reviewed palettes through explicit v2 artifacts and migration 12, preserving legacy v1 imports. Next: reviewed provenance/history, image-logo custody, explicit configuration migrations, executable application packaging, business-module extensions and the later community gallery/AI tracks. [Roadmap](../ROADMAP.md) · [Security](../SECURITY.md) · [API](api.md).
 
 ## Screenshots
 

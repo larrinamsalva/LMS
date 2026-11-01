@@ -180,7 +180,8 @@ export function BlueprintReview({
               custom: "Custom Business",
             }[plan.template]
           }
-          . BuildPlan 1 · Engine API 1 · Template 1 · Configuration schema 1.
+          . BuildPlan {plan.version} · Engine API 1 · Template 1 · Configuration
+          schema {plan.configuration.schemaVersion}.
         </p>
         <p>
           Your editor choices, saved drafts, records and published configuration
@@ -224,9 +225,9 @@ export function BlueprintReview({
         </ul>
         <p className="muted">
           Unsupported versions, modules and missing dependencies are rejected
-          before this screen. Hosting, executable app export, branding, AI
-          generation, production authentication, payments and messaging remain
-          unavailable.
+          before this screen. Hosting, executable app export, image-logo
+          uploads, AI generation, production authentication, payments and
+          messaging remain unavailable.
         </p>
       </section>
       <section className="panel" aria-labelledby="blueprint-workspace-impact">

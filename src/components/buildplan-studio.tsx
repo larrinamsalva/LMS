@@ -25,6 +25,7 @@ import {
 import { manifests, plannedModules } from "../modules/registry";
 import { BuildPlanGallery } from "./buildplan-gallery";
 import { downloadJson } from "./project-panel";
+import { BrandingStudio } from "./branding-studio";
 import { BlueprintPackageTools, BlueprintReview } from "./blueprint-package";
 import {
   createBlueprintPackage,
@@ -162,16 +163,6 @@ function PlanCustomization({
   return (
     <div className="stack">
       <div className="form-grid">
-        <div>
-          <label htmlFor="studio-name">Business name</label>
-          <input
-            id="studio-name"
-            value={config.name}
-            maxLength={80}
-            required
-            onChange={(e) => onChange({ ...config, name: e.target.value })}
-          />
-        </div>
         <div>
           <label htmlFor="studio-zone">Business time zone</label>
           <input
@@ -481,7 +472,11 @@ export function BuildPlanStudio({
     return url;
   }
   function change(config: BusinessConfig) {
-    setPlan((p) => ({ ...p, configuration: config }));
+    setPlan((p) => ({
+      ...p,
+      version: config.schemaVersion,
+      configuration: config,
+    }));
     setConfirmed(false);
   }
   function reopen(item: BuildPlanRevision) {
@@ -687,20 +682,24 @@ export function BuildPlanStudio({
           </>
         )}
         {step === 2 && (
-          <PlanCustomization
-            key={plan.template}
-            config={plan.configuration}
-            template={plan.template}
-            onChange={change}
-          />
+          <>
+            <BrandingStudio config={plan.configuration} onChange={change} />
+            <PlanCustomization
+              key={plan.template}
+              config={plan.configuration}
+              template={plan.template}
+              onChange={change}
+            />
+          </>
         )}
         {step === 3 && (
           <>
             <div className="studio-review">
               <h3>{plan.configuration.name || "Name your business"}</h3>
               <p>
-                {names[plan.template]} · Configuration schema 1 · BuildPlan
-                version 1
+                {names[plan.template]} · Configuration schema{" "}
+                {plan.configuration.schemaVersion} · BuildPlan version{" "}
+                {plan.version}
               </p>
               <p>
                 {plan.configuration.modules.length} reviewed modules ·{" "}
@@ -731,6 +730,12 @@ export function BuildPlanStudio({
               <h3 id="studio-impact">Changes to the current workspace</h3>
               <ul>
                 {impact.nameChanged && <li>Business name changes.</li>}
+                {impact.brandingChanged && (
+                  <li>
+                    Branding changes. Operational records and field schemas stay
+                    intact.
+                  </li>
+                )}
                 {impact.labelsChanged && (
                   <li>Terminology or navigation labels change.</li>
                 )}
@@ -1124,9 +1129,10 @@ export function BuildPlanStudio({
           }}
         />
         <p className="muted">
-          Only BuildPlan version 1 / Engine API 1 / template version 1 JSON is
-          supported. Unsupported modules, unsafe keys, executable properties and
-          changed core fields refuse. Imports never run code.
+          Legacy BuildPlan 1 and branded BuildPlan 2 / Engine API 1 / template
+          version 1 JSON are supported. Unsupported modules, unsafe keys,
+          executable properties and changed core fields refuse. Imports never
+          run code.
         </p>
       </section>
     </div>
