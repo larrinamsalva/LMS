@@ -25,6 +25,14 @@ import {
 import { manifests, plannedModules } from "../modules/registry";
 import { BuildPlanGallery } from "./buildplan-gallery";
 import { downloadJson } from "./project-panel";
+import { BlueprintPackageTools, BlueprintReview } from "./blueprint-package";
+import {
+  createBlueprintPackage,
+  importBlueprintPackage,
+  BLUEPRINT_PACKAGE_LIMIT,
+  type BlueprintDetails,
+  type BlueprintPackage,
+} from "../core/blueprint";
 const names = {
   property: "Property Management",
   cleaning: "Cleaning Business",
@@ -400,6 +408,11 @@ export function BuildPlanStudio({
     [plan, setPlan] = useState(start.plan),
     [step, setStep] = useState(0),
     [browsing, setBrowsing] = useState(false),
+    [reviewing, setReviewing] = useState<BlueprintPackage | null>(null),
+    [packageDetails, setPackageDetails] = useState<BlueprintDetails>({
+      name: "",
+      description: "A reusable fictional LMS business configuration.",
+    }),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [pending, setPending] = useState(false),
@@ -416,7 +429,7 @@ export function BuildPlanStudio({
     heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     heading.current?.focus();
-  }, [step, browsing]);
+  }, [step, browsing, reviewing]);
   let valid: BuildPlan | undefined,
     validation = "";
   try {
@@ -475,6 +488,10 @@ export function BuildPlanStudio({
     void run(async () => {
       const p = validateBuildPlan(item.document);
       setPlan(p);
+      setPackageDetails({
+        name: "",
+        description: "A reusable fictional LMS business configuration.",
+      });
       setDraftId(item.id);
       const latest = Math.max(
         ...workspace.buildPlans
@@ -507,9 +524,14 @@ export function BuildPlanStudio({
         busy={working}
         onBack={() => setBrowsing(false)}
         onPreview={preparePreview}
-        onCustomize={(input, name) => {
+        onCustomize={(input, name, metadata) => {
           const copy = validateBuildPlan(input);
           setPlan(copy);
+          setPackageDetails({
+            name: copy.configuration.name,
+            description: metadata.purpose,
+            gallery: { id: metadata.id, revision: metadata.revision },
+          });
           setDraftId(null);
           setDraftRevision(0);
           setBaseRevision(workspace.config.revision);
@@ -521,6 +543,32 @@ export function BuildPlanStudio({
           setBrowsing(false);
           setNotice(
             `Loaded ${name} as unsaved Studio choices. Nothing was saved or published.`,
+          );
+        }}
+      />
+    );
+  if (reviewing)
+    return (
+      <BlueprintReview
+        blueprint={reviewing}
+        workspace={workspace}
+        choices={plan}
+        onCancel={() => setReviewing(null)}
+        onPreview={preparePreview}
+        onUse={() => {
+          setPlan(validateBuildPlan(reviewing.plan));
+          setPackageDetails(reviewing.manifest.blueprint);
+          setDraftId(null);
+          setDraftRevision(0);
+          setBaseRevision(workspace.config.revision);
+          setSaved("");
+          setConfirmed(false);
+          setPreview(null);
+          setError("");
+          setStep(3);
+          setReviewing(null);
+          setNotice(
+            "Blueprint loaded as unsaved Studio choices. Saved drafts, records and published configuration are unchanged.",
           );
         }}
       />
@@ -604,6 +652,11 @@ export function BuildPlanStudio({
                     aria-pressed={plan.template === type}
                     onClick={() => {
                       setPlan(newBuildPlan(type));
+                      setPackageDetails({
+                        name: "",
+                        description:
+                          "A reusable fictional LMS business configuration.",
+                      });
                       setDraftId(null);
                       setDraftRevision(0);
                       setBaseRevision(workspace.config.revision);
@@ -946,6 +999,44 @@ export function BuildPlanStudio({
           )}
         </div>
       </section>
+      <BlueprintPackageTools
+        details={packageDetails}
+        valid={!!valid}
+        busy={working}
+        onDetails={setPackageDetails}
+        onDownload={() =>
+          void run(async () => {
+            const bytes = await createBlueprintPackage(plan, {
+              ...packageDetails,
+              name: packageDetails.name || plan.configuration.name,
+            });
+            const url = URL.createObjectURL(
+                new Blob([bytes], { type: "application/zip" }),
+              ),
+              link = document.createElement("a");
+            link.href = url;
+            link.download = "lms-blueprint.zip";
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setNotice(
+              "Blueprint package downloaded. Keep this file; the demo is temporary.",
+            );
+          })
+        }
+        onImport={(file) =>
+          void run(async () => {
+            if (file.size > BLUEPRINT_PACKAGE_LIMIT)
+              throw new Error(
+                "Choose a blueprint package no larger than 96 KiB.",
+              );
+            setReviewing(
+              await importBlueprintPackage(
+                new Uint8Array(await file.arrayBuffer()),
+              ),
+            );
+          })
+        }
+      />
       <section className="panel">
         <h2>Saved BuildPlans</h2>
         <p className="muted">
@@ -1015,6 +1106,10 @@ export function BuildPlanStudio({
                 );
               const imported = parseBuildPlanText(await file.text());
               setPlan(imported);
+              setPackageDetails({
+                name: "",
+                description: "A reusable fictional LMS business configuration.",
+              });
               setDraftId(null);
               setDraftRevision(0);
               setBaseRevision(workspace.config.revision);

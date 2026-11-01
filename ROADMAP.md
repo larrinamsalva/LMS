@@ -34,7 +34,8 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 - [ ] Deterministic configurable workflow rules, enabled only after explicit review
 - [x] BuildPlan Studio: guided reviewed templates/features, terminology/navigation, optional fields, real Engine previews, temporary draft revisions and validated JSON import/export
 - [x] Curated BuildPlan Gallery: five reviewed starters, search/type/feature filters, real previews and unsaved Studio remixes
-- [ ] Builder branding, reviewed template evolution, schema migration UX and richer packaging
+- [x] Portable data-only blueprint packages, strict integrity/compatibility review and informational Gallery comparisons; unchanged BuildPlan v1 JSON
+- [ ] Builder branding, verified template provenance/history, explicit schema migration UX and executable application packaging
 - [ ] Community template submissions, moderation and later marketplace acceptance
 - [ ] Tested application export/deployment, verified end-to-end before success claims
 - [ ] Optional transparent AI, messaging and payment adapters; manual core remains usable
@@ -48,10 +49,10 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 | --- | --- | --- |
 | Security/recovery | Independent monotonic witness/receipt custody; signed repair and key/role recovery; later identity-specific acceptance | No activation until the complete recovery, session and permission boundary is demonstrated |
 | Business modules | Richer inventory/equipment and separately reviewed pricing/crew extensions; later advanced pricing, richer crew eligibility and reviewed invoice drafts | Shared engine/manifests, organization isolation, concurrency and mobile/accessibility checks; no live finance/messages |
-| BuildPlan Studio | Reviewed template compatibility/evolution, branding, safer local packaging and configuration migration review; later community gallery/AI | Manual use works without AI; fictional preview, reusable configuration, rollback and data ownership |
-| Packaging | Tested local export/self-host packaging after configuration workflows stabilize | Verify setup/restore and any actual deployment before claiming success; production use stays separately gated |
+| BuildPlan Studio | Reviewed template provenance/history, deliberate update/migration UX and separate branding; later community gallery/AI | Manual use works without AI; fictional preview, reusable configuration, rollback and data ownership; no silent merges |
+| Packaging | Tested executable application/self-host packaging beyond the delivered data-only blueprint ZIP | Verify setup/restore and any actual deployment before claiming success; production use stays separately gated |
 
 The business-module and BuildPlan Studio tracks can advance with fictional data while production security work remains blocked. Publication is not permission to activate a restored database or delay every useful demo improvement. See [publication scope/evidence](docs/checkpoint-publication.md) and [the staged plan](docs/implementation-plan.md).
 
 
-After PR #15: reviewed template evolution and local packaging, then separately reviewed branding, migration UX and business-module extensions. The guided builder already produces validated configuration and real Engine previews using shared customer/work/crew/pricing relationships. Recurrence, external calendars, messaging/payments and AI optimization stay deferred. Security/recovery acceptance remains a separate gate; useful fictional workflows do not activate production services.
+After PR #16: verified template provenance/history and explicit migration review, then separately reviewed branding, executable app export and business-module extensions. Portable configuration packages now preserve customized choices without an automatic upgrade path. The guided builder produces validated configuration and real Engine previews using shared customer/work/crew/pricing relationships. Recurrence, external calendars, messaging/payments and AI optimization stay deferred. Security/recovery acceptance remains a separate gate; useful fictional workflows do not activate production services.

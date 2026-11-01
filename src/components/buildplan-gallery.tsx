@@ -21,7 +21,11 @@ export function BuildPlanGallery({
 }: {
   busy: boolean;
   onBack: () => void;
-  onCustomize: (plan: BuildPlan, name: string) => void;
+  onCustomize: (
+    plan: BuildPlan,
+    name: string,
+    metadata: GalleryEntry["metadata"],
+  ) => void;
   onPreview: (plan: BuildPlan) => Promise<string>;
 }) {
   const [entries] = useState(reviewedGallery),
@@ -252,7 +256,11 @@ export function BuildPlanGallery({
                     disabled={working}
                     onClick={() => {
                       try {
-                        onCustomize(remixGalleryEntry(entry), metadata.name);
+                        onCustomize(
+                          remixGalleryEntry(entry),
+                          metadata.name,
+                          metadata,
+                        );
                       } catch {
                         setError(
                           "This template no longer matches the reviewed BuildPlan contract.",

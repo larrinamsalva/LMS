@@ -1364,3 +1364,25 @@ legend {
 .gallery-actions {
   margin-top: auto;
 }
+.blueprint-differences {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 0.75rem;
+}
+.blueprint-differences .studio-review {
+  margin-block: 0.5rem;
+  min-width: 0;
+}
+.blueprint-differences dt {
+  font-weight: 600;
+  margin-top: 0.6rem;
+}
+.blueprint-differences dd {
+  margin: 0.25rem 0;
+  overflow-wrap: anywhere;
+}
+.blueprint-summary {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+}
