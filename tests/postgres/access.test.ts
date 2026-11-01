@@ -218,6 +218,7 @@ beforeAll(async () => {
     "007_relationship_scheduling",
     "008_workforce_availability",
     "009_service_estimates",
+    "010_inventory_ledger",
   ]);
   expect(
     (await engine.snapshot({ userId: users.owner }, oldOrg)).records[0],

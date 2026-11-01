@@ -201,7 +201,11 @@ describe("shared engine with real PostgreSQL policies", () => {
     const disabled: BusinessConfig = {
       ...presets.property,
       modules: presets.property.modules.filter((m) => m.id !== "inventory"),
-      navigation: presets.property.navigation.filter((n) => n !== "items"),
+      navigation: presets.property.navigation.filter(
+        (n) =>
+          presets.property.entities.find((e) => e.id === n)?.module !==
+          "inventory",
+      ),
     };
     expect(await engine.publishConfig(owner, a, disabled, 1)).toBe(2);
     await expect(

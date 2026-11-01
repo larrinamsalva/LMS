@@ -28,6 +28,12 @@ export async function createDatabase() {
         "utf8",
       ),
     );
+    await db.exec(
+      await readFile(
+        path.join(process.cwd(), "db/010_inventory_ledger.sql"),
+        "utf8",
+      ),
+    );
     return db;
   } catch (error) {
     await db.close();

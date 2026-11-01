@@ -620,6 +620,7 @@ describe("employee and crew availability with native PostgreSQL transactions", (
       expect(await migrate(c)).toEqual([
         "008_workforce_availability",
         "009_service_estimates",
+        "010_inventory_ledger",
       ]);
       expect(await snapshot()).toEqual(before!);
       expect(

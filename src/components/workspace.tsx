@@ -6,6 +6,7 @@ import {
   type RecordData,
 } from "../core/config";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
+import { Inventory } from "./inventory";
 import { Schedule, relatedLabel } from "./schedule";
 import { Workforce } from "./workforce";
 import { recordWriteRoles } from "../core/permissions";
@@ -51,12 +52,14 @@ export function Workspace() {
     | "schedule"
     | "workforce"
     | "catalog"
+    | "inventory"
     | "estimates"
   >("records");
   const [selected, setSelected] = useState("customers");
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
   const [editor, setEditor] = useState<WorkspaceRecord | "new" | null>(null);
+  const [initialData, setInitialData] = useState<RecordData | undefined>();
   const archiveOperation = useRef("");
   const [archive, setArchive] = useState<WorkspaceRecord | null>(null);
   useEffect(() => {
@@ -145,6 +148,7 @@ export function Workspace() {
     : false;
   const Editor = entity?.id === "estimates" ? EstimateForm : RecordForm;
   function openRecord(entityId: string, record?: WorkspaceRecord) {
+    setInitialData(undefined);
     setSelected(entityId);
     setView("records");
     setEditor(record ?? "new");
@@ -318,7 +322,15 @@ export function Workspace() {
                     }
                     onClick={() =>
                       changeView(
-                        id === "estimates" ? "estimates" : "records",
+                        id === "estimates"
+                          ? "estimates"
+                          : [
+                                "items",
+                                "stock-locations",
+                                "stock-movements",
+                              ].includes(id)
+                            ? "inventory"
+                            : "records",
                         id,
                       )
                     }
@@ -344,6 +356,15 @@ export function Workspace() {
                   onClick={() => changeView("catalog")}
                 >
                   Services & Rates
+                </button>
+              )}
+              {config!.modules.some((m) => m.id === "inventory") && (
+                <button
+                  className={`nav-item ${view === "inventory" ? "active" : ""}`}
+                  disabled={busy}
+                  onClick={() => changeView("inventory")}
+                >
+                  Inventory & stock
                 </button>
               )}
               <span className="nav-label">YOUR SYSTEM</span>
@@ -472,6 +493,18 @@ export function Workspace() {
                   archiveOperation.current = crypto.randomUUID();
                   setArchive(record);
                 }}
+              />
+            )}
+            {view === "inventory" && (
+              <Inventory
+                workspace={workspace!}
+                busy={busy}
+                onAdd={(id, product) => {
+                  openRecord(id);
+                  if (product) setInitialData({ product: product.id });
+                }}
+                onEdit={(r) => openRecord(r.entity, r)}
+                onArchive={archiveRecord}
               />
             )}
             {view === "catalog" && (
@@ -644,32 +677,35 @@ export function Workspace() {
                               <span className="muted small">
                                 v{record.revision}
                               </span>
-                              {!record.archived && (
+                              {record.entity !== "stock-movements" &&
+                                !record.archived && (
+                                  <button
+                                    className="secondary"
+                                    disabled={!canEditEntity || busy}
+                                    aria-label={`Edit ${title}`}
+                                    onClick={() => {
+                                      setEditor(record);
+                                      setArchive(null);
+                                    }}
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                              {record.entity !== "stock-movements" && (
                                 <button
-                                  className="secondary"
+                                  className="quiet"
                                   disabled={!canEditEntity || busy}
-                                  aria-label={`Edit ${title}`}
+                                  aria-label={`${record.archived ? "Restore" : "Archive"} ${title}`}
                                   onClick={() => {
-                                    setEditor(record);
-                                    setArchive(null);
+                                    archiveOperation.current =
+                                      crypto.randomUUID();
+                                    setArchive(record);
+                                    setEditor(null);
                                   }}
                                 >
-                                  Edit
+                                  {record.archived ? "Restore" : "Archive"}
                                 </button>
                               )}
-                              <button
-                                className="quiet"
-                                disabled={!canEditEntity || busy}
-                                aria-label={`${record.archived ? "Restore" : "Archive"} ${title}`}
-                                onClick={() => {
-                                  archiveOperation.current =
-                                    crypto.randomUUID();
-                                  setArchive(record);
-                                  setEditor(null);
-                                }}
-                              >
-                                {record.archived ? "Restore" : "Archive"}
-                              </button>
                             </div>
                           </article>
                         );
@@ -731,6 +767,8 @@ export function Workspace() {
                   <Editor
                     key={`${workspace!.organizationId}-${entity.id}-${editor === "new" ? "new" : editor.id}`}
                     entity={entity}
+                    initialData={initialData}
+                    role={workspace!.role}
                     records={workspace!.records}
                     businessZone={config!.timeZone ?? "UTC"}
                     workforceEnabled={config!.modules.some(
@@ -765,6 +803,7 @@ export function Workspace() {
                         "Record saved.",
                       );
                       setEditor(null);
+                      if (entity.module === "inventory") setView("inventory");
                     }}
                   />
                 )}

@@ -10,6 +10,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Shared customer/work links, exclusive-resource scheduling, retained booking zones and a responsive daily agenda for both businesses.
 - Fictional employee profiles, effective-dated Worker/Crew membership, finite working hours/time off, and cross-crew employee conflict protection.
 - Services, dated area rates and fictional estimate drafts with exact USD cents, preserved pricing snapshots, revisions and printable preview.
+- Shared product/location inventory, exact case conversion and an immutable receiving/usage/transfer/return/adjustment ledger with keyboard-scanner selection.
 - Configuration-generated forms with strict validation; create, edit, search, archive and restore operational records.
 - Reviewed, versioned module manifests with dependency checks; disable modules while retaining data.
 - Versioned business configuration: edit name/terminology/navigation, publish with conflict checks and roll back by appending a revision.
@@ -17,7 +18,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Append-only database audit history; project JSON and organization-scoped workspace exports.
 - Accessible light/dark themes, phone layout and no-login **fictional-data-only** demo.
 
-This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, advanced pricing/currencies, stock ledgers, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
+This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, advanced pricing/currencies, fractional stock/purchasing, invoices, documents, complete production recovery/import, workflow automation, the guided builder and deployment/export packaging are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
 
 ## Run locally
 
@@ -59,6 +60,10 @@ Open **Services & Rates** to maintain fictional services/extras and date-effecti
 
 This phase is USD only, with 1–10 lines and explicit tax/rounding/status rules. See [workflow and security contract](docs/services-estimates.md), [manifest](examples/estimates.module.json) and [actual verification](docs/services-estimates-verification.md). The separate native adapter provides durable pricing; the public no-login demo remains temporary.
 
+## Inventory and stock
+
+Open **Inventory & stock** in either fictional business to manage products and storage locations, review quantities/low-stock warnings, scan/type a product code, and explicitly post whole-unit movements. Case conversion and original packaging are saved; owner/admin corrections add compensating history. No purchase or automatic order runs. See [workflow, setup and exact quantity contract](docs/inventory-stock.md), [manifest](examples/modules/inventory.manifest.json) and [verification](docs/inventory-stock-verification.md).
+
 ## Experimental durable PostgreSQL
 
 A separate host-only PostgreSQL adapter now implements the existing engine interface. It adds a bounded pool, checked runtime roles, transactional checksum migrations, Docker Compose storage and native backup/restore commands. **The no-login website still uses its own temporary database.** No persistent business HTTP endpoints are exposed.
@@ -97,7 +102,7 @@ npx playwright install --with-deps chromium
 npm run test:e2e
 ```
 
-The checkpoint publication CLI and its filesystem tests require Linux with util-linux `flock`; the web demo does not require that utility. Browser tests use a **production build**, started automatically on loopback port 3100, with desktop, tablet and phone Chromium projects. `npm run check` includes type checking, unit and real-SQL integration/security tests, dependency inventory verification and the production build. `npm audit` is a separate current-registry check. If browser downloads are restricted, `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chromium` selects an installed Chromium; report its version when using this override. Never call unrun checks passing.
+The checkpoint publication CLI and its filesystem tests require Linux with util-linux `flock`; the web demo does not require that utility. Browser tests use a **production build**, started automatically on loopback ports 3100–3102, with desktop, tablet and phone Chromium projects. `npm run check` includes type checking, unit and real-SQL integration/security tests, dependency inventory verification and the production build. `npm audit` is a separate current-registry check. If browser downloads are restricted, `PLAYWRIGHT_CHROMIUM_EXECUTABLE=/absolute/path/to/chromium` selects an installed Chromium; report its version when using this override. Never call unrun checks passing.
 
 ## Architecture and extension points
 

@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { TimeError } from "./time";
 import { workforceEntities, type StaffAssignment } from "./workforce";
-import { recordWriteRoles } from "./permissions";
+import {
+  InventoryError,
+  type StockBalance,
+  type StockMovement,
+} from "./inventory";
+import { recordWriteRoles, movementWriteRoles } from "./permissions";
 import { PricingError, pricingEntities, type EstimateVersion } from "./pricing";
 import {
   activeEntities,
@@ -56,9 +61,15 @@ export class EngineError extends Error {
   }
 }
 function recordFailure(error: unknown): never {
-  if (error instanceof TimeError || error instanceof PricingError)
+  if (
+    error instanceof TimeError ||
+    error instanceof PricingError ||
+    error instanceof InventoryError
+  )
     throw new EngineError(error.message, 400);
   const e = error as { code?: string; message?: string; constraint?: string };
+  if (e.code === "42501")
+    throw new EngineError("This operation is unavailable for your role.", 403);
   if (e.code === "23P01" && e.constraint === "exclusive_service_rate")
     throw new EngineError(
       "An active rate already covers this service, area and date range. Adjust its effective dates or archive it first.",
@@ -204,6 +215,41 @@ export class Engine {
         ).rows
       : [];
   }
+  private async hasInventory(tx: SqlConnection) {
+    return (
+      await tx.query<{ present: boolean }>(
+        "select to_regclass('lms.stock_movements') is not null as present",
+      )
+    ).rows[0].present;
+  }
+  private async requireInventory(tx: SqlConnection) {
+    if (!(await this.hasInventory(tx)))
+      throw new EngineError(
+        "Stop hosts and apply migration 10 before enabling or writing the stock ledger.",
+        409,
+      );
+  }
+  private async inventoryHistory(tx: SqlConnection, organizationId: string) {
+    if (!(await this.hasInventory(tx)))
+      return {
+        stockBalances: [] as StockBalance[],
+        stockMovements: [] as StockMovement[],
+      };
+    return {
+      stockBalances: (
+        await tx.query<StockBalance>(
+          "select organization_id,product_id,location_id,units::text from lms.stock_balances where organization_id=$1 order by product_id,location_id",
+          [organizationId],
+        )
+      ).rows,
+      stockMovements: (
+        await tx.query<StockMovement>(
+          "select *,quantity::text as quantity,case_size::text as case_size,units::text as units,to_char(occurred_on,'YYYY-MM-DD') as occurred_on from lms.stock_movements where organization_id=$1 order by recorded_at desc,record_id desc",
+          [organizationId],
+        )
+      ).rows,
+    };
+  }
   private async command(
     tx: SqlConnection,
     organizationId: string,
@@ -274,6 +320,7 @@ export class Engine {
         audit,
         staffAssignments: await this.staffHistory(tx, organizationId),
         estimateVersions: await this.estimateHistory(tx, organizationId),
+        ...(await this.inventoryHistory(tx, organizationId)),
       };
     });
   }
@@ -300,7 +347,16 @@ export class Engine {
       )
         await this.requireWorkforce(tx);
       if (pricingEntities.includes(entityId)) await this.requirePricing(tx);
+      if (entityId === "stock-locations" || entityId === "stock-movements")
+        await this.requireInventory(tx);
       const clean = validateRecord(getEntity(config.document, entityId), data);
+      if (entityId === "stock-movements") {
+        await this.requireRole(tx, organizationId, movementWriteRoles(clean));
+        if (!operationId)
+          throw new EngineError(
+            "Stock movements require an operation identifier.",
+          );
+      }
       const replay = await this.command(tx, organizationId, operationId, {
         kind: "save",
         entity: entityId,
@@ -308,6 +364,11 @@ export class Engine {
         existing: existing ?? null,
       });
       if (replay) return replay;
+      if (entityId === "stock-movements" && existing)
+        throw new EngineError(
+          "Stock movements are immutable. Post a compensating movement.",
+          409,
+        );
       if (existing) {
         id.parse(existing.id);
         revision.parse(existing.revision);
@@ -404,6 +465,11 @@ export class Engine {
         await this.requireWorkforce(tx);
       if (pricingEntities.includes(record.entity))
         await this.requirePricing(tx);
+      if (record.entity === "stock-movements")
+        throw new EngineError(
+          "Stock movements cannot be archived or restored.",
+          409,
+        );
       getEntity(config.document, record.entity);
       const replay = await this.command(tx, organizationId, operationId, {
         kind: "archive",
@@ -449,6 +515,13 @@ export class Engine {
         await this.requireWorkforce(tx);
       if (config.modules.some((m) => m.id === "estimates"))
         await this.requirePricing(tx);
+      if (
+        config.entities.some((e) =>
+          ["stock-locations", "stock-movements"].includes(e.id),
+        ) &&
+        config.modules.some((m) => m.id === "inventory")
+      )
+        await this.requireInventory(tx);
       if (current.revision !== expectedRevision)
         throw new EngineError(
           "Configuration changed. Reload before publishing.",
@@ -538,6 +611,7 @@ export class Engine {
         records,
         staffAssignments: await this.staffHistory(tx, organizationId),
         estimateVersions: await this.estimateHistory(tx, organizationId),
+        ...(await this.inventoryHistory(tx, organizationId)),
       };
     });
   }
