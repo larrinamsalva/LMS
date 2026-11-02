@@ -21,6 +21,13 @@ import {
 } from "../../src/server/postgres/native-readiness";
 import { localTarget } from "../../src/server/postgres/targets";
 import * as sanitizer from "../../src/server/logo-sanitizer";
+import {
+  createBrandedBlueprintBundle,
+  inspectBrandedBlueprintBundle,
+} from "../../src/core/branded-bundle";
+import { createBlueprintPackage } from "../../src/core/blueprint";
+import { planForConfig, brandBuildPlan } from "../../src/core/buildplan";
+import { createLogoCompanion } from "../../src/core/logo-companion";
 import { logoFixture } from "../helpers/logo-fixtures";
 import { seedFictional } from "../../scripts/postgres/fixture";
 const raw = process.env.LMS_TEST_ADMIN_URL;
@@ -766,6 +773,42 @@ it("bounds retained association history and reserves an explicit built-in fallba
   );
   expect(await assoc().history(actor(), budgetOrg)).toHaveLength(129);
   expect((await assoc().read(actor(), budgetOrg)).logo).toBeNull();
+});
+it("keeps portable bundle inspection independent of existing durable assets, associations, receipts and published history", async () => {
+  const history = await assoc().history(actor(), fixture.property),
+    state = await api().snapshot(actor(), fixture.property),
+    business = await protectedRows();
+  const clean = await sanitizer.sanitizeLogo(rawImage),
+    companion = await createLogoCompanion(clean.bytes, {
+      width: clean.width,
+      height: clean.height,
+      display: "rectangle",
+    }),
+    zip = await createBlueprintPackage(
+      brandBuildPlan(
+        planForConfig(presets.cleaning),
+        defaultBranding("cleaning"),
+      ),
+      {
+        name: "Fictional portable boundary",
+        description:
+          "Synthetic device data only; no durable mapping or association.",
+      },
+    );
+  try {
+    const r = await inspectBrandedBlueprintBundle(
+      await createBrandedBlueprintBundle(zip, companion),
+    );
+    expect(r.blueprintBytes).toEqual(zip);
+    expect(r.logoBytes).toEqual(companion);
+    for (const a of state.assets)
+      expect(JSON.stringify(r.manifest)).not.toContain(a.id);
+  } finally {
+    clean.bytes.fill(0);
+  }
+  expect(await assoc().history(actor(), fixture.property)).toEqual(history);
+  expect(await api().snapshot(actor(), fixture.property)).toEqual(state);
+  expect(await protectedRows()).toEqual(business);
 });
 it("preserves exact association/history/receipt/PNG bytes in native backup and quarantined restore while source data stays unchanged and activation refuses", async () => {
   const query =

@@ -95,8 +95,10 @@ export function LogoCompanionTools({
       <p className="muted">
         The separate companion contains the PNG, contained display layout and
         integrity manifest. It is never bundled into a Blueprint ZIP or covered
-        by its publisher signature. Portable branding publication is not yet
-        supported.
+        by its publisher signature. A separate branded bundle can wrap the
+        unchanged companion and Blueprint ZIP after explicit approval; that
+        bundle remains publisher-unverified. Portable branding publication is
+        not yet supported.
       </p>
       <label htmlFor="logo-companion-file">Import logo companion</label>
       <input

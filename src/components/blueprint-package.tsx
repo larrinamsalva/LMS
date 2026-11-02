@@ -251,9 +251,8 @@ export function BlueprintReview({
         </ul>
         <p className="muted">
           Unsupported versions, modules and missing dependencies are rejected
-          before this screen. Hosting, executable app export, image-logo
-          uploads, AI generation, production authentication, payments and
-          messaging remain unavailable.
+          before this screen. Hosting, executable app export, AI generation,
+          production authentication, payments and messaging remain unavailable.
         </p>
       </section>
       <section className="panel" aria-labelledby="blueprint-workspace-impact">

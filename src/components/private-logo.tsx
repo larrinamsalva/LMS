@@ -102,6 +102,43 @@ export function usePrivateLogo(organizationId?: string) {
     );
     return () => clearTimeout(timer);
   }, [deadline, request]);
+  async function selectedFile(format: "png" | "companion") {
+    if (!organizationId || !state?.selected) return false;
+    const ticket = ++sequence.current;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/demo/logo/download", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId,
+          assetId: state.selected.id,
+          revision: state.revision,
+          format,
+        }),
+      });
+      if (!response.ok) {
+        if ([401, 403].includes(response.status) && sequence.current === ticket)
+          setReceived(null);
+        throw new Error(
+          (await response.json()).error ?? "Logo download refused.",
+        );
+      }
+      const blob = await response.blob();
+      if (sequence.current !== ticket) return false;
+      return blob;
+    } catch (error) {
+      if (sequence.current === ticket)
+        setError(
+          error instanceof Error ? error.message : "Logo download refused.",
+        );
+      return false;
+    } finally {
+      if (sequence.current === ticket) setBusy(false);
+    }
+  }
   return {
     scope: organizationId,
     state,
@@ -118,54 +155,21 @@ export function usePrivateLogo(organizationId?: string) {
             "companion",
           )
         : Promise.resolve(false),
+    exportCompanion: async () => {
+      const blob = await selectedFile("companion");
+      return blob ? new Uint8Array(await blob.arrayBuffer()) : false;
+    },
     save: async (format: "png" | "companion") => {
-      if (!organizationId || !state?.selected) return false;
-      const ticket = ++sequence.current;
-      setBusy(true);
-      setError("");
-      try {
-        const response = await fetch("/api/demo/logo/download", {
-          method: "POST",
-          cache: "no-store",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            organizationId,
-            assetId: state.selected.id,
-            revision: state.revision,
-            format,
-          }),
-        });
-        if (!response.ok) {
-          if (
-            [401, 403].includes(response.status) &&
-            sequence.current === ticket
-          )
-            setReceived(null);
-          throw new Error(
-            (await response.json()).error ?? "Logo download refused.",
-          );
-        }
-        const blob = await response.blob();
-        if (sequence.current !== ticket) return false;
-        const url = URL.createObjectURL(blob),
-          anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download =
-          format === "png"
-            ? "lms-sanitized-logo.png"
-            : "lms-logo-companion.zip";
-        anchor.click();
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-        return true;
-      } catch (error) {
-        if (sequence.current === ticket)
-          setError(
-            error instanceof Error ? error.message : "Logo download refused.",
-          );
-        return false;
-      } finally {
-        if (sequence.current === ticket) setBusy(false);
-      }
+      const blob = await selectedFile(format);
+      if (!blob) return false;
+      const url = URL.createObjectURL(blob),
+        anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download =
+        format === "png" ? "lms-sanitized-logo.png" : "lms-logo-companion.zip";
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return true;
     },
     stage: async (file: File) => {
       if (file.size > logoLimits.inputBytes || !file.size) {

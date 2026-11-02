@@ -42,6 +42,16 @@ import {
 import { blueprintJson } from "../core/blueprint";
 import { BlueprintPackageTools, BlueprintReview } from "./blueprint-package";
 import {
+  BrandedBundleTools,
+  BrandedBundleReview,
+  type BundleInspection,
+} from "./branded-bundle";
+import {
+  BRANDED_BUNDLE_LIMIT,
+  createBrandedBlueprintBundle,
+  inspectBrandedBlueprintBundle,
+} from "../core/branded-bundle";
+import {
   ATTESTATION_LIMIT,
   inspectBlueprintPackage,
   type InspectedBlueprint,
@@ -430,6 +440,9 @@ export function BuildPlanStudio({
       plan: BuildPlan;
     } | null>(null),
     [reviewing, setReviewing] = useState<InspectedBlueprint | null>(null),
+    [reviewingBundle, setReviewingBundle] = useState<BundleInspection | null>(
+      null,
+    ),
     [packageDetails, setPackageDetails] = useState<BlueprintDetails>({
       name: "",
       description: "A reusable fictional LMS business configuration.",
@@ -455,7 +468,7 @@ export function BuildPlanStudio({
     heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     heading.current?.focus();
-  }, [step, browsing, reviewing, updates, dataImpact]);
+  }, [step, browsing, reviewing, reviewingBundle, updates, dataImpact]);
   let valid: BuildPlan | undefined,
     validation = "";
   try {
@@ -591,6 +604,47 @@ export function BuildPlanStudio({
           setBrowsing(false);
           setNotice(
             `Loaded ${name} as unsaved Studio choices. Nothing was saved or published.`,
+          );
+        }}
+      />
+    );
+  if (reviewingBundle)
+    return (
+      <BrandedBundleReview
+        inspection={reviewingBundle}
+        workspace={workspace}
+        controller={logoController}
+        onPreview={preparePreview}
+        onClose={() => {
+          reviewingBundle.bundle.blueprintBytes.fill(0);
+          reviewingBundle.bundle.logoBytes?.fill(0);
+          setReviewingBundle(null);
+        }}
+        onAccept={() => {
+          if (
+            reviewingBundle.configurationRevision !==
+              workspace.config.revision ||
+            reviewingBundle.editorFingerprint !==
+              JSON.stringify({ plan, draftId, draftRevision, baseRevision })
+          )
+            throw new Error(
+              "The editor or published configuration changed. Close and explicitly inspect this bundle again.",
+            );
+          const imported = reviewingBundle.bundle.blueprint;
+          setPlan(validateBuildPlan(imported.plan));
+          setStartingPoint(null);
+          baselineRequest.current = null;
+          setPackageDetails(imported.manifest.blueprint);
+          setDraftId(null);
+          setDraftRevision(0);
+          setBaseRevision(workspace.config.revision);
+          setSaved("");
+          setConfirmed(false);
+          setPreview(null);
+          setError("");
+          setStep(3);
+          setNotice(
+            "Branded bundle BuildPlan accepted as unsaved choices. Saved drafts, records, configuration and durable associations are unchanged.",
           );
         }}
       />
@@ -1263,6 +1317,98 @@ export function BuildPlanStudio({
                   `Publisher verification rejected. No import was accepted. ${error instanceof Error ? error.message : "Invalid attestation or package."}`,
                 );
               throw error;
+            }
+          })
+        }
+      />
+      <BrandedBundleTools
+        busy={working || logoController.busy}
+        valid={!!valid}
+        canManage={["owner", "admin"].includes(workspace.role)}
+        hasSelected={!!logoController.state?.selected}
+        onExport={(includeLogo) =>
+          void run(async () => {
+            const source = validateBuildPlan(plan),
+              zip = await createBlueprintPackage(source, {
+                ...packageDetails,
+                name: packageDetails.name || source.configuration.name,
+              });
+            let companion: Uint8Array<ArrayBuffer> | undefined;
+            try {
+              if (includeLogo) {
+                const approved = await logoController.exportCompanion();
+                if (!approved)
+                  throw new Error(
+                    "Bundle export requires the current selected session logo and owner/admin authority. Refresh private logos and review again.",
+                  );
+                companion = approved;
+              }
+              const bytes = await createBrandedBlueprintBundle(zip, companion),
+                url = URL.createObjectURL(
+                  new Blob([bytes], { type: "application/zip" }),
+                ),
+                a = document.createElement("a");
+              a.href = url;
+              a.download = "lms-branded-blueprint-bundle.zip";
+              a.click();
+              setTimeout(() => URL.revokeObjectURL(url), 1000);
+              setNotice(
+                "Branded bundle download prepared. Its publisher is unverified; no draft, configuration, image selection or durable association changed.",
+              );
+            } finally {
+              zip.fill(0);
+              companion?.fill(0);
+            }
+          })
+        }
+        onImport={(file, attestation) =>
+          void run(async () => {
+            if (!file.size || file.size > BRANDED_BUNDLE_LIMIT)
+              throw new Error(
+                "Choose a nonempty branded bundle no larger than 384 KiB.",
+              );
+            if (
+              attestation &&
+              (!attestation.size || attestation.size > ATTESTATION_LIMIT)
+            )
+              throw new Error(
+                "Nested Blueprint attestation must be nonempty and no larger than 8 KiB.",
+              );
+            const captured = JSON.stringify({
+                plan,
+                draftId,
+                draftRevision,
+                baseRevision,
+              }),
+              revision = workspace.config.revision;
+            const bytes = new Uint8Array(await file.arrayBuffer()),
+              claim = attestation
+                ? new Uint8Array(await attestation.arrayBuffer())
+                : undefined;
+            let bundle:
+                | Awaited<ReturnType<typeof inspectBrandedBlueprintBundle>>
+                | undefined,
+              accepted = false;
+            try {
+              bundle = await inspectBrandedBlueprintBundle(bytes);
+              const verification = await inspectBlueprintPackage(
+                bundle.blueprintBytes,
+                claim,
+              );
+              setReviewingBundle({
+                bundle,
+                blueprintVerification: verification,
+                configurationRevision: revision,
+                editorFingerprint: captured,
+              });
+              accepted = true;
+            } finally {
+              bytes.fill(0);
+              claim?.fill(0);
+              if (!accepted) {
+                bundle?.blueprintBytes.fill(0);
+                bundle?.logoBytes?.fill(0);
+              }
             }
           })
         }
