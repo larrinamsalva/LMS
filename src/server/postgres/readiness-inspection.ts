@@ -33,6 +33,7 @@ export const readinessTables = [
   "lms.logo_associations",
   "lms.logo_association_states",
   "lms.logo_association_receipts",
+  "lms.logo_transfer_receipts",
   "lms_identity.user",
   "lms_identity.session",
   "lms_identity.account",

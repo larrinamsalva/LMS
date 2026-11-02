@@ -22,6 +22,7 @@ import { connectPostgres } from "./adapter";
 import { localTarget } from "./targets";
 import { readVerifiedStoredLogo } from "../stored-logo-reader";
 import { privateLogoAssociations } from "./logo-associations";
+import { privateLogoTransfers } from "./logo-transfers";
 
 const hash = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");
@@ -34,6 +35,8 @@ function failure(error: unknown): never {
       400,
     );
   const code = (error as { code?: string })?.code;
+  if (code === "28000")
+    throw new EngineError("Sign in locally again before private logo transfer.", 401);
   if (code === "42501")
     throw new EngineError(
       "Private logo access is unavailable for this organization, role or asset state.",
@@ -193,6 +196,7 @@ export async function openPrivateLogoStore(options: {
     );
   }
   return {
+    transfers: privateLogoTransfers(scoped, trust.source.instanceId, failure),
     associations: privateLogoAssociations(
       scoped,
       trust.source.instanceId,
