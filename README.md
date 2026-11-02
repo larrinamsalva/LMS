@@ -10,6 +10,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Shared customer/work links, exclusive-resource scheduling, retained booking zones and a responsive daily agenda for both businesses.
 - Fictional employee profiles, effective-dated Worker/Crew membership, finite working hours/time off, and cross-crew employee conflict protection.
 - Services, dated area rates and fictional estimate drafts with exact USD cents, preserved pricing snapshots, revisions and printable preview.
+- Optional fictional invoice drafts from exact reviewed estimates, append-only corrections/void history and clearly labeled printable previews; never issued or sent.
 - Shared product/location inventory, exact case conversion and an immutable receiving/usage/transfer/return/adjustment ledger with keyboard-scanner selection.
 - BuildPlan Studio: guided templates/features, safe optional fields, real Engine previews, temporary draft history and validated BuildPlan import/export.
 - Curated BuildPlan Gallery: five searchable business starters, feature/type filters, real previews and unsaved remixes through Studio.
@@ -27,7 +28,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Append-only database audit history; project JSON and organization-scoped workspace exports.
 - Accessible light/dark themes, phone layout and no-login **fictional-data-only** demo.
 
-This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, advanced pricing/currencies, fractional stock/purchasing, invoices, documents, complete production recovery/import, workflow automation, advanced builder extensions and executable application export/deployment are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
+This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, advanced pricing/currencies, fractional stock/purchasing, live invoice issuance, documents, complete production recovery/import, workflow automation, advanced builder extensions and executable application export/deployment are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
 
 ## Run locally
 
@@ -118,6 +119,10 @@ Existing unenrolled PR #10 resources remain explicitly resource-only. Enrolled r
 Open **Services & Rates** to maintain fictional services/extras and date-effective prices for named areas. Open **Estimates** to select a customer and linked work, load saved prices, enter quantities/discount/manual tax and review a printable internal draft. Owners/admins write; other members read. Exact cents and saved service/rate snapshots prevent floating-point totals and silent repricing. Nothing is sent or charged.
 
 This phase is USD only, with 1–10 lines and explicit tax/rounding/status rules. See [workflow and security contract](docs/services-estimates.md), [manifest](examples/estimates.module.json) and [actual verification](docs/services-estimates-verification.md). The separate native adapter provides durable pricing; the public no-login demo remains temporary.
+
+## Fictional invoice drafts
+
+Explicitly enable **Invoice Drafts** in Studio; existing businesses keep their current modules. Convert a current **Reviewed draft** estimate after amount review and confirmation. Search/open/print drafts, correct saved quantities/discount/manual tax with a reason, or void while retaining every revision. All invoice output says **FICTIONAL DRAFT — NOT ISSUED**. No sending, payment, legal/tax certification or persistent public finance route. See [workflow, exact pricing and limits](docs/invoice-drafts.md) and [verification](docs/invoice-drafts-verification.md).
 
 ## Inventory and stock
 

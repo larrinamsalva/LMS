@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { invoiceCommandSchema, type InvoiceVersion } from "./invoices";
 import { blueprintJson, sha256 } from "./blueprint";
 import {
   explainMigrationImpact,
@@ -226,6 +227,62 @@ export class Engine {
           )
         ).rows
       : [];
+  }
+  private async requireInvoices(tx: SqlConnection) {
+    if (
+      !(
+        await tx.query<{ present: boolean }>(
+          "select to_regclass('lms.invoice_versions') is not null as present",
+        )
+      ).rows[0].present
+    )
+      throw new EngineError(
+        "Stop runtime hosts and apply migration 16 before enabling invoice drafts.",
+        409,
+      );
+  }
+  private async invoiceHistory(
+    tx: SqlConnection,
+    organizationId: string,
+  ): Promise<InvoiceVersion[]> {
+    const exists = (
+      await tx.query<{ present: boolean }>(
+        "select to_regclass('lms.invoice_versions') is not null as present",
+      )
+    ).rows[0].present;
+    return exists
+      ? (
+          await tx.query<InvoiceVersion>(
+            "select * from lms.invoice_versions where organization_id=$1 order by record_id,revision",
+            [organizationId],
+          )
+        ).rows
+      : [];
+  }
+  /** Host-resolved identity or isolated fictional demo principal; no persistent HTTP transport. */
+  async writeInvoiceDraft(
+    principal: Principal,
+    organizationId: string,
+    input: unknown,
+    operationId: string,
+  ) {
+    const request = invoiceCommandSchema.parse(input);
+    id.parse(operationId);
+    return this.asUser(principal, async (tx) => {
+      await this.requireRole(tx, organizationId, ["owner", "admin"]);
+      await this.requireInvoices(tx);
+      const result = (
+        await tx.query<{ result: WorkspaceRecord }>(
+          "select lms.write_invoice_draft($1,$2,$3::jsonb) as result",
+          [organizationId, operationId, request],
+        )
+      ).rows[0].result;
+      return {
+        ...result,
+        created_at: new Date(result.created_at),
+        updated_at: new Date(result.updated_at),
+      };
+    }).catch(recordFailure);
   }
   private async hasInventory(tx: SqlConnection) {
     return (
@@ -577,6 +634,7 @@ export class Engine {
         buildPlans: await this.buildPlanHistory(tx, organizationId),
         staffAssignments: await this.staffHistory(tx, organizationId),
         estimateVersions: await this.estimateHistory(tx, organizationId),
+        invoiceVersions: await this.invoiceHistory(tx, organizationId),
         ...(await this.inventoryHistory(tx, organizationId)),
       };
     });
@@ -606,6 +664,11 @@ export class Engine {
       if (pricingEntities.includes(entityId)) await this.requirePricing(tx);
       if (entityId === "stock-locations" || entityId === "stock-movements")
         await this.requireInventory(tx);
+      if (entityId === "invoice-drafts")
+        throw new EngineError(
+          "Use explicit estimate conversion, correction or void review for invoice drafts.",
+          409,
+        );
       const clean = validateRecord(getEntity(config.document, entityId), data);
       if (entityId === "stock-movements") {
         await this.requireRole(tx, organizationId, movementWriteRoles(clean));
@@ -838,6 +901,8 @@ export class Engine {
     config: BusinessConfig,
   ) {
     if (config.schemaVersion === 2) await this.requireBranding(tx);
+    if (config.modules.some((m) => m.id === "invoice-drafts"))
+      await this.requireInvoices(tx);
     if (config.modules.some((m) => m.id === "workforce"))
       await this.requireWorkforce(tx);
     if (config.modules.some((m) => m.id === "estimates"))
@@ -877,6 +942,7 @@ export class Engine {
         records,
         staffAssignments: await this.staffHistory(tx, organizationId),
         estimateVersions: await this.estimateHistory(tx, organizationId),
+        invoiceVersions: await this.invoiceHistory(tx, organizationId),
         buildPlans: await this.buildPlanHistory(tx, organizationId),
         ...(await this.inventoryHistory(tx, organizationId)),
       };

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { invoiceDefinition } from "./invoices";
 import { brandingSchema, type Branding } from "./branding";
 import {
   ConfigurationError,
@@ -79,6 +80,14 @@ export function selectModules(
   config: BusinessConfig,
   choices: string[],
 ): BusinessConfig {
+  if (
+    choices.includes("invoice-drafts") &&
+    !config.entities.some((e) => e.id === "invoice-drafts")
+  )
+    config = {
+      ...config,
+      entities: [...config.entities, invoiceDefinition(config)],
+    };
   const available = new Set(config.entities.map((e) => e.module)),
     selected = new Set([...choices, "customers", "tasks"]);
   for (const id of selected) {
@@ -127,6 +136,8 @@ export function validateBuildPlan(input: unknown): BuildPlan {
   const raw = envelope.parse(input),
     config = validateConfig(raw.configuration),
     base = builderTemplate(raw.template);
+  if (config.entities.some((e) => e.id === "invoice-drafts"))
+    base.entities.push(invoiceDefinition(base));
   if (raw.version !== config.schemaVersion)
     throw new ConfigurationError(
       "BuildPlan 1 needs configuration schema 1; branded BuildPlan 2 needs schema 2.",

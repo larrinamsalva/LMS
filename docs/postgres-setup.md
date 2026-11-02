@@ -78,3 +78,5 @@ Current restore acceptance requires [the offline recovery contract](offline-reco
 
 
 [Host-only fictional destination transfer](private-logo-transfers.md) requires migration 15 explicitly applied with stopped hosts, separate verified local identity and an independently trusted instance/organization allowlist. It creates no public persistent route, publication, migration executor or activation path. Its table joins the closed native backup inventory; refresh older readiness evidence explicitly.
+
+[Optional fictional invoice drafts](invoice-drafts.md) require additive migration 16 with runtime hosts stopped. No existing organization is opted in. The closed native backup inventory includes immutable source bindings and financial revisions; refresh older readiness evidence explicitly. A restored database remains activation-blocked.

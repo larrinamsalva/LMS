@@ -1,0 +1,10 @@
+{
+  "id": "invoice-drafts",
+  "version": "1.0.0",
+  "engineApi": 1,
+  "name": "Invoice Drafts",
+  "description": "Fictional unissued drafts from reviewed estimates; no sending or payments.",
+  "dependencies": ["estimates"],
+  "entities": ["invoice-drafts"],
+  "capabilities": ["records:read", "records:write"]
+}

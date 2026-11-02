@@ -7,6 +7,8 @@ import {
   type EstimatePricing,
   type EstimateVersion,
 } from "../core/pricing";
+import { invoiceLabel } from "../core/invoices";
+import type { RecordData } from "../core/config";
 import { relatedLabel } from "./schedule";
 interface Actions {
   canManage: boolean;
@@ -189,15 +191,17 @@ export function Catalog({
     </div>
   );
 }
-function EstimatePreview({
+export function EstimatePreview({
   record,
   version,
   businessName,
   theme,
   onClose,
+  invoice = false,
 }: {
   record: WorkspaceRecord;
-  version?: EstimateVersion;
+  invoice?: boolean;
+  version?: { data: RecordData; revision: number; archived?: boolean };
   businessName: string;
   theme: "light" | "dark";
   onClose: () => void;
@@ -235,13 +239,24 @@ function EstimatePreview({
       <p className="eyebrow">{businessName}</p>
       <h2 id={title}>{String(data.title)}</h2>
       <p>
-        <strong>FICTIONAL INTERNAL ESTIMATE DRAFT</strong>
+        <strong>
+          {invoice ? invoiceLabel : "FICTIONAL INTERNAL ESTIMATE DRAFT"}
+        </strong>
       </p>
       <p>
-        No invoice, payment request or customer communication.{" "}
+        {invoice
+          ? "Unissued internal demonstration. No payment, receipt or customer communication."
+          : "No invoice, payment request or customer communication."}{" "}
         {String(data.status)} · revision {version?.revision ?? record.revision}
         {(version?.archived ?? record.archived) ? " · Archived" : ""}
       </p>
+      {invoice && (
+        <p>
+          Originating estimate {String(data.estimate)} · exact revision{" "}
+          {String(data.estimate_revision)}. Revision reason:{" "}
+          {String(data.reason)}
+        </p>
+      )}
       <dl>
         <div>
           <dt>Customer snapshot</dt>
@@ -325,7 +340,9 @@ export function Estimates({
   onAdd,
   onEdit,
   onArchive,
+  onConvert,
 }: Actions & {
+  onConvert?: (record: WorkspaceRecord) => void;
   records: WorkspaceRecord[];
   versions: EstimateVersion[];
   businessName: string;
@@ -356,8 +373,10 @@ export function Estimates({
       <p className="muted">
         Fictional drafts stay internal. Reviewed drafts are locked until
         explicitly reopened; void is terminal. Every saved revision and archive
-        action remains in history. No send, invoice or payment action is
+        action remains in history. No sending, issuance or payment action is
         available.
+        {onConvert &&
+          " Reviewed estimates can be explicitly converted to fictional unissued invoice drafts."}
       </p>
       <label className="check-label">
         <input
@@ -387,6 +406,24 @@ export function Estimates({
                 <strong>{money(p.totalMinor)}</strong>
               </p>
               <div className="actions">
+                {onConvert &&
+                  !r.archived &&
+                  r.data.status === "Reviewed draft" && (
+                    <button
+                      disabled={
+                        !canManage ||
+                        busy ||
+                        records.some(
+                          (d) =>
+                            d.entity === "invoice-drafts" &&
+                            d.data.estimate === r.id,
+                        )
+                      }
+                      onClick={() => onConvert(r)}
+                    >
+                      Create Invoice Draft from Estimate
+                    </button>
+                  )}
                 <button
                   className="secondary"
                   onClick={() => setPreview({ record: r })}

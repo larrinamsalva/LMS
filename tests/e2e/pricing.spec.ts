@@ -1,8 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { selectModules } from "../../src/core/buildplan";
 import AxeBuilder from "@axe-core/playwright";
 test("saved rates populate fictional cleaning and maintenance drafts, retain snapshots and print accessibly", async ({
   page,
 }, testInfo) => {
+  test.setTimeout(180000);
   await page.goto("/");
   await page.getByRole("button", { name: "Explore the working demo" }).click();
   await expect(
@@ -182,6 +184,176 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
         .getByRole("article", { name: "Estimate " + title, exact: true })
         .getByText("v1 · Draft", { exact: true }),
     ).toBeVisible();
+    // Optional capability is explicitly published through the existing fictional configuration control.
+    const current = await (await page.request.get("/api/demo")).json();
+    const organizationId = current.session.organizations.find(
+      (o: { industry: string }) => o.industry === industry,
+    ).id;
+    const scoped = await (
+      await page.request.get(`/api/demo?organizationId=${organizationId}`)
+    ).json();
+    expect(
+      scoped.workspace.config.document.modules.some(
+        (m: { id: string }) => m.id === "invoice-drafts",
+      ),
+    ).toBe(false);
+    const configuration = selectModules(scoped.workspace.config.document, [
+      ...scoped.workspace.config.document.modules.map(
+        (m: { id: string }) => m.id,
+      ),
+      "invoice-drafts",
+    ]);
+    const configured = await page.request.post("/api/demo", {
+      headers: { Origin: new URL(page.url()).origin },
+      data: {
+        action: "configure",
+        organizationId,
+        document: configuration,
+        revision: scoped.workspace.config.revision,
+      },
+    });
+    expect(configured.ok()).toBe(true);
+    await page.reload();
+    await page
+      .getByLabel("Business workspace", { exact: true })
+      .selectOption({
+        label:
+          industry === "cleaning" ? "Cleaning Company" : "Property Manager",
+      });
+    await page.getByRole("button", { name: /^Estimates/ }).click();
+    const reviewedCard = page.getByRole("article", {
+      name: "Estimate " + title,
+      exact: true,
+    });
+    await reviewedCard
+      .getByRole("button", {
+        name: "Create Invoice Draft from Estimate",
+        exact: true,
+      })
+      .click();
+    const conversion = page.getByRole("dialog", {
+      name: "Review estimate conversion",
+    });
+    await expect(conversion).toContainText(total);
+    await expect(
+      conversion.getByRole("button", { name: "Confirm create invoice draft" }),
+    ).toBeDisabled();
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await conversion
+      .getByLabel(
+        "I reviewed this exact revision and confirm this fictional, unissued draft action.",
+        { exact: true },
+      )
+      .check();
+    await conversion
+      .getByRole("button", {
+        name: "Confirm create invoice draft",
+        exact: true,
+      })
+      .click();
+    const invoice = page.getByRole("article", {
+      name: "Invoice draft " + title,
+      exact: true,
+    });
+    await expect(invoice).toContainText(total);
+    await expect(invoice).toContainText("FICTIONAL DRAFT — NOT ISSUED");
+    await page.getByLabel("Search invoice drafts").fill("no match");
+    await expect(invoice).toHaveCount(0);
+    await page.getByLabel("Search invoice drafts").fill(customer);
+    await expect(invoice).toBeVisible();
+    await invoice
+      .getByRole("button", { name: "Correct draft", exact: true })
+      .click();
+    const correction = page.getByRole("dialog", {
+      name: "Correct invoice draft",
+    });
+    await correction.getByLabel("Line 1 quantity", { exact: true }).fill("2");
+    await correction
+      .getByLabel("Reason for correction", { exact: true })
+      .fill("Corrected fictional visit duration");
+    await correction
+      .getByLabel(
+        "I reviewed this exact revision and confirm this fictional, unissued draft action.",
+        { exact: true },
+      )
+      .check();
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await correction
+      .getByRole("button", { name: "Save correction revision", exact: true })
+      .click();
+    await invoice
+      .getByText("Financial revision history", { exact: true })
+      .click();
+    await expect(invoice).toContainText("v1 · Draft");
+    await expect(invoice).toContainText("v2 · Draft");
+    await invoice
+      .getByRole("button", { name: "Open invoice revision 1", exact: true })
+      .click();
+    const print = page.getByRole("dialog", { name: title, exact: true });
+    await expect(print).toContainText(total);
+    await expect(print).not.toContainText("USD 99.00");
+    await expect(print).toContainText("FICTIONAL DRAFT — NOT ISSUED");
+    await page.emulateMedia({ media: "print" });
+    await expect(page.locator(".topbar")).toBeHidden();
+    await expect(
+      print.getByRole("button", { name: "Print fictional draft" }),
+    ).toBeHidden();
+    await page.screenshot({
+      path: testInfo.outputPath(`fictional-invoice-${industry}-print.png`),
+      fullPage: true,
+    });
+    await page.emulateMedia({ media: "screen" });
+    await page.keyboard.press("Escape");
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `fictional-invoice-${industry}-${industry === "cleaning" ? "light" : "dark"}.png`,
+      ),
+      fullPage: true,
+    });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await invoice
+      .getByRole("button", { name: "Void draft", exact: true })
+      .click();
+    const voidReview = page.getByRole("dialog", { name: "Void invoice draft" });
+    await voidReview
+      .getByLabel("Reason for void", { exact: true })
+      .fill("Voided fictional demonstration draft");
+    await voidReview
+      .getByLabel(
+        "I reviewed this exact revision and confirm this fictional, unissued draft action.",
+        { exact: true },
+      )
+      .check();
+    await voidReview
+      .getByRole("button", { name: "Confirm void draft", exact: true })
+      .click();
+    await expect(invoice).toContainText("Void · v3");
+    await expect(
+      invoice.getByRole("button", { name: "Correct draft", exact: true }),
+    ).toHaveCount(0);
     if (industry === "cleaning")
       await page
         .getByRole("button", { name: "Switch to dark theme", exact: true })

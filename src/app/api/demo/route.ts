@@ -22,6 +22,14 @@ const headers = {
 const org = z.uuid();
 const rev = z.number().int().min(1);
 const command = z.discriminatedUnion("action", [
+  z
+    .object({
+      action: z.literal("invoice-draft"),
+      organizationId: org,
+      input: z.unknown(),
+      operationId: org,
+    })
+    .strict(),
   z.object({ action: z.literal("start") }).strict(),
   z
     .object({
@@ -230,6 +238,13 @@ export async function POST(request: NextRequest) {
           input.operationId,
         )
       ).id;
+    if (input.action === "invoice-draft")
+      await engine.writeInvoiceDraft(
+        session.principal,
+        organizationId,
+        input.input,
+        input.operationId,
+      );
     if (input.action === "save")
       await engine.saveRecord(
         session.principal,

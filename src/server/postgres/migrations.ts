@@ -28,6 +28,7 @@ export async function loadMigrations(): Promise<Migration[]> {
       "013_private_logo_assets",
       "014_private_logo_associations",
       "015_private_logo_transfers",
+      "016_invoice_drafts",
     ].map(async (name, index) => ({
       version: index + 1,
       name,

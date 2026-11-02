@@ -23,6 +23,8 @@ export const readinessTables = [
   "lms.service_rates",
   "lms.estimate_lines",
   "lms.estimate_versions",
+  "lms.invoice_origins",
+  "lms.invoice_versions",
   "lms.stock_balances",
   "lms.stock_movements",
   "lms.build_plan_revisions",

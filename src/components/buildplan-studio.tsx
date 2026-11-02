@@ -78,6 +78,8 @@ const questions: Record<string, string> = {
   workforce: "Do employees work individually or in crews?",
   estimates: "Do you price services and prepare estimates?",
   inventory: "Do you track supplies and stock?",
+  "invoice-drafts":
+    "Do you need fictional, unissued invoice drafts from reviewed estimates?",
   "custom-records": "Do you need notes with your own optional fields?",
 };
 function ModuleChoices({
@@ -93,7 +95,11 @@ function ModuleChoices({
       <legend>What does a normal business day include?</legend>
       <div className="studio-cards">
         {manifests
-          .filter((m) => config.entities.some((e) => e.module === m.id))
+          .filter(
+            (m) =>
+              m.id === "invoice-drafts" ||
+              config.entities.some((e) => e.module === m.id),
+          )
           .map((m) => {
             const requiredBy = config.modules.filter(
               (n) =>

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { invoiceContract } from "./invoices";
 import { brandingSchema, brandText } from "./branding";
 import {
   isTimeZone,
@@ -143,6 +144,11 @@ export const businessConfigSchema = z
       if (manifest?.dependencies.some((d) => !enabled.has(d)))
         error(`Missing dependencies for ${m.id}.`);
     }
+    if (
+      enabled.has("invoice-drafts") &&
+      !config.entities.some((e) => e.id === "invoice-drafts")
+    )
+      error("Invoice drafting requires its reviewed entity contract.");
     const ids = config.entities.map((e) => e.id);
     if (
       new Set(ids).size !== ids.length ||
@@ -164,7 +170,11 @@ export const businessConfigSchema = z
     for (const entity of config.entities) {
       if (!inventoryContract(entity))
         error("Inventory fields must match the module contract.");
-      if (!pricingContract(entity))
+      if (!invoiceContract(entity, config as BusinessConfig))
+        error(
+          "Invoice draft fields must match the reviewed financial contract.",
+        );
+      if (entity.id !== "invoice-drafts" && !pricingContract(entity))
         error("Pricing fields must match the module contract.");
       if (entity.id === "estimates") {
         const workField = entity.fields.find((f) => f.key === "work");

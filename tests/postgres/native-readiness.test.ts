@@ -261,7 +261,7 @@ describe("host-only native upgrade readiness", () => {
     expect(result.result).toBe("preflight-complete");
     expect(result.backupReadiness).toBe("not-verified");
     expect(result.versions).toMatchObject({
-      source: { postgresMajor: 16, migration: 15, configurationSchemas: [1] },
+      source: { postgresMajor: 16, migration: 16, configurationSchemas: [1] },
       target: { postgresMajor: 16, migration: null, configurationSchemas: [] },
       destination: "same-schema-copy-only",
     });
@@ -482,7 +482,7 @@ describe("host-only native upgrade readiness", () => {
   it("refuses unknown migration history and unsupported configuration versions without executing migration SQL", async () => {
     await using(sourceName, (c) =>
       c.query(
-        "insert into lms_meta.migrations(version,name,checksum) values(16,'future','unsupported')",
+        "insert into lms_meta.migrations(version,name,checksum) values(17,'future','unsupported')",
       ),
     );
     const before = await sourceState();
@@ -492,7 +492,7 @@ describe("host-only native upgrade readiness", () => {
     ).toBe("blocked");
     expect(await sourceState()).toBe(before);
     await using(sourceName, async (c) => {
-      await c.query("delete from lms_meta.migrations where version=16");
+      await c.query("delete from lms_meta.migrations where version=17");
       await c.query("set session_replication_role=replica");
       await c.query(
         `update lms.config_revisions set document=jsonb_set(document,'{modules,0,version}','"99.0.0"')`,
