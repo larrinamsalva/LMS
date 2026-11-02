@@ -236,6 +236,14 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
     await expect(
       target.getByText(/Temporary private logo selected from a companion/),
     ).toBeVisible();
+    for (const mode of ["light", "dark"]) {
+      await target
+        .getByLabel(`${mode} branding sample`, { exact: true })
+        .screenshot({
+          path: info.outputPath(`custom-logo-companion-preview-${mode}.png`),
+          scale: "css",
+        });
+    }
     expect(await snapshot(target)).toEqual(before);
     expect(await snapshot(page)).toEqual(beforeDownload);
     await accessible(target);

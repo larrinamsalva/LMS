@@ -349,7 +349,7 @@ export function CustomLogoStudio({
         Separate Engine previews are independent organizations and keep their
         portable built-in mark; private images are not copied to them. Select an
         image here to see it in this organization's dashboard identity. Portable
-        image branding needs a future reviewed format.
+        branding publication needs a future reviewed format.
       </p>
     </section>
   );

@@ -60,7 +60,10 @@ export function LogoCompanionTools({
   const disabled =
     controller.busy || checking || !canManage || !controller.state;
   return (
-    <section aria-labelledby="save-logo-heading" className="studio-review">
+    <section
+      aria-labelledby="save-logo-heading"
+      className="logo-companion-tools"
+    >
       <h5 id="save-logo-heading">Save My Logo</h5>
       <p>
         Save only your explicitly selected, sanitized session image. Your device
