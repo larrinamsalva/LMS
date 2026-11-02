@@ -236,6 +236,33 @@ it("persists sanitized image bytes across independent application processes and 
   ).toBeNull();
   expect(await engine.snapshot(actor(), fixture.property)).toEqual(before);
 });
+it("captures the exact intake and actor before an asynchronous authorization wait", async () => {
+  const state = await api().snapshot(actor(), fixture.property),
+    input = Buffer.from(rawImage),
+    identity = actor();
+  const expected = await sanitizer.sanitizeLogo(input);
+  await admin.query("begin");
+  await admin.query("select id from lms.organizations where id=$1 for update", [
+    fixture.property,
+  ]);
+  const pending = api().store(
+    identity,
+    fixture.property,
+    input,
+    command(state.revision),
+  );
+  input.fill(0);
+  identity.userId = fixture.other;
+  await admin.query("commit");
+  const saved = await pending,
+    retrieved = await api().read(actor(), fixture.property, saved.assetId, 1);
+  expect(hash(retrieved.bytes)).toBe(hash(expected.bytes));
+  expect(
+    (await api().history(actor(), fixture.property)).find(
+      (e) => e.assetId === saved.assetId,
+    )!.actorId,
+  ).toBe(fixture.owner);
+});
 it("uses forced RLS, narrow SQL privileges, owner/admin management and authorized selected-member reads", async () => {
   const principal = { userId: fixture.staff };
   for (const userId of [fixture.staff, fixture.viewer, randomUUID()])

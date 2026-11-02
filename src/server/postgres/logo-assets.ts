@@ -84,6 +84,7 @@ export async function openPrivateLogoStore(options: {
     organizationId: string,
     fn: (tx: SqlConnection) => Promise<T>,
   ) {
+    const actor = { userId: id.parse(principal.userId) };
     id.parse(organizationId);
     if (!trust.source.organizations.includes(organizationId))
       throw new EngineError(
@@ -91,7 +92,7 @@ export async function openPrivateLogoStore(options: {
         403,
       );
     try {
-      return await engine.asUser(principal, fn);
+      return await engine.asUser(actor, fn);
     } catch (error) {
       return failure(error);
     }
@@ -148,6 +149,7 @@ export async function openPrivateLogoStore(options: {
     assetId: string,
     revision: number,
   ) {
+    principal = { userId: id.parse(principal.userId) };
     id.parse(assetId);
     z.number().int().positive().parse(revision);
     const release = reserveLogoProcessing();
@@ -252,21 +254,23 @@ export async function openPrivateLogoStore(options: {
       bytes: Uint8Array,
       input: unknown,
     ) {
+      principal = { userId: id.parse(principal.userId) };
       const command = durableLogoStoreCommand.parse(input);
       if (!bytes.length || bytes.length > logoLimits.inputBytes)
         throw new EngineError(
           "Choose a nonempty fictional logo no larger than 1 MiB.",
           413,
         );
-      if (!(await snapshot(principal, org)).canManage)
-        throw new EngineError(
-          "Owner/admin authority is required to store a private logo.",
-          403,
-        );
-      const release = reserveLogoProcessing(),
-        original = Buffer.from(bytes);
+      const original = Buffer.from(bytes);
+      let release: (() => void) | undefined;
       let clean: Awaited<ReturnType<typeof sanitizeLogo>> | undefined;
       try {
+        if (!(await snapshot(principal, org)).canManage)
+          throw new EngineError(
+            "Owner/admin authority is required to store a private logo.",
+            403,
+          );
+        release = reserveLogoProcessing();
         clean = await sanitizeLogo(original);
         return await operation(
           principal,
@@ -279,10 +283,11 @@ export async function openPrivateLogoStore(options: {
       } finally {
         original.fill(0);
         clean?.bytes.fill(0);
-        release();
+        release?.();
       }
     },
     async change(principal: Principal, org: string, input: unknown) {
+      principal = { userId: id.parse(principal.userId) };
       const command = durableLogoChange.parse(input);
       if (!(await snapshot(principal, org)).canManage)
         throw new EngineError(

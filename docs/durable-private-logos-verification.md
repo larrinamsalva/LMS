@@ -22,7 +22,17 @@ Network tests require the documented disposable fictional cluster and never sile
 
 ## Actual results
 
-Verification is in progress. Local `npm run check` passed: 242 tests in 39 files, type checks, 188 dependency license declarations and production build. Initial focused SQL/vault checks also passed 16 tests. The focused visual fixture passed all 3 viewport cases (29.0 seconds), including Axe and fallback checks. Full real PostgreSQL and browser regression evidence will be recorded before review. No native restore or real-user/session acceptance is claimed before it is actually verified.
+| Check | Verified evidence |
+| --- | --- |
+| Local `npm run check` | 242 tests / 39 files, type checks, 188 dependency licenses and production build passed |
+| Local focused SQL/vault/processing checks | 17 tests / 3 files passed after intake snapshot hardening; type checks passed |
+| Real PostgreSQL source `fc2a12d70b6214eb585e45a0944e210f2e6a0667` | All 186 tests / 14 files passed, including 16 new storage/restore cases; 117.11 seconds, PostgreSQL/pg_dump 16.15 |
+| Source browser regression | All 72 desktop/tablet/phone cases passed in CI; includes the unchanged public demo and isolated presentation fixture |
+| Local visual fixture | All 3 viewports passed (29.0 seconds), Axe, themes, keyboard and unavailable-image fallback |
+
+[Native source CI](https://github.com/larrinamsalva/LMS/actions/runs/41371375211) · [Browser source CI](https://github.com/larrinamsalva/LMS/actions/runs/41370738404) · [PR #26 and final-head checks](https://github.com/larrinamsalva/LMS/pull/26).
+
+These evidence snapshots identify earlier source revisions. The final suite additionally exercises intake-buffer/actor snapshotting before an asynchronous authorization wait. All final-head jobs must pass before review; use the PR's current checks/results rather than inferring final verification from these earlier counts. The initial native run caught an obsolete fixture which injected version 13 as an unknown migration; it now injects 14, retaining the refusal assertion. No security check was relaxed. The new private asset native round-trip actually completed, preserved retained bytes/history/ACLs, left the source unchanged and refused restored activation. This is not real-user/session, physical disk/power-loss, failover, encryption or production acceptance; the storage-failure case is a controlled SQL fault, not a physical-disk experiment.
 
 ## Limits
 
