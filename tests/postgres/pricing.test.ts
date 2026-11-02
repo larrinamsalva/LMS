@@ -797,7 +797,7 @@ describe("exact internal estimates with native PostgreSQL", () => {
         "011_build_plan_studio",
         "012_business_branding",
         "013_private_logo_assets",
-        "014_private_logo_associations",        "015_private_logo_transfers", "016_invoice_drafts", "017_equipment_lifecycle",
+        "014_private_logo_associations",        "015_private_logo_transfers", "016_invoice_drafts", "017_equipment_lifecycle", "018_equipment_reservations",
       ]);
       expect(await snap()).toEqual(before);
       expect(

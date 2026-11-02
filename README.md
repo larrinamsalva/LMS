@@ -194,3 +194,5 @@ Read the [architecture](docs/architecture.md), [API contracts](docs/api.md), [fi
 ## License and attribution
 
 LMS is [MIT licensed](LICENSE), copyright 2026 Larrina Salva. The bounded request-body reader is adapted from ForgeOS at commit `5831e20023c8f2f1e7269bbfb63b6ba0f21ee3b8`; its [original MIT notice](third-party/ForgeOS-LICENSE.txt) is retained. All other foundation implementation is new. Dependencies keep their own licenses, including Apache-2.0, MPL and LGPL components; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The project license does not replace their obligations.
+
+Optional [Equipment calendar mapping](docs/equipment-reservations.md) explicitly enrolls individual machines in the existing single-resource schedule, retains mapping/reservation history and flags safety problems. It is opt-in, fictional and separate from physical checkout. [Verification](docs/equipment-reservations-verification.md).

@@ -1,3 +1,8 @@
+import {
+  equipmentMappingSchema,
+  type EquipmentMapping,
+  type EquipmentReservation,
+} from "./equipment-reservations";
 import { z } from "zod";
 import {
   EquipmentError,
@@ -290,6 +295,75 @@ export class Engine {
         created_at: new Date(result.created_at),
         updated_at: new Date(result.updated_at),
       };
+    }).catch(recordFailure);
+  }
+  private async requireEquipmentReservations(tx: SqlConnection) {
+    if (
+      !(
+        await tx.query<{ present: boolean }>(
+          "select to_regclass('lms.equipment_resource_mappings') is not null as present",
+        )
+      ).rows[0].present
+    )
+      throw new EngineError(
+        "Stop runtime hosts and apply migration 18 before enabling equipment calendar mapping.",
+        409,
+      );
+  }
+  private async equipmentReservations(
+    tx: SqlConnection,
+    organizationId: string,
+  ) {
+    if (
+      !(
+        await tx.query<{ present: boolean }>(
+          "select to_regclass('lms.equipment_resource_mappings') is not null as present",
+        )
+      ).rows[0].present
+    )
+      return {
+        equipmentMappings: [] as EquipmentMapping[],
+        equipmentMappingHistory: [] as EquipmentMapping[],
+        equipmentReservations: [] as EquipmentReservation[],
+      };
+    return {
+      equipmentMappings: (
+        await tx.query<EquipmentMapping>(
+          "select * from lms.equipment_resource_mappings where organization_id=$1 order by equipment_id",
+          [organizationId],
+        )
+      ).rows,
+      equipmentMappingHistory: (
+        await tx.query<EquipmentMapping>(
+          "select * from lms.equipment_mapping_history where organization_id=$1 order by equipment_id,revision",
+          [organizationId],
+        )
+      ).rows,
+      equipmentReservations: (
+        await tx.query<EquipmentReservation>(
+          "select * from lms.equipment_reservations where organization_id=$1 order by appointment_id,appointment_revision",
+          [organizationId],
+        )
+      ).rows,
+    };
+  }
+  async mapEquipment(
+    principal: Principal,
+    organizationId: string,
+    input: unknown,
+    operationId: string,
+  ) {
+    const request = equipmentMappingSchema.parse(input);
+    id.parse(operationId);
+    return this.asUser(principal, async (tx) => {
+      await this.requireRole(tx, organizationId, ["owner", "admin"]);
+      await this.requireEquipmentReservations(tx);
+      return (
+        await tx.query<{ result: EquipmentMapping }>(
+          "select lms.write_equipment_mapping($1,$2,$3::jsonb) as result",
+          [organizationId, operationId, request],
+        )
+      ).rows[0].result;
     }).catch(recordFailure);
   }
   private async requireEquipment(tx: SqlConnection) {
@@ -656,7 +730,11 @@ export class Engine {
           "This operation identifier already belongs to a different request.",
           409,
         );
-      return previous.result;
+      return {
+        ...previous.result,
+        created_at: new Date(previous.result.created_at),
+        updated_at: new Date(previous.result.updated_at),
+      };
     }
     await tx.query("select set_config('lms.record_command',$1,true)", [
       JSON.stringify({ operationId, request }),
@@ -715,6 +793,7 @@ export class Engine {
         estimateVersions: await this.estimateHistory(tx, organizationId),
         invoiceVersions: await this.invoiceHistory(tx, organizationId),
         ...(await this.equipmentHistory(tx, organizationId)),
+        ...(await this.equipmentReservations(tx, organizationId)),
         ...(await this.inventoryHistory(tx, organizationId)),
       };
     });
@@ -988,6 +1067,8 @@ export class Engine {
     config: BusinessConfig,
   ) {
     if (config.schemaVersion === 2) await this.requireBranding(tx);
+    if (config.modules.some((m) => m.id === "equipment-reservations"))
+      await this.requireEquipmentReservations(tx);
     if (config.modules.some((m) => m.id === "equipment"))
       await this.requireEquipment(tx);
     if (config.modules.some((m) => m.id === "invoice-drafts"))
@@ -1033,6 +1114,7 @@ export class Engine {
         estimateVersions: await this.estimateHistory(tx, organizationId),
         invoiceVersions: await this.invoiceHistory(tx, organizationId),
         ...(await this.equipmentHistory(tx, organizationId)),
+        ...(await this.equipmentReservations(tx, organizationId)),
         buildPlans: await this.buildPlanHistory(tx, organizationId),
         ...(await this.inventoryHistory(tx, organizationId)),
       };

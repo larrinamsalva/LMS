@@ -1,3 +1,7 @@
+import {
+  EquipmentCalendar,
+  type EquipmentCalendarProps,
+} from "./equipment-reservations";
 import { useEffect, useId, useRef, useState } from "react";
 import type { WorkspaceRecord } from "../core/engine";
 import {
@@ -29,6 +33,7 @@ export function EquipmentAction({
   record,
   kind,
   checkout,
+  state,
   records,
   configRevision,
   zone,
@@ -39,6 +44,7 @@ export function EquipmentAction({
   record: WorkspaceRecord;
   kind: EquipmentCommand["kind"];
   checkout?: EquipmentCheckout;
+  state?: EquipmentState;
   records: WorkspaceRecord[];
   configRevision: number;
   zone: string;
@@ -70,7 +76,7 @@ export function EquipmentAction({
   const [serviceDate, setServiceDate] = useState(() =>
       localTime(new Date().toISOString(), zone).slice(0, 10),
     ),
-    [inspection, setInspection] = useState("");
+    [inspection, setInspection] = useState(state?.next_inspection ?? "");
   const [condition, setCondition] = useState(
       kind === "report-problem" ? "Needs inspection" : "Serviceable",
     ),
@@ -426,7 +432,9 @@ export function EquipmentWorkspace({
   onAdd,
   onEdit,
   onAction,
+  calendar,
 }: {
+  calendar: EquipmentCalendarProps;
   records: WorkspaceRecord[];
   states: EquipmentState[];
   checkouts: EquipmentCheckout[];
@@ -600,6 +608,16 @@ export function EquipmentWorkspace({
               aria-label={`Equipment ${r.data.name}`}
             >
               <h3>{String(r.data.name)}</h3>
+              <EquipmentCalendar
+                equipment={r}
+                state={s}
+                checkouts={checkouts}
+                records={records}
+                calendar={calendar}
+                zone={zone}
+                canManage={canManage}
+                busy={busy}
+              />
               <span className="badge">{equipmentStatus(s, c)}</span>
               <p>
                 Equipment ID: <strong>{String(r.data.asset_id)}</strong> ·
@@ -750,6 +768,12 @@ export function EquipmentWorkspace({
                         <p>
                           Service / inspection:{" "}
                           {String(e.state.last_service).slice(0, 10)}
+                        </p>
+                      )}
+                      {e.state.next_inspection && (
+                        <p>
+                          Next inspection:{" "}
+                          {String(e.state.next_inspection).slice(0, 10)}
                         </p>
                       )}
                       <p>

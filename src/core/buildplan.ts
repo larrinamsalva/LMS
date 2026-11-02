@@ -90,14 +90,18 @@ export function selectModules(
       entities: [...config.entities, invoiceDefinition(config)],
     };
   if (
-    choices.includes("equipment") &&
+    (choices.includes("equipment") ||
+      choices.includes("equipment-reservations")) &&
     !config.entities.some((e) => e.id === "equipment")
   )
     config = {
       ...config,
       entities: [...config.entities, structuredClone(equipmentDefinition)],
     };
-  const available = new Set(config.entities.map((e) => e.module)),
+  const available = new Set([
+      ...config.entities.map((e) => e.module),
+      "equipment-reservations",
+    ]),
     selected = new Set([...choices, "customers", "tasks"]);
   for (const id of selected) {
     if (!available.has(id) || !moduleById.has(id))

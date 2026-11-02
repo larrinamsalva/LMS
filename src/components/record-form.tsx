@@ -1,3 +1,9 @@
+import {
+  equipmentReservationWarning,
+  type EquipmentMapping,
+} from "../core/equipment-reservations";
+import type { EquipmentState, EquipmentCheckout } from "../core/equipment";
+import { relatedLabel } from "./schedule";
 import { useEffect, useId, useRef, useState } from "react";
 import {
   validateRecord,
@@ -9,6 +15,10 @@ import { stockUnits } from "../core/inventory";
 import { decimalToMinor, minorToDecimal } from "../core/pricing";
 import { localTime, wallToInstant, normalizeInstant } from "../core/time";
 export type RecordFormProps = {
+  equipmentMappings?: EquipmentMapping[];
+  equipmentStates?: EquipmentState[];
+  equipmentCheckouts?: EquipmentCheckout[];
+  equipmentReservationsEnabled?: boolean;
   entity: EntityDefinition;
   initialData?: RecordData;
   role?: string;
@@ -22,6 +32,10 @@ export type RecordFormProps = {
 };
 export function RecordForm({
   entity,
+  equipmentMappings = [],
+  equipmentStates = [],
+  equipmentCheckouts = [],
+  equipmentReservationsEnabled = false,
   initialData,
   role = "owner",
   record,
@@ -433,6 +447,35 @@ export function RecordForm({
             </label>
           </>
         )}
+        {entity.id === "appointments" &&
+          records.find((r) => r.id === values.resource)?.data.kind ===
+            "Equipment" && (
+            <p className="equipment-warning">
+              {equipmentMappings
+                .filter((m) => m.active && m.resource_id === values.resource)
+                .map((m) => (
+                  <span key={m.equipment_id}>
+                    Physical equipment: {relatedLabel(m.equipment_id, records)}{" "}
+                    ·{" "}
+                    {equipmentReservationWarning(
+                      equipmentStates.find(
+                        (s) => s.record_id === m.equipment_id,
+                      ),
+                      equipmentCheckouts,
+                      m.equipment_id,
+                    )}
+                    .{" "}
+                  </span>
+                ))}
+              {!equipmentMappings.some(
+                (m) => m.active && m.resource_id === values.resource,
+              ) &&
+                (equipmentReservationsEnabled
+                  ? "No reviewed physical mapping — this booking will refuse."
+                  : "Legacy resource only — no physical-machine identity or availability is established.")}{" "}
+              One resource per appointment; physical checkout is separate.
+            </p>
+          )}
         {error && (
           <p role="alert" className="error">
             {error}

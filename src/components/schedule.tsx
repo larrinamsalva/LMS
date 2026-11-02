@@ -1,3 +1,9 @@
+import {
+  equipmentReservationWarning,
+  type EquipmentMapping,
+  type EquipmentReservation,
+} from "../core/equipment-reservations";
+import type { EquipmentState, EquipmentCheckout } from "../core/equipment";
 import { useState } from "react";
 import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
@@ -14,6 +20,10 @@ export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
 export function Schedule({
   records,
   assignments,
+  equipmentMappings,
+  equipmentReservations,
+  equipmentStates,
+  equipmentCheckouts,
   zone,
   canWrite,
   busy,
@@ -23,6 +33,10 @@ export function Schedule({
 }: {
   records: WorkspaceRecord[];
   assignments: StaffAssignment[];
+  equipmentMappings: EquipmentMapping[];
+  equipmentReservations: EquipmentReservation[];
+  equipmentStates: EquipmentState[];
+  equipmentCheckouts: EquipmentCheckout[];
   zone: string;
   canWrite: boolean;
   busy: boolean;
@@ -74,6 +88,11 @@ export function Schedule({
         Display time zone: <strong>{zone}</strong>. Booking instants stay fixed
         when the business zone changes. Cancelled or archived appointments
         release their resource; completed work keeps its historical reservation.
+      </p>
+      <p className="muted">
+        One resource per appointment: selecting equipment reserves that machine,
+        not an employee or crew. Equipment must be explicitly mapped; collection
+        requires a separate checkout review.
       </p>
       <div className="schedule-toolbar">
         <button
@@ -165,6 +184,30 @@ export function Schedule({
                 </div>
               )}
             </dl>
+            {[
+              ...new Set([
+                ...equipmentMappings
+                  .filter((m) => m.active && m.resource_id === r.data.resource)
+                  .map((m) => m.equipment_id),
+                ...equipmentReservations
+                  .filter(
+                    (v) =>
+                      v.appointment_id === r.id &&
+                      v.appointment_revision === r.revision,
+                  )
+                  .map((v) => v.equipment_id),
+              ]),
+            ].map((equipmentId) => (
+              <p key={equipmentId} className="equipment-warning">
+                Physical equipment:{" "}
+                <strong>{relatedLabel(equipmentId, records)}</strong> ·{" "}
+                {equipmentReservationWarning(
+                  equipmentStates.find((s) => s.record_id === equipmentId),
+                  equipmentCheckouts,
+                  equipmentId,
+                )}
+              </p>
+            ))}
             {r.data.notes && <p>{String(r.data.notes)}</p>}
             <div className="actions">
               {!r.archived && (

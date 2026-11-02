@@ -106,3 +106,7 @@ After PR #27: host-only fictional PostgreSQL logo retention and explicit version
 
 - Optional shared equipment registry with permanent organization IDs, employee/crew custody, physical condition, retained inspection/maintenance/retirement and no consumable stock changes.
 - Next: reviewed equipment/reservation mapping, richer equipment filtering/export and retention/disposal; camera scanning, recurring maintenance and real-business transport/security remain separate. No GPS, payroll, depreciation, purchasing, messages, deployment or recovery activation.
+
+- [x] Optional explicit physical-equipment/calendar mapping, shared exclusion constraints, retained reservation snapshots and safety-review warnings (fictional only)
+- [ ] Reviewed multiple-resource appointments and reservation-linked custody confirmation
+- [ ] Production identity/transport, retention and recovery acceptance before real business use
