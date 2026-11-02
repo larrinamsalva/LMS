@@ -347,6 +347,42 @@ it("falls back on publication and rollback, retaining old associations until exp
     ),
   ).toBe(true);
 });
+it("serializes binding with both Engine and restricted direct-SQL publication without resurrecting an old image", async () => {
+  for (const route of ["engine", "restricted-sql"]) {
+    const r = await review(),
+      current = (await engine.snapshot(actor(), fixture.property)).config;
+    const proposal = {
+      ...current.document,
+      name: "Fictional concurrent publication " + route,
+    };
+    const publication =
+      route === "engine"
+        ? engine.publishConfig(
+            actor(),
+            fixture.property,
+            proposal,
+            current.revision,
+          )
+        : engine.asUser(actor(), (tx) =>
+            tx.query(
+              "insert into lms.config_revisions(organization_id,revision,document,created_by) values($1,$2,$3,$4)",
+              [fixture.property, current.revision + 1, proposal, fixture.owner],
+            ),
+          );
+    const results = await Promise.allSettled([
+      publication,
+      assoc().apply(actor(), fixture.property, command(r)),
+    ]);
+    expect(results[0].status).toBe("fulfilled");
+    if (results[1].status === "rejected")
+      expect(results[1].reason).toMatchObject({ status: 409 });
+    const state = await assoc().read(actor(), fixture.property);
+    expect(state.inspection.configurationRevision).toBe(current.revision + 1);
+    expect(state.logo).toBeNull();
+    expect(state.inspection.status).toBe("configuration-changed");
+    await bind();
+  }
+});
 it("reverts deliberately to a built-in mark and retains referenced images against retirement", async () => {
   const a = (await assoc().inspect(actor(), fixture.property)).association!;
   await assoc().apply(
@@ -402,7 +438,7 @@ it("enforces roles, organization isolation, append-only history, scoped foreign 
       fixture.property,
       command({ ...r, asset: { ...r.asset!, id: randomUUID() } }),
     ),
-  ).rejects.toMatchObject({ status: 409 });
+  ).rejects.toMatchObject({ status: 403 });
   for (const sql of [
     "delete from lms.logo_associations",
     "update lms.logo_association_states set revision=0",

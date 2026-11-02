@@ -3,11 +3,13 @@ import { createRoot } from "react-dom/client";
 import { BusinessIdentity } from "../../src/components/business-brand";
 import { defaultBranding, brandingVariables } from "../../src/core/branding";
 import type { LogoAsset } from "../../src/core/private-logo";
+import { validateConfig } from "../../src/core/config";
 import { logoAssociationInspection } from "../../src/core/logo-associations";
 export function render(org: string, asset: LogoAsset, responses: unknown[]) {
   const root = createRoot(document.getElementById("result")!);
   const states = responses.map((r) => logoAssociationInspection.parse(r));
-  const branding = defaultBranding("property");
+  const config = validateConfig(states[0].configuration);
+  const branding = config.branding ?? defaultBranding(config.industry);
   function paint(theme: "light" | "dark", index = 0, layout = asset.display) {
     const inspection = states[index];
     root.render(
