@@ -1000,6 +1000,19 @@ it("persists custody and immutable equipment/maintenance history across reconnec
         )
       ).rows,
     ).toEqual([]);
+    for (const table of [
+      "equipment_resource_mappings",
+      "equipment_mapping_history",
+      "equipment_reservations",
+    ]) {
+      expect(
+        (
+          await c.query(`select * from lms.${table} where organization_id=$1`, [
+            a,
+          ])
+        ).rows,
+      ).toEqual([]);
+    }
     await c.query("rollback");
   });
   await expect(

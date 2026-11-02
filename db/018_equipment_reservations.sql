@@ -91,10 +91,15 @@ grant execute on function lms.write_equipment_mapping(uuid,uuid,jsonb) to lms_ap
 create function lms_private.equipment_reservation_guard() returns trigger language plpgsql security definer set search_path='' as $$
 declare m lms.equipment_resource_mappings;s lms.equipment_state;cfg jsonb;resource lms.records;machine lms.records;enrolled boolean;
 begin
- if new.entity not in ('appointments','resources','equipment') then return new;end if;
  perform 1 from lms.organizations where id=new.organization_id for update;
- perform lms_private.equipment_operator(new.organization_id,'checkout');
+ begin
+  perform lms_private.equipment_operator(new.organization_id,'checkout');
+ exception when insufficient_privilege then
+  raise exception 'Record violates row-level security' using errcode='42501';
+ end;
  insert into lms_private.record_epochs values(new.organization_id,1) on conflict(organization_id) do update set epoch=lms_private.record_epochs.epoch+1;
+ -- Uniform lock order also covers raw workforce/availability writers before their existing epoch guard.
+ if new.entity not in ('appointments','resources','equipment') then return new;end if;
  if new.entity='resources' then
   if exists(select 1 from lms.equipment_mapping_history where organization_id=new.organization_id and resource_id=new.id) and new.data->>'kind' is distinct from 'Equipment' then raise exception 'An enrolled Equipment resource retains its physical type' using errcode='23514';end if;
   if new.archived and exists(select 1 from lms.equipment_resource_mappings where organization_id=new.organization_id and resource_id=new.id and active) then raise exception 'Explicitly unmap equipment before archiving its resource' using errcode='23514';end if;
@@ -115,8 +120,9 @@ begin
  if s.next_inspection is not null and (((new.data->>'end')::timestamptz-interval '1 microsecond') at time zone coalesce(cfg->>'timeZone','UTC'))::date>=s.next_inspection then raise exception 'Equipment inspection is due before this reservation completes; review service first' using errcode='23514';end if;
  return new;
 end; $$;
--- Runs before existing record guards; the organization lock serializes mapping, custody, safety and bookings.
-create trigger record_aa_equipment_reservation_guard before insert or update on lms.records for each row execute function lms_private.equipment_reservation_guard();
+-- Runs after the immutable identity guard, before relationship/workforce epoch guards.
+-- The earlier equipment guard already uses this organization-first order.
+create trigger record_gz_equipment_reservation_guard before insert or update on lms.records for each row execute function lms_private.equipment_reservation_guard();
 create function lms_private.equipment_reservation_projection() returns trigger language plpgsql security definer set search_path='' as $$
 declare m lms.equipment_resource_mappings;previous lms.equipment_reservations;eq_revision integer;resource_revision integer;
 begin
@@ -136,3 +142,9 @@ begin
 end; $$;
 create trigger record_equipment_reservation_projection after insert or update on lms.records for each row execute function lms_private.equipment_reservation_projection();
 revoke all on function lms_private.equipment_reservation_guard(),lms_private.equipment_reservation_projection() from public,lms_app;
+
+-- Configuration publication/rollback uses the same order, including direct SQL writers.
+create function lms_private.equipment_reservation_config_lock() returns trigger language plpgsql security definer set search_path='' as $$
+begin perform 1 from lms.organizations where id=new.organization_id for update;return new;end; $$;
+create trigger config_aa_equipment_reservation_lock before insert on lms.config_revisions for each row execute function lms_private.equipment_reservation_config_lock();
+revoke all on function lms_private.equipment_reservation_config_lock() from public,lms_app;

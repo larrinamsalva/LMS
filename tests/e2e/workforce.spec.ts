@@ -487,7 +487,7 @@ test("fictional crews and workers publish availability, schedule both industries
       label: industry === "cleaning" ? "Cleaning Company" : "Property Manager",
     });
     await page
-      .getByRole("button", { name: "Equipment & Tools", exact: true })
+      .getByRole("button", { name: /^Equipment & Tools/ })
       .click();
     const mappingSummary = item.getByText("Review calendar mapping", {
       exact: true,
@@ -589,7 +589,7 @@ test("fictional crews and workers publish availability, schedule both industries
       fullPage: testInfo.project.name !== "phone",
     });
     await page
-      .getByRole("button", { name: "Equipment & Tools", exact: true })
+      .getByRole("button", { name: /^Equipment & Tools/ })
       .click();
     await item
       .getByRole("button", { name: "Report problem", exact: true })

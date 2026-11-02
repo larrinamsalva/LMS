@@ -609,6 +609,7 @@ export function EquipmentWorkspace({
             >
               <h3>{String(r.data.name)}</h3>
               <EquipmentCalendar
+                key={`${r.revision}:${calendar.configRevision}:${calendar.mappings.find((m) => m.equipment_id === r.id)?.revision ?? 0}`}
                 equipment={r}
                 state={s}
                 checkouts={checkouts}
