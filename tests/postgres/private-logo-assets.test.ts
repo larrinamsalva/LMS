@@ -771,7 +771,7 @@ it("performs a native backup and quarantined restore of private bytes/history, c
   });
   expect(result.result).toBe("rehearsal-complete");
   expect(result.backupReadiness).toBe("verified-fictional-round-trip");
-  expect(result.versions.source.migration).toBe(13);
+  expect(result.versions.source.migration).toBe(14);
   const report = JSON.stringify(result);
   for (const forbidden of [
     firstHash,

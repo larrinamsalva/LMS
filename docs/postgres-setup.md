@@ -36,7 +36,7 @@ Connections to non-loopback hosts require TLS with certificate verification. A p
 
 ## Native backup and restore
 
-A workspace JSON export is not a database backup. Native backups include schema, business rows, memberships, configuration/audit history, policies, migration ledger, optional identity accounts and migration-13 private retained PNG assets/selection/receipts/history. Treat archives as private media-bearing backups. Session/verification/pending membership-review data is deliberately excluded and purged after restoration; normal authentication/persistent activation is blocked pending separately accepted rollback protection. PostgreSQL cluster logins/passwords, future identity-provider state and document object bytes require separate recovery procedures. This foundation has no external objects/identity provider.
+A workspace JSON export is not a database backup. Native backups include schema, business rows, memberships, configuration/audit history, policies, migration ledger, optional identity accounts and migration-13 private retained PNG assets/selection/receipts/history and migration-14 private branding associations/cursors/receipts. Treat archives as private media-bearing backups. Session/verification/pending membership-review data is deliberately excluded and purged after restoration; normal authentication/persistent activation is blocked pending separately accepted rollback protection. PostgreSQL cluster logins/passwords, future identity-provider state and document object bytes require separate recovery procedures. This foundation has no external objects/identity provider.
 
 Install PostgreSQL client tools matching or newer than the server, and keep `pg_dump`/`pg_restore` on PATH (or set `LMS_PG_BIN`). Create a private `backups` directory first (for example, `mkdir -m 700 backups` on Linux/macOS; on Windows restrict its ACL to your account), then:
 
@@ -73,3 +73,5 @@ The suite refuses a missing URL or ordinary database name; it never silently ski
 See [migration rules](../db/README.md), [verification results](postgres-verification.md) and [remaining security gates](../SECURITY.md).
 
 Current restore acceptance requires [the offline recovery contract](offline-recovery.md). The guarded command installs `lms_control.restore_blocker` even for old archives, and no init/migration can remove it. Manual Docker restore lacks that quarantine/cleanup protocol; it is for offline inspection only and is not an accepted runtime recovery path. Do not attach a host or remove the blocker.
+
+[Host-only private logo association setup and safe rollback review](private-logo-associations.md) requires migration 14 applied explicitly with stopped hosts; it adds no public persistent route or activation path.
