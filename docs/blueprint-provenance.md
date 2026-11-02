@@ -110,3 +110,6 @@ Distribute the **unchanged** ZIP with its detached file, never the PEM/request/p
 There is no independently monotonic witness, remote revocation service, trusted signing time, latest-edition receipt, anti-replay counter or protection against rollback of **all** application/registry trust anchors. Reusing identical signed bytes for inspection is intentionally allowed and creates no database write. A retired key remains accepted by an older application whose registry still marks it active; operators must distribute reviewed retirement releases through their independent trust process. Publisher signatures are separate from credential history/checkpoint publication and cannot unblock restored databases. No production safety, code-review endorsement, secure deployment, real-user authorization, migration execution or installation is implied.
 
 [Actual test evidence and screenshots](blueprint-provenance-verification.md) · [Security boundary](../SECURITY.md) · [Roadmap](../ROADMAP.md)
+
+
+The separately versioned [complete-bundle attestation 1](branded-bundle-provenance.md) covers exact Bundle 1 contents, including its optional original PNG. This original Blueprint Attestation 1 remains unchanged and never gains image/outer-bundle coverage. Both protocols share the reviewed registry/retirement policy and fixed Ed25519 helper; neither enrolls a real publisher.

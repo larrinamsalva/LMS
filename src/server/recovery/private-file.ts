@@ -1,13 +1,18 @@
 import { constants } from "node:fs";
 import { open } from "node:fs/promises";
 import { EngineError } from "../../core/engine";
-export async function readPrivateText(file: string, maxBytes: number) {
+export async function readPrivateText(
+  file: string,
+  maxBytes: number,
+  singleLink = false,
+) {
   const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const stat = await handle.stat();
     if (
       !process.getuid ||
       !stat.isFile() ||
+      (singleLink && stat.nlink !== 1) ||
       stat.uid !== process.getuid() ||
       (stat.mode & 0o077) !== 0 ||
       stat.size > maxBytes

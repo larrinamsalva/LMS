@@ -4,19 +4,15 @@ import type { BuildPlan } from "../core/buildplan";
 import { configurationImpact } from "../core/config";
 import { defaultBranding, brandingVariables, palettes } from "../core/branding";
 import { blueprintModules } from "../core/blueprint";
-import {
-  BRANDED_BUNDLE_LIMIT,
-  type BrandedBundle,
-} from "../core/branded-bundle";
-import type { InspectedBlueprint } from "../core/blueprint-provenance";
+import { BRANDED_BUNDLE_LIMIT } from "../core/branded-bundle";
+import type { InspectedBrandedBundle } from "../core/branded-bundle-provenance";
+import { BrandedBundleVerification } from "./branded-bundle-verification";
 import { manifests } from "../modules/registry";
 import { BusinessIdentity } from "./business-brand";
 import { BlueprintVerification } from "./blueprint-verification";
 import type { LogoController } from "./private-logo";
 
-export interface BundleInspection {
-  bundle: BrandedBundle;
-  blueprintVerification: InspectedBlueprint;
+export interface BundleInspection extends InspectedBrandedBundle {
   configurationRevision: number;
   editorFingerprint: string;
 }
@@ -33,11 +29,12 @@ export function BrandedBundleTools({
   canManage: boolean;
   hasSelected: boolean;
   onExport: (includeLogo: boolean) => void;
-  onImport: (file: File, attestation?: File) => void;
+  onImport: (file: File, attestation?: File, bundleAttestation?: File) => void;
 }) {
   const [include, setInclude] = useState(false),
     [file, setFile] = useState<File | null>(null),
-    [claim, setClaim] = useState<File | null>(null);
+    [claim, setClaim] = useState<File | null>(null),
+    [wholeClaim, setWholeClaim] = useState<File | null>(null);
   return (
     <section className="panel" aria-labelledby="branded-bundle-tools">
       <h2 id="branded-bundle-tools">Portable branded blueprint bundle</h2>
@@ -86,6 +83,22 @@ export function BrandedBundleTools({
         canonical metadata and both nested archive formats are checked. This is
         data, not an application installer, migration or database backup.
       </p>
+      <label htmlFor="complete-bundle-attestation">
+        Complete-bundle publisher attestation (optional)
+      </label>
+      <input
+        id="complete-bundle-attestation"
+        type="file"
+        accept=".json,application/json"
+        disabled={busy}
+        onChange={(e) => setWholeClaim(e.target.files?.[0] ?? null)}
+      />
+      <p className="muted">
+        This separate protocol can authenticate the complete exact bundle and
+        its original included image under a previously trusted active key. The
+        real registry is empty; no uploaded key or publisher name establishes
+        trust.
+      </p>
       <label htmlFor="bundle-blueprint-attestation">
         Nested Blueprint attestation only (optional)
       </label>
@@ -106,7 +119,7 @@ export function BrandedBundleTools({
         className="secondary"
         disabled={busy || !file}
         onClick={() => {
-          if (file) onImport(file, claim ?? undefined);
+          if (file) onImport(file, claim ?? undefined, wholeClaim ?? undefined);
         }}
       >
         Review branded bundle
@@ -196,10 +209,6 @@ export function BrandedBundleReview({
               ? " (legacy plan uses an industry default)"
               : ""}
           </dd>
-          <dt>Bundle publisher authenticity</dt>
-          <dd>
-            Unverified · no signature covers this complete bundle or image.
-          </dd>
         </dl>
         <p>
           Bundle integrity passed: exact components and nested formats
@@ -266,6 +275,7 @@ export function BrandedBundleReview({
           </button>
         </div>
       </section>
+      <BrandedBundleVerification inspection={inspection} />
       <section className="panel" aria-labelledby="bundle-features">
         <h3 id="bundle-features">
           Included features and required dependencies
@@ -317,9 +327,9 @@ export function BrandedBundleReview({
           Nested Blueprint verification only
         </h3>
         <p>
-          Any verified publisher result below applies only to the nested
-          Blueprint ZIP. The complete bundle and logo remain
-          publisher-unverified.
+          This separately supplied protocol covers only the nested Blueprint
+          ZIP. Complete-bundle and original-image coverage is reported
+          independently above.
         </p>
         <BlueprintVerification inspection={blueprintVerification} />
       </section>
@@ -330,8 +340,11 @@ export function BrandedBundleReview({
             <p>
               <strong>Image integrity verified.</strong> PNG ·{" "}
               {logo.image.width} × {logo.image.height} · {logo.image.bytes}{" "}
-              bytes · contained {logo.display}. Publisher authenticity not
-              established. Integrity is not image safety.
+              bytes · contained {logo.display}.{" "}
+              {inspection.publisher.status === "verified"
+                ? "The original included PNG is covered by the complete-bundle signature; destination sanitized bytes may differ."
+                : "Publisher authenticity for this image is not established."}{" "}
+              Integrity is not image safety.
             </p>
             <p>
               Accept the BuildPlan first, then independently approve the

@@ -92,6 +92,6 @@ Testing establishes fictional same-schema preservation only, not production reco
 
 Portable codecs and canonical summaries remain byte-for-byte unchanged: BusinessConfig/BuildPlan/Blueprint 1/2, detached attestation 1, Logo Companion 1 and Branded Bundle 1. The original bundle's fixed README describes mapping as future work in its original protocol text; this **separate private API** implements that host-only step without rewriting the protocol. Destination IDs/receipts never enter portable exports. A nested Blueprint signature does not authenticate the image or outer bundle.
 
-Next: independently reviewed persistent private transport and real-user acceptance; image-bearing signatures with independent key enrollment/retirement/freshness; explicit portable published-image associations; separately authorized retention/disposal. No production media, automatic migration, destructive cleanup or recovery activation is provided.
+Next: independently reviewed persistent private transport and real-user acceptance; independent key enrollment/retirement/freshness for the separate [complete-bundle signature protocol](branded-bundle-provenance.md); explicit portable published-image associations; separately authorized retention/disposal. No production media, automatic migration, destructive cleanup or recovery activation is provided.
 
 [Actual verification](private-logo-transfers-verification.md) · [Bundle workflow](branded-blueprint-bundles.md) · [Security](../SECURITY.md)

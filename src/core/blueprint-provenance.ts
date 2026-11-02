@@ -180,6 +180,53 @@ export interface InspectedBlueprint {
 export const hexBytes = (text: string) =>
   Uint8Array.from(text.match(/../g) ?? [], (part) => parseInt(part, 16));
 
+/** Same reviewed active/retired policy for both independently versioned attestation protocols. */
+export function activePublisherKey(trusted: PublisherRegistry, keyId: string) {
+  const key = trusted.keys.find((k) => k.id === keyId);
+  if (!key)
+    throw new ProvenanceError(
+      "Unknown publisher key. No reviewed trust has been established for this key.",
+    );
+  if (key.status === "retired")
+    throw new ProvenanceError(
+      "Retired publisher key. This release refuses its attestations, including older signatures.",
+    );
+  return key;
+}
+
+/** Shared fixed Ed25519 verification; callers first validate their own complete versioned payload. */
+export async function verifyPublisherSignature(
+  key: PublisherRegistry["keys"][number],
+  signature: string,
+  message: Uint8Array<ArrayBuffer>,
+) {
+  try {
+    const publicKey = await crypto.subtle.importKey(
+      "raw",
+      hexBytes(key.publicKey),
+      { name: "Ed25519" },
+      false,
+      ["verify"],
+    );
+    if (
+      !(await crypto.subtle.verify(
+        "Ed25519",
+        publicKey,
+        hexBytes(signature),
+        message,
+      ))
+    )
+      throw new ProvenanceError(
+        "Invalid publisher signature. The claimed authenticated package is rejected.",
+      );
+  } catch (error) {
+    if (error instanceof ProvenanceError) throw error;
+    throw new ProvenanceError(
+      "Ed25519 verification is unavailable or failed. Use a supported browser on HTTPS or localhost; no authenticated import was accepted.",
+    );
+  }
+}
+
 /** All results are ephemeral inspection facts, not authorization or persisted provenance. Test registries must be supplied explicitly. */
 export async function inspectBlueprintPackage(
   input: Uint8Array,
@@ -207,15 +254,7 @@ export async function inspectBlueprintPackage(
   let publisher: PublisherVerification = { status: "unsigned" };
   if (claim) {
     const payload = claim.payload,
-      key = trusted.keys.find((k) => k.id === payload.keyId);
-    if (!key)
-      throw new ProvenanceError(
-        "Unknown publisher key. No reviewed trust has been established for this key.",
-      );
-    if (key.status === "retired")
-      throw new ProvenanceError(
-        "Retired publisher key. This release refuses its attestations, including older signatures.",
-      );
+      key = activePublisherKey(trusted, payload.keyId);
     if (payload.packageSha256 !== packageSha256)
       throw new ProvenanceError(
         "Publisher package digest mismatch. The ZIP bytes changed or this attestation belongs to another package.",
@@ -241,31 +280,11 @@ export async function inspectBlueprintPackage(
       throw new ProvenanceError(
         "Publisher Gallery edition claim is unsupported or does not match this package. It cannot establish template ancestry.",
       );
-    try {
-      const publicKey = await crypto.subtle.importKey(
-        "raw",
-        hexBytes(key.publicKey),
-        { name: "Ed25519" },
-        false,
-        ["verify"],
-      );
-      if (
-        !(await crypto.subtle.verify(
-          "Ed25519",
-          publicKey,
-          hexBytes(claim.signature),
-          attestationMessage(payload),
-        ))
-      )
-        throw new ProvenanceError(
-          "Invalid publisher signature. The claimed authenticated package is rejected.",
-        );
-    } catch (error) {
-      if (error instanceof ProvenanceError) throw error;
-      throw new ProvenanceError(
-        "Ed25519 verification is unavailable or failed. Use a supported browser on HTTPS or localhost; no authenticated import was accepted.",
-      );
-    }
+    await verifyPublisherSignature(
+      key,
+      claim.signature,
+      attestationMessage(payload),
+    );
     publisher = {
       status: "verified",
       keyId: key.id,

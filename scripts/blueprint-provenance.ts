@@ -1,3 +1,9 @@
+import { BRANDED_BUNDLE_LIMIT } from "../src/core/branded-bundle";
+import {
+  BUNDLE_ATTESTATION_LIMIT,
+  inspectAuthenticatedBrandedBundle,
+} from "../src/core/branded-bundle-provenance";
+import { signBrandedBundleFile } from "../src/server/branded-bundle-signing";
 import {
   ATTESTATION_LIMIT,
   inspectBlueprintPackage,
@@ -8,6 +14,44 @@ import {
 } from "../src/server/blueprint-signing";
 async function main() {
   const [command, zip, detached, ...extra] = process.argv.slice(2);
+  if (command === "bundle-inspect" && zip && !extra.length) {
+    const bytes = await readBlueprintFile(zip, BRANDED_BUNDLE_LIMIT);
+    try {
+      const result = await inspectAuthenticatedBrandedBundle(bytes, {
+        attestation: detached
+          ? await readBlueprintFile(detached, BUNDLE_ATTESTATION_LIMIT)
+          : undefined,
+      });
+      try {
+        console.log(
+          JSON.stringify(
+            {
+              bundleSha256: result.bundleSha256,
+              name: result.bundle.blueprint.manifest.blueprint.name,
+              businessType: result.bundle.blueprint.plan.template,
+              compatibility: result.bundle.manifest.compatibility,
+              blueprintSha256: result.bundle.manifest.blueprint.sha256,
+              logoCompanionSha256: result.bundle.manifest.logo?.sha256 ?? null,
+              imageSha256: result.bundle.logo?.image.sha256 ?? null,
+              imageIncluded: result.bundle.logo !== null,
+              publisher: result.publisher,
+              nestedPublisher: result.blueprintVerification.publisher,
+              warning:
+                "Integrity/signing-key possession is not freshness, image safety, transfer authority or publication approval.",
+            },
+            null,
+            2,
+          ),
+        );
+      } finally {
+        result.bundle.blueprintBytes.fill(0);
+        result.bundle.logoBytes?.fill(0);
+      }
+    } finally {
+      bytes.fill(0);
+    }
+    return;
+  }
   if (command === "inspect" && zip && !extra.length) {
     const result = await inspectBlueprintPackage(
       await readBlueprintFile(zip),
@@ -33,9 +77,14 @@ async function main() {
     );
     return;
   }
-  if (command !== "sign" || zip || detached || extra.length)
+  if (
+    !["sign", "bundle-sign"].includes(command) ||
+    zip ||
+    detached ||
+    extra.length
+  )
     throw new Error(
-      "Use inspect ZIP [ATTESTATION] or sign with a bounded JSON request on stdin.",
+      "Use inspect ZIP [ATTESTATION], bundle-inspect BUNDLE [ATTESTATION], or sign/bundle-sign with a bounded JSON request on stdin.",
     );
   const parts: Buffer[] = [];
   let count = 0;
@@ -47,9 +96,9 @@ async function main() {
   }
   console.log(
     JSON.stringify(
-      await signBlueprintFile(
-        JSON.parse(Buffer.concat(parts).toString("utf8")),
-      ),
+      await (
+        command === "bundle-sign" ? signBrandedBundleFile : signBlueprintFile
+      )(JSON.parse(Buffer.concat(parts).toString("utf8"))),
     ),
   );
 }
