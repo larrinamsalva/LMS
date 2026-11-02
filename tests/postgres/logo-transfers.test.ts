@@ -931,7 +931,7 @@ it("preserves exact private rows and source data in a native quarantined restore
   });
   expect(result.result).toBe("rehearsal-complete");
   expect(result.backupReadiness).toBe("verified-fictional-round-trip");
-  expect(result.versions.source.migration).toBe(17);
+  expect(result.versions.source.migration).toBe(18);
   for (const sensitive of [
     sourceAsset,
     hash(sample.image),

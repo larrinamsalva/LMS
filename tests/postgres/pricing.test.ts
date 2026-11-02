@@ -415,6 +415,14 @@ describe("exact internal estimates with native PostgreSQL", () => {
         "1001",
       );
     else expect(results[0].reason.code).toBe("23514");
+    await expect(
+      rawTransaction((db) =>
+        db.query(
+          "select lms_private.prepare_estimate_snapshot($1,$2::jsonb,null,null)",
+          [a, c.data],
+        ),
+      ),
+    ).rejects.toMatchObject({ code: "42501" });
     const current = (await engine.snapshot(owner, a)).records.find(
       (r) => r.id === c.rate.id,
     )!;
@@ -797,7 +805,11 @@ describe("exact internal estimates with native PostgreSQL", () => {
         "011_build_plan_studio",
         "012_business_branding",
         "013_private_logo_assets",
-        "014_private_logo_associations",        "015_private_logo_transfers", "016_invoice_drafts", "017_equipment_lifecycle",
+        "014_private_logo_associations",
+        "015_private_logo_transfers",
+        "016_invoice_drafts",
+        "017_equipment_lifecycle",
+        "018_equipment_reservations",
       ]);
       expect(await snap()).toEqual(before);
       expect(

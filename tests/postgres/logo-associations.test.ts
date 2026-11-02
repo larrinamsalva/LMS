@@ -839,7 +839,7 @@ it("preserves exact association/history/receipt/PNG bytes in native backup and q
   });
   expect(result.result).toBe("rehearsal-complete");
   expect(result.backupReadiness).toBe("verified-fictional-round-trip");
-  expect(result.versions.source.migration).toBe(17);
+  expect(result.versions.source.migration).toBe(18);
   for (const secret of [
     assets[0].id,
     assets[0].sha256,

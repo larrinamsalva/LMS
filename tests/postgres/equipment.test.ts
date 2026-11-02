@@ -1,3 +1,10 @@
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import {
+  reservationFixture,
+  mappingRequest,
+} from "../helpers/equipment-reservations";
+import { workflow, appointmentData } from "../helpers/scheduling";
 import { selectModules } from "../../src/core/buildplan";
 import {
   equipmentFixture,
@@ -776,7 +783,7 @@ it("rolls back custody, record revision, state, receipts and audits when an even
 it("persists custody and immutable equipment/maintenance history across reconnect and a native quarantined restore", async () => {
   const f = await out(),
     c = await active();
-  await engine.writeEquipment(
+  const returned = await engine.writeEquipment(
     staff,
     a,
     equipmentAction(f.equipment, "return", {
@@ -787,21 +794,166 @@ it("persists custody and immutable equipment/maintenance history across reconnec
     }),
     randomUUID(),
   );
+  const opened = await engine.writeEquipment(
+    owner,
+    a,
+    equipmentAction(returned, "open-maintenance", {
+      workId: f.work.id,
+      workRevision: f.work.revision,
+    }),
+    randomUUID(),
+  );
+  const serviced = await engine.writeEquipment(
+    owner,
+    a,
+    equipmentAction(opened, "record-service", {
+      employeeId: f.employee.id,
+      employeeRevision: f.employee.revision,
+      serviceDate: "2026-11-06",
+      nextInspection: "2026-12-06",
+    }),
+    randomUUID(),
+  );
+  const released = await releaseEquipment(
+    engine,
+    owner,
+    a,
+    serviced,
+    f.employee,
+  );
+  await engine.saveRecord(
+    owner,
+    a,
+    "equipment",
+    { ...released.data, model: "Retained fictional repair model" },
+    released,
+    randomUUID(),
+  );
+  const review = (await engine.snapshot(owner, a)).config;
+  await engine.publishConfig(
+    owner,
+    a,
+    selectModules(review.document, [
+      ...review.document.modules.map((m) => m.id),
+      "equipment-reservations",
+    ]),
+    review.revision,
+  );
+  const current = await engine.snapshot(owner, a);
+  const machine = current.records.find((r) => r.id === released.id)!;
+  const w = await workflow(engine, owner, a, "property");
+  w.resource = await engine.saveRecord(owner, a, "resources", {
+    name: "Fictional retained machine calendar",
+    kind: "Equipment",
+  });
+  await engine.mapEquipment(
+    owner,
+    a,
+    mappingRequest(machine, w.resource, current.config.revision),
+    randomUUID(),
+  );
+  await engine.saveRecord(
+    owner,
+    a,
+    "appointments",
+    appointmentData(w),
+    undefined,
+    randomUUID(),
+  );
+  await engine.saveRecord(
+    owner,
+    a,
+    "appointments",
+    appointmentData(w, {
+      title: "Retained cancelled reservation",
+      status: "Cancelled",
+      start: "2026-11-06T20:00:00Z",
+      end: "2026-11-06T21:00:00Z",
+    }),
+    undefined,
+    randomUUID(),
+  );
+  const cancelled = await engine.saveRecord(
+    owner,
+    a,
+    "appointments",
+    appointmentData(w, {
+      title: "Retained cancelled history",
+      start: "2026-11-06T21:00:00Z",
+      end: "2026-11-06T22:00:00Z",
+    }),
+    undefined,
+    randomUUID(),
+  );
+  await engine.saveRecord(
+    owner,
+    a,
+    "appointments",
+    { ...cancelled.data, status: "Cancelled" },
+    cancelled,
+    randomUUID(),
+  );
   const before = await engine.exportWorkspace(owner, a);
+  expect(before.equipmentMappings).toHaveLength(1);
+  expect(before.equipmentReservations.some((r) => !r.blocking)).toBe(true);
+  expect(
+    before.equipmentEvents.some((e) => e.action === "record-service"),
+  ).toBe(true);
+  expect(before.equipmentStates[0].next_inspection).toBe("2026-12-06");
   await db.close();
   db = await connectPostgres({
     connectionString: url(name, true),
     maxConnections: 4,
   });
   engine = new Engine(db);
-  expect((await engine.snapshot(owner, a)).equipmentEvents).toEqual(
-    before.equipmentEvents,
+  const reconnect = await engine.snapshot(owner, a);
+  expect(reconnect.equipmentEvents).toEqual(before.equipmentEvents);
+  expect(reconnect.equipmentMappings).toEqual(before.equipmentMappings);
+  expect(reconnect.equipmentReservations).toEqual(before.equipmentReservations);
+  const child = await promisify(execFile)(
+    process.execPath,
+    [
+      "--import=tsx",
+      "--input-type=module",
+      "-e",
+      `
+    import { connectPostgres } from './src/server/postgres/adapter.ts';
+    import { Engine } from './src/core/engine.ts';
+    const db=await connectPostgres({connectionString:process.env.LMS_FICTIONAL_RESTART_URL});
+    try { const s=await new Engine(db).snapshot({userId:process.env.LMS_FICTIONAL_RESTART_ACTOR},process.env.LMS_FICTIONAL_RESTART_ORG);
+      process.stdout.write(JSON.stringify({mappings:s.equipmentMappings,reservations:s.equipmentReservations}));
+    } finally { await db.close(); }
+  `,
+    ],
+    {
+      env: {
+        ...process.env,
+        LMS_FICTIONAL_RESTART_URL: url(name, true),
+        LMS_FICTIONAL_RESTART_ACTOR: owner.userId,
+        LMS_FICTIONAL_RESTART_ORG: a,
+      },
+      timeout: 20000,
+    },
   );
+  expect(JSON.parse(child.stdout)).toEqual(
+    JSON.parse(
+      JSON.stringify({
+        mappings: before.equipmentMappings,
+        reservations: before.equipmentReservations,
+      }),
+    ),
+  );
+
   const tables = [
       "lms.records",
       "lms.equipment_state",
       "lms.equipment_checkouts",
       "lms.equipment_events",
+      "lms.equipment_resource_mappings",
+      "lms.equipment_mapping_history",
+      "lms.equipment_reservations",
+      "lms.appointments",
+      "lms.appointment_staff",
       "lms.record_operations",
       "lms.audit_events",
       "lms.config_revisions",
@@ -848,6 +1000,19 @@ it("persists custody and immutable equipment/maintenance history across reconnec
         )
       ).rows,
     ).toEqual([]);
+    for (const table of [
+      "equipment_resource_mappings",
+      "equipment_mapping_history",
+      "equipment_reservations",
+    ]) {
+      expect(
+        (
+          await c.query(`select * from lms.${table} where organization_id=$1`, [
+            a,
+          ])
+        ).rows,
+      ).toEqual([]);
+    }
     await c.query("rollback");
   });
   await expect(
@@ -887,7 +1052,10 @@ it("requires explicit stopped-host migration before equipment enablement without
     } finally {
       await legacy.close();
     }
-    expect(await migrate(c)).toEqual(["017_equipment_lifecycle"]);
+    expect(await migrate(c)).toEqual([
+      "017_equipment_lifecycle",
+      "018_equipment_reservations",
+    ]);
     expect((await c.query("select * from lms.equipment_events")).rows).toEqual(
       [],
     );
@@ -1007,4 +1175,318 @@ it("refuses a frozen repeatable-read operator snapshot after membership revocati
     }
   });
   expect((await engine.snapshot(owner, a)).equipmentCheckouts).toEqual([]);
+});
+it("serializes competing equipment reservations using the existing resource exclusion, with back-to-back support", async () => {
+  const f = await reservationFixture(engine, owner, a);
+  const attempts = await Promise.allSettled([
+    engine.saveRecord(
+      owner,
+      a,
+      "appointments",
+      f.data,
+      undefined,
+      randomUUID(),
+    ),
+    engine.saveRecord(
+      staff,
+      a,
+      "appointments",
+      f.data,
+      undefined,
+      randomUUID(),
+    ),
+  ]);
+  expect(attempts.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+  expect(attempts.filter((r) => r.status === "rejected")).toHaveLength(1);
+  const back = await engine.saveRecord(
+    staff,
+    a,
+    "appointments",
+    { ...f.data, start: "2026-11-06T19:00:00Z", end: "2026-11-06T20:00:00Z" },
+    undefined,
+    randomUUID(),
+  );
+  await expect(
+    engine.saveRecord(
+      owner,
+      a,
+      "appointments",
+      { ...back.data, start: "2026-11-06T18:30:00Z" },
+      back,
+      randomUUID(),
+    ),
+  ).rejects.toMatchObject({ status: 409 });
+  expect((await engine.snapshot(owner, a)).equipmentReservations).toHaveLength(
+    2,
+  );
+});
+it("atomically serializes mapping competitors and exact receipts while retaining permanent physical enrollment", async () => {
+  const f = await reservationFixture(engine, owner, a);
+  const unmap = { ...f.request, kind: "unmap", mappingRevision: 1 };
+  await engine.mapEquipment(owner, a, unmap, randomUUID());
+  const req = { ...f.request, mappingRevision: 2 },
+    op = randomUUID();
+  const both = await Promise.all([
+    engine.mapEquipment(owner, a, req, op),
+    engine.mapEquipment(owner, a, req, op),
+  ]);
+  expect(both[0]).toEqual(both[1]);
+  await expect(
+    engine.mapEquipment(
+      owner,
+      a,
+      { ...req, notes: "Conflicting concurrent mapping request" },
+      op,
+    ),
+  ).rejects.toMatchObject({ status: 409 });
+  const bookings = await engine.saveRecord(
+    owner,
+    a,
+    "appointments",
+    f.data,
+    undefined,
+    randomUUID(),
+  );
+  await expect(
+    engine.mapEquipment(
+      owner,
+      a,
+      { ...unmap, mappingRevision: 3 },
+      randomUUID(),
+    ),
+  ).rejects.toThrow(/blocking/i);
+  await engine.archiveRecord(
+    owner,
+    a,
+    bookings.id,
+    bookings.revision,
+    true,
+    randomUUID(),
+  );
+  await engine.mapEquipment(
+    owner,
+    a,
+    { ...unmap, mappingRevision: 3 },
+    randomUUID(),
+  );
+  const different = await engine.saveRecord(
+    owner,
+    a,
+    "equipment",
+    { ...f.equipment.data, asset_id: "ANOTHER", barcode: "ANOTHER" },
+    undefined,
+    randomUUID(),
+  );
+  await expect(
+    engine.mapEquipment(
+      owner,
+      a,
+      mappingRequest(different, f.workflow.resource, 2),
+      randomUUID(),
+    ),
+  ).rejects.toThrow(/physical.*identity/i);
+  expect(
+    (await engine.snapshot(owner, a)).equipmentMappingHistory,
+  ).toHaveLength(4);
+});
+it("records maintenance even with future reservations and serializes safety changes against bookings without hiding history", async () => {
+  const f = await reservationFixture(engine, owner, a);
+  await engine.saveRecord(
+    owner,
+    a,
+    "appointments",
+    f.data,
+    undefined,
+    randomUUID(),
+  );
+  const operations = await Promise.allSettled([
+    engine.writeEquipment(
+      staff,
+      a,
+      equipmentAction(f.equipment, "report-problem"),
+      randomUUID(),
+    ),
+    engine.saveRecord(
+      owner,
+      a,
+      "appointments",
+      { ...f.data, start: "2026-11-06T20:00:00Z", end: "2026-11-06T21:00:00Z" },
+      undefined,
+      randomUUID(),
+    ),
+  ]);
+  expect(operations[0].status).toBe("fulfilled");
+  const s = await engine.snapshot(owner, a);
+  expect(s.equipmentStates[0].condition).toBe("Needs inspection");
+  expect(s.equipmentReservations.length).toBeGreaterThanOrEqual(1);
+  await expect(
+    engine.saveRecord(
+      owner,
+      a,
+      "appointments",
+      { ...f.data, start: "2026-11-06T22:00:00Z", end: "2026-11-06T23:00:00Z" },
+      undefined,
+      randomUUID(),
+    ),
+  ).rejects.toThrow(/unsafe/i);
+  expect(
+    s.records
+      .filter((r) => r.entity === "appointments")
+      .every((r) => r.data.status === "Scheduled" && !r.archived),
+  ).toBe(true);
+});
+it("rejects foreign references, stale configuration and resource cursors, revoked roles and direct projection writes", async () => {
+  const f = await reservationFixture(engine, owner, a),
+    foreign = await reservationFixture(engine, other, b, "cleaning");
+  await expect(
+    engine.mapEquipment(
+      owner,
+      a,
+      {
+        ...f.request,
+        resourceId: foreign.workflow.resource.id,
+        mappingRevision: 1,
+      },
+      randomUUID(),
+    ),
+  ).rejects.toMatchObject({ status: 409 });
+  await expect(
+    engine.mapEquipment(
+      owner,
+      a,
+      { ...f.request, configRevision: 1, mappingRevision: 1 },
+      randomUUID(),
+    ),
+  ).rejects.toThrow(/configuration/i);
+  const resource = await engine.saveRecord(
+    owner,
+    a,
+    "resources",
+    { ...f.workflow.resource.data, name: "Reviewed revised calendar" },
+    f.workflow.resource,
+    randomUUID(),
+  );
+  await expect(
+    engine.mapEquipment(
+      owner,
+      a,
+      { ...f.request, mappingRevision: 1, kind: "unmap" },
+      randomUUID(),
+    ),
+  ).rejects.toThrow(/exact revision/i);
+  const op = randomUUID(),
+    req = mappingRequest(f.equipment, resource, 2, 1, "unmap");
+  await engine.mapEquipment(owner, a, req, op);
+  await admin.query(
+    "update lms.memberships set role='staff' where organization_id=$1 and user_id=$2",
+    [a, owner.userId],
+  );
+  await expect(engine.mapEquipment(owner, a, req, op)).rejects.toMatchObject({
+    status: 403,
+  });
+  await rawTx(async (c) => {
+    expect(
+      (
+        await c.query(
+          "select * from lms.equipment_resource_mappings where organization_id=$1",
+          [b],
+        )
+      ).rows,
+    ).toEqual([]);
+  });
+  for (const table of [
+    "equipment_resource_mappings",
+    "equipment_mapping_history",
+    "equipment_reservations",
+  ])
+    await expect(
+      rawTx((c) =>
+        c.query(`delete from lms.${table} where organization_id=$1`, [a]),
+      ),
+    ).rejects.toMatchObject({ code: "42501" });
+});
+it("rolls back mapping and booking projections, audits and receipts when an immutable history insert fails", async () => {
+  const f = await reservationFixture(engine, owner, a);
+  const before = await engine.exportWorkspace(owner, a),
+    op = randomUUID();
+  await admin.query(
+    "create function lms_private.pr33_fail_history() returns trigger language plpgsql as $$begin raise exception 'Injected fictional failure';end;$$",
+  );
+  await admin.query(
+    "create trigger pr33_fail before insert on lms.equipment_reservations for each row execute function lms_private.pr33_fail_history()",
+  );
+  try {
+    await expect(
+      engine.saveRecord(owner, a, "appointments", f.data, undefined, op),
+    ).rejects.toThrow();
+  } finally {
+    await admin.query("drop trigger pr33_fail on lms.equipment_reservations");
+  }
+  expect(await engine.exportWorkspace(owner, a)).toEqual({
+    ...before,
+    exportedAt: expect.any(String),
+  });
+  await engine.saveRecord(owner, a, "appointments", f.data, undefined, op);
+  const appointment = (await engine.snapshot(owner, a)).records.find(
+    (r) => r.entity === "appointments",
+  )!;
+  await engine.archiveRecord(
+    owner,
+    a,
+    appointment.id,
+    appointment.revision,
+    true,
+    randomUUID(),
+  );
+  const mappingBefore = await engine.exportWorkspace(owner, a),
+    mappingOp = randomUUID(),
+    req = { ...f.request, kind: "unmap", mappingRevision: 1 };
+  await admin.query(
+    "create trigger pr33_fail before insert on lms.equipment_mapping_history for each row execute function lms_private.pr33_fail_history()",
+  );
+  try {
+    await expect(
+      engine.mapEquipment(owner, a, req, mappingOp),
+    ).rejects.toThrow();
+  } finally {
+    await admin.query(
+      "drop trigger pr33_fail on lms.equipment_mapping_history",
+    );
+    await admin.query("drop function lms_private.pr33_fail_history()");
+  }
+  expect(await engine.exportWorkspace(owner, a)).toEqual({
+    ...mappingBefore,
+    exportedAt: expect.any(String),
+  });
+  await engine.mapEquipment(owner, a, req, mappingOp);
+});
+it("refuses frozen repeatable-read mapping authority after owner revocation", async () => {
+  const f = await reservationFixture(engine, owner, a);
+  await client(name, true, async (c) => {
+    await c.query(
+      "begin isolation level repeatable read;set local role lms_app",
+    );
+    await c.query("select set_config('lms.user_id',$1,true)", [owner.userId]);
+    await c.query("select * from lms.memberships where organization_id=$1", [
+      a,
+    ]);
+    await admin.query(
+      "update lms.memberships set role='staff' where organization_id=$1 and user_id=$2",
+      [a, owner.userId],
+    );
+    try {
+      await expect(
+        c.query("select lms.write_equipment_mapping($1,$2,$3::jsonb)", [
+          a,
+          randomUUID(),
+          { ...f.request, kind: "unmap", mappingRevision: 1 },
+        ]),
+      ).rejects.toMatchObject({ code: "40001" });
+    } finally {
+      await c.query("rollback");
+    }
+  });
+  expect(
+    (await engine.snapshot(owner, a)).equipmentMappingHistory,
+  ).toHaveLength(1);
 });

@@ -260,7 +260,7 @@ test("fictional crews and workers publish availability, schedule both industries
       ...scoped.workspace.config.document.modules.map(
         (m: { id: string }) => m.id,
       ),
-      "equipment",
+      "equipment-reservations",
     ]);
     expect(
       (
@@ -406,6 +406,9 @@ test("fictional crews and workers publish availability, schedule both industries
     await page
       .getByLabel("Service / inspection date", { exact: true })
       .fill("2026-11-02");
+    await page
+      .getByLabel("Next inspection date (optional)", { exact: true })
+      .fill("2026-12-06");
     await confirm();
     await expect(item).toContainText("Under maintenance");
     await expect(
@@ -422,11 +425,15 @@ test("fictional crews and workers publish availability, schedule both industries
           .analyze()
       ).violations,
     ).toEqual([]);
+    if (testInfo.project.name === "phone")
+      await item
+        .getByRole("heading", { name: equipmentName, exact: true })
+        .scrollIntoViewIfNeeded();
     await page.screenshot({
       path: testInfo.outputPath(
         `fictional-equipment-${industry}-${industry === "cleaning" ? "light" : "dark"}.png`,
       ),
-      fullPage: true,
+      fullPage: testInfo.project.name !== "phone",
     });
     await item
       .getByRole("button", { name: "Review release", exact: true })
@@ -438,15 +445,198 @@ test("fictional crews and workers publish availability, schedule both industries
     await page
       .getByLabel("Service / inspection date", { exact: true })
       .fill("2026-11-02");
+    await expect(
+      page.getByLabel("Next inspection date (optional)", { exact: true }),
+    ).toHaveValue("2026-12-06");
     await confirm();
     await expect(item).toContainText("Available for checkout");
     const after = await (
       await page.request.get(`/api/demo?organizationId=${organizationId}`)
     ).json();
+    expect(
+      after.workspace.equipmentStates.find(
+        (s: { record_id: string }) =>
+          s.record_id ===
+          after.workspace.records.find(
+            (r: { entity: string; data: { name: string } }) =>
+              r.entity === "equipment" && r.data.name === equipmentName,
+          ).id,
+      ).next_inspection,
+    ).toBe("2026-12-06");
     expect(after.workspace.stockBalances).toEqual(
       scoped.workspace.stockBalances,
     );
     expect(after.workspace.stockMovements).toEqual(
+      scoped.workspace.stockMovements,
+    );
+    // Explicit physical identity mapping; never adopt a calendar name as a machine.
+    const calendarName = industry + " machine calendar";
+    const created = await page.request.post("/api/demo", {
+      headers: { Origin: new URL(page.url()).origin },
+      data: {
+        action: "save",
+        organizationId,
+        entity: "resources",
+        data: { name: calendarName, kind: "Equipment" },
+        operationId: crypto.randomUUID(),
+      },
+    });
+    expect(created.ok()).toBe(true);
+    await page.reload();
+    await page.getByLabel("Business workspace", { exact: true }).selectOption({
+      label: industry === "cleaning" ? "Cleaning Company" : "Property Manager",
+    });
+    await page
+      .getByRole("button", { name: /^Equipment & Tools/ })
+      .click();
+    const mappingSummary = item.getByText("Review calendar mapping", {
+      exact: true,
+    });
+    await mappingSummary.focus();
+    await page.keyboard.press("Enter");
+    await item
+      .getByLabel("Equipment calendar resource", { exact: true })
+      .selectOption({ label: calendarName + " · revision 1" });
+    await item
+      .getByLabel("Mapping review reason", { exact: true })
+      .fill("Reviewed this exact fictional physical machine");
+    await item
+      .getByRole("checkbox", {
+        name: "I reviewed this exact equipment, calendar resource and current revisions.",
+      })
+      .check();
+    await item
+      .getByRole("button", { name: "Confirm equipment mapping", exact: true })
+      .click();
+    await expect(item).toContainText("mapping revision 1");
+    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+    await page
+      .getByRole("button", { name: "+ Add appointment", exact: true })
+      .click();
+    const machineTitle = industry + " reserved floor machine";
+    await page
+      .getByLabel("Appointment title *", { exact: true })
+      .fill(machineTitle);
+    await page.getByLabel("Customer *", { exact: true }).selectOption({
+      label: industry === "cleaning" ? "Jordan Sample" : "Alex Example",
+    });
+    await page
+      .getByLabel(
+        industry === "cleaning" ? "Cleaning job *" : "Maintenance request *",
+        { exact: true },
+      )
+      .selectOption({
+        label:
+          industry === "cleaning"
+            ? "Maple House move-out"
+            : "Inspect porch light",
+      });
+    await page
+      .getByLabel(
+        industry === "cleaning"
+          ? "Assigned crew / resource *"
+          : "Assigned worker / resource *",
+        { exact: true },
+      )
+      .selectOption({ label: calendarName });
+    await page
+      .getByLabel("Start time *", { exact: true })
+      .fill("2026-11-06T10:00");
+    await page
+      .getByLabel("End time *", { exact: true })
+      .fill("2026-11-06T11:00");
+    await save(page);
+    await expect(
+      page.getByRole("heading", { name: machineTitle, exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+    await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
+    await expect(
+      page.getByRole("article", { name: machineTitle, exact: true }),
+    ).toContainText(equipmentName);
+    const reserved = await (
+      await page.request.get(`/api/demo?organizationId=${organizationId}`)
+    ).json();
+    const reservedAppointment = reserved.workspace.records.find(
+      (r: { data: { title: string } }) => r.data.title === machineTitle,
+    );
+    const conflict = await page.request.post("/api/demo", {
+      headers: { Origin: new URL(page.url()).origin },
+      data: {
+        action: "save",
+        organizationId,
+        entity: "appointments",
+        data: reservedAppointment.data,
+        operationId: crypto.randomUUID(),
+      },
+    });
+    expect(conflict.status()).toBe(409);
+    expect((await conflict.json()).error).toMatch(
+      /already has an appointment/i,
+    );
+    await fits(page);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `fictional-reservation-schedule-${industry}.png`,
+      ),
+      fullPage: testInfo.project.name !== "phone",
+    });
+    await page
+      .getByRole("button", { name: /^Equipment & Tools/ })
+      .click();
+    await item
+      .getByRole("button", { name: "Report problem", exact: true })
+      .click();
+    await confirm();
+    await expect(item).toContainText(
+      "Safety review required — appointment retained",
+    );
+    await item
+      .getByText("Check availability for a period", { exact: true })
+      .click();
+    await item
+      .getByLabel("Equipment period start", { exact: true })
+      .fill("2026-11-06T10:00");
+    await item
+      .getByLabel("Equipment period end", { exact: true })
+      .fill("2026-11-06T11:00");
+    await expect(item).toContainText("Blocked for inspection or maintenance");
+    await fits(page);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await item
+      .getByRole("heading", { name: "Equipment calendar", exact: true })
+      .scrollIntoViewIfNeeded();
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `fictional-reservation-equipment-${industry}.png`,
+      ),
+      fullPage: testInfo.project.name !== "phone",
+    });
+    const retained = await (
+      await page.request.get(`/api/demo?organizationId=${organizationId}`)
+    ).json();
+    expect(
+      retained.workspace.records.find(
+        (r: { id: string }) => r.id === reservedAppointment.id,
+      ),
+    ).toEqual(reservedAppointment);
+    expect(retained.workspace.equipmentCheckouts).toEqual(
+      after.workspace.equipmentCheckouts,
+    );
+    expect(retained.workspace.stockMovements).toEqual(
       scoped.workspace.stockMovements,
     );
   }

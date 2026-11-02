@@ -117,6 +117,17 @@ export const manifests: readonly ModuleManifest[] = [
     capabilities: ["records:read", "records:write"],
   },
   {
+    id: "equipment-reservations",
+    version: "1.0.0",
+    engineApi: 1,
+    name: "Equipment calendar mapping",
+    description:
+      "Explicit physical machine mappings and safe reservations in the shared one-resource calendar; no automatic checkout.",
+    dependencies: ["equipment", "scheduling", "workforce"],
+    entities: [],
+    capabilities: ["records:read", "records:write"],
+  },
+  {
     id: "custom-records",
     version: "1.0.0",
     engineApi: 1,

@@ -547,7 +547,7 @@ it("requires the stopped-host additive migration and refuses automatic module en
     } finally {
       await legacy.close();
     }
-    expect(await migrate(c)).toEqual(["016_invoice_drafts", "017_equipment_lifecycle"]);
+    expect(await migrate(c)).toEqual(["016_invoice_drafts", "017_equipment_lifecycle", "018_equipment_reservations"]);
     expect((await c.query("select * from lms.invoice_versions")).rows).toEqual(
       [],
     );

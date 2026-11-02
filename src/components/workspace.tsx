@@ -647,6 +647,10 @@ export function Workspace({
                 zone={config!.timeZone ?? "UTC"}
                 canWrite={canWrite}
                 assignments={workspace!.staffAssignments}
+                equipmentMappings={workspace!.equipmentMappings}
+                equipmentReservations={workspace!.equipmentReservations}
+                equipmentStates={workspace!.equipmentStates}
+                equipmentCheckouts={workspace!.equipmentCheckouts}
                 busy={busy}
                 onAdd={() => {
                   setSelected("appointments");
@@ -736,6 +740,26 @@ export function Workspace({
                 states={workspace!.equipmentStates}
                 checkouts={workspace!.equipmentCheckouts}
                 events={workspace!.equipmentEvents}
+                calendar={{
+                  enabled: config!.modules.some(
+                    (m) => m.id === "equipment-reservations",
+                  ),
+                  mappings: workspace!.equipmentMappings,
+                  history: workspace!.equipmentMappingHistory,
+                  reservations: workspace!.equipmentReservations,
+                  configRevision: workspace!.config.revision,
+                  onMap: async (input, operationId) => {
+                    await mutate(
+                      {
+                        action: "equipment-mapping",
+                        organizationId: workspace!.organizationId,
+                        input,
+                        operationId,
+                      },
+                      "Explicit equipment mapping recorded; no appointment or checkout created.",
+                    );
+                  },
+                }}
                 zone={config!.timeZone ?? "UTC"}
                 canManage={canAdmin}
                 canOperate={canWrite}
@@ -751,6 +775,9 @@ export function Workspace({
               <EquipmentAction
                 key={equipmentAction.record.id + equipmentAction.kind}
                 {...equipmentAction}
+                state={workspace!.equipmentStates.find(
+                  (s) => s.record_id === equipmentAction.record.id,
+                )}
                 records={workspace!.records}
                 configRevision={workspace!.config.revision}
                 zone={config!.timeZone ?? "UTC"}
@@ -1047,6 +1074,12 @@ export function Workspace({
                 )}
                 {editor && (
                   <Editor
+                    equipmentMappings={workspace!.equipmentMappings}
+                    equipmentStates={workspace!.equipmentStates}
+                    equipmentCheckouts={workspace!.equipmentCheckouts}
+                    equipmentReservationsEnabled={config!.modules.some(
+                      (m) => m.id === "equipment-reservations",
+                    )}
                     key={`${workspace!.organizationId}-${entity.id}-${editor === "new" ? "new" : editor.id}`}
                     entity={entity}
                     initialData={initialData}

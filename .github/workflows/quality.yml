@@ -47,6 +47,7 @@ jobs:
             test-results/**/custom-logo-*.png
             test-results/**/fictional-invoice-*.png
             test-results/**/fictional-equipment-*.png
+            test-results/**/fictional-reservation-*.png
           if-no-files-found: ignore
           retention-days: 30
   postgres:

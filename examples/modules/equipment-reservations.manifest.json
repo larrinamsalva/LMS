@@ -1,0 +1,7 @@
+{
+  "id": "equipment-reservations", "version": "1.0.0", "engineApi": 1,
+  "name": "Equipment calendar mapping",
+  "description": "Explicit machine enrollment in the existing single-resource fictional schedule; no automatic custody.",
+  "dependencies": ["equipment", "scheduling", "workforce"],
+  "entities": [], "capabilities": ["records:read", "records:write"]
+}
