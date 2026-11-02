@@ -87,6 +87,8 @@ Branding persists in configuration schema 2, BuildPlan 2 and Blueprint Package 2
 
 **Portable branded bundles:** download a new version-1 outer bundle containing an unchanged Blueprint ZIP and optional approved Logo Companion. In a fresh demo, inspect both, accept only unsaved Studio choices, then independently sanitize/stage and select the private temporary logo. Bundle/image publisher authenticity stays unverified; no durable IDs, association, publication or production transfer is imported. [Protocol and step-by-step workflow](docs/branded-blueprint-bundles.md) · [Verification](docs/branded-blueprint-bundles-verification.md).
 
+**Host-only durable logo transfer:** migration 15 adds explicit recent-session/owner-admin review, re-sanitization, destination-generated private assets and atomic append-only mappings/receipts for trusted fictional PostgreSQL labs. No image is automatically selected, associated or published. [Operator workflow and limits](docs/private-logo-transfers.md) · [Actual verification](docs/private-logo-transfers-verification.md).
+
 ## Review template updates
 
 Before updating an existing BuildPlan, use **Check for Template Updates** in Studio. Compare retained and newer reviewed editions, keep your own choices, preview selected replacements, then use them as unsaved choices. Exact saved baselines enable three-way review; imported hints alone remain informational. Format changes need explicit approval and populated schema changes remain blocked. [Workflow, trust limits and screenshots](docs/template-history.md) · [Verification](docs/template-history-verification.md).
