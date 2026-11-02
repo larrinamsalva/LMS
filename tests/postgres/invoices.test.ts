@@ -1,24 +1,16 @@
 import { selectModules } from "../../src/core/buildplan";
 import { reviewedEstimate, conversion } from "../helpers/invoices";
 import { invoiceLabel } from "../../src/core/invoices";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
 import { Client } from "pg";
 import { randomBytes, randomUUID } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
-import { catalog, selection, savedPricing } from "../helpers/pricing";
-import {
-  calculateEstimate,
-  type EstimateInput,
-  type EstimatePricing,
-} from "../../src/core/pricing";
-import { catalogSnapshots, snapshotsFor } from "../../src/core/catalog";
-import { employee, enroll } from "../helpers/workforce";
-import type { RecordData } from "../../src/core/config";
-import { Engine } from "../../src/core/engine";
+import { selection, savedPricing } from "../helpers/pricing";
+import type { EstimatePricing } from "../../src/core/pricing";
+import { Engine, type WorkspaceRecord } from "../../src/core/engine";
 import { presets } from "../../src/presets";
-import { workflow, appointmentData } from "../helpers/scheduling";
 import { connectPostgres } from "../../src/server/postgres/adapter";
 import {
   migrate,
@@ -33,7 +25,7 @@ import {
 const raw = process.env.LMS_TEST_ADMIN_URL;
 if (!raw)
   throw new Error(
-    "LMS_TEST_ADMIN_URL is required; pricing PostgreSQL tests never skip.",
+    "LMS_TEST_ADMIN_URL is required; invoice PostgreSQL tests never skip.",
   );
 const controlName = decodeURIComponent(new URL(raw).pathname.slice(1));
 if (!controlName.startsWith("lms_test_"))
@@ -83,7 +75,7 @@ async function client<T>(
 }
 async function org(c: Client, id: string, actor: string, config: unknown) {
   await c.query(
-    "insert into lms.organizations(id,name) values($1,'Fictional schedule')",
+    "insert into lms.organizations(id,name) values($1,'Fictional invoice workspace')",
     [id],
   );
   await c.query("insert into lms.memberships values($1,$2,'owner')", [
@@ -179,10 +171,7 @@ const convert = async (
   c: Awaited<ReturnType<typeof make>>,
   op = randomUUID(),
 ) => engine.writeInvoiceDraft(owner, a, conversion(c.estimate), op);
-const amend = (
-  r: { id: string; revision: number; data: RecordData },
-  quantity = "2",
-) => ({
+const amend = (r: WorkspaceRecord, quantity = "2") => ({
   kind: "correct",
   invoiceId: r.id,
   revision: r.revision,
@@ -191,8 +180,8 @@ const amend = (
   reason: "Corrected fictional quantity",
   notes: "Fictional internal correction",
   pricing: {
-    ...savedPricing(r as never),
-    lines: savedPricing(r as never).lines.map((l) => ({ ...l, quantity })),
+    ...savedPricing(r),
+    lines: savedPricing(r).lines.map((l) => ({ ...l, quantity })),
   },
 });
 it("converts exact reviewed prices, discounts and manual tax while retaining original rate, description and area", async () => {
@@ -232,7 +221,7 @@ it("converts exact reviewed prices, discounts and manual tax while retaining ori
   expect(after.invoiceVersions).toHaveLength(2);
   expect(after.records.find((r) => r.id === c.estimate.id)).toEqual(c.estimate);
 });
-it("serializes identical conversion retries without duplicate assets, revisions, receipts or audits", async () => {
+it("serializes identical conversion retries without duplicate drafts, revisions, receipts or audits", async () => {
   const c = await make(),
     op = randomUUID(),
     req = conversion(c.estimate);
