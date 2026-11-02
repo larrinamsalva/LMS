@@ -336,6 +336,7 @@ beforeAll(async () => {
       "010_inventory_ledger",
       "011_build_plan_studio",
       "012_business_branding",
+      "013_private_logo_assets",
     ]);
     expect(await business(source)).toEqual(before);
   } finally {
@@ -828,6 +829,7 @@ describe("external credential lineage with native PostgreSQL and offline witness
         "010_inventory_ledger",
         "011_build_plan_studio",
         "012_business_branding",
+        "013_private_logo_assets",
       ]);
       expect(
         (
@@ -928,8 +930,9 @@ describe("external credential lineage with native PostgreSQL and offline witness
     ).rejects.toMatchObject({ status: 423 });
     await stillBlocked();
     expect(await business()).toEqual(before);
-    const { receiptDigest } =
-      await import("../../src/server/publication/protocol");
+    const { receiptDigest } = await import(
+      "../../src/server/publication/protocol"
+    );
     await store.resume({
       expectedPublicationDigest: receiptDigest(publication),
       confirmation: "RESUME THE EXACT APPROVED PUBLICATION",

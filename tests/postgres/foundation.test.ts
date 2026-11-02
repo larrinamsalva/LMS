@@ -318,7 +318,7 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
           "select count(*)::int as count from lms_meta.migrations",
         )
       ).rows[0].count,
-    ).toBe(12);
+    ).toBe(13);
   });
   it("rolls back failed migrations atomically and can subsequently initialize the empty database", async () => {
     await withClient(databaseUrl(names[2]), async (client) => {
@@ -327,8 +327,8 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
         migrate(client, [
           ...files,
           {
-            version: 13,
-            name: "013_intentional_failure",
+            version: 14,
+            name: "014_intentional_failure",
             sql: "create table public.partial_migration(id integer); select definitely_missing_function();",
           },
         ]),
@@ -352,6 +352,7 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
         "010_inventory_ledger",
         "011_build_plan_studio",
         "012_business_branding",
+        "013_private_logo_assets",
       ]);
     });
   });
@@ -511,8 +512,9 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
     const previous = process.env.LMS_POSTGRES_URL;
     process.env.LMS_POSTGRES_URL = databaseUrl(names[0], true);
     try {
-      const { createDatabase, sqlDatabase } =
-        await import("../../src/server/database");
+      const { createDatabase, sqlDatabase } = await import(
+        "../../src/server/database"
+      );
       const temporary = await createDatabase();
       try {
         const service = new Engine(sqlDatabase(temporary));

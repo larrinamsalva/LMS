@@ -221,6 +221,7 @@ beforeAll(async () => {
     "010_inventory_ledger",
     "011_build_plan_studio",
     "012_business_branding",
+    "013_private_logo_assets",
   ]);
   expect(
     (await engine.snapshot({ userId: users.owner }, oldOrg)).records[0],
@@ -608,7 +609,8 @@ describe("session-bound owner membership commands", () => {
     const file = path.join(directory, "fictional.dump");
     let restored: Awaited<ReturnType<typeof createLocalAuth>> | undefined;
     let restoredBusiness:
-      Awaited<ReturnType<typeof connectPostgres>> | undefined;
+      | Awaited<ReturnType<typeof connectPostgres>>
+      | undefined;
     const recovered = new Client({ connectionString: url(restoreName) });
     try {
       await backupDatabase(url(name), name, file, process.env.LMS_PG_BIN);
