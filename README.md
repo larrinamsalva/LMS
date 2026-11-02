@@ -11,6 +11,7 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 - Fictional employee profiles, effective-dated Worker/Crew membership, finite working hours/time off, and cross-crew employee conflict protection.
 - Services, dated area rates and fictional estimate drafts with exact USD cents, preserved pricing snapshots, revisions and printable preview.
 - Optional fictional invoice drafts from exact reviewed estimates, append-only corrections/void history and clearly labeled printable previews; never issued or sent.
+- Optional Equipment & Tools: individual machines, employee/crew custody, condition, inspection and retained maintenance history, separate from consumable stock.
 - Shared product/location inventory, exact case conversion and an immutable receiving/usage/transfer/return/adjustment ledger with keyboard-scanner selection.
 - BuildPlan Studio: guided templates/features, safe optional fields, real Engine previews, temporary draft history and validated BuildPlan import/export.
 - Curated BuildPlan Gallery: five searchable business starters, feature/type filters, real previews and unsaved remixes through Studio.
@@ -127,6 +128,10 @@ Explicitly enable **Invoice Drafts** in Studio; existing businesses keep their c
 ## Inventory and stock
 
 Open **Inventory & stock** in either fictional business to manage products and storage locations, review quantities/low-stock warnings, scan/type a product code, and explicitly post whole-unit movements. Case conversion and original packaging are saved; owner/admin corrections add compensating history. No purchase or automatic order runs. See [workflow, setup and exact quantity contract](docs/inventory-stock.md), [manifest](examples/modules/inventory.manifest.json) and [verification](docs/inventory-stock-verification.md).
+
+## Equipment & Tools
+
+Explicitly select **Equipment & Tools** in Studio and use the existing save/impact/publication review. Add an individual machine at a storage location, review its initial inspection, check it out to a named employee, record its return or problem, and inspect its timeline. Repairs require task, service and separate release review; retirement retains history. Consumable quantities stay unchanged. [Workflow, permissions and limits](docs/equipment.md) · [verification](docs/equipment-verification.md).
 
 ## Experimental durable PostgreSQL
 

@@ -215,7 +215,7 @@ export function RecordForm({
             const data = Object.fromEntries(
               entity.fields.map((field) => [
                 field.key,
-                field.type === "money"
+                field.type === "money" && values[field.key] !== ""
                   ? decimalToMinor(values[field.key])
                   : field.type === "datetime" && values[field.key]
                     ? wallToInstant(
@@ -374,8 +374,11 @@ export function RecordForm({
                       maxLength={field.type === "email" ? 254 : 200}
                       required={field.required}
                       readOnly={
-                        entity.id === "appointments" &&
-                        field.key === "scheduled_date"
+                        (entity.id === "appointments" &&
+                          field.key === "scheduled_date") ||
+                        (!!record &&
+                          entity.id === "equipment" &&
+                          field.key === "asset_id")
                       }
                     />
                   )}
@@ -394,7 +397,9 @@ export function RecordForm({
                           setOccurrences({
                             ...occurrences,
                             [field.key]: e.target.value as
-                              "reject" | "earlier" | "later",
+                              | "reject"
+                              | "earlier"
+                              | "later",
                           })
                         }
                       >

@@ -38,7 +38,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
-      - name: Keep synthetic logo and invoice draft screenshots
+      - name: Keep synthetic logo, invoice and equipment screenshots
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
@@ -46,6 +46,7 @@ jobs:
           path: |
             test-results/**/custom-logo-*.png
             test-results/**/fictional-invoice-*.png
+            test-results/**/fictional-equipment-*.png
           if-no-files-found: ignore
           retention-days: 30
   postgres:

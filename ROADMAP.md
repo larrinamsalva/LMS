@@ -101,3 +101,8 @@ After PR #27: host-only fictional PostgreSQL logo retention and explicit version
 - Optional shared module, exact reviewed estimate conversion, append-only reasons/corrections/void history, scoped receipts and explicitly unissued printable previews.
 - No existing business is opted in. Existing publication/populated-schema controls, private asset/provenance formats and recovery activation blockers remain intact.
 - Next: separately reviewed line restructuring and financial retention/privacy, richer inventory/equipment and crew/rate usability; BuildPlan/self-host packaging and production identity/security acceptance remain independent gates. Live invoices, payment collection, accounting integration and outbound messages require separate authorization and acceptance.
+
+### Equipment foundation (PR #32)
+
+- Optional shared equipment registry with permanent organization IDs, employee/crew custody, physical condition, retained inspection/maintenance/retirement and no consumable stock changes.
+- Next: reviewed equipment/reservation mapping, richer equipment filtering/export and retention/disposal; camera scanning, recurring maintenance and real-business transport/security remain separate. No GPS, payroll, depreciation, purchasing, messages, deployment or recovery activation.

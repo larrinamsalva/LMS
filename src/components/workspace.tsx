@@ -15,6 +15,8 @@ import { money, type EstimatePricing } from "../core/pricing";
 import { displayTime } from "../core/time";
 import { RecordForm } from "./record-form";
 import { EstimateForm } from "./estimate-form";
+import { EquipmentAction, EquipmentWorkspace } from "./equipment-workspace";
+import type { EquipmentCommand, EquipmentCheckout } from "../core/equipment";
 import { InvoiceAction, InvoiceDrafts } from "./invoice-workspace";
 import type { InvoiceCommand } from "../core/invoices";
 import { Catalog, Estimates } from "./pricing-workspace";
@@ -75,10 +77,16 @@ export function Workspace({
     | "inventory"
     | "estimates"
     | "invoices"
+    | "equipment"
   >("records");
   const [invoiceAction, setInvoiceAction] = useState<{
     record: WorkspaceRecord;
     kind: InvoiceCommand["kind"];
+  } | null>(null);
+  const [equipmentAction, setEquipmentAction] = useState<{
+    record: WorkspaceRecord;
+    kind: EquipmentCommand["kind"];
+    checkout?: EquipmentCheckout;
   } | null>(null);
   const [selected, setSelected] = useState("customers");
   const [query, setQuery] = useState("");
@@ -149,6 +157,7 @@ export function Workspace({
       setEditor(null);
       setArchive(null);
       setInvoiceAction(null);
+      setEquipmentAction(null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not load workspace.",
@@ -402,10 +411,11 @@ export function Workspace({
                   <button
                     disabled={busy}
                     key={id}
-                    className={`nav-item ${(view === "records" || (view === "invoices" && id === "invoice-drafts") || (view === "estimates" && id === "estimates")) && entity?.id === id ? "active" : ""}`}
+                    className={`nav-item ${(view === "records" || (view === "invoices" && id === "invoice-drafts") || (view === "equipment" && id === "equipment") || (view === "estimates" && id === "estimates")) && entity?.id === id ? "active" : ""}`}
                     aria-current={
                       (view === "records" ||
                         (view === "invoices" && id === "invoice-drafts") ||
+                        (view === "equipment" && id === "equipment") ||
                         (view === "estimates" && id === "estimates")) &&
                       entity?.id === id
                         ? "page"
@@ -413,17 +423,19 @@ export function Workspace({
                     }
                     onClick={() =>
                       changeView(
-                        id === "invoice-drafts"
-                          ? "invoices"
-                          : id === "estimates"
-                            ? "estimates"
-                            : [
-                                  "items",
-                                  "stock-locations",
-                                  "stock-movements",
-                                ].includes(id)
-                              ? "inventory"
-                              : "records",
+                        id === "equipment"
+                          ? "equipment"
+                          : id === "invoice-drafts"
+                            ? "invoices"
+                            : id === "estimates"
+                              ? "estimates"
+                              : [
+                                    "items",
+                                    "stock-locations",
+                                    "stock-movements",
+                                  ].includes(id)
+                                ? "inventory"
+                                : "records",
                         id,
                       )
                     }
@@ -716,6 +728,48 @@ export function Workspace({
                 canManage={canAdmin}
                 busy={busy}
                 onAction={(record, kind) => setInvoiceAction({ record, kind })}
+              />
+            )}
+            {view === "equipment" && (
+              <EquipmentWorkspace
+                records={workspace!.records}
+                states={workspace!.equipmentStates}
+                checkouts={workspace!.equipmentCheckouts}
+                events={workspace!.equipmentEvents}
+                zone={config!.timeZone ?? "UTC"}
+                canManage={canAdmin}
+                canOperate={canWrite}
+                busy={busy}
+                onAdd={() => openRecord("equipment")}
+                onEdit={(record) => openRecord("equipment", record)}
+                onAction={(record, kind, checkout) =>
+                  setEquipmentAction({ record, kind, checkout })
+                }
+              />
+            )}
+            {equipmentAction && (
+              <EquipmentAction
+                key={equipmentAction.record.id + equipmentAction.kind}
+                {...equipmentAction}
+                records={workspace!.records}
+                configRevision={workspace!.config.revision}
+                zone={config!.timeZone ?? "UTC"}
+                busy={busy}
+                onClose={() => setEquipmentAction(null)}
+                onSave={async (input, operationId) => {
+                  await mutate(
+                    {
+                      action: "equipment",
+                      organizationId: workspace!.organizationId,
+                      input,
+                      operationId,
+                    },
+                    "Fictional equipment action recorded with retained history.",
+                  );
+                  setEquipmentAction(null);
+                  setSelected("equipment");
+                  setView("equipment");
+                }}
               />
             )}
             {invoiceAction && (
@@ -1032,6 +1086,7 @@ export function Workspace({
                       );
                       setEditor(null);
                       if (entity.module === "inventory") setView("inventory");
+                      if (entity.id === "equipment") setView("equipment");
                     }}
                   />
                 )}

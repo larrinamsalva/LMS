@@ -1,0 +1,148 @@
+import { afterAll, expect, it } from "vitest";
+import { NextRequest } from "next/server";
+import { POST } from "../../src/app/api/demo/route";
+import { runtime, startDemo, findSession } from "../../src/server/demo";
+import { selectModules } from "../../src/core/buildplan";
+import {
+  equipmentFixture,
+  releaseEquipment,
+  checkoutEquipment,
+} from "../helpers/equipment";
+import { randomUUID } from "node:crypto";
+const base = "http://localhost:3000";
+function request(
+  token: string | undefined,
+  organizationId: string,
+  input: unknown,
+  operationId = randomUUID(),
+  origin = base,
+) {
+  return POST(
+    new NextRequest(base + "/api/demo", {
+      method: "POST",
+      headers: {
+        origin,
+        host: "localhost:3000",
+        "sec-fetch-site": "same-origin",
+        "content-type": "application/json",
+        ...(token ? { cookie: "lms_demo=" + token } : {}),
+      },
+      body: JSON.stringify({
+        action: "equipment",
+        organizationId,
+        input,
+        operationId,
+      }),
+    }),
+  );
+}
+afterAll(async () => {
+  const rt = await runtime();
+  rt.logos.close();
+  await rt.db.close();
+  delete (globalThis as typeof globalThis & { lmsDemo?: unknown }).lmsDemo;
+});
+it("keeps the real fictional HTTP workflow scoped, explicitly confirmed, revision-bound and idempotent", async () => {
+  const a = await startDemo(),
+    b = await startDemo(),
+    rt = await runtime(),
+    org = a.session.organizations[0].id,
+    initial = await rt.engine.snapshot(a.session.principal, org);
+  await rt.engine.publishConfig(
+    a.session.principal,
+    org,
+    selectModules(initial.config.document, [
+      ...initial.config.document.modules.map((m) => m.id),
+      "equipment",
+    ]),
+    1,
+  );
+  const f = await equipmentFixture(rt.engine, a.session.principal, org),
+    ready = await releaseEquipment(
+      rt.engine,
+      a.session.principal,
+      org,
+      f.equipment,
+      f.employee,
+    ),
+    req = checkoutEquipment(ready, f.employee),
+    op = randomUUID(),
+    peer = await rt.engine.snapshot(
+      b.session.principal,
+      b.session.organizations[0].id,
+    );
+  expect((await request(undefined, org, req)).status).toBe(401);
+  expect((await request(b.token, org, req)).status).toBe(403);
+  expect(
+    (await request(a.token, org, req, op, "https://untrusted.example.test"))
+      .status,
+  ).toBe(403);
+  expect(
+    (await request(a.token, org, { ...req, acknowledgement: "ASSIGN" })).status,
+  ).toBe(400);
+  expect((await request(a.token, org, req, op)).status).toBe(200);
+  expect((await request(a.token, org, req, op)).status).toBe(200);
+  expect(
+    (
+      await request(
+        a.token,
+        org,
+        { ...req, notes: "Conflicting fictional request" },
+        op,
+      )
+    ).status,
+  ).toBe(409);
+  expect(
+    (await rt.engine.snapshot(a.session.principal, org)).equipmentCheckouts,
+  ).toHaveLength(1);
+  expect(
+    await rt.engine.snapshot(
+      b.session.principal,
+      b.session.organizations[0].id,
+    ),
+  ).toEqual(peer);
+  const admin = randomUUID();
+  await rt.db.query(
+    "insert into lms.users values($1,'Fictional equipment admin')",
+    [admin],
+  );
+  await rt.db.query("insert into lms.memberships values($1,$2,'viewer')", [
+    org,
+    admin,
+  ]);
+  const original = a.session.principal;
+  a.session.principal = { userId: admin };
+  expect((await request(a.token, org, req, op)).status).toBe(403);
+  a.session.principal = original;
+});
+it("expires access and cleans temporary logo custody without deleting protected equipment history to reset capacity", async () => {
+  const a = await startDemo(),
+    rt = await runtime(),
+    org = a.session.organizations[0].id,
+    s = await rt.engine.snapshot(a.session.principal, org);
+  await rt.engine.publishConfig(
+    a.session.principal,
+    org,
+    selectModules(s.config.document, [
+      ...s.config.document.modules.map((m) => m.id),
+      "equipment",
+    ]),
+    1,
+  );
+  const f = await equipmentFixture(rt.engine, a.session.principal, org),
+    before = await rt.engine.exportWorkspace(a.session.principal, org),
+    count = rt.sessions.size;
+  a.session.expiresAt = Date.now() - 1;
+  expect(
+    (await request(a.token, org, checkoutEquipment(f.equipment, f.employee)))
+      .status,
+  ).toBe(401);
+  await startDemo();
+  expect(rt.sessions.size).toBe(count + 1);
+  expect(rt.sessions.get(a.token)).toBe(a.session);
+  await expect(findSession(a.token)).rejects.toMatchObject({ status: 401 });
+  expect(await rt.engine.exportWorkspace(a.session.principal, org)).toEqual({
+    ...before,
+    exportedAt: expect.any(String),
+  });
+});
