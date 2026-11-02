@@ -185,16 +185,27 @@ export function privateLogoAssociations(
           checked.bytes.fill(0);
         }
       }
-      return call(principal, org, async (tx) =>
-        logoAssociation.parse(
+      return call(principal, org, async (tx) => {
+        const result = logoAssociation.parse(
           (
             await tx.query<{ document: unknown }>(
               "select lms.logo_association_operation($1,$2,$3) as document",
               [org, instance, command],
             )
           ).rows[0].document,
-        ),
-      );
+        );
+        // The operation holds the organization/publication lock until this transaction commits.
+        // Review data is not proof that the COMPLETE current configuration was validated.
+        // If validation fails, Engine.asUser rolls back every association/receipt/audit effect.
+        const current = (
+          await tx.query<{ document: unknown }>(
+            "select document from lms.config_revisions where organization_id=$1 order by revision desc limit 1",
+            [org],
+          )
+        ).rows[0];
+        validateConfig(current?.document);
+        return result;
+      });
     },
     async read(principal: Principal, org: string) {
       principal = actor(principal);

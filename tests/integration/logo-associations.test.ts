@@ -11,6 +11,8 @@ import {
 import { presets } from "../../src/presets";
 import { logoFixture } from "../helpers/logo-fixtures";
 import { sanitizeLogo } from "../../src/server/logo-sanitizer";
+import { privateLogoAssociations } from "../../src/server/postgres/logo-associations";
+import { readVerifiedStoredLogo } from "../../src/server/stored-logo-reader";
 let db: Awaited<ReturnType<typeof createDatabase>>, engine: Engine;
 const owner = randomUUID(),
   staff = randomUUID(),
@@ -305,6 +307,134 @@ it("rejects unauthorized, foreign, malformed and unconfirmed commands and protec
   await expect(
     call("logo_association_inspect", [], staff),
   ).rejects.toMatchObject({ code: "42501" });
+});
+it("revalidates complete configuration inside commit and rolls back effects even when host review data bypasses the reader", async () => {
+  const group = randomUUID();
+  await db.query(
+    "insert into lms.organizations values($1,'Fictional unsupported configuration')",
+    [group],
+  );
+  await db.query("insert into lms.memberships values($1,$2,'owner')", [
+    group,
+    owner,
+  ]);
+  // Existing SQL branding checks are deliberately not a second complete module validator.
+  const unsupported = {
+    ...presets.property,
+    schemaVersion: 2,
+    branding: defaultBranding("property"),
+    modules: presets.property.modules.map((m) => ({ ...m, version: "99.0.0" })),
+  };
+  await db.query(
+    "insert into lms.config_revisions(organization_id,revision,document,created_by) values($1,1,$2,$3)",
+    [group, unsupported, owner],
+  );
+  const stored = await call(
+    "logo_operation",
+    [
+      {
+        version: 1,
+        operationId: randomUUID(),
+        expectedRevision: 0,
+        action: "store",
+        display: "square",
+        inputSha256: hash(image),
+      },
+      image,
+    ],
+    owner,
+    group,
+  );
+  await call(
+    "logo_operation",
+    [
+      {
+        version: 1,
+        operationId: randomUUID(),
+        expectedRevision: stored.revision,
+        action: "select",
+        assetId: stored.assetId,
+        assetRevision: stored.assetRevision,
+      },
+      null,
+    ],
+    owner,
+    group,
+  );
+  const rawReview = await call(
+      "logo_association_review",
+      ["image", "square", null],
+      owner,
+      group,
+    ),
+    request = command(rawReview);
+  const sdk = privateLogoAssociations(
+    (principal, _org, fn) => engine.asUser(principal, fn),
+    instance,
+    (principal, organization, id, revision) =>
+      readVerifiedStoredLogo(
+        () =>
+          engine.asUser(
+            principal,
+            async (tx) =>
+              (
+                await tx.query<{ image: Buffer; metadata: unknown }>(
+                  "select * from lms.logo_read($1,$2,$3,$4)",
+                  [organization, instance, id, revision],
+                )
+              ).rows[0],
+          ),
+        organization,
+        { id, revision },
+      ),
+    (error) => {
+      throw error;
+    },
+  );
+  await expect(
+    sdk.review({ userId: owner }, group, {
+      mode: "image",
+      display: "square",
+      historyRevision: null,
+    }),
+  ).rejects.toThrow();
+  await expect(
+    sdk.apply({ userId: owner }, group, request),
+  ).rejects.toMatchObject({
+    name: "ZodError",
+    issues: expect.arrayContaining([
+      expect.objectContaining({ path: ["modules", 0, "version"] }),
+    ]),
+  });
+  expect(await call("logo_association_history", [], owner, group)).toEqual([]);
+  for (const table of [
+    "lms.logo_associations",
+    "lms.logo_association_states",
+    "lms.logo_association_receipts",
+  ])
+    expect(
+      (
+        await db.query(`select 1 from ${table} where organization_id=$1`, [
+          group,
+        ])
+      ).rows,
+    ).toHaveLength(0);
+  expect(
+    (
+      await db.query(
+        "select 1 from lms.audit_events where organization_id=$1 and entity='private-logo-association'",
+        [group],
+      )
+    ).rows,
+  ).toHaveLength(0);
+  expect(
+    (
+      await db.query<{ document: unknown }>(
+        "select document from lms.config_revisions where organization_id=$1",
+        [group],
+      )
+    ).rows[0].document,
+  ).toEqual(unsupported);
 });
 it("does not turn associations or their histories into activation tokens", async () => {
   await db.exec(

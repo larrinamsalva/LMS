@@ -26,7 +26,7 @@ The independent-process probe is test tooling using reviewed synthetic principal
 
 ## Observed results
 
-The tested implementation is commit [`6df3ae89ecf724fa5fb4a647cc184a4ce8b4d3c5`](https://github.com/larrinamsalva/LMS/commit/6df3ae89ecf724fa5fb4a647cc184a4ce8b4d3c5). [GitHub quality run 41377441581](https://github.com/larrinamsalva/LMS/actions/runs/41377441581) completed successfully in all three jobs. Later evidence/screenshot commits do not change the implementation; inspect the PR checks for their own run status.
+The baseline protocol/native/browser evidence is commit [`6df3ae89ecf724fa5fb4a647cc184a4ce8b4d3c5`](https://github.com/larrinamsalva/LMS/commit/6df3ae89ecf724fa5fb4a647cc184a4ce8b4d3c5). [GitHub quality run 41377441581](https://github.com/larrinamsalva/LMS/actions/runs/41377441581) completed successfully in all three jobs. The final validation hardening described below adds one foundation regression; inspect the PR checks for subsequent exact-head CI results.
 
 | Check | Observed result | Evidence |
 | --- | --- | --- |
@@ -42,6 +42,14 @@ Native PostgreSQL was executed in the disposable GitHub service, not invented fr
 The native suite also verifies current owner/admin authority; no raw image-column SELECT or table DML; forced RLS and foreign-scope refusal; post-decode membership revocation; stale configuration/selection/repeatable-read rejection; exact versus conflicting retries; 128 retained associations with one reserved fallback; referenced-asset retirement refusal; blocked/retired/missing/damaged images; and preservation of records, configuration history, receipts and audit history. Missing asset lookups retain the original access-denied semantics rather than revealing existence.
 
 SQL migrations 1–13, root MIT/upstream notices, portable configuration/package/attestation/companion contracts, public demo database/vault and installed HTTP routes remain unchanged. The production build exposes only the existing demo routes. Existing security/recovery/lineage/checkpoint, pricing, inventory, scheduling, workforce, branding, provenance, Studio/Gallery/history/planning/native-readiness suites are included above.
+
+## Final atomic validation hardening
+
+Final review added the existing complete `validateConfig` reader to the commit transaction, after the SQL operation acquires the organization/publication lock and before `Engine.asUser` commits. Review data alone does not prove a valid stored configuration. If the reader refuses, the whole transaction rolls back, including the association, cursor, receipt and audit event; no configuration is rewritten. SQL branding/storage checks remain defense in depth, not a duplicate complete module validator.
+
+The added real-SQL host-adapter regression deliberately stores an unsupported module version in a separate synthetic embedded organization, supplies structurally valid review data directly, verifies the exact existing module-version validation error and confirms no association/receipt/cursor/audit persists. This exercises the rollback boundary rather than accepting any generic failure.
+
+After this change, local `npm run check` passed **253 tests / 41 files**, **119.16 seconds**, TypeScript, **188 licenses** and the production build. The final foundation count increases by one; native PostgreSQL remains 203 cases and browser remains 75 cases. Final-head CI must pass before review; [PR #27 checks](https://github.com/larrinamsalva/LMS/pull/27/checks) identify the subsequent exact commit/run, rather than treating the earlier baseline as proof of an untested revision.
 
 ## Screenshots and inspection workflow
 
