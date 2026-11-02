@@ -62,7 +62,7 @@ Every command binds version 1, organization, exact organization revision, operat
 | Stored | Select, release, block | Selection is a future local association only; no published configuration changes |
 | Selected | Select a different stored asset, or unselect | Atomic replacement marks the old image superseded; unselect marks it unreferenced |
 | Superseded | Release or block | Earlier bytes and assignment history remain retained |
-| Unreferenced | Restore to stored, retire, block | Metadata identifies eligibility for future review at 30 days; no deletion occurs |
+| Unreferenced | Restore to stored, retire, block | Metadata identifies eligibility for future review at 30 elapsed days; no deletion occurs |
 | Retired / blocked | Inspection only | Terminal in this phase; retrieval/selection/restoration refuse; bytes remain retained |
 
 Unselect before retiring/blocking a current selection. No operation silently detaches a published reference (none are supported). Unreferenced/retired labels are **not proof that physical deletion is safe**. Historical and future references, retention approvals, backup consistency and secure disposal need a separate design. No physical purge, overwrite, automatic cleanup job or quota-reset command is implemented.

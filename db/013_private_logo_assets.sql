@@ -94,7 +94,7 @@ create function lms_private.logo_metadata(a lms.logo_assets) returns jsonb langu
  select jsonb_build_object('version',1,'id',a.id,'organizationId',a.organization_id,'revision',a.revision,'state',a.state,'format',a.format,'sanitizer',a.sanitizer,'width',a.width,'height',a.height,'bytes',a.bytes,'sha256',a.sha256,'display',a.display,
  'createdAt',to_char(a.created_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
  'unreferencedAt',case when a.unreferenced_at is not null then to_char(a.unreferenced_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end,
- 'retentionEligibleAt',case when a.unreferenced_at is not null then to_char((a.unreferenced_at+interval '30 days') at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end);
+ 'retentionEligibleAt',case when a.unreferenced_at is not null then to_char((a.unreferenced_at+interval '720 hours') at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end);
 $$;
 create function lms_private.logo_snapshot(org uuid,instance uuid) returns jsonb language plpgsql security definer set search_path='' as $$
 declare s lms.logo_asset_states; manager boolean;

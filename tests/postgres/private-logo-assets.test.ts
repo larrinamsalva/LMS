@@ -556,6 +556,20 @@ it("rejects an independently opened stale repeatable-read writer after a committ
     await stale.end();
   }
 });
+it("uses thirty elapsed days for retention review across daylight-saving transitions", async () => {
+  await admin.query("set time zone 'America/Los_Angeles'");
+  try {
+    const row = (
+      await admin.query(
+        `select lms_private.logo_metadata(jsonb_populate_record(null::lms.logo_assets,jsonb_build_object('unreferenced_at','2026-03-01T12:00:00Z'))) as metadata`,
+      )
+    ).rows[0].metadata;
+    expect(row.unreferencedAt).toBe("2026-03-01T12:00:00.000Z");
+    expect(row.retentionEligibleAt).toBe("2026-03-31T12:00:00.000Z");
+  } finally {
+    await admin.query("set time zone 'UTC'");
+  }
+});
 it("enforces durable count and byte quotas, including retired bytes, across new host adapters", async () => {
   for (let i = 0; i < 16; i++) await add(countOrg);
   await expect(add(countOrg)).rejects.toMatchObject({ status: 409 });
