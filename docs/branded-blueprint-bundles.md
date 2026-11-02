@@ -71,21 +71,10 @@ Anyone can replace components and recompute every unsigned manifest/hash, produc
 
 Future image-bearing signatures need a **separately reviewed, versioned attestation** with exact canonical encoding and domain separation, binding the complete outer bundle digest and all intended compatibility/image content. Do not extend attestation 1 silently. Independent publisher enrollment/key custody, retirement/replacement distribution and latest-version witnessing remain separate trust requirements. No signing secrets, trust enrollment or remote feed is added here. Even a future valid signature must not grant migration, publication, ownership, installation or activation authority.
 
-## Proposed durable destination mapping — disabled
+## Private durable destination mapping — host-only
 
-This section defines the data/acceptance vocabulary for a **future private** `lms-private-logo-destination-map` version 1 review. It is a design proposal, **not an implemented or accepted import format**. Bundle 1 rejects this object and any mapping file. No endpoint or SDK operation activates it.
+The separate [private destination-map workflow](private-logo-transfers.md) supports explicitly authorized fictional PostgreSQL transfers. It revalidates unchanged bundle/components, requires an existing recent local session and current owner/admin authority, re-sanitizes the PNG and atomically stores a new destination UUID with an immutable private receipt. Selection and current-configuration association remain separate explicit reviews. The public Studio path above remains temporary and isolated.
 
-| Required future private mapping field | Review invariant |
-| --- | --- |
-| Exact source bundle, Blueprint ZIP, companion ZIP and input-PNG SHA-256 | Content binding only; no ownership/publisher inference from hashes |
-| Destination instance UUID and organization UUID | Resolve through the existing independently trusted host allowlist/identity controls; never accept a source installation's IDs as destination authority |
-| Current verified destination actor, scoped operation UUID and request digest | Existing current owner/admin session/role checks, exact retries, no new identity engine |
-| Expected published configuration revision/fingerprint, asset-selection and association revisions | Reconstruct current state under existing transaction/organization locks; refuse stale or conflicting evidence |
-| Destination-generated asset UUID/revision and sanitizer profile | Generate only after approved re-sanitization and quota reservation; never copy a source ID, selection or association |
-| Source and sanitized-output digests/dimensions/bytes/layout | Record both if re-encoding changes bytes; unsafe, mismatched, unsupported or exhausted input refuses atomically |
-| Secret-free local receipt, review/expiry state and retention references | Preserve immutable source/destination histories; do not export pixels, secrets or ownership records in mapping/audit metadata |
-| Separate selection and `lms-private-logo-association` review | Storing transferred pixels must not select, publish or bind them; require fresh destination approval against the current branded configuration |
-
-A future implementation must explicitly review durable private authorization, real-user/session/transport security, quota/processing reservations, concurrency, failure rollback, reference retention and native restoration before acceptance. Memberships, source history and recovery/credential checkpoints never travel as transfer authority. Quarantined/restored instances remain blocked. This proposal provides no cross-organization copying, production transfer, automatic association or destructive retirement.
+Bundle 1 still rejects mapping objects, installation-local IDs and extra files; no portable format or canonical README is rewritten. Private receipts are never publisher or recovery authority. Production transport, image-bearing signatures, portable image publication and destructive retention remain future phases.
 
 [Actual verification and screenshots](branded-blueprint-bundles-verification.md) · [Blueprints](blueprint-packages.md) · [Companions](logo-companions.md) · [Private associations](private-logo-associations.md)

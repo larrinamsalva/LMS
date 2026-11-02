@@ -80,3 +80,10 @@ After PR #27: host-only fictional PostgreSQL logo retention and explicit version
 - New data-only bundle 1 wraps exact Blueprint ZIP 1/2 and optional Logo Companion 1 with strict nested integrity and compatibility review; all original protocols stay unchanged.
 - Studio supports explicit source-logo inclusion, inspection, unsaved plan acceptance and independent private re-sanitization/staging/selection. Whole-bundle/image publisher identity remains unverified.
 - Next: separately reviewed durable destination mapping and private transport/security acceptance; explicit image-bearing publisher attestation after independent key enrollment, retirement and freshness design. No automatic publication, migration, persistent public upload or production activation.
+
+
+### Private durable logo destination mapping (PR #29)
+
+- Host-only fictional transfer of unchanged branded bundles, re-sanitized through the existing processor, with independently authorized destination, new private UUID and atomic immutable mapping/receipt. Selection and association stay separate.
+- Existing recent-session, forced-RLS, publication/cursor, quota, audit and quarantine protections remain authoritative. No portable codec, persistent public transport, real-customer transfer, migration execution or production activation changes.
+- Next: persistent private transport and real-user security acceptance; separately versioned published-image portability and whole-bundle publisher signatures after reviewed key enrollment/freshness; authorized retention/disposal. Continue service, inventory, workforce and BuildPlan usability work without weakening these boundaries.

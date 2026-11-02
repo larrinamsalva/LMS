@@ -222,7 +222,7 @@ beforeAll(async () => {
     "011_build_plan_studio",
     "012_business_branding",
     "013_private_logo_assets",
-    "014_private_logo_associations",
+    "014_private_logo_associations",    "015_private_logo_transfers",
   ]);
   expect(
     (await engine.snapshot({ userId: users.owner }, oldOrg)).records[0],
