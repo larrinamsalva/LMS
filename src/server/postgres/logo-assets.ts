@@ -36,7 +36,10 @@ function failure(error: unknown): never {
     );
   const code = (error as { code?: string })?.code;
   if (code === "28000")
-    throw new EngineError("Sign in locally again before private logo transfer.", 401);
+    throw new EngineError(
+      "Sign in locally again before private logo transfer.",
+      401,
+    );
   if (code === "42501")
     throw new EngineError(
       "Private logo access is unavailable for this organization, role or asset state.",

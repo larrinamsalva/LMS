@@ -13,9 +13,27 @@ npm run test:e2e
 
 Use the [disposable PostgreSQL setup](postgres-setup.md#run-the-network-tests). Native suites require explicit fictional credentials and never silently skip. The new suite creates random `lms_test_transfers_*` / `lms_restore_transfers_*` databases and removes only these test-created resources. No production database, private customer logo or ForgeOS modification is involved.
 
-## Observed evidence
+## Verified implementation
 
-Eight initial embedded-PostgreSQL integration tests and TypeScript passed before the local execution environment disconnected. The interrupted full check is **not** counted as successful. GitHub CI on the committed feature branch is authoritative for the final implementation; full foundation, native and browser results are pending.
+All three jobs passed in [GitHub CI run 41392914376](https://github.com/larrinamsalva/LMS/actions/runs/41392914376) for implementation commit `67001071e2ab3744fdc3cf68e8966cf9f1adb359`:
+
+| Check | Actual result |
+| --- | --- |
+| Foundation / `npm run check` | **297 passed / 44 files**, 83.74 seconds; TypeScript, **188 dependency license declarations** and production build passed |
+| Real PostgreSQL | **219 passed / 16 files**, 132.19 seconds; PostgreSQL/`pg_dump` **16.15** |
+| New native transfer file | **14 passed**, 6.006 seconds, including actual independent processes and same-schema quarantined restore |
+| New embedded SQL transfer file | **8 passed**, 2.802 seconds; installed actual migration/host implementation |
+| Browser regression | **75 passed**, 5.3 minutes; desktop/tablet/phone, public Studio, branding/fallback, package/companion/bundle, keyboard and light/dark Axe checks |
+
+[Foundation job](https://github.com/larrinamsalva/LMS/actions/runs/41392914376/job/125107987650) · [PostgreSQL job](https://github.com/larrinamsalva/LMS/actions/runs/41392914376/job/125107987708) · [Browser job](https://github.com/larrinamsalva/LMS/actions/runs/41392914376/job/125107987395).
+
+The final source formatting preserves normalized TypeScript ASTs in all seven formatted files; the remaining changes record these results. GitHub's PR checks show subsequent head verification. No old SQL/checksum, portable codec, dependency, public route or UI component changed.
+
+Eight initial embedded tests and TypeScript also passed locally before an execution-environment interruption. The interrupted full local check is **not counted**. The native/restore evidence above comes from actual GitHub PostgreSQL execution, not an embedded database, inferred backup success or a mocked transport.
+
+An earlier native run passed 217/219: its old-snapshot test mistakenly retained the review's organization lock, preventing its intended competing first store and leaving a later test without its fixture. The correction obtains the review in a normal short transaction, then establishes an old read-only snapshot before the competing commit. Both tests now pass. No application authorization, timeout, quota, recovery or storage check was weakened.
+
+The [fictional-logo-previews artifact](https://github.com/larrinamsalva/LMS/actions/runs/41392914376/artifacts/13118242489) contains synthetic screenshots from the unchanged browser workflows (30-day retention). They establish presentation/regression evidence, not an accepted persistent HTTP transfer UI.
 
 ## Coverage
 

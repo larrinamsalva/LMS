@@ -13,14 +13,24 @@ export async function fictionalBrandedBundle(version = 2, image?: Uint8Array) {
     const plan = planForConfig(presets.cleaning);
     const zip = await createBlueprintPackage(
       version === 1 ? plan : brandBuildPlan(plan, defaultBranding("cleaning")),
-      {name: "Fictional destination-transfer example", description: "Synthetic configuration and image only."},
+      {
+        name: "Fictional destination-transfer example",
+        description: "Synthetic configuration and image only.",
+      },
     );
     const png = image ?? clean.bytes;
     const companion = await createLogoCompanion(png, {
-      width: clean.width, height: clean.height, display: "rectangle",
+      width: clean.width,
+      height: clean.height,
+      display: "rectangle",
     });
     return {
-      zip, companion, bundle: await createBrandedBlueprintBundle(zip, companion), image: Buffer.from(png),
+      zip,
+      companion,
+      bundle: await createBrandedBlueprintBundle(zip, companion),
+      image: Buffer.from(png),
     };
-  } finally { clean.bytes.fill(0); }
+  } finally {
+    clean.bytes.fill(0);
+  }
 }
