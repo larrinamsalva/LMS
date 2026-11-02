@@ -7,6 +7,11 @@ import {
   type LogoState,
 } from "../core/private-logo";
 import { sanitizeLogo } from "./logo-sanitizer";
+import {
+  createLogoCompanion,
+  inspectLogoCompanion,
+  LogoCompanionError,
+} from "../core/logo-companion";
 interface Owner {
   expiresAt: number;
 }
@@ -79,8 +84,8 @@ export class LogoVault {
     const c = this.collection(owner, org);
     return {
       revision: c.revision,
-      selected: c.selected ? { ...c.selected.metadata } : null,
-      staged: c.staged ? { ...c.staged.metadata } : null,
+      selected: c.selected ? structuredClone(c.selected.metadata) : null,
+      staged: c.staged ? structuredClone(c.staged.metadata) : null,
       remainingUploads: logoLimits.uploads - c.uploads,
       expiresAt: owner.expiresAt,
     };
@@ -140,20 +145,28 @@ export class LogoVault {
     revision: number,
     operationId: string,
     reauthorize: () => Promise<void>,
+    kind: "image" | "companion" = "image",
   ) {
     if (!bytes.length || bytes.length > logoLimits.inputBytes)
       throw new EngineError(
         "Choose a nonempty logo no larger than 1 MiB.",
         413,
       );
-    const input = Buffer.from(bytes),
-      c = this.collection(owner, org),
+    const c = this.collection(owner, org),
+      input = Buffer.from(bytes),
       digest = createHash("sha256")
         .update(String(revision))
-        .update(":upload:")
+        .update(kind === "image" ? ":upload:" : ":companion:")
         .update(input)
         .digest("hex");
-    if (!this.begin(c, revision, operationId, digest)) {
+    let begun: boolean;
+    try {
+      begun = this.begin(c, revision, operationId, digest);
+    } catch (error) {
+      input.fill(0);
+      throw error;
+    }
+    if (!begun) {
       input.fill(0);
       return this.state(owner, org);
     }
@@ -175,8 +188,21 @@ export class LogoVault {
     c.uploads++;
     c.busy = true;
     this.processing++;
+    let imported: Awaited<ReturnType<typeof inspectLogoCompanion>> | undefined;
+    let clean: Awaited<ReturnType<typeof sanitizeLogo>> | undefined;
+    let retained = false;
     try {
-      const clean = await sanitizeLogo(input);
+      if (kind === "companion") imported = await inspectLogoCompanion(input);
+      clean = await sanitizeLogo(imported?.image ?? input);
+      if (
+        imported &&
+        (clean.width !== imported.manifest.image.width ||
+          clean.height !== imported.manifest.image.height)
+      )
+        throw new EngineError(
+          "Decoded companion dimensions changed. Nothing was staged.",
+          422,
+        );
       await reauthorize(); // Session and Engine role must still be valid after native work.
       if (this.collection(owner, org) !== c || c.revision !== revision)
         throw new EngineError(
@@ -191,21 +217,89 @@ export class LogoVault {
           width: clean.width,
           height: clean.height,
           bytes: clean.bytes.length,
-          display: "square",
+          display: imported?.manifest.display ?? "square",
+          ...(imported
+            ? {
+                companion: {
+                  version: 1 as const,
+                  imageSha256: imported.manifest.image.sha256,
+                },
+              }
+            : {}),
           expiresAt: Math.min(
             owner.expiresAt,
             Date.now() + logoLimits.stagedMs,
           ),
         },
       };
+      retained = true;
       c.revision++;
       receipt.status = "complete";
       return this.state(owner, org);
     } catch (error) {
       receipt.status = "failed";
+      if (error instanceof LogoCompanionError)
+        throw new EngineError(error.message, 422);
       throw error;
     } finally {
       input.fill(0);
+      imported?.image.fill(0);
+      if (!retained) clean?.bytes.fill(0);
+      c.busy = false;
+      this.processing--;
+    }
+  }
+  /** Read-only export of the explicitly selected revision. Authorization is supplied by the existing demo Engine boundary. */
+  async saveSelected(
+    owner: Owner,
+    org: string,
+    id: string,
+    revision: number,
+    format: "png" | "companion",
+    reauthorize: () => Promise<void>,
+  ) {
+    const c = this.collection(owner, org),
+      asset = c.selected;
+    if (c.busy)
+      throw new EngineError(
+        "Logo processing is busy. Wait and refresh before saving.",
+        423,
+      );
+    if (c.revision !== revision || !asset || asset.metadata.id !== id)
+      throw new EngineError(
+        "Select the current session logo and refresh its revision before saving.",
+        409,
+      );
+    if (this.processing >= logoLimits.processing)
+      throw new EngineError(
+        "Private logo processing capacity reached. Retry later.",
+        429,
+      );
+    c.busy = true;
+    this.processing++;
+    const image = Buffer.from(asset.bytes);
+    let output: Uint8Array | undefined;
+    try {
+      output =
+        format === "companion"
+          ? await createLogoCompanion(image, asset.metadata)
+          : new Uint8Array(image);
+      await reauthorize();
+      if (
+        this.collection(owner, org) !== c ||
+        c.revision !== revision ||
+        c.selected !== asset
+      )
+        throw new EngineError(
+          "Private logo changed or expired while saving. Refresh before retrying.",
+          409,
+        );
+      return output;
+    } catch (error) {
+      output?.fill(0);
+      throw error;
+    } finally {
+      image.fill(0);
       c.busy = false;
       this.processing--;
     }

@@ -1588,3 +1588,10 @@ legend {
 .private-logo-rectangle { width: 6rem; }
 .private-logo img { width: 100%; height: 100%; object-fit: contain; }
 .logo-fallback { display: inline-flex; flex-direction: column; max-width: 9rem; font-size: .75rem; }
+
+.logo-digest { overflow-wrap: anywhere; font-family: monospace; }
+.logo-companion-tools h5, .logo-companion-tools h6 { font-size: 1rem; }
+.logo-companion-tools dt { font-weight: 700; margin-top: .75rem; }
+.logo-companion-tools dd { margin: .3rem 0; line-height: 1.6; overflow-wrap: anywhere; }
+
+.logo-companion-tools { border-top: 1px solid var(--border); margin-top: 1rem; padding-top: 1rem; min-width: 0; }

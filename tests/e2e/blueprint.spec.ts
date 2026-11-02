@@ -1,6 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { readFile } from "node:fs/promises";
+import { logoFixture } from "../helpers/logo-fixtures";
+import { inspectLogoCompanion } from "../../src/core/logo-companion";
 import { importBlueprintPackage } from "../../src/core/blueprint";
 import {
   testAttestation,
@@ -64,6 +66,39 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
   await page
     .getByLabel("Blueprint description", { exact: true })
     .fill("Fictional crews, appointments and supplies with my terminology.");
+  await page
+    .getByLabel("Select a logo image from this device", { exact: true })
+    .setInputFiles({
+      name: "fictional.png",
+      mimeType: "image/png",
+      buffer: await logoFixture(),
+    });
+  await page
+    .getByRole("button", { name: "Sanitize and stage logo", exact: true })
+    .click();
+  await expect(
+    page.getByRole("status").filter({ hasText: /Sanitized image staged/ }),
+  ).toBeVisible();
+  await page
+    .getByLabel("Contained logo display", { exact: true })
+    .selectOption("rectangle");
+  await page
+    .getByRole("button", {
+      name: "Use staged logo for this session",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator(".topbar img")).toBeVisible();
+  const savedLogo = page.waitForEvent("download");
+  await page
+    .getByRole("button", { name: "Download logo companion", exact: true })
+    .click();
+  const logoDownload = await savedLogo,
+    companion = await readFile((await logoDownload.path())!);
+  expect(logoDownload.suggestedFilename()).toBe("lms-logo-companion.zip");
+  expect((await inspectLogoCompanion(companion)).manifest.display).toBe(
+    "rectangle",
+  );
   await step(page, "4 · Review & try");
   await page
     .getByRole("button", { name: "Save BuildPlan draft", exact: true })
@@ -119,6 +154,109 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
         mimeType: "application/zip",
         buffer: bytes,
       };
+    await step(target, "3 · Customize");
+    const companionPicker = target.getByLabel("Import logo companion", {
+        exact: true,
+      }),
+      corruptLogo = Buffer.from(companion);
+    corruptLogo[80] ^= 1;
+    await companionPicker.setInputFiles({
+      name: "tampered.zip",
+      mimeType: "application/zip",
+      buffer: corruptLogo,
+    });
+    await target
+      .getByRole("button", { name: "Review logo companion", exact: true })
+      .click();
+    await expect(
+      target.getByRole("alert").filter({ hasText: /Invalid logo companion/ }),
+    ).toBeVisible();
+    await expect(
+      target.getByRole("button", {
+        name: "Sanitize and stage companion",
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await companionPicker.setInputFiles({
+      name: "saved-logo.dat",
+      mimeType: "text/plain",
+      buffer: companion,
+    });
+    await target
+      .getByRole("button", { name: "Review logo companion", exact: true })
+      .focus();
+    await target.keyboard.press("Enter");
+    await expect(
+      target.getByRole("heading", {
+        name: "Review logo companion",
+        exact: true,
+      }),
+    ).toBeFocused();
+    await expect(
+      target.getByText("Image integrity verified.", { exact: true }),
+    ).toBeVisible();
+    await expect(target.locator(".topbar img")).toHaveCount(0);
+    await accessible(target);
+    await target
+      .getByRole("region", { name: "Custom Business Logo", exact: true })
+      .screenshot({
+        path: info.outputPath("custom-logo-companion-review-light.png"),
+        scale: "css",
+      });
+    await target
+      .getByRole("button", { name: "Switch to dark theme", exact: true })
+      .click();
+    await accessible(target);
+    await target
+      .getByRole("region", { name: "Custom Business Logo", exact: true })
+      .screenshot({
+        path: info.outputPath("custom-logo-companion-review-dark.png"),
+        scale: "css",
+      });
+    await target
+      .getByRole("button", {
+        name: "Sanitize and stage companion",
+        exact: true,
+      })
+      .click();
+    await expect(
+      target.getByRole("status").filter({ hasText: /Sanitized image staged/ }),
+    ).toBeVisible();
+    await expect(target.locator(".topbar img")).toHaveCount(0);
+    await expect(
+      target.getByLabel("Contained logo display", { exact: true }),
+    ).toHaveValue("rectangle");
+    await target
+      .getByRole("button", {
+        name: "Use staged logo for this session",
+        exact: true,
+      })
+      .click();
+    await expect(target.locator(".topbar img")).toBeVisible();
+    await expect(
+      target.getByText(/Temporary private logo selected from a companion/),
+    ).toBeVisible();
+    for (const mode of ["light", "dark"]) {
+      await target
+        .getByLabel(`${mode} branding sample`, { exact: true })
+        .screenshot({
+          path: info.outputPath(`custom-logo-companion-preview-${mode}.png`),
+          scale: "css",
+        });
+    }
+    expect(await snapshot(target)).toEqual(before);
+    expect(await snapshot(page)).toEqual(beforeDownload);
+    await accessible(target);
+    await target
+      .getByRole("region", { name: "Custom Business Logo", exact: true })
+      .screenshot({
+        path: info.outputPath("custom-logo-companion-selected-dark.png"),
+        scale: "css",
+      });
+    await target
+      .getByRole("button", { name: "Switch to light theme", exact: true })
+      .click();
+    await step(target, "4 · Review & try");
     await target
       .getByLabel("Import Blueprint Package", { exact: true })
       .setInputFiles(upload);
@@ -295,6 +433,7 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
       await expect(
         preview.getByRole("button", { name, exact: true }),
       ).toBeVisible();
+    await expect(preview.locator("img")).toHaveCount(0);
     const org = new URL(preview.url()).searchParams.get("organizationId"),
       actual = await preview.evaluate(
         async (id) =>

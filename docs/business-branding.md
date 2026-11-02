@@ -77,7 +77,7 @@ Installation and its checksum ledger are atomic. No existing configuration, draf
 
 ## Limits and next phases
 
-The portable format offers coordinated palettes and built-in marks/ASCII monograms only. The separate [Custom Business Logo](private-logos.md) uses strict raster sanitization, private temporary custody and accessible fallback. Its session overlay is never saved/exported/published as branding, and separate Engine previews receive no copied image. Portable image sharing requires a future explicitly versioned protocol and custody review.
+The portable format offers coordinated palettes and built-in marks/ASCII monograms only. The separate [Custom Business Logo](private-logos.md) uses strict raster sanitization, private temporary custody and accessible fallback. Its session overlay is never saved/exported/published as branding, and separate Engine previews receive no copied image. The separate [unsigned logo companion v1](logo-companions.md) supports deliberate private reuse; portable published image branding still requires a future explicitly versioned configuration/package protocol and custody review.
 
 There are no external themes/fonts, public media hosting, executable app export/deployment, real-business authentication, automatic template updates, payments, messaging or recovery activation. Detached publisher inspection is separate from production acceptance; durable/portable image custody and richer visual customization remain follow-ups. MIT and ForgeOS attribution are retained. [Original branding verification](business-branding-verification.md) · [Private-logo verification](private-logos-verification.md) · [Roadmap](../ROADMAP.md).
 
