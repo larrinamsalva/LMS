@@ -1,6 +1,6 @@
 # Private logo association verification
 
-Verification is in progress on the PR branch. No native restore, CI success or production acceptance is claimed until observed results below are filled in.
+Verified for trusted fictional PostgreSQL workspaces only. The implementation and regression results below do not establish real-user authentication, persistent public transport, production media custody or recovery activation acceptance.
 
 ## Reproduce
 
@@ -26,4 +26,45 @@ The independent-process probe is test tooling using reviewed synthetic principal
 
 ## Observed results
 
-Pending final local and GitHub CI runs. Screenshots will be added after the responsive harness is executed and visually inspected.
+The tested implementation is commit [`6df3ae89ecf724fa5fb4a647cc184a4ce8b4d3c5`](https://github.com/larrinamsalva/LMS/commit/6df3ae89ecf724fa5fb4a647cc184a4ce8b4d3c5). [GitHub quality run 41377441581](https://github.com/larrinamsalva/LMS/actions/runs/41377441581) completed successfully in all three jobs. Later evidence/screenshot commits do not change the implementation; inspect the PR checks for their own run status.
+
+| Check | Observed result | Evidence |
+| --- | --- | --- |
+| Foundation | **252 tests / 41 files passed**, 53.32 seconds; TypeScript, 188 dependency license declarations and production build passed | [Foundation job](https://github.com/larrinamsalva/LMS/actions/runs/41377441581/job/125060661684) |
+| Native PostgreSQL | **203 tests / 15 files passed**, 122.01 seconds; PostgreSQL / pg_dump 16.15 | [PostgreSQL job](https://github.com/larrinamsalva/LMS/actions/runs/41377441581/job/125060661453) |
+| Association-native cases | **16 tests passed**, 6.886 seconds, including actual independent-process retrieval, both publication races, failed transaction rollback and native quarantined restore | Same PostgreSQL job; `tests/postgres/logo-associations.test.ts` |
+| Browser | **75 passed**, 7.2 minutes, desktop/tablet/phone; new harness checked light/dark Axe WCAG 2 A/AA and 2.1 AA tags with no detected violations | [Browser job](https://github.com/larrinamsalva/LMS/actions/runs/41377441581/job/125060661799) |
+| Local foundation | `npm run check` passed: 252 / 41, 121.62 seconds; typecheck, 188 licenses and build passed. Follow-up typecheck passed after final test/harness edits | Local execution, Node 24.22.1 |
+| Local browser | Full run **75 expected / 75 total**, zero unexpected, flaky or skipped; focused initial new-harness run **3 passed** / 37.3 seconds | Local Playwright report and inspected screenshots |
+
+Native PostgreSQL was executed in the disposable GitHub service, not invented from embedded SQL tests. The successful restore test closes all source hosts, uses the existing native utility and allowlisted empty restore destination, compares private HMAC inventory plus exact association/receipt/PNG checks, and confirms the source is unchanged. Both the ordinary adapter and guarded association SQL refuse the restored quarantined copy. A successful same-schema restore does not prove migration transformation safety or authorize recovery activation.
+
+The native suite also verifies current owner/admin authority; no raw image-column SELECT or table DML; forced RLS and foreign-scope refusal; post-decode membership revocation; stale configuration/selection/repeatable-read rejection; exact versus conflicting retries; 128 retained associations with one reserved fallback; referenced-asset retirement refusal; blocked/retired/missing/damaged images; and preservation of records, configuration history, receipts and audit history. Missing asset lookups retain the original access-denied semantics rather than revealing existence.
+
+SQL migrations 1–13, root MIT/upstream notices, portable configuration/package/attestation/companion contracts, public demo database/vault and installed HTTP routes remain unchanged. The production build exposes only the existing demo routes. Existing security/recovery/lineage/checkpoint, pricing, inventory, scheduling, workforce, branding, provenance, Studio/Gallery/history/planning/native-readiness suites are included above.
+
+## Screenshots and inspection workflow
+
+All images below contain **synthetic test-only pixels and response fixtures**. They demonstrate the existing shared branding renderer, readable themes, contained layouts and safe fallback. They do **not** show authenticated PostgreSQL HTTP delivery or grant publication authority. Native behavior is established independently by the PostgreSQL evidence above.
+
+| Screenshot | What to inspect |
+| --- | --- |
+| [Desktop light](screenshots/private-logo-associations/desktop-light.png) | Current configuration and association revisions; explicit image association |
+| [Desktop dark](screenshots/private-logo-associations/desktop-dark.png) | Reviewed contrast and readable controls |
+| [Desktop stale configuration](screenshots/private-logo-associations/desktop-stale.png) | Built-in fallback after a changed configuration response |
+| [Tablet dark](screenshots/private-logo-associations/tablet-dark.png) | Responsive contained image and wrapping controls |
+| [Phone light](screenshots/private-logo-associations/phone-light.png) | Narrow identity layout and keyboard-accessible controls |
+| [Phone dark](screenshots/private-logo-associations/phone-dark.png) | Readable compact dark identity |
+| [Phone stale configuration](screenshots/private-logo-associations/phone-stale.png) | Built-in mark with explicit new-review instruction |
+
+The browser harness also switches square/rectangle inspection via keyboard, shows explicit built-in responses, tests a broken-image fallback and verifies that the real app rejects the fixture asset request with 401. Its controls switch response fixtures; they do not mutate an organization. The native workflow separately stores/selects, reviews, explicitly binds, restarts, reads, replaces, reverts, reviews historical restoration and tests backup/restore.
+
+The CI `fictional-logo-previews` artifact ([artifact 13112391230](https://github.com/larrinamsalva/LMS/actions/runs/41377441581/artifacts/13112391230), 3,757,365 bytes, 30-day retention) contains synthetic screenshots only; selected copies are retained in this repository.
+
+## Remaining limits
+
+- Host-only library and test-tooling integration; no durable public image endpoint or interactive persistent-transport acceptance. Hosts must resolve a current verified local principal on every operation and clear/fall back after failures.
+- Database-local history/digests do not protect against a compromised superuser/host, independently authenticate a publisher or establish monotonic freshness.
+- No physical image deletion, automatic cleanup or quota refunds. Historical references block retirement; exhausted labs require future reviewed retention work.
+- No image-bearing portable branding protocol. Existing blueprint signatures do not authenticate these installation-local images or separate companions.
+- Restored copies stay blocked; no activation, schema executor, production deployment or real-customer acceptance is added.
