@@ -5,6 +5,7 @@ import { logoFixture } from "../helpers/logo-fixtures";
 import { inspectLogoCompanion } from "../../src/core/logo-companion";
 import { importBlueprintPackage } from "../../src/core/blueprint";
 import { inspectBrandedBlueprintBundle } from "../../src/core/branded-bundle";
+import { testBundleAttestation } from "../helpers/branded-bundle-provenance";
 import {
   testAttestation,
   testPublisher,
@@ -208,6 +209,33 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
       mimeType: "text/plain",
       buffer: bundleBytes,
     });
+    const signedBundle = await testBundleAttestation(
+        bundleBytes,
+        testPublisher(),
+      ),
+      wholePicker = target.getByLabel(
+        "Complete-bundle publisher attestation (optional)",
+        { exact: true },
+      );
+    await wholePicker.setInputFiles({
+      name: "complete.attestation.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(signedBundle),
+    });
+    await target
+      .getByRole("button", { name: "Review branded bundle", exact: true })
+      .click();
+    await expect(
+      target.getByRole("alert").filter({ hasText: /Unknown publisher key/ }),
+    ).toBeVisible();
+    await expect(
+      target.getByRole("heading", {
+        name: "Review Branded Blueprint Bundle",
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    expect(await snapshot(target)).toEqual(before);
+    await wholePicker.setInputFiles([]); // Explicitly unsigned review; failed claims never downgrade themselves.
     await target
       .getByRole("button", { name: "Review branded bundle", exact: true })
       .click();
@@ -229,6 +257,15 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
         exact: true,
       }),
     ).toBeDisabled();
+    await target
+      .getByRole("region", {
+        name: "Verify complete branded bundle",
+        exact: true,
+      })
+      .screenshot({
+        path: info.outputPath("custom-logo-bundle-authentication-unsigned.png"),
+        scale: "css",
+      });
     await expect(target.locator(".brand-example img")).toHaveCount(0);
     await expect(target.locator(".topbar img")).toHaveCount(0);
     expect(await snapshot(target)).toEqual(before);

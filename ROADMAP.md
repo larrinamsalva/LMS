@@ -87,3 +87,10 @@ After PR #27: host-only fictional PostgreSQL logo retention and explicit version
 - Host-only fictional transfer of unchanged branded bundles, re-sanitized through the existing processor, with independently authorized destination, new private UUID and atomic immutable mapping/receipt. Selection and association stay separate.
 - Existing recent-session, forced-RLS, publication/cursor, quota, audit and quarantine protections remain authoritative. No portable codec, persistent public transport, real-customer transfer, migration execution or production activation changes.
 - Next: persistent private transport and real-user security acceptance; separately versioned published-image portability and whole-bundle publisher signatures after reviewed key enrollment/freshness; authorized retention/disposal. Continue service, inventory, workforce and BuildPlan usability work without weakening these boundaries.
+
+
+### Complete-bundle authenticated provenance (PR #30)
+
+- Separate detached complete-bundle attestation 1 binds exact Blueprint, optional companion and original PNG under its own canonical Ed25519 domain. Original protocols/private destination mapping stay unchanged.
+- Offline signing, strict shared registry/retirement policy and Studio scope reporting preserve explicit review, sanitizer, permissions and all publication/recovery blockers. The real registry remains empty; tests use isolated ephemeral keys only.
+- Next: separately authorized independent real-key enrollment/custody acceptance, retirement distribution and monotonic latest-version witness; production distribution/transport only after separate security acceptance. Continue usable module/Studio improvements independently, with no automatic deployment, migration or media publication.

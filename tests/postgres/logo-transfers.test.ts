@@ -32,6 +32,9 @@ import * as sanitizer from "../../src/server/logo-sanitizer";
 import { createBrandedBlueprintBundle } from "../../src/core/branded-bundle";
 import { createLogoCompanion } from "../../src/core/logo-companion";
 import { crc32 } from "../../src/core/stored-archive";
+import { inspectAuthenticatedBrandedBundle } from "../../src/core/branded-bundle-provenance";
+import { testPublisher } from "../helpers/blueprint-provenance";
+import { testBundleAttestation } from "../helpers/branded-bundle-provenance";
 
 const raw = process.env.LMS_TEST_ADMIN_URL;
 if (!raw)
@@ -292,6 +295,48 @@ afterAll(async () => {
   sample?.image.fill(0);
 });
 
+it("keeps a complete-bundle signature separate from current durable authority and preserves private assets/publication", async () => {
+  const publisher = testPublisher(),
+    before = await counts(),
+    business = await protectedRows(),
+    state = await api().snapshot(actor(), fixture.property),
+    history = await api().associations.history(actor(), fixture.property),
+    attestation = await testBundleAttestation(sample.bundle, publisher),
+    verified = await inspectAuthenticatedBrandedBundle(
+      sample.bundle,
+      { attestation },
+      publisher.registry,
+    );
+  expect(verified.publisher.status).toBe("verified");
+  expect(await counts()).toEqual(before);
+  const cmd = command(await review());
+  await admin.query(
+    "delete from lms.memberships where organization_id=$1 and user_id=$2",
+    [fixture.property, operator],
+  );
+  try {
+    await expect(
+      api().transfers.accept(resolve, fixture.property, sample.bundle, cmd),
+    ).rejects.toMatchObject({ status: 403 });
+  } finally {
+    await admin.query("insert into lms.memberships values($1,$2,'admin')", [
+      fixture.property,
+      operator,
+    ]);
+  }
+  await expect(
+    api().transfers.accept(resolve, fixture.property, sample.bundle, {
+      ...cmd,
+      publisherAttestation: "not an authorization token",
+    }),
+  ).rejects.toThrow();
+  expect(await counts()).toEqual(before);
+  expect(await protectedRows()).toEqual(business);
+  expect(await api().snapshot(actor(), fixture.property)).toEqual(state);
+  expect(await api().associations.history(actor(), fixture.property)).toEqual(
+    history,
+  );
+});
 it("uses actual Better Auth and creates a new stored/unselected destination asset without source or publication changes", async () => {
   const before = await protectedRows(),
     source = await api().snapshot({ userId: fixture.other }, fixture.cleaning);

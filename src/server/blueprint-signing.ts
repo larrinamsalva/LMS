@@ -53,6 +53,44 @@ export async function readBlueprintFile(
     await h.close();
   }
 }
+/** Shared offline key-type/material check; never imported by a client or HTTP route. */
+export function checkedPublisherPrivateKey(
+  pem: string,
+  expectedPublicKey: string,
+) {
+  const privateKey = createPrivateKey(pem);
+  if (privateKey.asymmetricKeyType !== "ed25519")
+    throw new Error("Signing requires an Ed25519 private key.");
+  const publicKey = createPublicKey(privateKey).export({ format: "jwk" });
+  if (
+    Buffer.from(publicKey.x ?? "", "base64url").toString("hex") !==
+    expectedPublicKey
+  )
+    throw new Error(
+      "Private key does not match the reviewed publisher registry.",
+    );
+  return privateKey;
+}
+/** Original private POSIX custody, shared by both signing protocols. */
+export async function readPublisherPrivateKey(
+  privateKeyPath: string,
+  outputPath: string,
+) {
+  const root = path.resolve(fileURLToPath(new URL("../../", import.meta.url))),
+    keyPath = await realpath(privateKeyPath);
+  if (
+    !path.isAbsolute(privateKeyPath) ||
+    keyPath === root ||
+    keyPath.startsWith(root + path.sep)
+  )
+    throw new Error(
+      "Keep private signing keys outside the checkout, backups and demo host.",
+    );
+  await privateDirectory(path.dirname(outputPath));
+  await privateDirectory(path.dirname(privateKeyPath));
+  return readPrivateText(privateKeyPath, 8192, true);
+}
+
 /** Caller must have independently reviewed this exact digest and established signing authority. No key enrollment here. */
 export async function signBlueprint(
   bytes: Uint8Array,
@@ -76,17 +114,7 @@ export async function signBlueprint(
     throw new Error(
       "Signing refused: review the exact package digest and an active, separately enrolled publisher key.",
     );
-  const privateKey = createPrivateKey(pem);
-  if (privateKey.asymmetricKeyType !== "ed25519")
-    throw new Error("Signing requires an Ed25519 private key.");
-  const publicKey = createPublicKey(privateKey).export({ format: "jwk" });
-  if (
-    Buffer.from(publicKey.x ?? "", "base64url").toString("hex") !==
-    key.publicKey
-  )
-    throw new Error(
-      "Private key does not match the reviewed publisher registry.",
-    );
+  const privateKey = checkedPublisherPrivateKey(pem, key.publicKey);
   const payload: AttestationPayload = {
       format: "lms-blueprint-publisher-attestation",
       version: 1,
@@ -112,20 +140,11 @@ export async function signBlueprintFile(
   registry: unknown = reviewedPublishers(),
 ) {
   const request = signingRequestSchema.parse(input),
-    root = path.resolve(fileURLToPath(new URL("../../", import.meta.url))),
-    keyPath = await realpath(request.privateKeyPath);
-  if (
-    !path.isAbsolute(request.privateKeyPath) ||
-    keyPath === root ||
-    keyPath.startsWith(root + path.sep)
-  )
-    throw new Error(
-      "Keep private signing keys outside the checkout, backups and demo host.",
-    );
-  await privateDirectory(path.dirname(request.outputPath));
-  await privateDirectory(path.dirname(request.privateKeyPath));
-  const bytes = await readBlueprintFile(request.packagePath),
-    pem = await readPrivateText(request.privateKeyPath, 8192),
+    pem = await readPublisherPrivateKey(
+      request.privateKeyPath,
+      request.outputPath,
+    ),
+    bytes = await readBlueprintFile(request.packagePath),
     text = await signBlueprint(bytes, pem, request, registry);
   await newFile(request.outputPath, text);
   await syncDirectory(path.dirname(request.outputPath));

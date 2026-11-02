@@ -49,7 +49,6 @@ import {
 import {
   BRANDED_BUNDLE_LIMIT,
   createBrandedBlueprintBundle,
-  inspectBrandedBlueprintBundle,
 } from "../core/branded-bundle";
 import {
   ATTESTATION_LIMIT,
@@ -61,6 +60,10 @@ import {
   BLUEPRINT_PACKAGE_LIMIT,
   type BlueprintDetails,
 } from "../core/blueprint";
+import {
+  BUNDLE_ATTESTATION_LIMIT,
+  inspectAuthenticatedBrandedBundle,
+} from "../core/branded-bundle-provenance";
 const names = {
   property: "Property Management",
   cleaning: "Cleaning Business",
@@ -1361,19 +1364,20 @@ export function BuildPlanStudio({
             }
           })
         }
-        onImport={(file, attestation) =>
+        onImport={(file, attestation, bundleAttestation) =>
           void run(async () => {
             if (!file.size || file.size > BRANDED_BUNDLE_LIMIT)
               throw new Error(
                 "Choose a nonempty branded bundle no larger than 384 KiB.",
               );
-            if (
-              attestation &&
-              (!attestation.size || attestation.size > ATTESTATION_LIMIT)
-            )
-              throw new Error(
-                "Nested Blueprint attestation must be nonempty and no larger than 8 KiB.",
-              );
+            for (const claim of [attestation, bundleAttestation])
+              if (
+                claim &&
+                (!claim.size || claim.size > BUNDLE_ATTESTATION_LIMIT)
+              )
+                throw new Error(
+                  "Detached attestations must be nonempty and no larger than 8 KiB.",
+                );
             const captured = JSON.stringify({
                 plan,
                 draftId,
@@ -1381,33 +1385,45 @@ export function BuildPlanStudio({
                 baseRevision,
               }),
               revision = workspace.config.revision;
-            const bytes = new Uint8Array(await file.arrayBuffer()),
-              claim = attestation
-                ? new Uint8Array(await attestation.arrayBuffer())
-                : undefined;
-            let bundle:
-                | Awaited<ReturnType<typeof inspectBrandedBlueprintBundle>>
+            const [raw, nested, whole] = await Promise.all([
+              file.arrayBuffer(),
+              attestation?.arrayBuffer(),
+              bundleAttestation?.arrayBuffer(),
+            ]);
+            const bytes = new Uint8Array(raw),
+              nestedClaim =
+                nested === undefined ? undefined : new Uint8Array(nested),
+              wholeClaim =
+                whole === undefined ? undefined : new Uint8Array(whole);
+            let inspected:
+                | Awaited<ReturnType<typeof inspectAuthenticatedBrandedBundle>>
                 | undefined,
               accepted = false;
             try {
-              bundle = await inspectBrandedBlueprintBundle(bytes);
-              const verification = await inspectBlueprintPackage(
-                bundle.blueprintBytes,
-                claim,
-              );
+              // No registry/key argument can come from this public import UI.
+              inspected = await inspectAuthenticatedBrandedBundle(bytes, {
+                attestation: wholeClaim,
+                blueprintAttestation: nestedClaim,
+              });
               setReviewingBundle({
-                bundle,
-                blueprintVerification: verification,
+                ...inspected,
                 configurationRevision: revision,
                 editorFingerprint: captured,
               });
               accepted = true;
+            } catch (error) {
+              if (attestation || bundleAttestation)
+                throw new Error(
+                  `Publisher verification rejected. No bundle import was accepted. ${error instanceof Error ? error.message : "Invalid or unsupported attestation."}`,
+                );
+              throw error;
             } finally {
               bytes.fill(0);
-              claim?.fill(0);
+              nestedClaim?.fill(0);
+              wholeClaim?.fill(0);
               if (!accepted) {
-                bundle?.blueprintBytes.fill(0);
-                bundle?.logoBytes?.fill(0);
+                inspected?.bundle.blueprintBytes.fill(0);
+                inspected?.bundle.logoBytes?.fill(0);
               }
             }
           })
