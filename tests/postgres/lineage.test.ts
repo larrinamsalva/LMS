@@ -337,7 +337,7 @@ beforeAll(async () => {
       "011_build_plan_studio",
       "012_business_branding",
       "013_private_logo_assets",
-      "014_private_logo_associations",      "015_private_logo_transfers",
+      "014_private_logo_associations",      "015_private_logo_transfers", "016_invoice_drafts",
     ]);
     expect(await business(source)).toEqual(before);
   } finally {
@@ -831,7 +831,7 @@ describe("external credential lineage with native PostgreSQL and offline witness
         "011_build_plan_studio",
         "012_business_branding",
         "013_private_logo_assets",
-        "014_private_logo_associations",        "015_private_logo_transfers",
+        "014_private_logo_associations",        "015_private_logo_transfers", "016_invoice_drafts",
       ]);
       expect(
         (

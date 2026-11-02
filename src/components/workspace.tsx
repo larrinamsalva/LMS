@@ -15,6 +15,8 @@ import { money, type EstimatePricing } from "../core/pricing";
 import { displayTime } from "../core/time";
 import { RecordForm } from "./record-form";
 import { EstimateForm } from "./estimate-form";
+import { InvoiceAction, InvoiceDrafts } from "./invoice-workspace";
+import type { InvoiceCommand } from "../core/invoices";
 import { Catalog, Estimates } from "./pricing-workspace";
 import { downloadJson, ProjectPanel } from "./project-panel";
 import { brandingVariables, defaultBranding } from "../core/branding";
@@ -72,7 +74,12 @@ export function Workspace({
     | "catalog"
     | "inventory"
     | "estimates"
+    | "invoices"
   >("records");
+  const [invoiceAction, setInvoiceAction] = useState<{
+    record: WorkspaceRecord;
+    kind: InvoiceCommand["kind"];
+  } | null>(null);
   const [selected, setSelected] = useState("customers");
   const [query, setQuery] = useState("");
   const [showArchived, setShowArchived] = useState(false);
@@ -141,6 +148,7 @@ export function Workspace({
       setShowArchived(false);
       setEditor(null);
       setArchive(null);
+      setInvoiceAction(null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not load workspace.",
@@ -394,23 +402,28 @@ export function Workspace({
                   <button
                     disabled={busy}
                     key={id}
-                    className={`nav-item ${view === "records" && entity?.id === id ? "active" : ""}`}
+                    className={`nav-item ${(view === "records" || (view === "invoices" && id === "invoice-drafts") || (view === "estimates" && id === "estimates")) && entity?.id === id ? "active" : ""}`}
                     aria-current={
-                      view === "records" && entity?.id === id
+                      (view === "records" ||
+                        (view === "invoices" && id === "invoice-drafts") ||
+                        (view === "estimates" && id === "estimates")) &&
+                      entity?.id === id
                         ? "page"
                         : undefined
                     }
                     onClick={() =>
                       changeView(
-                        id === "estimates"
-                          ? "estimates"
-                          : [
-                                "items",
-                                "stock-locations",
-                                "stock-movements",
-                              ].includes(id)
-                            ? "inventory"
-                            : "records",
+                        id === "invoice-drafts"
+                          ? "invoices"
+                          : id === "estimates"
+                            ? "estimates"
+                            : [
+                                  "items",
+                                  "stock-locations",
+                                  "stock-movements",
+                                ].includes(id)
+                              ? "inventory"
+                              : "records",
                         id,
                       )
                     }
@@ -694,10 +707,48 @@ export function Workspace({
                 onArchive={archiveRecord}
               />
             )}
+            {view === "invoices" && (
+              <InvoiceDrafts
+                records={workspace!.records}
+                versions={workspace!.invoiceVersions}
+                businessName={config!.name}
+                theme={theme}
+                canManage={canAdmin}
+                busy={busy}
+                onAction={(record, kind) => setInvoiceAction({ record, kind })}
+              />
+            )}
+            {invoiceAction && (
+              <InvoiceAction
+                key={invoiceAction.record.id + invoiceAction.kind}
+                {...invoiceAction}
+                configRevision={workspace!.config.revision}
+                busy={busy}
+                onClose={() => setInvoiceAction(null)}
+                onSave={async (input, operationId) => {
+                  await mutate(
+                    {
+                      action: "invoice-draft",
+                      organizationId: workspace!.organizationId,
+                      input,
+                      operationId,
+                    },
+                    "Fictional invoice draft saved. Nothing issued or sent.",
+                  );
+                  setInvoiceAction(null);
+                  setView("invoices");
+                }}
+              />
+            )}
             {view === "estimates" && (
               <Estimates
                 records={workspace!.records}
                 versions={workspace!.estimateVersions}
+                onConvert={
+                  config!.modules.some((m) => m.id === "invoice-drafts")
+                    ? (record) => setInvoiceAction({ record, kind: "convert" })
+                    : undefined
+                }
                 businessName={config!.name}
                 theme={theme}
                 canManage={canAdmin}

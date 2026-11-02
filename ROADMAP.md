@@ -29,7 +29,8 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 - [ ] Advanced pricing, currencies and tax models; richer job evidence, property occupancy and maintenance workflows
 - [x] Shared whole-unit stock ledger, product/location catalog, exact case conversion, compensating corrections and keyboard-scanner selection
 - [ ] Fractional stock, camera scanning, lots/expiry, inventory permissions, equipment and reviewed purchasing
-- [ ] Reviewed invoice-draft conversion, exact-money correction history and later production financial acceptance
+- [x] Optional fictional invoice-draft conversion, exact-money corrections, immutable history and unissued print preview
+- [ ] Separately reviewed production financial/issuance, privacy, retention and transport acceptance
 - [ ] Private documents, reports and scoped attachments
 - [ ] Deterministic configurable workflow rules, enabled only after explicit review
 - [x] BuildPlan Studio: guided reviewed templates/features, terminology/navigation, optional fields, real Engine previews, temporary draft revisions and validated JSON import/export
@@ -57,7 +58,7 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 | Track | Next deliverable | Acceptance boundary |
 | --- | --- | --- |
 | Security/recovery | Independent monotonic witness/receipt custody; signed repair and key/role recovery; later identity-specific acceptance | No activation until the complete recovery, session and permission boundary is demonstrated |
-| Business modules | Richer inventory/equipment and separately reviewed pricing/crew extensions; later advanced pricing, richer crew eligibility and reviewed invoice drafts | Shared engine/manifests, organization isolation, concurrency and mobile/accessibility checks; no live finance/messages |
+| Business modules | Richer inventory/equipment and separately reviewed pricing/crew extensions; later advanced pricing, richer crew eligibility and separately reviewed financial draft extensions | Shared engine/manifests, organization isolation, concurrency and mobile/accessibility checks; no live finance/messages |
 | BuildPlan Studio | Separately authorized migration execution design and reviewed transformations/rollback; real publisher enrollment/custody, retirement distribution and secure image-logo storage | Public rehearsal stays generated-only; host-native copies stay fictional, private, same-schema and activation-blocked. Signature verification grants no migration, production or latest-version acceptance |
 | Packaging | Tested executable application/self-host packaging beyond the delivered data-only blueprint ZIP | Verify setup/restore and any actual deployment before claiming success; production use stays separately gated |
 
@@ -94,3 +95,9 @@ After PR #27: host-only fictional PostgreSQL logo retention and explicit version
 - Separate detached complete-bundle attestation 1 binds exact Blueprint, optional companion and original PNG under its own canonical Ed25519 domain. Original protocols/private destination mapping stay unchanged.
 - Offline signing, strict shared registry/retirement policy and Studio scope reporting preserve explicit review, sanitizer, permissions and all publication/recovery blockers. The real registry remains empty; tests use isolated ephemeral keys only.
 - Next: separately authorized independent real-key enrollment/custody acceptance, retirement distribution and monotonic latest-version witness; production distribution/transport only after separate security acceptance. Continue usable module/Studio improvements independently, with no automatic deployment, migration or media publication.
+
+### Fictional invoice-drafting foundation (PR #31)
+
+- Optional shared module, exact reviewed estimate conversion, append-only reasons/corrections/void history, scoped receipts and explicitly unissued printable previews.
+- No existing business is opted in. Existing publication/populated-schema controls, private asset/provenance formats and recovery activation blockers remain intact.
+- Next: separately reviewed line restructuring and financial retention/privacy, richer inventory/equipment and crew/rate usability; BuildPlan/self-host packaging and production identity/security acceptance remain independent gates. Live invoices, payment collection, accounting integration and outbound messages require separate authorization and acceptance.

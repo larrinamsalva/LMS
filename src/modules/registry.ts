@@ -84,6 +84,17 @@ export const manifests: readonly ModuleManifest[] = [
     capabilities: ["records:read", "records:write"],
   },
   {
+    id: "invoice-drafts",
+    version: "1.0.0",
+    engineApi: 1,
+    name: "Invoice Drafts",
+    description:
+      "Fictional unissued drafts from reviewed estimates; no sending or payments.",
+    dependencies: ["estimates"],
+    entities: ["invoice-drafts"],
+    capabilities: ["records:read", "records:write"],
+  },
+  {
     id: "inventory",
     version: "1.0.0",
     engineApi: 1,
@@ -107,7 +118,6 @@ export const manifests: readonly ModuleManifest[] = [
 ];
 export const moduleById = new Map(manifests.map((m) => [m.id, m]));
 export const plannedModules = [
-  "Invoices",
   "Documents",
   "Reports",
   "Workflow rules",
