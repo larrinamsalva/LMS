@@ -362,6 +362,14 @@ it("refuses due inspections, preserves disabled enrollment on restoration and di
     f.data.start,
   );
   await expect(
+    engine.asUser(owner, (tx) =>
+      tx.query(
+        "select lms_private.prepare_estimate_snapshot($1,$2::jsonb,null,null)",
+        [org, {}],
+      ),
+    ),
+  ).rejects.toThrow(/permission denied/i);
+  await expect(
     engine.mapEquipment(
       owner,
       org,

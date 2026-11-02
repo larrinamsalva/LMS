@@ -148,3 +148,18 @@ create function lms_private.equipment_reservation_config_lock() returns trigger 
 begin perform 1 from lms.organizations where id=new.organization_id for update;return new;end; $$;
 create trigger config_aa_equipment_reservation_lock before insert on lms.config_revisions for each row execute function lms_private.equipment_reservation_config_lock();
 revoke all on function lms_private.equipment_reservation_config_lock() from public,lms_app;
+
+-- Preserve the reviewed estimate materializer verbatim, behind an organization-first entry point.
+-- Its original epoch-first public entry otherwise inverts raw catalog writers' lock order.
+alter function lms.prepare_estimate(uuid,jsonb,uuid,integer) rename to prepare_estimate_snapshot;
+alter function lms.prepare_estimate_snapshot(uuid,jsonb,uuid,integer) set schema lms_private;
+revoke all on function lms_private.prepare_estimate_snapshot(uuid,jsonb,uuid,integer) from public,lms_app;
+create function lms.prepare_estimate(org uuid,input_data jsonb,prior_id uuid default null,expected_revision integer default null)
+returns jsonb language plpgsql security definer set search_path='' as $$
+begin
+ perform 1 from lms.organizations where id=org for update;
+ return lms_private.prepare_estimate_snapshot(org,input_data,prior_id,expected_revision);
+end; $$;
+revoke all on function lms.prepare_estimate(uuid,jsonb,uuid,integer) from public;
+grant execute on function lms.prepare_estimate(uuid,jsonb,uuid,integer) to lms_app;
+create trigger build_plan_aa_equipment_reservation_lock before insert on lms.build_plan_revisions for each row execute function lms_private.equipment_reservation_config_lock();
