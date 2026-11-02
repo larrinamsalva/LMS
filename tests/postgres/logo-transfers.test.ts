@@ -253,14 +253,14 @@ it("allows one competing store/transfer and refuses a repeatable-read snapshot p
   ]);
   expect(outcomes.filter(x => x.status === "fulfilled")).toHaveLength(1);
   expect(outcomes.filter(x => x.status === "rejected")).toHaveLength(1);
+  // Obtain the review in its normal short transaction. Holding its organization lock
+  // inside the old snapshot would prevent the competing first store instead of testing it.
+  const rawReview = await review(damageOrg), verified = await resolve();
   const c = new Client({connectionString: url(name, "business")}); await c.connect();
-  const verified = await resolve();
   try {
     await c.query("begin isolation level repeatable read;set local role lms_app");
     await c.query("select set_config('lms.user_id',$1,true)", [operator]);
-    const rawReview = (await c.query("select lms.logo_transfer_review($1,$2,$3,$4) r", [
-      damageOrg, instance, verified!.sessionId, r.source,
-    ])).rows[0].r;
+    expect((await c.query("select * from lms.logo_asset_states where organization_id=$1", [damageOrg])).rows).toEqual([]);
     await accept(damageOrg);
     await expect(c.query("select lms.logo_transfer_operation($1,$2,$3,$4,$5)", [
       damageOrg, instance, verified!.sessionId, command(rawReview), sample.image,
