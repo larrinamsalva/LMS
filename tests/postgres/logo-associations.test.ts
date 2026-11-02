@@ -451,6 +451,13 @@ it("enforces roles, organization isolation, append-only history, scoped foreign 
     await expect(
       engine.asUser(actor(), (tx) => tx.exec(sql)),
     ).rejects.toMatchObject({ code: "42501" });
+  const retained = await assoc().history(actor(), fixture.property);
+  await expect(
+    admin.query("delete from lms.organizations where id=$1", [
+      fixture.property,
+    ]),
+  ).rejects.toMatchObject({ code: expect.stringMatching(/^235(03|14)$/) });
+  expect(await assoc().history(actor(), fixture.property)).toEqual(retained);
   const hidden = await engine.asUser({ userId: fixture.other }, (tx) =>
     tx.query("select * from lms.logo_associations where organization_id=$1", [
       fixture.property,

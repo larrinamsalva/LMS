@@ -443,6 +443,33 @@ it("revalidates complete configuration inside commit and rolls back effects even
     ).rows[0].document,
   ).toEqual(unsupported);
 });
+it("retains live zero cursors and nonzero history while preserving trusted-host empty sandbox retirement", async () => {
+  const empty = randomUUID();
+  await db.query(
+    "insert into lms.organizations values($1,'Fictional empty retirement test')",
+    [empty],
+  );
+  await expect(
+    db.query(
+      "delete from lms.logo_association_states where organization_id=$1",
+      [empty],
+    ),
+  ).rejects.toMatchObject({ code: "23514" });
+  await db.query("delete from lms.organizations where id=$1", [empty]);
+  expect(
+    (
+      await db.query(
+        "select 1 from lms.logo_association_states where organization_id=$1",
+        [empty],
+      )
+    ).rows,
+  ).toHaveLength(0);
+  const history = await call("logo_association_history");
+  await expect(
+    db.query("delete from lms.organizations where id=$1", [org]),
+  ).rejects.toThrow();
+  expect(await call("logo_association_history")).toEqual(history);
+});
 it("does not turn associations or their histories into activation tokens", async () => {
   await db.exec(
     "update lms_control.state set blocked=true,reason='recovery-pending'",

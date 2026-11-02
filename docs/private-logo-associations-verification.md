@@ -26,7 +26,7 @@ The independent-process probe is test tooling using reviewed synthetic principal
 
 ## Observed results
 
-The baseline protocol/native/browser evidence is commit [`6df3ae89ecf724fa5fb4a647cc184a4ce8b4d3c5`](https://github.com/larrinamsalva/LMS/commit/6df3ae89ecf724fa5fb4a647cc184a4ce8b4d3c5). [GitHub quality run 41377441581](https://github.com/larrinamsalva/LMS/actions/runs/41377441581) completed successfully in all three jobs. The final validation/retention hardening described below adds one foundation regression and one native concurrency regression; inspect the PR checks for subsequent exact-head CI results.
+The baseline protocol/native/browser evidence is commit [`6df3ae89ecf724fa5fb4a647cc184a4ce8b4d3c5`](https://github.com/larrinamsalva/LMS/commit/6df3ae89ecf724fa5fb4a647cc184a4ce8b4d3c5). [GitHub quality run 41377441581](https://github.com/larrinamsalva/LMS/actions/runs/41377441581) completed successfully in all three jobs. The final validation/retention hardening described below adds two foundation regressions and one native concurrency regression; inspect the PR checks for subsequent exact-head CI results.
 
 | Check | Observed result | Evidence |
 | --- | --- | --- |
@@ -49,9 +49,11 @@ Final review added the existing complete `validateConfig` reader to the commit t
 
 The added real-SQL host-adapter regression deliberately stores an unsupported module version in a separate synthetic embedded organization, supplies structurally valid review data directly, verifies the exact existing module-version validation error and confirms no association/receipt/cursor/audit persists. This exercises the rollback boundary rather than accepting any generic failure.
 
-After this change, local `npm run check` passed **253 tests / 41 files**, **119.16 seconds**, TypeScript, **188 licenses** and the production build. The final foundation count increases by one. A subsequent retention fence adds a native concurrency case, bringing the current native suite to 204 cases (17 association cases); browser remains 75 cases. Final-head CI must pass before review; [PR #27 checks](https://github.com/larrinamsalva/LMS/pull/27/checks) identify the subsequent exact commit/run, rather than treating the earlier baseline as proof of an untested revision.
+After this change, local `npm run check` passed **253 tests / 41 files**, **119.16 seconds**, TypeScript, **188 licenses** and the production build. The final foundation count increases to 254 with the additional empty-cursor retirement regression. A subsequent retention fence adds a native concurrency case, bringing the current native suite to 204 cases (17 association cases); browser remains 75 cases. Final-head CI must pass before review; [PR #27 checks](https://github.com/larrinamsalva/LMS/pull/27/checks) identify the subsequent exact commit/run, rather than treating the earlier baseline as proof of an untested revision.
 
 The final retention fence initializes an organization cursor before a first binding and locks it before retirement. Its native regression starts an old repeatable-read snapshot, commits the first binding elsewhere, then attempts unselect/retire; retirement must raise serialization refusal and roll back the pending unselect/history/receipts. The association remains active and retained. Missing cursor evidence refuses instead of being auto-created. After these SQL changes, focused actual-SQL/host-adapter/contract tests passed **14 / 3 files** and TypeScript passed locally. Final exact-head PostgreSQL, foundation and browser outcomes are recorded in PR checks; the earlier baseline totals are not substituted for that final verification.
+
+The compatibility regression additionally verifies that a live zero cursor cannot be deleted independently, a zero cursor can disappear only during the existing trusted-host empty parent-workspace retirement, and an organization with retained associations cannot be deleted. Native reference/asset/history foreign keys and the explicit nonzero-cursor guard stay restrictive; no image purging or storage cleanup method is added. After this compatibility correction, focused SQL/host-adapter/contract tests passed **15 / 3 files**, with TypeScript passing locally.
 
 ## Screenshots and inspection workflow
 

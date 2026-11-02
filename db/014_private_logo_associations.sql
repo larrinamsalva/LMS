@@ -7,7 +7,7 @@ end; $$;
 lock table lms.organizations in share row exclusive mode nowait;
 
 create table lms.logo_association_states (
- organization_id uuid primary key references lms.organizations(id),
+ organization_id uuid primary key references lms.organizations(id) on delete cascade,
  revision integer not null default 0 check(revision between 0 and 129)
 );
 -- A real cursor exists BEFORE any first binding. Row locks can then reject old snapshots
@@ -20,6 +20,17 @@ begin
 end; $$;
 create trigger logo_association_initialize after insert on lms.organizations for each row execute function lms_private.logo_association_initialize();
 revoke all on function lms_private.logo_association_initialize() from public,lms_app,lms_auth_service;
+-- Preserve existing whole-host EMPTY sandbox retirement. A cursor cannot be deleted
+-- independently, or after any association. Asset/history foreign keys never cascade.
+create function lms_private.logo_association_cursor_retention() returns trigger language plpgsql security definer set search_path='' as $$
+begin
+ if old.revision<>0 or exists(select 1 from lms.organizations where id=old.organization_id) then
+  raise exception 'Retain association cursor and history; only an empty parent sandbox can retire' using errcode='23514';
+ end if;
+ return old;
+end; $$;
+create trigger logo_association_cursor_retention before delete on lms.logo_association_states for each row execute function lms_private.logo_association_cursor_retention();
+revoke all on function lms_private.logo_association_cursor_retention() from public,lms_app,lms_auth_service;
 create table lms.logo_association_receipts (
  organization_id uuid not null references lms.organizations(id), operation_id uuid not null,
  actor_id uuid not null references lms.users(id), request_digest text not null check(request_digest ~ '^[a-f0-9]{64}$'),
