@@ -7,6 +7,7 @@ import {
   type LogoState,
 } from "../core/private-logo";
 import { sanitizeLogo } from "./logo-sanitizer";
+import { reserveLogoProcessing } from "./logo-processing";
 import {
   createLogoCompanion,
   inspectLogoCompanion,
@@ -185,6 +186,14 @@ export class LogoVault {
         429,
       );
     }
+    let release: () => void;
+    try {
+      release = reserveLogoProcessing();
+    } catch (error) {
+      input.fill(0);
+      receipt.status = "failed";
+      throw error;
+    }
     c.uploads++;
     c.busy = true;
     this.processing++;
@@ -247,6 +256,7 @@ export class LogoVault {
       if (!retained) clean?.bytes.fill(0);
       c.busy = false;
       this.processing--;
+      release();
     }
   }
   /** Read-only export of the explicitly selected revision. Authorization is supplied by the existing demo Engine boundary. */
@@ -275,6 +285,7 @@ export class LogoVault {
         "Private logo processing capacity reached. Retry later.",
         429,
       );
+    const release = reserveLogoProcessing();
     c.busy = true;
     this.processing++;
     const image = Buffer.from(asset.bytes);
@@ -302,6 +313,7 @@ export class LogoVault {
       image.fill(0);
       c.busy = false;
       this.processing--;
+      release();
     }
   }
   command(owner: Owner, org: string, input: unknown) {

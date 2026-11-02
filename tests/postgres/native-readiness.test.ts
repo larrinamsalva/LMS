@@ -261,7 +261,7 @@ describe("host-only native upgrade readiness", () => {
     expect(result.result).toBe("preflight-complete");
     expect(result.backupReadiness).toBe("not-verified");
     expect(result.versions).toMatchObject({
-      source: { postgresMajor: 16, migration: 12, configurationSchemas: [1] },
+      source: { postgresMajor: 16, migration: 13, configurationSchemas: [1] },
       target: { postgresMajor: 16, migration: null, configurationSchemas: [] },
       destination: "same-schema-copy-only",
     });

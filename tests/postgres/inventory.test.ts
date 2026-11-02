@@ -642,6 +642,7 @@ describe("native inventory boundary", () => {
         "010_inventory_ledger",
         "011_build_plan_studio",
         "012_business_branding",
+        "013_private_logo_assets",
       ]);
       expect(await snap()).toEqual(before);
       expect((await db.query("select * from lms.stock_balances")).rows).toEqual(

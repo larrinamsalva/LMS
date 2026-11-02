@@ -408,7 +408,10 @@ describe("native BuildPlan artifacts and publication", () => {
           )
         ).rows[0].present,
       ).toBeNull();
-      expect(await migrate(c)).toEqual(["012_business_branding"]);
+      expect(await migrate(c)).toEqual([
+        "012_business_branding",
+        "013_private_logo_assets",
+      ]);
       const upgraded = await connectPostgres({
         connectionString: url(brandLegacyName, true),
       });
@@ -808,6 +811,7 @@ describe("native BuildPlan artifacts and publication", () => {
       expect(await migrate(c)).toEqual([
         "011_build_plan_studio",
         "012_business_branding",
+        "013_private_logo_assets",
       ]);
       expect(await snapshot()).toEqual(before);
       expect(

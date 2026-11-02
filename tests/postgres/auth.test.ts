@@ -117,6 +117,7 @@ beforeAll(async () => {
     "010_inventory_ledger",
     "011_build_plan_studio",
     "012_business_branding",
+    "013_private_logo_assets",
   ]);
   await provisionRuntime(admin, url(name, "business"));
   await provisionAuthRuntime(admin, url(name, "auth"));

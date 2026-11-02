@@ -81,6 +81,8 @@ Branding persists in configuration schema 2, BuildPlan 2 and Blueprint Package 2
 
 **Save My Logo** downloads the selected sanitized PNG or a separate version-1 logo companion with layout and integrity metadata. In a fresh demo, review the companion, sanitize/stage it again, then explicitly select it. Image integrity is distinct from publisher authenticity; this unsigned companion does not alter signed blueprints or publish branding. [Step-by-step workflow and strict format](docs/logo-companions.md) · [Verification](docs/logo-companions-verification.md).
 
+**Host-only durable logo lab:** migration 13 adds organization-isolated retained PNGs, exact revisions/receipts and explicit lifecycle history for allowlisted fictional PostgreSQL sources. This is a private library/test contract, unavailable in the public demo and separate from published branding. [Setup, safety boundary and lifecycle](docs/durable-private-logos.md) · [Verification](docs/durable-private-logos-verification.md).
+
 ## Review template updates
 
 Before updating an existing BuildPlan, use **Check for Template Updates** in Studio. Compare retained and newer reviewed editions, keep your own choices, preview selected replacements, then use them as unsaved choices. Exact saved baselines enable three-way review; imported hints alone remain informational. Format changes need explicit approval and populated schema changes remain blocked. [Workflow, trust limits and screenshots](docs/template-history.md) · [Verification](docs/template-history-verification.md).

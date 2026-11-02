@@ -212,6 +212,7 @@ beforeAll(async () => {
     "010_inventory_ledger",
     "011_build_plan_studio",
     "012_business_branding",
+    "013_private_logo_assets",
   ]);
   expect((await engine.snapshot({ userId: owner }, org)).records[0]).toEqual(
     record,
