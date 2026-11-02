@@ -1,4 +1,11 @@
 import { z } from "zod";
+import {
+  EquipmentError,
+  equipmentCommandSchema,
+  type EquipmentState,
+  type EquipmentCheckout,
+  type EquipmentEvent,
+} from "./equipment";
 import { invoiceCommandSchema, type InvoiceVersion } from "./invoices";
 import { blueprintJson, sha256 } from "./blueprint";
 import {
@@ -75,6 +82,7 @@ export class EngineError extends Error {
 }
 function recordFailure(error: unknown): never {
   if (
+    error instanceof EquipmentError ||
     error instanceof TimeError ||
     error instanceof PricingError ||
     error instanceof InventoryError
@@ -274,6 +282,77 @@ export class Engine {
       const result = (
         await tx.query<{ result: WorkspaceRecord }>(
           "select lms.write_invoice_draft($1,$2,$3::jsonb) as result",
+          [organizationId, operationId, request],
+        )
+      ).rows[0].result;
+      return {
+        ...result,
+        created_at: new Date(result.created_at),
+        updated_at: new Date(result.updated_at),
+      };
+    }).catch(recordFailure);
+  }
+  private async requireEquipment(tx: SqlConnection) {
+    if (
+      !(
+        await tx.query<{ present: boolean }>(
+          "select to_regclass('lms.equipment_state') is not null as present",
+        )
+      ).rows[0].present
+    )
+      throw new EngineError(
+        "Stop runtime hosts and apply migration 17 before enabling equipment.",
+        409,
+      );
+  }
+  private async equipmentHistory(tx: SqlConnection, organizationId: string) {
+    if (
+      !(
+        await tx.query<{ present: boolean }>(
+          "select to_regclass('lms.equipment_state') is not null as present",
+        )
+      ).rows[0].present
+    )
+      return {
+        equipmentStates: [] as EquipmentState[],
+        equipmentCheckouts: [] as EquipmentCheckout[],
+        equipmentEvents: [] as EquipmentEvent[],
+      };
+    return {
+      equipmentStates: (
+        await tx.query<EquipmentState>(
+          "select organization_id,record_id,revision,asset_key,barcode_key,condition,maintenance,work_id,technician_id,last_service::text as last_service,next_inspection::text as next_inspection from lms.equipment_state where organization_id=$1 order by record_id",
+          [organizationId],
+        )
+      ).rows,
+      equipmentCheckouts: (
+        await tx.query<EquipmentCheckout>(
+          "select * from lms.equipment_checkouts where organization_id=$1 order by checked_out_at,id",
+          [organizationId],
+        )
+      ).rows,
+      equipmentEvents: (
+        await tx.query<EquipmentEvent>(
+          "select * from lms.equipment_events where organization_id=$1 order by record_id,revision",
+          [organizationId],
+        )
+      ).rows,
+    };
+  }
+  async writeEquipment(
+    principal: Principal,
+    organizationId: string,
+    input: unknown,
+    operationId: string,
+  ) {
+    const request = equipmentCommandSchema.parse(input);
+    id.parse(operationId);
+    return this.asUser(principal, async (tx) => {
+      await this.requireRole(tx, organizationId, ["owner", "admin", "staff"]);
+      await this.requireEquipment(tx);
+      const result = (
+        await tx.query<{ result: WorkspaceRecord }>(
+          "select lms.write_equipment($1,$2,$3::jsonb) as result",
           [organizationId, operationId, request],
         )
       ).rows[0].result;
@@ -635,6 +714,7 @@ export class Engine {
         staffAssignments: await this.staffHistory(tx, organizationId),
         estimateVersions: await this.estimateHistory(tx, organizationId),
         invoiceVersions: await this.invoiceHistory(tx, organizationId),
+        ...(await this.equipmentHistory(tx, organizationId)),
         ...(await this.inventoryHistory(tx, organizationId)),
       };
     });
@@ -664,6 +744,13 @@ export class Engine {
       if (pricingEntities.includes(entityId)) await this.requirePricing(tx);
       if (entityId === "stock-locations" || entityId === "stock-movements")
         await this.requireInventory(tx);
+      if (entityId === "equipment") {
+        await this.requireEquipment(tx);
+        if (!operationId)
+          throw new EngineError(
+            "Equipment registry changes require an operation identifier.",
+          );
+      }
       if (entityId === "invoice-drafts")
         throw new EngineError(
           "Use explicit estimate conversion, correction or void review for invoice drafts.",
@@ -901,6 +988,8 @@ export class Engine {
     config: BusinessConfig,
   ) {
     if (config.schemaVersion === 2) await this.requireBranding(tx);
+    if (config.modules.some((m) => m.id === "equipment"))
+      await this.requireEquipment(tx);
     if (config.modules.some((m) => m.id === "invoice-drafts"))
       await this.requireInvoices(tx);
     if (config.modules.some((m) => m.id === "workforce"))
@@ -943,6 +1032,7 @@ export class Engine {
         staffAssignments: await this.staffHistory(tx, organizationId),
         estimateVersions: await this.estimateHistory(tx, organizationId),
         invoiceVersions: await this.invoiceHistory(tx, organizationId),
+        ...(await this.equipmentHistory(tx, organizationId)),
         buildPlans: await this.buildPlanHistory(tx, organizationId),
         ...(await this.inventoryHistory(tx, organizationId)),
       };

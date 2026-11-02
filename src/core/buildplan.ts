@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { equipmentDefinition } from "./equipment";
 import { invoiceDefinition } from "./invoices";
 import { brandingSchema, type Branding } from "./branding";
 import {
@@ -88,6 +89,14 @@ export function selectModules(
       ...config,
       entities: [...config.entities, invoiceDefinition(config)],
     };
+  if (
+    choices.includes("equipment") &&
+    !config.entities.some((e) => e.id === "equipment")
+  )
+    config = {
+      ...config,
+      entities: [...config.entities, structuredClone(equipmentDefinition)],
+    };
   const available = new Set(config.entities.map((e) => e.module)),
     selected = new Set([...choices, "customers", "tasks"]);
   for (const id of selected) {
@@ -138,6 +147,8 @@ export function validateBuildPlan(input: unknown): BuildPlan {
     base = builderTemplate(raw.template);
   if (config.entities.some((e) => e.id === "invoice-drafts"))
     base.entities.push(invoiceDefinition(base));
+  if (config.entities.some((e) => e.id === "equipment"))
+    base.entities.push(structuredClone(equipmentDefinition));
   if (raw.version !== config.schemaVersion)
     throw new ConfigurationError(
       "BuildPlan 1 needs configuration schema 1; branded BuildPlan 2 needs schema 2.",

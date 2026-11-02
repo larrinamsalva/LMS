@@ -106,6 +106,17 @@ export const manifests: readonly ModuleManifest[] = [
     capabilities: ["records:read", "records:write"],
   },
   {
+    id: "equipment",
+    version: "1.0.0",
+    engineApi: 1,
+    name: "Equipment & Tools",
+    description:
+      "Individual reusable equipment, explicit custody and reviewed maintenance; separate from consumable stock.",
+    dependencies: ["inventory", "workforce", "tasks"],
+    entities: ["equipment"],
+    capabilities: ["records:read", "records:write"],
+  },
+  {
     id: "custom-records",
     version: "1.0.0",
     engineApi: 1,

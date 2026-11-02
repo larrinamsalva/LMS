@@ -318,7 +318,7 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
           "select count(*)::int as count from lms_meta.migrations",
         )
       ).rows[0].count,
-    ).toBe(16);
+    ).toBe(17);
   });
   it("rolls back failed migrations atomically and can subsequently initialize the empty database", async () => {
     await withClient(databaseUrl(names[2]), async (client) => {
@@ -327,8 +327,8 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
         migrate(client, [
           ...files,
           {
-            version: 17,
-            name: "016_intentional_failure",
+            version: 18,
+            name: "018_intentional_failure",
             sql: "create table public.partial_migration(id integer); select definitely_missing_function();",
           },
         ]),
@@ -353,7 +353,7 @@ describe("durable PostgreSQL using the unchanged LMS engine", () => {
         "011_build_plan_studio",
         "012_business_branding",
         "013_private_logo_assets",
-        "014_private_logo_associations",        "015_private_logo_transfers", "016_invoice_drafts",
+        "014_private_logo_associations",        "015_private_logo_transfers", "016_invoice_drafts", "017_equipment_lifecycle",
       ]);
     });
   });

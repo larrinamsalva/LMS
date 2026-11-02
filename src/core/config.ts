@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { equipmentContract, validateEquipmentRecord } from "./equipment";
 import { invoiceContract } from "./invoices";
 import { brandingSchema, brandText } from "./branding";
 import {
@@ -149,6 +150,11 @@ export const businessConfigSchema = z
       !config.entities.some((e) => e.id === "invoice-drafts")
     )
       error("Invoice drafting requires its reviewed entity contract.");
+    if (
+      enabled.has("equipment") &&
+      !config.entities.some((e) => e.id === "equipment")
+    )
+      error("Equipment requires its reviewed entity contract.");
     const ids = config.entities.map((e) => e.id);
     if (
       new Set(ids).size !== ids.length ||
@@ -168,6 +174,8 @@ export const businessConfigSchema = z
         error(`Entity ${entity.id} is not provided by ${entity.module}.`);
     }
     for (const entity of config.entities) {
+      if (!equipmentContract(entity))
+        error("Equipment fields must match the reviewed module contract.");
       if (!inventoryContract(entity))
         error("Inventory fields must match the module contract.");
       if (!invoiceContract(entity, config as BusinessConfig))
@@ -324,6 +332,7 @@ export function validateRecord(
   validateWorkforceRecord(entity.id, result);
   validatePricingRecord(entity.id, result);
   validateInventoryRecord(entity.id, result);
+  validateEquipmentRecord(entity.id, result);
   return result;
 }
 

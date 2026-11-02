@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { selectModules } from "../../src/core/buildplan";
 import AxeBuilder from "@axe-core/playwright";
 const directory = async (page: Page) => {
   await page
@@ -18,18 +19,17 @@ const fits = async (page: Page) => {
 test("fictional crews and workers publish availability, schedule both industries and retain assignment history accessibly", async ({
   page,
 }, testInfo) => {
+  test.setTimeout(180000);
+  page.setDefaultTimeout(15000);
   await page.goto("/");
   await page.getByRole("button", { name: "Explore the working demo" }).click();
   await expect(
     page.getByRole("heading", { name: "Cedar Grove Property" }),
   ).toBeVisible();
   for (const industry of ["cleaning", "property"] as const) {
-    await page
-      .getByLabel("Business workspace", { exact: true })
-      .selectOption({
-        label:
-          industry === "cleaning" ? "Cleaning Company" : "Property Manager",
-      });
+    await page.getByLabel("Business workspace", { exact: true }).selectOption({
+      label: industry === "cleaning" ? "Cleaning Company" : "Property Manager",
+    });
     const people =
       industry === "cleaning"
         ? ["Avery Crew Example", "Morgan Crew Example"]
@@ -162,11 +162,9 @@ test("fictional crews and workers publish availability, schedule both industries
       .click();
     const title = resource + " visit";
     await page.getByLabel("Appointment title *", { exact: true }).fill(title);
-    await page
-      .getByLabel("Customer *", { exact: true })
-      .selectOption({
-        label: industry === "cleaning" ? "Jordan Sample" : "Alex Example",
-      });
+    await page.getByLabel("Customer *", { exact: true }).selectOption({
+      label: industry === "cleaning" ? "Jordan Sample" : "Alex Example",
+    });
     await page
       .getByLabel(
         industry === "cleaning" ? "Cleaning job *" : "Maintenance request *",
@@ -245,5 +243,211 @@ test("fictional crews and workers publish availability, schedule both industries
       path: testInfo.outputPath(industry + "-crews.png"),
       fullPage: true,
     });
+    // Reuse this same bounded fictional session; explicitly publish only the optional module.
+    const session = await (await page.request.get("/api/demo")).json();
+    const organizationId = session.session.organizations.find(
+      (o: { industry: string }) => o.industry === industry,
+    ).id;
+    const scoped = await (
+      await page.request.get(`/api/demo?organizationId=${organizationId}`)
+    ).json();
+    expect(
+      scoped.workspace.config.document.modules.some(
+        (m: { id: string }) => m.id === "equipment",
+      ),
+    ).toBe(false);
+    const config = selectModules(scoped.workspace.config.document, [
+      ...scoped.workspace.config.document.modules.map(
+        (m: { id: string }) => m.id,
+      ),
+      "equipment",
+    ]);
+    expect(
+      (
+        await page.request.post("/api/demo", {
+          headers: { Origin: new URL(page.url()).origin },
+          data: {
+            action: "configure",
+            organizationId,
+            document: config,
+            revision: scoped.workspace.config.revision,
+          },
+        })
+      ).ok(),
+    ).toBe(true);
+    await page.reload();
+    await page.getByLabel("Business workspace", { exact: true }).selectOption({
+      label: industry === "cleaning" ? "Cleaning Company" : "Property Manager",
+    });
+    await page.getByRole("button", { name: /^Equipment & Tools/ }).click();
+    await page
+      .getByRole("button", { name: "+ Add equipment item", exact: true })
+      .click();
+    const equipmentName = industry + " fictional equipment";
+    await page
+      .getByLabel("Equipment name *", { exact: true })
+      .fill(equipmentName);
+    await page
+      .getByLabel("Business equipment ID (permanent) *", { exact: true })
+      .fill("MACHINE-TEST-01");
+    await page.getByLabel("Category", { exact: true }).fill("Reusable tools");
+    await page
+      .getByLabel("Serial number", { exact: true })
+      .fill("FICTIONAL-SERIAL");
+    await page
+      .getByLabel("Barcode / asset tag", { exact: true })
+      .fill("TOOL-TAG-01");
+    await page.getByLabel("Storage location *", { exact: true }).selectOption({
+      label: industry === "cleaning" ? "Supply shelf" : "Maintenance store",
+    });
+    // Optional purchase-cost remains empty: no accounting operation is required to register a tool.
+    await save(page);
+    const item = page.getByRole("article", {
+      name: "Equipment " + equipmentName,
+      exact: true,
+    });
+    await expect(item).toContainText("Needs inspection");
+    await expect(
+      item.getByRole("button", { name: "Check out", exact: true }),
+    ).toHaveCount(0);
+    const confirm = async () => {
+      const d = page.getByRole("dialog");
+      await d
+        .getByRole("textbox")
+        .last()
+        .fill("Reviewed fictional equipment history");
+      await d.getByRole("checkbox").check();
+      expect(
+        (
+          await new AxeBuilder({ page })
+            .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+            .analyze()
+        ).violations,
+      ).toEqual([]);
+      await d
+        .getByRole("button", { name: "Confirm equipment action", exact: true })
+        .click();
+      await expect(d).toHaveCount(0);
+    };
+    await item
+      .getByRole("button", { name: "Review release", exact: true })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByRole("combobox", { name: "Technician / inspector", exact: true })
+      .selectOption({ label: people[0] });
+    await page
+      .getByLabel("Service / inspection date", { exact: true })
+      .fill("2026-11-01");
+    await confirm();
+    await expect(item).toContainText("Available for checkout");
+    await item.getByRole("button", { name: "Check out", exact: true }).click();
+    await page
+      .getByRole("combobox", { name: "Responsible employee", exact: true })
+      .selectOption({ label: people[0] });
+    await page
+      .getByRole("combobox", {
+        name: "Optional crew / worker resource",
+        exact: true,
+      })
+      .selectOption({ label: resource });
+    await page
+      .getByRole("combobox", {
+        name: "Optional linked job / task",
+        exact: true,
+      })
+      .selectOption({
+        label:
+          industry === "cleaning"
+            ? "Maple House move-out"
+            : "Inspect porch light",
+      });
+    await page
+      .getByLabel("Checkout time", { exact: true })
+      .fill("2026-11-01T08:00");
+    await page
+      .getByLabel("Expected return time", { exact: true })
+      .fill("2026-11-01T17:00");
+    await confirm();
+    await expect(item).toContainText("Held by " + people[0]);
+    await expect(item).toContainText("Overdue return");
+    await item.getByRole("button", { name: "Begin use", exact: true }).click();
+    await confirm();
+    await expect(item).toContainText("In use");
+    await item
+      .getByRole("button", { name: "Report problem", exact: true })
+      .click();
+    await confirm();
+    await item
+      .getByRole("button", { name: "Record return", exact: true })
+      .click();
+    await page
+      .getByLabel("Actual return time", { exact: true })
+      .fill("2026-11-01T18:00");
+    await confirm();
+    await expect(item).toContainText("Needs inspection");
+    await expect(
+      item.getByRole("button", { name: "Review release", exact: true }),
+    ).toHaveCount(0);
+    await item
+      .getByRole("button", { name: "Open maintenance", exact: true })
+      .click();
+    await page
+      .getByRole("combobox", { name: "Open maintenance task", exact: true })
+      .selectOption({ index: 1 });
+    await confirm();
+    await item
+      .getByRole("button", { name: "Record service", exact: true })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByRole("combobox", { name: "Technician / inspector", exact: true })
+      .selectOption({ label: people[0] });
+    await page
+      .getByLabel("Service / inspection date", { exact: true })
+      .fill("2026-11-02");
+    await confirm();
+    await expect(item).toContainText("Under maintenance");
+    await expect(
+      item.getByRole("button", { name: "Check out", exact: true }),
+    ).toHaveCount(0);
+    await item
+      .getByText("Checkout & maintenance history", { exact: true })
+      .click();
+    await fits(page);
+    expect(
+      (
+        await new AxeBuilder({ page })
+          .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+          .analyze()
+      ).violations,
+    ).toEqual([]);
+    await page.screenshot({
+      path: testInfo.outputPath(
+        `fictional-equipment-${industry}-${industry === "cleaning" ? "light" : "dark"}.png`,
+      ),
+      fullPage: true,
+    });
+    await item
+      .getByRole("button", { name: "Review release", exact: true })
+      .click();
+    await page
+      .getByRole("dialog")
+      .getByRole("combobox", { name: "Technician / inspector", exact: true })
+      .selectOption({ label: people[0] });
+    await page
+      .getByLabel("Service / inspection date", { exact: true })
+      .fill("2026-11-02");
+    await confirm();
+    await expect(item).toContainText("Available for checkout");
+    const after = await (
+      await page.request.get(`/api/demo?organizationId=${organizationId}`)
+    ).json();
+    expect(after.workspace.stockBalances).toEqual(
+      scoped.workspace.stockBalances,
+    );
+    expect(after.workspace.stockMovements).toEqual(
+      scoped.workspace.stockMovements,
+    );
   }
 });

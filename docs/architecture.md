@@ -94,3 +94,7 @@ Read-only impact planning observes scoped configuration/source/draft versions in
 ## Optional financial drafts
 
 The `invoice-drafts` 1.0.0 manifest is opt-in and depends on Estimates (and Customers transitively). Existing starters/history stay unchanged. The reviewed entity is added only when selected; strict BuildPlan 1/2 and Blueprint 1/2 readers preserve existing envelope bytes. The shared Engine exposes a strict fictional conversion/correction/void command. Migration 016 reuses the same records, typed links, estimate calculator/snapshots, organization locking, current roles, epoch fencing, audits and operation receipts. Organization-scoped source bindings and append-only versions retain financial history independently of catalog edits. No second pricing engine, issuance/payment adapter, persistent public route, migration executor or activation capability is introduced. [Contract, workflow and limits](invoice-drafts.md).
+
+## Optional reusable equipment
+
+Equipment is a reviewed optional entity/module extension to the shared Engine and unchanged BuildPlan/Blueprint readers. It reuses inventory locations and workforce/work IDs, not consumable quantities. Separate condition and custody projections plus append-only revisions/events use existing org/epoch locks, roles, audit triggers and receipts. Only explicit approved transitions can release a machine or retire it. The public HTTP command remains inside the temporary session boundary; PostgreSQL is host-only and restored activation stays blocked. [Contract and limits](equipment.md).

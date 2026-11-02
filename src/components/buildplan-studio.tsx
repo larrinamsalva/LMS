@@ -78,6 +78,8 @@ const questions: Record<string, string> = {
   workforce: "Do employees work individually or in crews?",
   estimates: "Do you price services and prepare estimates?",
   inventory: "Do you track supplies and stock?",
+  equipment:
+    "Do you lend tools and maintain individually identified equipment?",
   "invoice-drafts":
     "Do you need fictional, unissued invoice drafts from reviewed estimates?",
   "custom-records": "Do you need notes with your own optional fields?",
@@ -97,7 +99,7 @@ function ModuleChoices({
         {manifests
           .filter(
             (m) =>
-              m.id === "invoice-drafts" ||
+              ["invoice-drafts", "equipment"].includes(m.id) ||
               config.entities.some((e) => e.module === m.id),
           )
           .map((m) => {

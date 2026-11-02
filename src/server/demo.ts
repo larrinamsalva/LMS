@@ -66,6 +66,24 @@ export async function runtime() {
 async function removeExpired(rt: Runtime) {
   for (const [token, session] of rt.sessions)
     if (session.expiresAt < Date.now()) {
+      const organizations = [
+        ...new Set([
+          ...session.organizations.map((o) => o.id),
+          ...session.rehearsalOrganizations,
+        ]),
+      ];
+      const protectedHistory = (
+        await rt.db.query<{ retained: boolean }>(
+          "select exists(select 1 from lms.invoice_versions where organization_id=any($1::uuid[])) or exists(select 1 from lms.equipment_events where organization_id=any($1::uuid[])) as retained",
+          [organizations],
+        )
+      ).rows[0].retained;
+      if (protectedHistory) {
+        // Expiry revokes all access. Retained ledgers stay in this bounded temporary runtime
+        // until server restart; never delete history to reclaim a session slot.
+        rt.logos.drop(session);
+        continue;
+      }
       await rt.db.transaction(async (tx) => {
         for (const id of new Set([
           ...session.organizations.map((o) => o.id),
@@ -86,7 +104,7 @@ export async function startDemo() {
   // Reserve synchronously before any awaits; bounded global demo memory, no permanent sign-ups.
   if (rt.sessions.size + rt.creating >= 24)
     throw new EngineError(
-      "Demo capacity reached. Try again after an existing session expires.",
+      "Demo capacity reached. Protected expired histories retain their slots until the temporary server restarts.",
       503,
     );
   rt.creating++;

@@ -1621,3 +1621,11 @@ legend {
 .invoice-dialog textarea {
   max-width: 100%;
 }
+
+.equipment-dialog { width: min(44rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; border: 1px solid var(--border); border-radius: 1rem; background: var(--surface); color: var(--text); padding: 1.5rem; }
+.equipment-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+.equipment-dialog label { display: grid; gap: .4rem; }
+.equipment-dialog .check-label { display: flex; }
+.equipment-dialog input, .equipment-dialog select, .equipment-dialog textarea { max-width: 100%; }
+.equipment-warning { border-left: 4px solid var(--focus); background: var(--surface-alt); color: var(--text); padding: .6rem .8rem; font-weight: 650; overflow-wrap: anywhere; }
+.equipment-event { margin-top: .8rem; overflow-wrap: anywhere; }

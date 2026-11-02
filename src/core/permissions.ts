@@ -10,6 +10,7 @@ const managed = new Set([
   "service-rates",
   "estimates",
   "invoice-drafts",
+  "equipment",
 ]);
 export const recordWriteRoles = (entity: string) =>
   managed.has(entity) ? ["owner", "admin"] : ["owner", "admin", "staff"];
