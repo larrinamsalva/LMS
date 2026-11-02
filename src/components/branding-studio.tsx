@@ -226,9 +226,10 @@ export function BrandingStudio({
         ))}
       </div>
       <p className="muted">
-        Portable branding still uses built-in marks and text only. Session image
-        previews are private and temporary. No image URL, HTML, scripts,
-        external font or SVG upload is accepted.
+        BuildPlan and published branding fields still use built-in marks and
+        text only. A separate branded bundle can carry an approved companion for
+        independent review; session image previews remain private and temporary.
+        No image URL, HTML, scripts, external font or SVG upload is accepted.
       </p>
     </section>
   );

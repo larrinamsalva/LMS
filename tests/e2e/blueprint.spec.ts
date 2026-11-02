@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { logoFixture } from "../helpers/logo-fixtures";
 import { inspectLogoCompanion } from "../../src/core/logo-companion";
 import { importBlueprintPackage } from "../../src/core/blueprint";
+import { inspectBrandedBlueprintBundle } from "../../src/core/branded-bundle";
 import {
   testAttestation,
   testPublisher,
@@ -37,6 +38,7 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
   page,
   browser,
 }, info) => {
+  test.setTimeout(120000); // Existing bounded two-session workflow now also verifies independent bundle approvals.
   await page.goto("/");
   await page
     .getByRole("button", { name: "Build My Business System", exact: true })
@@ -99,6 +101,12 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
   expect((await inspectLogoCompanion(companion)).manifest.display).toBe(
     "rectangle",
   );
+  await page
+    .getByRole("checkbox", {
+      name: "Include business branding in this BuildPlan",
+      exact: true,
+    })
+    .check();
   await step(page, "4 · Review & try");
   await page
     .getByRole("button", { name: "Save BuildPlan draft", exact: true })
@@ -122,6 +130,29 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
   expect(verified.plan.configuration.name).toBe("Fictional Portable Cleaners");
   expect(await snapshot(page)).toEqual(beforeDownload);
   await accessible(page);
+  const bundleDownload = page.waitForEvent("download");
+  await page
+    .getByRole("checkbox", {
+      name: "Include my selected temporary logo",
+      exact: true,
+    })
+    .check();
+  await page
+    .getByRole("button", {
+      name: "Download Branded Blueprint Bundle",
+      exact: true,
+    })
+    .click();
+  const bundleFile = await bundleDownload,
+    bundleBytes = await readFile((await bundleFile.path())!),
+    bundleInspection = await inspectBrandedBlueprintBundle(bundleBytes);
+  expect(bundleFile.suggestedFilename()).toBe(
+    "lms-branded-blueprint-bundle.zip",
+  );
+  expect(bundleInspection.blueprintBytes).toEqual(new Uint8Array(bytes));
+  expect(bundleInspection.logoBytes).toEqual(new Uint8Array(companion));
+  expect(bundleInspection.blueprint.plan.version).toBe(2);
+  expect(await snapshot(page)).toEqual(beforeDownload);
   // New isolated cookie jar: no saved draft, preview or import state can carry the choices over.
   const fresh = await browser.newContext({
       baseURL: info.project.use.baseURL,
@@ -154,6 +185,165 @@ test("blueprint packages survive a fresh session, require review, reject tamperi
         mimeType: "application/zip",
         buffer: bytes,
       };
+    // Reuse the existing fresh receiving session. Never increase the public 24-session or preview quotas.
+    const bundlePicker = target.getByLabel("Import Branded Blueprint Bundle", {
+        exact: true,
+      }),
+      broken = Buffer.from(bundleBytes);
+    broken[80] ^= 1;
+    await bundlePicker.setInputFiles({
+      name: "broken.zip",
+      mimeType: "application/zip",
+      buffer: broken,
+    });
+    await target
+      .getByRole("button", { name: "Review branded bundle", exact: true })
+      .click();
+    await expect(
+      target.getByRole("alert").filter({ hasText: /branded bundle/i }),
+    ).toBeVisible();
+    expect(await snapshot(target)).toEqual(before);
+    await bundlePicker.setInputFiles({
+      name: "saved-bundle.dat",
+      mimeType: "text/plain",
+      buffer: bundleBytes,
+    });
+    await target
+      .getByRole("button", { name: "Review branded bundle", exact: true })
+      .click();
+    await expect(
+      target.getByRole("heading", {
+        name: "Review Branded Blueprint Bundle",
+        exact: true,
+      }),
+    ).toBeFocused();
+    await expect(
+      target.getByText(
+        "Unverified · no signature covers this complete bundle or image.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await expect(
+      target.getByRole("button", {
+        name: "Sanitize and stage bundle logo",
+        exact: true,
+      }),
+    ).toBeDisabled();
+    await expect(target.locator(".brand-example img")).toHaveCount(0);
+    await expect(target.locator(".topbar img")).toHaveCount(0);
+    expect(await snapshot(target)).toEqual(before);
+    await accessible(target);
+    await target
+      .getByRole("region", {
+        name: "Independent logo review and approval",
+        exact: true,
+      })
+      .screenshot({
+        path: info.outputPath("custom-logo-bundle-integrity-light.png"),
+        scale: "css",
+      });
+    await target
+      .getByRole("button", {
+        name: "Accept bundle BuildPlan as unsaved choices",
+        exact: true,
+      })
+      .focus();
+    await target.keyboard.press("Enter");
+    await expect(
+      target
+        .getByRole("status")
+        .filter({ hasText: /BuildPlan accepted as unsaved Studio choices/ }),
+    ).toBeVisible();
+    await expect(target.locator(".topbar img")).toHaveCount(0);
+    await target
+      .getByRole("button", {
+        name: "Sanitize and stage bundle logo",
+        exact: true,
+      })
+      .click();
+    await expect(
+      target
+        .getByRole("status")
+        .filter({ hasText: /Bundle logo sanitized and staged/ }),
+    ).toBeVisible();
+    await expect(target.locator(".brand-example img")).toHaveCount(2);
+    await expect(target.locator(".topbar img")).toHaveCount(0);
+    await target
+      .getByRole("button", { name: "Switch to dark theme", exact: true })
+      .click();
+    await accessible(target);
+    await target
+      .getByRole("region", {
+        name: "Independent logo review and approval",
+        exact: true,
+      })
+      .screenshot({
+        path: info.outputPath("custom-logo-bundle-sanitized-dark.png"),
+        scale: "css",
+      });
+    await target
+      .getByRole("button", {
+        name: "Prepare bundle configuration preview",
+        exact: true,
+      })
+      .click();
+    const bundlePreviewLink = target.getByRole("link", {
+      name: "Open bundle configuration preview (new tab)",
+      exact: true,
+    });
+    await expect(bundlePreviewLink).toBeVisible();
+    const bundleOpened = fresh.waitForEvent("page");
+    await bundlePreviewLink.click();
+    const bundlePreview = await bundleOpened;
+    await expect(bundlePreview.locator(".workspace-heading h1")).toHaveText(
+      "Fictional Portable Cleaners",
+    );
+    await expect(bundlePreview.locator("img")).toHaveCount(0);
+    await bundlePreview.close();
+    await target
+      .getByRole("button", {
+        name: "Select staged bundle logo for this session",
+        exact: true,
+      })
+      .focus();
+    await target.keyboard.press("Enter");
+    await expect(
+      target
+        .getByRole("status")
+        .filter({ hasText: /Temporary private bundle logo selected/ }),
+    ).toBeVisible();
+    await expect(target.locator(".topbar img")).toBeVisible();
+    expect(await snapshot(target)).toEqual(before);
+    expect(await snapshot(page)).toEqual(beforeDownload);
+    await target
+      .getByRole("region", {
+        name: "Independent logo review and approval",
+        exact: true,
+      })
+      .screenshot({
+        path: info.outputPath("custom-logo-bundle-selected-dark.png"),
+        scale: "css",
+      });
+    await target
+      .getByRole("button", { name: "Return to Studio choices", exact: true })
+      .click();
+    await step(target, "3 · Customize");
+    await target
+      .getByRole("button", {
+        name: "Use built-in logo for this session",
+        exact: true,
+      })
+      .click();
+    await target
+      .getByRole("button", {
+        name: "Reopen Keep my existing editor choices",
+        exact: true,
+      })
+      .click();
+    await target
+      .getByRole("button", { name: "Switch to light theme", exact: true })
+      .click();
+    expect(await snapshot(target)).toEqual(before);
     await step(target, "3 · Customize");
     const companionPicker = target.getByLabel("Import logo companion", {
         exact: true,

@@ -73,3 +73,10 @@ After PR #27: host-only fictional PostgreSQL logo retention and explicit version
 - Configuration publication/rollback requires deliberate rebinding; retained historical references prevent retirement. Native same-schema backups include association metadata and preserve activation quarantine.
 - Next: separately reviewed private local transport and real-user identity/session/transport acceptance; explicit versioned portable image branding/package descriptors, destination transfer mapping and signed image coverage; independently authorized retention/disposal. None enables activation or destructive cleanup.
 - Continue usable business modules and BuildPlan Studio improvements independently; no automatic migration executor, production media rollout or signature claims for separate logos.
+
+
+### Portable branded bundle foundation (PR #28)
+
+- New data-only bundle 1 wraps exact Blueprint ZIP 1/2 and optional Logo Companion 1 with strict nested integrity and compatibility review; all original protocols stay unchanged.
+- Studio supports explicit source-logo inclusion, inspection, unsaved plan acceptance and independent private re-sanitization/staging/selection. Whole-bundle/image publisher identity remains unverified.
+- Next: separately reviewed durable destination mapping and private transport/security acceptance; explicit image-bearing publisher attestation after independent key enrollment, retirement and freshness design. No automatic publication, migration, persistent public upload or production activation.
