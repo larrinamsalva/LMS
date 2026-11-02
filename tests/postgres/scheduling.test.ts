@@ -579,6 +579,7 @@ describe("shared scheduling with native PostgreSQL constraints", () => {
         "011_build_plan_studio",
         "012_business_branding",
         "013_private_logo_assets",
+        "014_private_logo_associations",
       ]);
       expect(
         (

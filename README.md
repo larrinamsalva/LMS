@@ -81,7 +81,9 @@ Branding persists in configuration schema 2, BuildPlan 2 and Blueprint Package 2
 
 **Save My Logo** downloads the selected sanitized PNG or a separate version-1 logo companion with layout and integrity metadata. In a fresh demo, review the companion, sanitize/stage it again, then explicitly select it. Image integrity is distinct from publisher authenticity; this unsigned companion does not alter signed blueprints or publish branding. [Step-by-step workflow and strict format](docs/logo-companions.md) · [Verification](docs/logo-companions-verification.md).
 
-**Host-only durable logo lab:** migration 13 adds organization-isolated retained PNGs, exact revisions/receipts and explicit lifecycle history for allowlisted fictional PostgreSQL sources. This is a private library/test contract, unavailable in the public demo and separate from published branding. [Setup, safety boundary and lifecycle](docs/durable-private-logos.md) · [Verification](docs/durable-private-logos-verification.md).
+**Host-only durable logo lab:** migration 13 adds organization-isolated retained PNGs, exact revisions/receipts and explicit lifecycle history for allowlisted fictional PostgreSQL sources. This is a private library/test contract, unavailable in the public demo and separate from portable branding. [Setup, safety boundary and lifecycle](docs/durable-private-logos.md) · [Verification](docs/durable-private-logos-verification.md).
+
+**Host-only private branding association:** migration 14 permits deliberate binding of a retained fictional PNG to one exact published branded configuration revision, with append-only history, receipts and safe built-in fallback after publication/rollback. No public persistent image route, portable image publication or activation is added. [Review, replacement and rollback procedure](docs/private-logo-associations.md) · [Actual verification](docs/private-logo-associations-verification.md).
 
 ## Review template updates
 

@@ -9,7 +9,6 @@ import {
 import {
   durableLogoChange,
   durableLogoHistory,
-  durableLogoMetadata,
   durableLogoReceipt,
   durableLogoSnapshot,
   durableLogoStoreCommand,
@@ -21,6 +20,8 @@ import { readPrivateText } from "../recovery/private-file";
 import { nativeTrustSchema } from "./native-readiness";
 import { connectPostgres } from "./adapter";
 import { localTarget } from "./targets";
+import { readVerifiedStoredLogo } from "../stored-logo-reader";
+import { privateLogoAssociations } from "./logo-associations";
 
 const hash = (bytes: Uint8Array) =>
   createHash("sha256").update(bytes).digest("hex");
@@ -152,70 +153,28 @@ export async function openPrivateLogoStore(options: {
     principal = { userId: id.parse(principal.userId) };
     id.parse(assetId);
     z.number().int().positive().parse(revision);
-    const release = reserveLogoProcessing();
-    let image: Buffer | undefined,
-      clean: Awaited<ReturnType<typeof sanitizeLogo>> | undefined;
     try {
-      const row = await scoped(
-        principal,
+      return await readVerifiedStoredLogo(
+        () =>
+          scoped(
+            principal,
+            org,
+            async (tx) =>
+              (
+                await tx.query<{ image: Buffer; metadata: unknown }>(
+                  "select * from lms.logo_read($1,$2,$3,$4)",
+                  [org, trust.source.instanceId, assetId, revision],
+                )
+              ).rows[0],
+          ),
         org,
-        async (tx) =>
-          (
-            await tx.query<{ image: Buffer; metadata: unknown }>(
-              "select * from lms.logo_read($1,$2,$3,$4)",
-              [org, trust.source.instanceId, assetId, revision],
-            )
-          ).rows[0],
+        { id: assetId, revision },
       );
-      image = row.image;
-      const metadata = durableLogoMetadata.parse(row.metadata);
-      if (
-        metadata.organizationId !== org ||
-        metadata.id !== assetId ||
-        metadata.revision !== revision ||
-        image.length !== metadata.bytes ||
-        hash(image) !== metadata.sha256
-      )
-        throw new EngineError(
-          "Stored private logo integrity failed. Keep it unavailable for inspection.",
-          409,
-        );
-      // Validate even restored/administrator-damaged bytes using the SAME reviewed decoder and output profile.
-      clean = await sanitizeLogo(image);
-      if (
-        clean.width !== metadata.width ||
-        clean.height !== metadata.height ||
-        clean.bytes.length !== metadata.bytes ||
-        hash(clean.bytes) !== metadata.sha256
-      )
-        throw new EngineError(
-          "Stored private logo no longer matches its reviewed sanitizer profile. Keep it unavailable for inspection.",
-          409,
-        );
-      // Recheck live membership, state and revision after native work, without returning that second byte copy.
-      await scoped(principal, org, async (tx) => {
-        const again = (
-          await tx.query<{ image: Buffer; metadata: unknown }>(
-            "select * from lms.logo_read($1,$2,$3,$4)",
-            [org, trust.source.instanceId, assetId, revision],
-          )
-        ).rows[0];
-        again.image.fill(0);
-      });
-      return { metadata, bytes: new Uint8Array(image) };
     } catch (error) {
-      if (error instanceof EngineError && error.status === 422)
-        throw new EngineError(
-          "Stored private logo cannot be safely decoded. Keep it unavailable for inspection.",
-          409,
-        );
       return failure(error);
-    } finally {
-      image?.fill(0);
-      clean?.bytes.fill(0);
-      release();
     }
   }
+
   async function operation(
     principal: Principal,
     org: string,
@@ -234,6 +193,12 @@ export async function openPrivateLogoStore(options: {
     );
   }
   return {
+    associations: privateLogoAssociations(
+      scoped,
+      trust.source.instanceId,
+      read,
+      failure,
+    ),
     snapshot,
     read,
     async history(principal: Principal, org: string) {
