@@ -197,3 +197,57 @@ it("keeps the mapping HTTP action session-bound, owner-authorized and unavailabl
       .equipmentMappingHistory,
   ).toHaveLength(2);
 });
+it("commits coordinated resources only through the authorized temporary session and keeps expiry/replay scoped", async () => {
+  const started = await startDemo(),
+    peer = await startDemo(),
+    rt = await runtime(),
+    org = started.session.organizations[0].id;
+  const { coordinatedFixture } = await import(
+    "../helpers/coordinated-scheduling"
+  );
+  const f = await coordinatedFixture(rt.engine, started.session.principal, org),
+    op = randomUUID();
+  const send = (token: string | undefined, origin = base) =>
+    POST(
+      new NextRequest(base + "/api/demo", {
+        method: "POST",
+        headers: {
+          origin,
+          host: "localhost:3000",
+          "sec-fetch-site": "same-origin",
+          "content-type": "application/json",
+          ...(token ? { cookie: "lms_demo=" + token } : {}),
+        },
+        body: JSON.stringify({
+          action: "save",
+          organizationId: org,
+          entity: "appointments",
+          data: f.data,
+          resources: f.resources,
+          operationId: op,
+        }),
+      }),
+    );
+  expect((await send(undefined)).status).toBe(401);
+  expect((await send(peer.token)).status).toBe(403);
+  expect(
+    (await send(started.token, "https://untrusted.example.test")).status,
+  ).toBe(403);
+  const saved = await send(started.token);
+  expect(saved.status).toBe(200);
+  const body = await saved.json();
+  expect(
+    body.workspace.appointmentAllocations.filter(
+      (a: { slot: string; present: boolean }) =>
+        a.slot === "Equipment" && a.present,
+    ),
+  ).toHaveLength(1);
+  expect((await send(started.token)).status).toBe(200);
+  expect(
+    (
+      await rt.engine.snapshot(started.session.principal, org)
+    ).appointmentAllocationHistory.filter((a) => a.origin === "Reviewed"),
+  ).toHaveLength(2);
+  started.session.expiresAt = Date.now() - 1;
+  expect((await send(started.token)).status).toBe(401);
+});

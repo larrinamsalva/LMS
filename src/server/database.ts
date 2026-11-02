@@ -64,6 +64,12 @@ export async function createDatabase() {
         "utf8",
       ),
     );
+    await db.exec(
+      await readFile(
+        path.join(process.cwd(), "db/019_coordinated_scheduling.sql"),
+        "utf8",
+      ),
+    );
     return db;
   } catch (error) {
     await db.close();

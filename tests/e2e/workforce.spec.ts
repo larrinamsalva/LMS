@@ -1,3 +1,4 @@
+import { reviewAppointmentResources } from "../../src/core/coordinated-scheduling";
 import { test, expect, type Page } from "@playwright/test";
 import { selectModules } from "../../src/core/buildplan";
 import AxeBuilder from "@axe-core/playwright";
@@ -260,7 +261,7 @@ test("fictional crews and workers publish availability, schedule both industries
       ...scoped.workspace.config.document.modules.map(
         (m: { id: string }) => m.id,
       ),
-      "equipment-reservations",
+      "coordinated-scheduling",
     ]);
     expect(
       (
@@ -486,9 +487,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await page.getByLabel("Business workspace", { exact: true }).selectOption({
       label: industry === "cleaning" ? "Cleaning Company" : "Property Manager",
     });
-    await page
-      .getByRole("button", { name: /^Equipment & Tools/ })
-      .click();
+    await page.getByRole("button", { name: /^Equipment & Tools/ }).click();
     const mappingSummary = item.getByText("Review calendar mapping", {
       exact: true,
     });
@@ -574,6 +573,158 @@ test("fictional crews and workers publish availability, schedule both industries
     expect((await conflict.json()).error).toMatch(
       /already has an appointment/i,
     );
+    // One appointment now deliberately reserves the staffed primary and the physical machine.
+    await page
+      .getByRole("button", { name: "+ Add appointment", exact: true })
+      .click();
+    const coordinatedTitle = industry + " crew and floor machine";
+    await page
+      .getByLabel("Appointment title *", { exact: true })
+      .fill(coordinatedTitle);
+    await page
+      .getByLabel("Customer *", { exact: true })
+      .selectOption({
+        label: industry === "cleaning" ? "Jordan Sample" : "Alex Example",
+      });
+    await page
+      .getByLabel(
+        industry === "cleaning" ? "Cleaning job *" : "Maintenance request *",
+        { exact: true },
+      )
+      .selectOption({
+        label:
+          industry === "cleaning"
+            ? "Maple House move-out"
+            : "Inspect porch light",
+      });
+    await page
+      .getByLabel(
+        industry === "cleaning"
+          ? "Assigned crew / resource *"
+          : "Assigned worker / resource *",
+        { exact: true },
+      )
+      .selectOption({ label: resource });
+    await page
+      .getByLabel("Additional equipment (optional)", { exact: true })
+      .selectOption({ label: calendarName });
+    await page
+      .getByLabel("Start time *", { exact: true })
+      .fill("2026-11-06T12:00");
+    await page
+      .getByLabel("End time *", { exact: true })
+      .fill("2026-11-06T13:00");
+    await page
+      .getByRole("checkbox", {
+        name: "I reviewed the primary resource and optional equipment for this exact appointment.",
+      })
+      .check();
+    await save(page);
+    await expect(
+      page.getByRole("heading", { name: coordinatedTitle, exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+    await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
+    const combined = page.getByRole("article", {
+      name: coordinatedTitle,
+      exact: true,
+    });
+    await expect(combined).toContainText(resource);
+    await expect(combined).toContainText("Additional equipment:");
+    await expect(combined).toContainText("MACHINE-TEST-01");
+    for (const name of people) await expect(combined).toContainText(name);
+    await combined
+      .getByRole("button", { name: "Edit " + coordinatedTitle, exact: true })
+      .click();
+    await expect(
+      page.getByLabel("Additional equipment (optional)", { exact: true }),
+    ).toHaveValue(reserved.workspace.equipmentMappings[0].resource_id);
+    await page
+      .getByLabel("Start time *", { exact: true })
+      .fill("2026-11-06T13:00");
+    await page
+      .getByLabel("End time *", { exact: true })
+      .fill("2026-11-06T14:00");
+    await page
+      .getByRole("checkbox", {
+        name: "I reviewed the primary resource and optional equipment for this exact appointment.",
+      })
+      .check();
+    await save(page);
+    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+    await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
+    await combined
+      .getByRole("button", { name: "Archive " + coordinatedTitle, exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Confirm archive", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+    await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
+    await page
+      .getByLabel("Show archived appointments", { exact: true })
+      .check();
+    await combined
+      .getByRole("button", { name: "Restore " + coordinatedTitle, exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Confirm restore", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+    await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
+    const both = await (
+        await page.request.get(`/api/demo?organizationId=${organizationId}`)
+      ).json(),
+      coordinated = both.workspace.records.find(
+        (r: { data: { title: string } }) => r.data.title === coordinatedTitle,
+      );
+    const allocations = both.workspace.appointmentAllocations.filter(
+      (a: { appointment_id: string; present: boolean; blocking: boolean }) =>
+        a.appointment_id === coordinated.id && a.present && a.blocking,
+    );
+    expect(allocations).toHaveLength(2);
+    expect(allocations[0].starts_at).toBe(allocations[1].starts_at);
+    expect(coordinated.revision).toBe(4);
+    const crossSlot = await page.request.post("/api/demo", {
+      headers: { Origin: new URL(page.url()).origin },
+      data: {
+        action: "save",
+        organizationId,
+        entity: "appointments",
+        data: {
+          ...coordinated.data,
+          resource: allocations.find(
+            (a: { slot: string }) => a.slot === "Equipment",
+          ).resource_id,
+        },
+        operationId: crypto.randomUUID(),
+      },
+    });
+    expect(crossSlot.status()).toBe(409);
+    const reviewed = reviewAppointmentResources(
+      both.workspace.config.revision,
+      both.workspace.records,
+      both.workspace.equipmentMappings,
+      String(coordinated.data.resource),
+      allocations.find((a: { slot: string }) => a.slot === "Equipment")
+        .resource_id,
+    );
+    const opposite = await page.request.post("/api/demo", {
+      headers: { Origin: new URL(page.url()).origin },
+      data: {
+        action: "save",
+        organizationId,
+        entity: "appointments",
+        data: {
+          ...coordinated.data,
+          start: reservedAppointment.data.start,
+          end: reservedAppointment.data.end,
+        },
+        resources: reviewed,
+        operationId: crypto.randomUUID(),
+      },
+    });
+    expect(opposite.status()).toBe(409);
     await fits(page);
     expect(
       (
@@ -584,13 +735,11 @@ test("fictional crews and workers publish availability, schedule both industries
     ).toEqual([]);
     await page.screenshot({
       path: testInfo.outputPath(
-        `fictional-reservation-schedule-${industry}.png`,
+        `fictional-coordinated-schedule-${industry}.png`,
       ),
       fullPage: testInfo.project.name !== "phone",
     });
-    await page
-      .getByRole("button", { name: /^Equipment & Tools/ })
-      .click();
+    await page.getByRole("button", { name: /^Equipment & Tools/ }).click();
     await item
       .getByRole("button", { name: "Report problem", exact: true })
       .click();
@@ -621,7 +770,7 @@ test("fictional crews and workers publish availability, schedule both industries
       .scrollIntoViewIfNeeded();
     await page.screenshot({
       path: testInfo.outputPath(
-        `fictional-reservation-equipment-${industry}.png`,
+        `fictional-coordinated-equipment-${industry}.png`,
       ),
       fullPage: testInfo.project.name !== "phone",
     });

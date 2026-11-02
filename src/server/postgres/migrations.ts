@@ -31,6 +31,7 @@ export async function loadMigrations(): Promise<Migration[]> {
       "016_invoice_drafts",
       "017_equipment_lifecycle",
       "018_equipment_reservations",
+      "019_coordinated_scheduling",
     ].map(async (name, index) => ({
       version: index + 1,
       name,

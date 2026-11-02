@@ -1,3 +1,4 @@
+import type { AppointmentAllocation } from "../core/coordinated-scheduling";
 import {
   equipmentReservationWarning,
   type EquipmentMapping,
@@ -19,6 +20,9 @@ export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
 }
 export function Schedule({
   records,
+  allocations,
+  allocationHistory,
+  coordinatedEnabled,
   assignments,
   equipmentMappings,
   equipmentReservations,
@@ -31,6 +35,9 @@ export function Schedule({
   onEdit,
   onArchive,
 }: {
+  allocations: AppointmentAllocation[];
+  allocationHistory: AppointmentAllocation[];
+  coordinatedEnabled: boolean;
   records: WorkspaceRecord[];
   assignments: StaffAssignment[];
   equipmentMappings: EquipmentMapping[];
@@ -90,9 +97,11 @@ export function Schedule({
         release their resource; completed work keeps its historical reservation.
       </p>
       <p className="muted">
-        One resource per appointment: selecting equipment reserves that machine,
-        not an employee or crew. Equipment must be explicitly mapped; collection
-        requires a separate checkout review.
+        {coordinatedEnabled
+          ? "An appointment can explicitly reserve one Crew/Worker and one optional mapped machine for exactly the same interval. Both must pass the final database checks."
+          : "One resource per appointment: selecting equipment reserves that machine, not an employee or crew. Enable Crew + equipment appointments deliberately to coordinate both."}{" "}
+        Equipment must be explicitly mapped; collection requires a separate
+        checkout review.
       </p>
       <div className="schedule-toolbar">
         <button
@@ -208,6 +217,46 @@ export function Schedule({
                 )}
               </p>
             ))}
+            {allocations
+              .filter(
+                (a) =>
+                  a.appointment_id === r.id &&
+                  a.slot === "Equipment" &&
+                  a.present,
+              )
+              .map((a) => (
+                <p key={a.slot}>
+                  <strong>Additional equipment:</strong> {a.resource_name} ·
+                  physical {relatedLabel(a.equipment_id, records)} · permanent
+                  ID {a.equipment_asset_id} · mapping revision{" "}
+                  {a.mapping_revision}.{" "}
+                  {a.blocking
+                    ? "Reserved with primary for this interval"
+                    : "Released; history retained"}
+                  .
+                </p>
+              ))}
+            <details>
+              <summary>Resource allocation history</summary>
+              {allocationHistory
+                .filter((a) => a.appointment_id === r.id)
+                .map((a) => (
+                  <p key={a.appointment_revision + a.slot}>
+                    Appointment revision {a.appointment_revision} · {a.slot}:{" "}
+                    {a.resource_name} ({a.resource_kind})
+                    {a.equipment_asset_id ? " / " + a.equipment_asset_id : ""} ·
+                    resource revision {a.resource_revision} ·{" "}
+                    {displayTime(new Date(a.starts_at).toISOString(), zone)} →{" "}
+                    {displayTime(new Date(a.ends_at).toISOString(), zone)} ·{" "}
+                    {a.present
+                      ? a.blocking
+                        ? "Reserved at this revision"
+                        : "Released at this revision"
+                      : "Removed by explicit review"}{" "}
+                    · {a.origin}
+                  </p>
+                ))}
+            </details>
             {r.data.notes && <p>{String(r.data.notes)}</p>}
             <div className="actions">
               {!r.archived && (

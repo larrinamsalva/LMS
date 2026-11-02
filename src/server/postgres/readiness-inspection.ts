@@ -16,6 +16,8 @@ export const readinessTables = [
   "lms.access_receipts",
   "lms.record_links",
   "lms.appointments",
+  "lms.appointment_resource_allocations",
+  "lms.appointment_allocation_history",
   "lms.record_operations",
   "lms.resource_memberships",
   "lms.availability_windows",
