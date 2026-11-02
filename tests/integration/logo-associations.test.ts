@@ -409,7 +409,6 @@ it("revalidates complete configuration inside commit and rolls back effects even
   expect(await call("logo_association_history", [], owner, group)).toEqual([]);
   for (const table of [
     "lms.logo_associations",
-    "lms.logo_association_states",
     "lms.logo_association_receipts",
   ])
     expect(
@@ -419,6 +418,14 @@ it("revalidates complete configuration inside commit and rolls back effects even
         ])
       ).rows,
     ).toHaveLength(0);
+  expect(
+    (
+      await db.query<{ revision: number }>(
+        "select revision from lms.logo_association_states where organization_id=$1",
+        [group],
+      )
+    ).rows,
+  ).toEqual([{ revision: 0 }]);
   expect(
     (
       await db.query(

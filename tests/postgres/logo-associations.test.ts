@@ -61,7 +61,8 @@ let fixture: Awaited<ReturnType<typeof seedFictional>>,
   rawImage: Buffer;
 const adminUser = randomUUID(),
   damageOrg = randomUUID(),
-  budgetOrg = randomUUID();
+  budgetOrg = randomUUID(),
+  raceOrg = randomUUID();
 const actor = () => ({ userId: fixture.owner }),
   api = () => store!,
   assoc = () => api().associations;
@@ -143,7 +144,7 @@ beforeAll(async () => {
     fixture.property,
     adminUser,
   ]);
-  for (const org of [damageOrg, budgetOrg]) {
+  for (const org of [damageOrg, budgetOrg, raceOrg]) {
     await admin.query(
       "insert into lms.organizations values($1,'Fictional association lab')",
       [org],
@@ -186,6 +187,7 @@ beforeAll(async () => {
           fixture.cleaning,
           damageOrg,
           budgetOrg,
+          raceOrg,
         ],
       },
       target: { database: restoredName },
@@ -681,6 +683,70 @@ it("refuses administrator-damaged sanitizer output and safely restores the origi
   const good = await assoc().read(actor(), damageOrg);
   expect(good.logo).not.toBeNull();
   good.logo!.bytes.fill(0);
+});
+it("rejects a retirement snapshot older than an organization's first binding without losing references or pending history", async () => {
+  const assetId = await selected(raceOrg),
+    s = await api().snapshot(actor(), raceOrg),
+    a = s.assets.find((a) => a.id === assetId)!;
+  expect((await assoc().inspect(actor(), raceOrg)).revision).toBe(0);
+  const c = new Client({ connectionString: url(name, true) });
+  await c.connect();
+  const unselectId = randomUUID(),
+    retireId = randomUUID();
+  try {
+    await c.query(
+      "begin isolation level repeatable read;set local role lms_app",
+    );
+    await c.query("select set_config('lms.user_id',$1,true)", [fixture.owner]);
+    await c.query(
+      "select revision from lms.logo_association_states where organization_id=$1",
+      [raceOrg],
+    );
+    await bind(raceOrg);
+    await c.query("select lms.logo_operation($1,$2,$3,null)", [
+      raceOrg,
+      instance,
+      {
+        version: 1,
+        operationId: unselectId,
+        expectedRevision: s.revision,
+        assetId,
+        assetRevision: a.revision,
+        action: "unselect",
+      },
+    ]);
+    await expect(
+      c.query("select lms.logo_operation($1,$2,$3,null)", [
+        raceOrg,
+        instance,
+        {
+          version: 1,
+          operationId: retireId,
+          expectedRevision: s.revision + 1,
+          assetId,
+          assetRevision: a.revision + 1,
+          action: "retire",
+        },
+      ]),
+    ).rejects.toMatchObject({ code: "40001" });
+    await c.query("rollback");
+  } finally {
+    await c.query("rollback");
+    await c.end();
+  }
+  expect(await api().snapshot(actor(), raceOrg)).toEqual(s);
+  expect(
+    (
+      await admin.query(
+        "select 1 from lms.logo_asset_receipts where organization_id=$1 and operation_id=any($2::uuid[])",
+        [raceOrg, [unselectId, retireId]],
+      )
+    ).rows,
+  ).toHaveLength(0);
+  expect(await assoc().history(actor(), raceOrg)).toHaveLength(1);
+  const current = await assoc().read(actor(), raceOrg);
+  expect(current.inspection.status).toBe("active");
+  current.logo!.bytes.fill(0);
 });
 it("bounds retained association history and reserves an explicit built-in fallback without purging referenced bytes", async () => {
   await selected(budgetOrg);

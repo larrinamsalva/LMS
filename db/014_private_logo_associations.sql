@@ -4,11 +4,22 @@ do $$ begin
   raise exception 'Stop runtime hosts before private association migration' using errcode='55000';
  end if;
 end; $$;
+lock table lms.organizations in share row exclusive mode nowait;
 
 create table lms.logo_association_states (
  organization_id uuid primary key references lms.organizations(id),
  revision integer not null default 0 check(revision between 0 and 129)
 );
+-- A real cursor exists BEFORE any first binding. Row locks can then reject old snapshots
+-- even when a transaction predates the first association (an absent-row check cannot).
+insert into lms.logo_association_states(organization_id) select id from lms.organizations;
+create function lms_private.logo_association_initialize() returns trigger language plpgsql security definer set search_path='' as $$
+begin
+ insert into lms.logo_association_states(organization_id) values(new.id);
+ return new;
+end; $$;
+create trigger logo_association_initialize after insert on lms.organizations for each row execute function lms_private.logo_association_initialize();
+revoke all on function lms_private.logo_association_initialize() from public,lms_app,lms_auth_service;
 create table lms.logo_association_receipts (
  organization_id uuid not null references lms.organizations(id), operation_id uuid not null,
  actor_id uuid not null references lms.users(id), request_digest text not null check(request_digest ~ '^[a-f0-9]{64}$'),
@@ -58,8 +69,14 @@ create trigger config_00_private_logo_fence before insert on lms.config_revision
 -- Retention labels never erase a historical association reference. Physical purging remains unsupported.
 create function lms_private.logo_reference_guard() returns trigger language plpgsql security definer set search_path='' as $$
 begin
- if new.state='retired' and exists(select 1 from lms.logo_associations where organization_id=old.organization_id and asset_id=old.id) then
-  raise exception 'Historical branding references require retained bytes; retirement is unsupported' using errcode='23514';
+ if new.state='retired' then
+  -- Organization lock is already held by the existing asset command. This real cursor
+  -- fence detects even a first binding committed after a REPEATABLE READ snapshot.
+  perform 1 from lms.logo_association_states where organization_id=old.organization_id for share;
+  if not found then raise exception 'Association reference cursor unavailable; refuse retirement' using errcode='23514';end if;
+  if exists(select 1 from lms.logo_associations where organization_id=old.organization_id and asset_id=old.id) then
+   raise exception 'Historical branding references require retained bytes; retirement is unsupported' using errcode='23514';
+  end if;
  end if;
  return new;
 end; $$;
@@ -84,6 +101,7 @@ begin
  digest:=encode(sha256(convert_to(c.document::text,'UTF8')),'hex');
  select * into a from lms.logo_associations where organization_id=org order by revision desc limit 1;
  select revision into cursor_revision from lms.logo_association_states where organization_id=org for share;
+ if not found then raise exception 'Association reference cursor unavailable' using errcode='23514';end if;
  if coalesce(a.revision,0)<>coalesce(cursor_revision,0) then raise exception 'Association history is inconsistent; inspect privately' using errcode='23514';end if;
  if c.document->>'schemaVersion'<>'2' then status:='unbranded';
  elsif a.revision is null or a.mode='builtin' then status:='builtin';
@@ -110,6 +128,7 @@ begin
  select * into c from lms.config_revisions where organization_id=org order by revision desc limit 1;
  if not found then raise exception 'Published configuration unavailable' using errcode='55000';end if;
  select revision into current_revision from lms.logo_association_states where organization_id=org for share;
+ if not found then raise exception 'Association reference cursor unavailable' using errcode='23514';end if;
  select * into s from lms.logo_asset_states where organization_id=org for share;
  if mode='image' then
   if c.document->>'schemaVersion'<>'2' or not lms_private.valid_branding_configuration(c.document) then
@@ -150,7 +169,6 @@ begin
  -- Reconstruct all facts using existing authority, selection, configuration and instance controls. No review token grants authority.
  fresh:=lms_private.logo_association_review(org,instance,review->>'mode',review->>'display',(review->>'historyRevision')::integer);
  if review is distinct from fresh then raise exception 'Association review is stale or mismatched; explicitly refresh' using errcode='40001';end if;
- insert into lms.logo_association_states(organization_id) values(org) on conflict do nothing;
  select * into strict cursor_row from lms.logo_association_states where organization_id=org for update;
  if cursor_row.revision<>(review->>'associationRevision')::integer then raise exception 'Association revision changed' using errcode='40001';end if;
  select count(*) into n from lms.logo_associations where organization_id=org;
