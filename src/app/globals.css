@@ -1629,3 +1629,36 @@ legend {
 .equipment-dialog input, .equipment-dialog select, .equipment-dialog textarea { max-width: 100%; }
 .equipment-warning { border-left: 4px solid var(--focus); background: var(--surface-alt); color: var(--text); padding: .6rem .8rem; font-weight: 650; overflow-wrap: anywhere; }
 .equipment-event { margin-top: .8rem; overflow-wrap: anywhere; }
+
+/* Let appointment fields shrink inside the tablet's two-column form. */
+.appointment-fields > * {
+  min-width: 0;
+}
+/* Keep the resource review inside the appointment form's mobile column. */
+.appointment-resource-review {
+  min-width: 0;
+  max-width: 100%;
+  grid-template-columns: minmax(0, 1fr);
+  margin-top: 22px;
+  overflow-wrap: anywhere;
+}
+.appointment-resource-review > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.appointment-resource-review .check-label {
+  white-space: normal;
+  align-items: flex-start;
+  min-height: 44px;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.appointment-resource-review input[type="checkbox"] {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  min-height: 18px;
+  padding: 0;
+  margin-top: 2px;
+}

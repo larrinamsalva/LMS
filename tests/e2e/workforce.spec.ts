@@ -8,7 +8,68 @@ const directory = async (page: Page) => {
     .click();
 };
 const save = async (page: Page) => {
-  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  const button = page.getByRole("button", { name: "Save record", exact: true });
+  const review = page.getByRole("region", {
+    name: "Review appointment resources",
+    exact: true,
+  });
+  if (await review.count()) {
+    // Mobile overflow can enlarge innerWidth: compare against the actual layout viewport.
+    const layout = await review.evaluate((section) => {
+      const form = section.closest("form")!,
+        footer = form.querySelector(".form-footer")!;
+      const rect = section.getBoundingClientRect(),
+        footerRect = footer.getBoundingClientRect(),
+        confirmation = section.querySelector(".check-label");
+      return {
+        clientWidth: document.documentElement.clientWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        section: rect.toJSON(),
+        footer: footerRect.toJSON(),
+        track: getComputedStyle(section).gridTemplateColumns,
+        confirmationWhiteSpace: confirmation
+          ? getComputedStyle(confirmation).whiteSpace
+          : null,
+        childRight: Math.max(
+          ...[...section.children].map(
+            (child) => child.getBoundingClientRect().right,
+          ),
+        ),
+      };
+    });
+    expect(layout.documentWidth).toBeLessThanOrEqual(layout.clientWidth);
+    expect(layout.childRight).toBeLessThanOrEqual(layout.section.right + 0.5);
+    expect(layout.footer.top).toBeGreaterThanOrEqual(layout.section.bottom);
+    // Trial still performs Playwright's pointer/actionability checks; it cannot submit.
+    await button.click({ trial: true });
+    const target = await button.evaluate((element) => {
+      const rect = element.getBoundingClientRect(),
+        hit = document.elementFromPoint(
+          rect.x + rect.width / 2,
+          rect.y + rect.height / 2,
+        );
+      return {
+        hitsButton: hit === element || (!!hit && element.contains(hit)),
+        hitTag: hit?.tagName ?? null,
+      };
+    });
+    expect(target.hitsButton).toBe(true);
+    const theme = await page.locator(".app").getAttribute("data-theme");
+    await test.info().attach("appointment-form-layout-" + theme, {
+      body: JSON.stringify({
+        theme,
+        viewport: page.viewportSize(),
+        ...layout,
+        ...target,
+      }),
+      contentType: "application/json",
+    });
+    if (test.info().project.name === "phone")
+      await page.screenshot({
+        path: test.info().outputPath(`fictional-coordinated-form-${theme}.png`),
+      });
+  }
+  await button.click();
 };
 const fits = async (page: Page) => {
   expect(

@@ -317,7 +317,13 @@ export function RecordForm({
           }
         }}
       >
-        <div className="form-grid">
+        <div
+          className={
+            entity.id === "appointments"
+              ? "form-grid appointment-fields"
+              : "form-grid"
+          }
+        >
           {entity.fields
             .filter(
               (f) =>
@@ -496,7 +502,7 @@ export function RecordForm({
             String(records.find((r) => r.id === values.resource)?.data.kind),
           ) && (
             <section
-              className="stack"
+              className="stack appointment-resource-review"
               aria-label="Review appointment resources"
             >
               <label htmlFor={prefix + "-additional-equipment"}>

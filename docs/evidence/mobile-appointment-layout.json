@@ -1,0 +1,220 @@
+{
+  "baseCommit": "bbef23c95cbb2d490f222c0cd291705c295e9ef9",
+  "localBrowser": "Chromium 153.0.8010.0 (test-only; final GitHub CI uses the pinned Playwright browser)",
+  "emulatedViewport": {
+    "width": 390,
+    "height": 664,
+    "deviceScaleFactor": 3
+  },
+  "before": {
+    "clientWidth": 390,
+    "documentWidth": 545,
+    "reviewWidth": 320,
+    "reviewTrack": "510px",
+    "confirmationWhiteSpace": "nowrap",
+    "reviewPosition": "static",
+    "footerPosition": "static",
+    "footerGap": 25.0,
+    "visualViewport": {
+      "width": 390,
+      "height": 664,
+      "scale": 1,
+      "offsetLeft": 0,
+      "offsetTop": 264
+    }
+  },
+  "after": [
+    {
+      "project": "desktop",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "clientWidth": 1440,
+      "documentWidth": 1440,
+      "reviewWidth": 1050,
+      "reviewTrack": "1050px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    },
+    {
+      "project": "desktop",
+      "theme": "light",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "clientWidth": 1440,
+      "documentWidth": 1440,
+      "reviewWidth": 1050,
+      "reviewTrack": "1050px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    },
+    {
+      "project": "desktop",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "clientWidth": 1440,
+      "documentWidth": 1440,
+      "reviewWidth": 1050,
+      "reviewTrack": "1050px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    },
+    {
+      "project": "desktop",
+      "theme": "dark",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "clientWidth": 1440,
+      "documentWidth": 1440,
+      "reviewWidth": 1050,
+      "reviewTrack": "1050px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    },
+    {
+      "project": "tablet",
+      "theme": "light",
+      "viewport": {
+        "width": 810,
+        "height": 1080
+      },
+      "clientWidth": 810,
+      "documentWidth": 810,
+      "reviewWidth": 491,
+      "reviewTrack": "491px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    },
+    {
+      "project": "tablet",
+      "theme": "light",
+      "viewport": {
+        "width": 810,
+        "height": 1080
+      },
+      "clientWidth": 810,
+      "documentWidth": 810,
+      "reviewWidth": 491,
+      "reviewTrack": "491px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    },
+    {
+      "project": "tablet",
+      "theme": "dark",
+      "viewport": {
+        "width": 810,
+        "height": 1080
+      },
+      "clientWidth": 810,
+      "documentWidth": 810,
+      "reviewWidth": 491,
+      "reviewTrack": "491px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    },
+    {
+      "project": "tablet",
+      "theme": "dark",
+      "viewport": {
+        "width": 810,
+        "height": 1080
+      },
+      "clientWidth": 810,
+      "documentWidth": 810,
+      "reviewWidth": 491,
+      "reviewTrack": "491px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    },
+    {
+      "project": "phone",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 664
+      },
+      "clientWidth": 390,
+      "documentWidth": 390,
+      "reviewWidth": 320,
+      "reviewTrack": "320px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    },
+    {
+      "project": "phone",
+      "theme": "light",
+      "viewport": {
+        "width": 390,
+        "height": 664
+      },
+      "clientWidth": 390,
+      "documentWidth": 390,
+      "reviewWidth": 320,
+      "reviewTrack": "320px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    },
+    {
+      "project": "phone",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 664
+      },
+      "clientWidth": 390,
+      "documentWidth": 390,
+      "reviewWidth": 320,
+      "reviewTrack": "320px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    },
+    {
+      "project": "phone",
+      "theme": "dark",
+      "viewport": {
+        "width": 390,
+        "height": 664
+      },
+      "clientWidth": 390,
+      "documentWidth": 390,
+      "reviewWidth": 320,
+      "reviewTrack": "320px",
+      "confirmationWhiteSpace": "normal",
+      "footerGap": 25.0,
+      "hitsButton": true,
+      "hitTag": "BUTTON"
+    }
+  ]
+}
