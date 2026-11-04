@@ -1,0 +1,12 @@
+# Source candidates are built with git archive. Keep local material out.
+.env* export-ignore
+backups export-ignore
+*.dump export-ignore
+*.bak export-ignore
+*.pem export-ignore
+*.key export-ignore
+*.pfx export-ignore
+node_modules export-ignore
+.next export-ignore
+test-results export-ignore
+playwright-report export-ignore
