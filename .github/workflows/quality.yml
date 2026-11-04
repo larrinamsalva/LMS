@@ -85,28 +85,78 @@ jobs:
       - run: /usr/lib/postgresql/16/bin/pg_dump --version
       - run: npm run test:postgres
   release:
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
+    name: Release install (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     env:
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24"
           cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm run test:install
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:release
+      - name: Archive and check the reviewed source
+        shell: bash
+        run: |
+          version=$(node -p "require('./package.json').version")
+          commit=$(git rev-parse HEAD)
+          archive="LMS-${version}-source.zip"
+          mkdir candidate
+          git archive --format=zip --prefix=LMS/ --output="candidate/$archive" "$commit"
+          printf 'Version: %s\nCommit: %s\n' "$version" "$commit" | tee candidate/source.txt
+          cd candidate
+          sha256sum "$archive" | tee SHA256SUMS
+          sha256sum --check SHA256SUMS
+          echo "LMS_SOURCE_ARCHIVE=candidate/$archive" >> "$GITHUB_ENV"
+      - name: Extract, install and build on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          unzip -q "$LMS_SOURCE_ARCHIVE" -d source
+          cd source/LMS
+          npm ci
+          npm run build
+      - name: Extract, install and build with the Windows helper
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Expand-Archive -LiteralPath $env:LMS_SOURCE_ARCHIVE -DestinationPath source
+          ./source/LMS/scripts/start-demo.ps1 -SetupOnly
+      - name: Verify the installed launcher and restart
+        working-directory: source/LMS
+        run: npm run test:install
+      - name: Install the pinned browser on Linux
+        if: runner.os == 'Linux'
+        working-directory: source/LMS
+        run: npx playwright install --with-deps chromium
+      - name: Install the pinned browser on Windows
+        if: runner.os == 'Windows'
+        working-directory: source/LMS
+        run: npx.cmd playwright install chromium
+      - name: Run the installed business workflows
+        working-directory: source/LMS
+        run: npm run test:release
+      - name: Keep the verified source candidate
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: fictional-source-candidate
+          path: candidate/
+          if-no-files-found: error
+          retention-days: 30
       - name: Keep fictional release screenshots
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: fictional-release-screenshots
-          path: test-results/release/**/release-*.png
+          name: fictional-release-screenshots-${{ runner.os }}
+          path: source/LMS/test-results/release/**/release-*.png
           if-no-files-found: ignore
           retention-days: 30

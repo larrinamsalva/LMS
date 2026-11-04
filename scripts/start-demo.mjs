@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
+import { once } from "node:events";
 import { createRequire } from "node:module";
+import { createServer } from "node:net";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 function fail(message) {
@@ -45,7 +47,21 @@ try {
   );
 }
 
-const origin = `http://127.0.0.1:${port}`;
+const host = "127.0.0.1";
+const probe = createServer();
+try {
+  await once(probe.listen(Number(port), host), "listening");
+} catch (error) {
+  if (error.code === "EADDRINUSE") {
+    fail(
+      `Port ${port} is already in use. Stop the other server or try npm run demo -- --port ${port === "3200" ? "3000" : "3200"}.`,
+    );
+  }
+  fail(`Cannot listen on ${host}:${port}. Try a different local port.`);
+}
+await new Promise((resolve) => probe.close(resolve));
+
+const origin = `http://${host}:${port}`;
 process.env.NODE_ENV = "production";
 process.env.LMS_APP_ORIGIN = origin;
 process.env.NEXT_TELEMETRY_DISABLED = "1";
@@ -59,7 +75,7 @@ process.argv = [
   next,
   "start",
   "--hostname",
-  "127.0.0.1",
+  host,
   "--port",
   port,
 ];

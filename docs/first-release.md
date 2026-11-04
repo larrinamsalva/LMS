@@ -6,6 +6,8 @@ LMS runs locally with two sample businesses and no login. Use made-up names, wor
 
 Use Node.js 24 with npm and Git. Allow roughly 1 GB of free memory for the demo, with additional room for build and browser tests. The lockfile pins the dependencies. Installation needs network access for npm. The running demo needs no account, API key or database service.
 
+For Windows setup using File Explorer and PowerShell, see the [Windows installation guide](install-windows.md). For source ZIP checks and publication gates, see the [release candidate notes](release-candidate.md).
+
 From a terminal:
 
 ```sh
@@ -50,7 +52,7 @@ npm run test:release
 npm run test:e2e
 ```
 
-Run the browser suites one at a time to limit local memory use. The install smoke launches the built demo, verifies the API and browser session contract, stops the process and starts a fresh one. A deterministic integration test separately expires a session without waiting two hours. The release browser suite uses the launcher for both business workflows on desktop, tablet and phone. For native database tests, use the disposable credentials and PostgreSQL tools in the [native test setup](postgres-setup.md) or run the GitHub quality workflow. PR #35 records completed counts, job links and screenshots.
+Run the browser suites one at a time to limit local memory use. The install smoke launches the built demo, verifies the API and browser session contract, stops the process and starts a fresh one. A deterministic integration test separately expires a session without waiting two hours. The release browser suite uses the launcher for both business workflows on desktop, tablet and phone. For native database tests, use the disposable credentials and PostgreSQL tools in the [native test setup](postgres-setup.md) or run the GitHub quality workflow. The release job runs the install and browser checks from an extracted source candidate on Windows and Linux. The review PR records completed counts, job links and screenshots.
 
 ## Screenshots from the installed demo
 

@@ -56,9 +56,19 @@ test(
     const listener = createServer().listen(0, "127.0.0.1");
     await once(listener, "listening");
     const { port } = listener.address();
-    await new Promise((resolve, reject) =>
-      listener.close((error) => (error ? reject(error) : resolve())),
-    );
+    try {
+      const occupied = spawnSync(
+        process.execPath,
+        [launcher, "--port", String(port)],
+        { encoding: "utf8", timeout: 10_000 },
+      );
+      assert.equal(occupied.status, 1);
+      assert.match(occupied.stderr, /Port [0-9]+ is already in use/);
+    } finally {
+      await new Promise((resolve, reject) =>
+        listener.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
     const origin = `http://127.0.0.1:${port}`;
     const secret = "fictional-unused-database-secret";
     let connectionAttempts = 0;
@@ -153,10 +163,12 @@ test(
       const created = await post({ action: "start" });
       assert.equal(created.status, 200);
       const setCookie = created.headers.get("set-cookie");
-      assert.match(setCookie, /Max-Age=7200/i);
-      assert.match(setCookie, /HttpOnly/i);
-      assert.match(setCookie, /SameSite=strict/i);
-      const cookie = setCookie.split(";")[0];
+      assert.ok(setCookie, "Demo must issue a session cookie.");
+      const [cookie, ...attributes] = setCookie.split(";");
+      const policy = attributes.join(";");
+      assert.match(policy, /Max-Age=7200/i);
+      assert.match(policy, /HttpOnly/i);
+      assert.match(policy, /SameSite=strict/i);
       const { session, workspace } = await created.json();
       assert.deepEqual(
         session.organizations.map(({ industry }) => industry),
@@ -221,6 +233,14 @@ test(
       );
       assert.ok(!JSON.stringify(reopened).includes(secret));
       await stop();
+      // Successful exclusive rebinding verifies that the last server released its socket.
+      const rebound = createServer().listen({
+        port,
+        host: "127.0.0.1",
+        exclusive: true,
+      });
+      await once(rebound, "listening");
+      await new Promise((resolve) => rebound.close(resolve));
       assert.equal(
         connectionAttempts,
         0,

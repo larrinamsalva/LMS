@@ -14,7 +14,10 @@ export default defineConfig({
   reporter: "list",
   outputDir: "test-results/release",
   webServer: projects.map(({ use: { baseURL } }) => ({
-    command: `npm run demo -- --port ${new URL(baseURL).port}`,
+    command:
+      process.platform === "win32"
+        ? `pwsh -NoProfile -File scripts/start-demo.ps1 -StartOnly -Port ${new URL(baseURL).port}`
+        : `npm run demo -- --port ${new URL(baseURL).port}`,
     url: baseURL,
     reuseExistingServer: false,
     timeout: 120_000,

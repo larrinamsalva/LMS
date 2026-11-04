@@ -9,6 +9,7 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 - [x] Shared fictional property and cleaning workspaces with generated forms
 - [x] Accessible themes, responsive layouts, export and automated local checks
 - [x] Local fictional demo source install, loopback launcher and release smoke checks. See the [first-release guide](docs/first-release.md).
+- [x] Windows setup guide, source candidate checksums and Windows/Linux release verification workflow. See the [v0.1 candidate checklist](docs/release-candidate.md).
 - [ ] Optional demo container with independently verified launch and resource limits
 - [x] Experimental host-only identity/password adapter and revocable database sessions for provisioned fictional accounts
 - [x] Experimental host-only owner membership reviews/confirmation, atomic handover, audits and fictional workspace bootstrap

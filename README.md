@@ -45,6 +45,8 @@ npm run demo
 
 Open **http://127.0.0.1:3000** and choose **Explore the working demo** or **Build My Business System**. The launcher binds to loopback. Use made-up data only. Sessions expire after two hours and restarting erases demo records and drafts. Export a configuration before you stop.
 
+On Windows, follow the [PowerShell install guide](docs/install-windows.md). The [v0.1 release candidate notes](docs/release-candidate.md) explain the source download and integrity check.
+
 The [first-release guide](docs/first-release.md) covers the two sample workflows, configuration export, checks, troubleshooting and the production acceptance gates. Use `npm run dev` for development. The demo needs no account, API key or database server.
 
 ## BuildPlan Studio
