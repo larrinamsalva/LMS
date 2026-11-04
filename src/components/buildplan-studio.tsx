@@ -70,6 +70,8 @@ const names = {
   custom: "Custom Business",
 };
 const questions: Record<string, string> = {
+  "coordinated-scheduling":
+    "Do appointments need both a crew or worker and one mapped machine?",
   customers: "Do you keep customer details?",
   tasks: "Do you track work requests and daily tasks?",
   property: "Do you manage sites or units?",
@@ -105,6 +107,7 @@ function ModuleChoices({
                 "invoice-drafts",
                 "equipment",
                 "equipment-reservations",
+                "coordinated-scheduling",
               ].includes(m.id) ||
               config.entities.some((e) => e.module === m.id),
           )

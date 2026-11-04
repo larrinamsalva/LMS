@@ -91,7 +91,8 @@ export function selectModules(
     };
   if (
     (choices.includes("equipment") ||
-      choices.includes("equipment-reservations")) &&
+      choices.includes("equipment-reservations") ||
+      choices.includes("coordinated-scheduling")) &&
     !config.entities.some((e) => e.id === "equipment")
   )
     config = {
@@ -101,6 +102,7 @@ export function selectModules(
   const available = new Set([
       ...config.entities.map((e) => e.module),
       "equipment-reservations",
+      "coordinated-scheduling",
     ]),
     selected = new Set([...choices, "customers", "tasks"]);
   for (const id of selected) {

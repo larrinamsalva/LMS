@@ -110,3 +110,8 @@ After PR #27: host-only fictional PostgreSQL logo retention and explicit version
 - [x] Optional explicit physical-equipment/calendar mapping, shared exclusion constraints, retained reservation snapshots and safety-review warnings (fictional only)
 - [ ] Reviewed multiple-resource appointments and reservation-linked custody confirmation
 - [ ] Production identity/transport, retention and recovery acceptance before real business use
+
+### Coordinated scheduling (PR #34)
+
+- [x] Optional one primary Crew/Worker plus one mapped machine, shared cross-slot exclusion, exact review/retry and retained allocation history
+- [ ] Reservation-linked physical custody approval, richer eligibility and separately reviewed recurring/multiple-equipment schedules

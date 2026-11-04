@@ -809,7 +809,7 @@ describe("exact internal estimates with native PostgreSQL", () => {
         "015_private_logo_transfers",
         "016_invoice_drafts",
         "017_equipment_lifecycle",
-        "018_equipment_reservations",
+        "018_equipment_reservations", "019_coordinated_scheduling",
       ]);
       expect(await snap()).toEqual(before);
       expect(

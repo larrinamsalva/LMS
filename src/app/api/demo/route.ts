@@ -89,6 +89,7 @@ const command = z.discriminatedUnion("action", [
   z
     .object({
       action: z.literal("save"),
+      resources: z.unknown().optional(),
       organizationId: org,
       entity: z.string().max(40),
       data: z.unknown(),
@@ -99,6 +100,7 @@ const command = z.discriminatedUnion("action", [
   z
     .object({
       action: z.literal("archive"),
+      resources: z.unknown().optional(),
       organizationId: org,
       recordId: org,
       revision: rev,
@@ -283,6 +285,7 @@ export async function POST(request: NextRequest) {
         input.data,
         input.existing,
         input.operationId,
+        input.resources,
       );
     if (input.action === "archive")
       await engine.archiveRecord(
@@ -292,6 +295,7 @@ export async function POST(request: NextRequest) {
         input.revision,
         input.archived,
         input.operationId,
+        input.resources,
       );
     if (input.action === "configure")
       await engine.publishConfig(

@@ -1,0 +1,10 @@
+{
+  "id": "coordinated-scheduling",
+  "version": "1.0.0",
+  "engineApi": 1,
+  "name": "Crew + equipment appointments",
+  "description": "One primary Crew/Worker and at most one additional mapped Equipment resource in the shared calendar; physical checkout remains separate.",
+  "dependencies": ["scheduling", "workforce", "equipment-reservations"],
+  "entities": [],
+  "capabilities": ["records:read", "records:write"]
+}

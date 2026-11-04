@@ -1,4 +1,8 @@
 import {
+  appointmentResourcesSchema,
+  type AppointmentAllocation,
+} from "./coordinated-scheduling";
+import {
   equipmentMappingSchema,
   type EquipmentMapping,
   type EquipmentReservation,
@@ -296,6 +300,46 @@ export class Engine {
         updated_at: new Date(result.updated_at),
       };
     }).catch(recordFailure);
+  }
+  private async requireAllocations(tx: SqlConnection) {
+    if (
+      !(
+        await tx.query<{ present: boolean }>(
+          "select to_regclass('lms.appointment_resource_allocations') is not null as present",
+        )
+      ).rows[0].present
+    )
+      throw new EngineError(
+        "Stop runtime hosts and apply migration 19 before coordinated appointments.",
+        409,
+      );
+  }
+  private async allocationHistory(tx: SqlConnection, organizationId: string) {
+    if (
+      !(
+        await tx.query<{ present: boolean }>(
+          "select to_regclass('lms.appointment_resource_allocations') is not null as present",
+        )
+      ).rows[0].present
+    )
+      return {
+        appointmentAllocations: [] as AppointmentAllocation[],
+        appointmentAllocationHistory: [] as AppointmentAllocation[],
+      };
+    return {
+      appointmentAllocations: (
+        await tx.query<AppointmentAllocation>(
+          "select * from lms.appointment_resource_allocations where organization_id=$1 order by appointment_id,slot",
+          [organizationId],
+        )
+      ).rows,
+      appointmentAllocationHistory: (
+        await tx.query<AppointmentAllocation>(
+          "select * from lms.appointment_allocation_history where organization_id=$1 order by appointment_id,appointment_revision,slot",
+          [organizationId],
+        )
+      ).rows,
+    };
   }
   private async requireEquipmentReservations(tx: SqlConnection) {
     if (
@@ -794,6 +838,7 @@ export class Engine {
         invoiceVersions: await this.invoiceHistory(tx, organizationId),
         ...(await this.equipmentHistory(tx, organizationId)),
         ...(await this.equipmentReservations(tx, organizationId)),
+        ...(await this.allocationHistory(tx, organizationId)),
         ...(await this.inventoryHistory(tx, organizationId)),
       };
     });
@@ -805,6 +850,7 @@ export class Engine {
     data: unknown,
     existing?: { id: string; revision: number },
     operationId?: string,
+    resourceReview?: unknown,
   ) {
     return this.asUser(principal, async (tx) => {
       await this.requireRole(tx, organizationId, recordWriteRoles(entityId));
@@ -836,6 +882,18 @@ export class Engine {
           409,
         );
       const clean = validateRecord(getEntity(config.document, entityId), data);
+      const resources =
+        resourceReview === undefined
+          ? undefined
+          : appointmentResourcesSchema.parse(resourceReview);
+      if (resources) {
+        if (entityId !== "appointments" || !operationId)
+          throw new EngineError(
+            "Resource reviews require an appointment and operation identity.",
+          );
+        await this.requireAllocations(tx);
+      }
+
       if (entityId === "stock-movements") {
         await this.requireRole(tx, organizationId, movementWriteRoles(clean));
         if (!operationId)
@@ -848,6 +906,7 @@ export class Engine {
         entity: entityId,
         data: clean,
         existing: existing ?? null,
+        ...(resources ? { resources } : {}),
       });
       if (replay) return replay;
       if (entityId === "stock-movements" && existing)
@@ -920,6 +979,7 @@ export class Engine {
     expectedRevision: number,
     archived: boolean,
     operationId?: string,
+    resourceReview?: unknown,
   ) {
     id.parse(recordId);
     revision.parse(expectedRevision);
@@ -957,11 +1017,23 @@ export class Engine {
           409,
         );
       getEntity(config.document, record.entity);
+      const resources =
+        resourceReview === undefined
+          ? undefined
+          : appointmentResourcesSchema.parse(resourceReview);
+      if (resources) {
+        if (record.entity !== "appointments" || !operationId || archived)
+          throw new EngineError(
+            "Only an explicit appointment restore accepts a resource review.",
+          );
+        await this.requireAllocations(tx);
+      }
       const replay = await this.command(tx, organizationId, operationId, {
         kind: "archive",
         recordId,
         revision: expectedRevision,
         archived,
+        ...(resources ? { resources } : {}),
       });
       if (replay) return replay;
       const row = (
@@ -1067,6 +1139,8 @@ export class Engine {
     config: BusinessConfig,
   ) {
     if (config.schemaVersion === 2) await this.requireBranding(tx);
+    if (config.modules.some((m) => m.id === "coordinated-scheduling"))
+      await this.requireAllocations(tx);
     if (config.modules.some((m) => m.id === "equipment-reservations"))
       await this.requireEquipmentReservations(tx);
     if (config.modules.some((m) => m.id === "equipment"))
@@ -1115,6 +1189,7 @@ export class Engine {
         invoiceVersions: await this.invoiceHistory(tx, organizationId),
         ...(await this.equipmentHistory(tx, organizationId)),
         ...(await this.equipmentReservations(tx, organizationId)),
+        ...(await this.allocationHistory(tx, organizationId)),
         buildPlans: await this.buildPlanHistory(tx, organizationId),
         ...(await this.inventoryHistory(tx, organizationId)),
       };

@@ -128,6 +128,17 @@ export const manifests: readonly ModuleManifest[] = [
     capabilities: ["records:read", "records:write"],
   },
   {
+    id: "coordinated-scheduling",
+    version: "1.0.0",
+    engineApi: 1,
+    name: "Crew + equipment appointments",
+    description:
+      "Explicitly reserve one Crew/Worker and at most one mapped machine for the same appointment; physical checkout remains separate.",
+    dependencies: ["scheduling", "workforce", "equipment-reservations"],
+    entities: [],
+    capabilities: ["records:read", "records:write"],
+  },
+  {
     id: "custom-records",
     version: "1.0.0",
     engineApi: 1,

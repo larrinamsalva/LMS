@@ -1,4 +1,8 @@
 "use client";
+import {
+  reviewAppointmentResources,
+  type AppointmentResources,
+} from "../core/coordinated-scheduling";
 import { useEffect, useRef, useState } from "react";
 import {
   activeEntities,
@@ -647,6 +651,11 @@ export function Workspace({
                 zone={config!.timeZone ?? "UTC"}
                 canWrite={canWrite}
                 assignments={workspace!.staffAssignments}
+                allocations={workspace!.appointmentAllocations}
+                allocationHistory={workspace!.appointmentAllocationHistory}
+                coordinatedEnabled={config!.modules.some(
+                  (m) => m.id === "coordinated-scheduling",
+                )}
                 equipmentMappings={workspace!.equipmentMappings}
                 equipmentReservations={workspace!.equipmentReservations}
                 equipmentStates={workspace!.equipmentStates}
@@ -741,6 +750,10 @@ export function Workspace({
                 checkouts={workspace!.equipmentCheckouts}
                 events={workspace!.equipmentEvents}
                 calendar={{
+                  allocations: workspace!.appointmentAllocations,
+                  coordinatedEnabled: config!.modules.some(
+                    (m) => m.id === "coordinated-scheduling",
+                  ),
                   enabled: config!.modules.some(
                     (m) => m.id === "equipment-reservations",
                   ),
@@ -1040,26 +1053,79 @@ export function Workspace({
                         ? "It will return to the active list."
                         : "Its data and audit history will remain available."}
                     </p>
+                    {archive.entity === "appointments" && (
+                      <p>
+                        Confirming a restore revalidates every retained resource
+                        at the current configuration and mapping revisions.
+                        Primary:{" "}
+                        {String(
+                          workspace!.records.find(
+                            (r) => r.id === archive.data.resource,
+                          )?.data.name ?? "Unavailable",
+                        )}
+                        . Additional equipment:{" "}
+                        {workspace!.appointmentAllocations
+                          .filter(
+                            (a) =>
+                              a.appointment_id === archive.id &&
+                              a.slot === "Equipment" &&
+                              a.present,
+                          )
+                          .map(
+                            (a) =>
+                              a.resource_name + " / " + a.equipment_asset_id,
+                          )
+                          .join(", ") || "None"}
+                        . Physical checkout remains separate.
+                      </p>
+                    )}
                     <div className="actions">
                       <button
                         disabled={busy}
-                        onClick={() =>
-                          void mutate(
-                            {
-                              action: "archive",
-                              organizationId: workspace!.organizationId,
-                              recordId: archive.id,
-                              revision: archive.revision,
-                              archived: !archive.archived,
-                              operationId: archiveOperation.current,
-                            },
-                            archive.archived
-                              ? "Record restored."
-                              : "Record archived.",
-                          )
-                            .then(() => setArchive(null))
-                            .catch(() => {})
-                        }
+                        onClick={async () => {
+                          try {
+                            const secondary =
+                              workspace!.appointmentAllocations.find(
+                                (a) =>
+                                  a.appointment_id === archive.id &&
+                                  a.slot === "Equipment" &&
+                                  a.present,
+                              );
+                            const resources =
+                              archive.archived &&
+                              archive.entity === "appointments" &&
+                              secondary
+                                ? reviewAppointmentResources(
+                                    workspace!.config.revision,
+                                    workspace!.records,
+                                    workspace!.equipmentMappings,
+                                    String(archive.data.resource),
+                                    secondary.resource_id,
+                                  )
+                                : undefined;
+                            await mutate(
+                              {
+                                action: "archive",
+                                organizationId: workspace!.organizationId,
+                                recordId: archive.id,
+                                revision: archive.revision,
+                                archived: !archive.archived,
+                                operationId: archiveOperation.current,
+                                ...(resources ? { resources } : {}),
+                              },
+                              archive.archived
+                                ? "Record restored."
+                                : "Record archived.",
+                            );
+                            setArchive(null);
+                          } catch (err) {
+                            setError(
+                              err instanceof Error
+                                ? err.message
+                                : "Review current resources before restoring.",
+                            );
+                          }
+                        }}
                       >
                         Confirm {archive.archived ? "restore" : "archive"}
                       </button>
@@ -1074,6 +1140,11 @@ export function Workspace({
                 )}
                 {editor && (
                   <Editor
+                    allocations={workspace!.appointmentAllocations}
+                    coordinatedEnabled={config!.modules.some(
+                      (m) => m.id === "coordinated-scheduling",
+                    )}
+                    configRevision={workspace!.config.revision}
                     equipmentMappings={workspace!.equipmentMappings}
                     equipmentStates={workspace!.equipmentStates}
                     equipmentCheckouts={workspace!.equipmentCheckouts}
@@ -1098,10 +1169,12 @@ export function Workspace({
                     onSave={async (
                       recordData: RecordData,
                       operationId: string,
+                      resources?: AppointmentResources,
                     ) => {
                       await mutate(
                         {
                           action: "save",
+                          ...(resources ? { resources } : {}),
                           organizationId: workspace!.organizationId,
                           entity: entity.id,
                           data: recordData,

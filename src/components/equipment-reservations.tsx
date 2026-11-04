@@ -1,3 +1,4 @@
+import type { AppointmentAllocation } from "../core/coordinated-scheduling";
 import { useId, useRef, useState } from "react";
 import type { WorkspaceRecord } from "../core/engine";
 import {
@@ -19,6 +20,8 @@ import {
 } from "../core/time";
 import { relatedLabel } from "./schedule";
 export interface EquipmentCalendarProps {
+  allocations: AppointmentAllocation[];
+  coordinatedEnabled: boolean;
   enabled: boolean;
   mappings: EquipmentMapping[];
   history: EquipmentMapping[];
@@ -91,14 +94,15 @@ export function EquipmentCalendar({
     const a = instant(wallToInstant(start, zone, occurrence)),
       b = instant(wallToInstant(end, zone, occurrence));
     if (b.epochNanoseconds <= a.epochNanoseconds) throw Error();
-    const conflicts = records.filter(
+    const conflicts = calendar.allocations.filter(
       (r) =>
-        r.entity === "appointments" &&
-        !r.archived &&
-        r.data.status !== "Cancelled" &&
-        r.data.resource === mapping?.resource_id &&
-        instant(String(r.data.start)).epochNanoseconds < b.epochNanoseconds &&
-        instant(String(r.data.end)).epochNanoseconds > a.epochNanoseconds,
+        r.present &&
+        r.blocking &&
+        r.resource_id === mapping?.resource_id &&
+        instant(new Date(r.starts_at).toISOString()).epochNanoseconds <
+          b.epochNanoseconds &&
+        instant(new Date(r.ends_at).toISOString()).epochNanoseconds >
+          a.epochNanoseconds,
     );
     period = !mapping?.active
       ? "No active mapping — reservation unavailable"
@@ -133,8 +137,11 @@ export function EquipmentCalendar({
         {equipmentReservationWarning(state, checkouts, equipment.id)}
       </p>
       <p>
-        One resource per appointment. A machine reservation does not reserve a
-        crew or collect equipment. Checkout and return require separate reviews.
+        {calendar.coordinatedEnabled
+          ? "A coordinated appointment may explicitly reserve a Crew/Worker and this mapped machine together. Check its primary resource and employee allocations."
+          : "One resource per appointment. A machine reservation does not reserve a crew."}{" "}
+        A reservation does not collect equipment. Checkout and return require
+        separate reviews.
       </p>
       {calendar.enabled ? (
         <details>
@@ -296,7 +303,8 @@ export function EquipmentCalendar({
             </p>
             <p>
               Customer: {relatedLabel(r.data.customer, records)} · Work:{" "}
-              {relatedLabel(r.data.work, records)}
+              {relatedLabel(r.data.work, records)} · Primary:{" "}
+              {relatedLabel(r.data.resource, records)}
             </p>
             {!r.archived &&
               r.data.status !== "Cancelled" &&

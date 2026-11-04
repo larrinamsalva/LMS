@@ -1,4 +1,9 @@
 import {
+  reviewAppointmentResources,
+  type AppointmentResources,
+  type AppointmentAllocation,
+} from "../core/coordinated-scheduling";
+import {
   equipmentReservationWarning,
   type EquipmentMapping,
 } from "../core/equipment-reservations";
@@ -19,6 +24,9 @@ export type RecordFormProps = {
   equipmentStates?: EquipmentState[];
   equipmentCheckouts?: EquipmentCheckout[];
   equipmentReservationsEnabled?: boolean;
+  allocations?: AppointmentAllocation[];
+  coordinatedEnabled?: boolean;
+  configRevision?: number;
   entity: EntityDefinition;
   initialData?: RecordData;
   role?: string;
@@ -27,11 +35,18 @@ export type RecordFormProps = {
   businessZone: string;
   workforceEnabled: boolean;
   busy: boolean;
-  onSave: (data: RecordData, operationId: string) => Promise<void>;
+  onSave: (
+    data: RecordData,
+    operationId: string,
+    resources?: AppointmentResources,
+  ) => Promise<void>;
   onCancel: () => void;
 };
 export function RecordForm({
   entity,
+  allocations = [],
+  coordinatedEnabled = false,
+  configRevision = 0,
   equipmentMappings = [],
   equipmentStates = [],
   equipmentCheckouts = [],
@@ -88,6 +103,15 @@ export function RecordForm({
   const [values, setValues] = useState(initial),
     [error, setError] = useState("");
   const [confirmed, setConfirmed] = useState(false);
+  const retainedEquipment =
+    allocations.find(
+      (a) =>
+        a.appointment_id === record?.id && a.slot === "Equipment" && a.present,
+    )?.resource_id ?? "";
+  const [additionalEquipment, setAdditionalEquipment] =
+      useState(retainedEquipment),
+    [bookingConfirmed, setBookingConfirmed] = useState(false);
+
   let converted = "";
   if (entity.id === "stock-movements") {
     try {
@@ -130,6 +154,7 @@ export function RecordForm({
     if (key === "start" || key === "end")
       setOccurrences((current) => ({ ...current, [key]: "reject" }));
     if (key === "time_zone") setOccurrences({});
+    setBookingConfirmed(false);
     setValues((current) => {
       const next = { ...current, [key]: value };
       if (entity.id === "stock-movements" && key === "product")
@@ -242,11 +267,47 @@ export function RecordForm({
                       : values[field.key],
               ]),
             );
-            const clean = validateRecord(entity, data),
-              body = JSON.stringify(clean);
+            const clean = validateRecord(entity, data);
+            let resources: AppointmentResources | undefined;
+            if (entity.id === "appointments") {
+              const cancelling = !!record && clean.status === "Cancelled";
+              if (
+                cancelling &&
+                retainedEquipment &&
+                (additionalEquipment !== retainedEquipment ||
+                  clean.resource !== record.data.resource)
+              )
+                throw Error(
+                  "Cancel with the retained resources first; changes require a separate review.",
+                );
+              const primary = records.find((r) => r.id === clean.resource);
+              if (
+                !cancelling &&
+                coordinatedEnabled &&
+                ["Crew", "Worker"].includes(String(primary?.data.kind))
+              ) {
+                if (!bookingConfirmed)
+                  throw Error(
+                    "Review and confirm the primary and optional equipment commitments.",
+                  );
+                resources = reviewAppointmentResources(
+                  configRevision,
+                  records,
+                  equipmentMappings,
+                  String(clean.resource),
+                  additionalEquipment || null,
+                );
+              } else if (!cancelling && additionalEquipment)
+                throw Error(
+                  "Choose a Crew/Worker primary and enable coordinated scheduling before changing both resources.",
+                );
+            }
+            const body = JSON.stringify(
+              resources ? { clean, resources } : clean,
+            );
             if (command.current?.body !== body)
               command.current = { body, id: crypto.randomUUID() };
-            await onSave(clean, command.current!.id);
+            await onSave(clean, command.current!.id, resources);
           } catch (err) {
             setError(
               err instanceof Error && err.name !== "ZodError"
@@ -256,7 +317,13 @@ export function RecordForm({
           }
         }}
       >
-        <div className="form-grid">
+        <div
+          className={
+            entity.id === "appointments"
+              ? "form-grid appointment-fields"
+              : "form-grid"
+          }
+        >
           {entity.fields
             .filter(
               (f) =>
@@ -429,6 +496,103 @@ export function RecordForm({
               );
             })}
         </div>
+        {entity.id === "appointments" &&
+          coordinatedEnabled &&
+          ["Crew", "Worker"].includes(
+            String(records.find((r) => r.id === values.resource)?.data.kind),
+          ) && (
+            <section
+              className="stack appointment-resource-review"
+              aria-label="Review appointment resources"
+            >
+              <label htmlFor={prefix + "-additional-equipment"}>
+                Additional equipment (optional)
+              </label>
+              <select
+                id={prefix + "-additional-equipment"}
+                value={additionalEquipment}
+                onChange={(e) => {
+                  setAdditionalEquipment(e.target.value);
+                  setBookingConfirmed(false);
+                }}
+              >
+                <option value="">No additional equipment</option>
+                {records
+                  .filter(
+                    (r) =>
+                      r.entity === "resources" &&
+                      r.data.kind === "Equipment" &&
+                      (!r.archived || r.id === additionalEquipment),
+                  )
+                  .map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {String(r.data.name)}
+                      {r.archived ? " (archived)" : ""}
+                    </option>
+                  ))}
+              </select>
+              <p>
+                <strong>Primary:</strong>{" "}
+                {relatedLabel(values.resource, records)} · resource revision{" "}
+                {records.find((r) => r.id === values.resource)?.revision}.{" "}
+                <strong>Additional:</strong>{" "}
+                {additionalEquipment
+                  ? relatedLabel(additionalEquipment, records)
+                  : "None"}
+                . Configuration revision {configRevision}.
+              </p>
+              {additionalEquipment && (
+                <p className="equipment-warning">
+                  {equipmentMappings
+                    .filter(
+                      (m) => m.active && m.resource_id === additionalEquipment,
+                    )
+                    .map((m) => (
+                      <span key={m.equipment_id}>
+                        Physical machine:{" "}
+                        {relatedLabel(m.equipment_id, records)} · permanent ID{" "}
+                        {String(
+                          records.find((r) => r.id === m.equipment_id)?.data
+                            .asset_id ?? "Unavailable",
+                        )}{" "}
+                        · mapping revision {m.revision}.{" "}
+                        {equipmentReservationWarning(
+                          equipmentStates.find(
+                            (s) => s.record_id === m.equipment_id,
+                          ),
+                          equipmentCheckouts,
+                          m.equipment_id,
+                        )}
+                        .{" "}
+                      </span>
+                    ))}
+                  {!equipmentMappings.some(
+                    (m) => m.active && m.resource_id === additionalEquipment,
+                  ) &&
+                    "No reviewed physical mapping — this equipment cannot be reserved."}
+                </p>
+              )}
+              <p>
+                Both resources, when selected, use the same appointment
+                interval. The final database transaction checks conflicts and
+                availability. This preview does not guarantee collection or
+                reserve equipment before saving. Physical checkout stays
+                separate.
+              </p>
+              {values.status !== "Cancelled" && (
+                <label className="check-label">
+                  <input
+                    type="checkbox"
+                    checked={bookingConfirmed}
+                    required
+                    onChange={(e) => setBookingConfirmed(e.target.checked)}
+                  />
+                  I reviewed the primary resource and optional equipment for
+                  this exact appointment.
+                </label>
+              )}
+            </section>
+          )}
         {entity.id === "stock-movements" && (
           <>
             <p role="status">
