@@ -11,8 +11,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$node = Get-Command node.exe -CommandType Application -ErrorAction SilentlyContinue
-$npm = Get-Command npm.cmd -CommandType Application -ErrorAction SilentlyContinue
+$node = Get-Command node.exe -CommandType Application -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+$npm = Get-Command npm.cmd -CommandType Application -ErrorAction SilentlyContinue |
+    Select-Object -First 1
 if (-not $node -or -not $npm) {
     throw 'Install Node.js 24 with npm, then reopen PowerShell and try again.'
 }
