@@ -31,29 +31,21 @@ An MIT-licensed, independent open-source foundation for small-business managemen
 
 This is a working foundation, **not production business software**. Advanced recurring scheduling, real-user staff administration, advanced pricing/currencies, fractional stock/purchasing, live invoice issuance, documents, complete production recovery/import, workflow automation, advanced builder extensions and executable application export/deployment are [later stages](ROADMAP.md). No live financial, messaging, payment or AI action is implemented.
 
-## Run locally
+## Run the fictional demo locally
 
-Requires Node.js **22 or newer** (verified on Node 24), npm and about 1 GB of free memory. Install requires network access; the demo uses no external service after dependencies are installed. Commands run from the repository root:
+Use Node.js **24** and npm. From a clean checkout:
 
 ```sh
 git clone https://github.com/larrinamsalva/LMS.git
 cd LMS
 npm ci
-npm run dev
-```
-
-Open **http://127.0.0.1:3000**, then choose **Explore the working demo**. Switch between the two businesses using **Business workspace**. Add a made-up customer, refresh, then explore **Project & modules** to disable the supply catalog, apply, and restore a revision. The same engine handles both workspaces.
-
-The public demo needs no environment file, database account or Docker. The default embedded PostgreSQL database is in memory, **resets on server restart**, and is not a backup. Each browser receives separate fictional organizations; sessions expire after two hours. The process caps active sessions at 24, records at 250 per workspace, and config revisions at 40. Export anything you want to keep before expiry/restart. Do not enter real personal or business information.
-
-For a production-mode **local demo**:
-
-```sh
 npm run build
-npm start
+npm run demo
 ```
 
-Both commands bind to loopback by default. Publishing this single-process demo needs separate operational review, HTTPS, an exact `LMS_APP_ORIGIN` matching the public origin, resource/rate limits and a persistent shared session design. Nothing here deploys automatically or connects a production database. Real-business hosting remains gated on verified identity/session security, complete recovery acceptance and access-control review. The experimental PostgreSQL adapter is available only to trusted host code and maintenance commands.
+Open **http://127.0.0.1:3000** and choose **Explore the working demo** or **Build My Business System**. The launcher binds to loopback. Use made-up data only. Sessions expire after two hours and restarting erases demo records and drafts. Export a configuration before you stop.
+
+The [first-release guide](docs/first-release.md) covers the two sample workflows, configuration export, checks, troubleshooting and the production acceptance gates. Use `npm run dev` for development. The demo needs no account, API key or database server.
 
 ## BuildPlan Studio
 
@@ -113,7 +105,7 @@ Choose **Schedule** in either fictional workspace. Cleaning uses Customer → Cl
 
 Open **Crews & availability** to add fictional profiles, dated memberships and work/time-off periods. Owners/admins manage these records; staff can schedule eligible rosters. PostgreSQL prevents a person being booked through different crews or Worker resources at once. Directory and schedule show employee allocation history on desktop, tablet and phone. Employee profiles never create login accounts or grant permissions.
 
-Existing unenrolled PR #10 resources remain explicitly resource-only. Enrolled resources require a stable, fully available roster; cancel/archive affected bookings before changing it. The single-resource appointment model remains. See [setup/workflows and limits](docs/crews-availability.md), [manifest](examples/workforce.module.json) and [verified tests](docs/crews-availability-verification.md). Weekly recurrence, payroll and timesheets remain deferred.
+Existing unenrolled PR #10 resources remain explicitly resource-only. Enrolled resources require a stable, fully available roster; cancel/archive affected bookings before changing it. Optional coordinated scheduling adds one mapped equipment resource alongside a worker or crew after explicit module enablement. See [setup/workflows and limits](docs/crews-availability.md), [manifest](examples/workforce.module.json) and [verified tests](docs/crews-availability-verification.md). Weekly recurrence, payroll and timesheets remain deferred.
 
 ## Services, rates and estimate drafts
 

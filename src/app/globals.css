@@ -245,8 +245,14 @@ p {
   font-size: 14px;
   margin-left: 8px;
 }
-.welcome > .muted {
-  font-size: 12px;
+.first-visit {
+  max-width: 42rem;
+  margin-block: 1.5rem;
+  line-height: 1.6;
+}
+
+.first-visit ol {
+  padding-inline-start: 1.5rem;
 }
 .welcome-cards {
   display: grid;
