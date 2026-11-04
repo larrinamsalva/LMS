@@ -8,6 +8,8 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 - [x] Configuration revisions, non-destructive module disabling and rollback
 - [x] Shared fictional property and cleaning workspaces with generated forms
 - [x] Accessible themes, responsive layouts, export and automated local checks
+- [x] Local fictional demo source install, loopback launcher and release smoke checks. See the [first-release guide](docs/first-release.md).
+- [ ] Optional demo container with independently verified launch and resource limits
 - [x] Experimental host-only identity/password adapter and revocable database sessions for provisioned fictional accounts
 - [x] Experimental host-only owner membership reviews/confirmation, atomic handover, audits and fictional workspace bootstrap
 - [x] Experimental host-only verified password changes, atomic session/approval revocation, credential audits and recent-authentication controls
@@ -24,11 +26,12 @@ LMS is a staged open-source project. Checkboxes describe delivered code, not a h
 - [ ] Complete production backup/restore and validated atomic import
 - [x] Shared customer/work references and exclusive-resource scheduling with zones/DST, retained history and responsive agenda
 - [x] Fictional employee profiles, dated crew/worker membership, finite work windows/time off and cross-resource employee conflict protection
-- [ ] Richer crew permissions, skill certification, recurring work-hour templates, split rosters and multiple-resource appointments
+- [ ] Richer crew permissions, skill certification, recurring work-hour templates, split rosters and appointments beyond the reviewed two-resource model
 - [x] Shared service/extra catalog, dated area rates and exact-money fictional estimate drafts with pricing snapshots/history/print preview
 - [ ] Advanced pricing, currencies and tax models; richer job evidence, property occupancy and maintenance workflows
 - [x] Shared whole-unit stock ledger, product/location catalog, exact case conversion, compensating corrections and keyboard-scanner selection
-- [ ] Fractional stock, camera scanning, lots/expiry, inventory permissions, equipment and reviewed purchasing
+- [x] Optional equipment custody, inspection and mapped reservations, including one worker/crew plus one mapped equipment resource
+- [ ] Fractional stock, camera scanning, lots/expiry, inventory permissions and reviewed purchasing
 - [x] Optional fictional invoice-draft conversion, exact-money corrections, immutable history and unissued print preview
 - [ ] Separately reviewed production financial/issuance, privacy, retention and transport acceptance
 - [ ] Private documents, reports and scoped attachments

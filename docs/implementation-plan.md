@@ -20,3 +20,5 @@ PR #6 implements controlled offline cases/reset with two independent signed appr
 
 
 The PR #7 slice adds external credential-lineage formats/checkpoints and read-only offline consistency assessment while preserving every activation blocker. Follow-up acceptance must address independently durable latest-head publication, account-specific prior identity evidence and sole-owner approval, key/role recovery and post-acceptance authentication/access validation. See [the lineage contract](credential-lineage.md); consistency is not authority to activate.
+
+PR #35 covers the local fictional source-install slice of stage 6. Its acceptance uses a clean locked npm install, a loopback-only production build, a restart smoke check and both sample workflows across the configured browser viewports. Containers, executable BuildPlan export and real-business deployment remain separate work. See the [first-release guide](first-release.md).

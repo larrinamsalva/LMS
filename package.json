@@ -31,7 +31,10 @@
     "recovery": "node --env-file=.env.postgres --import=tsx scripts/offline-recovery.ts",
     "lineage": "node --env-file=.env.postgres --import=tsx scripts/credential-lineage.ts",
     "checkpoint": "node --env-file=.env.publication --import=tsx scripts/checkpoint-publication.ts",
-    "blueprint": "node --import=tsx scripts/blueprint-provenance.ts"
+    "blueprint": "node --import=tsx scripts/blueprint-provenance.ts",
+    "demo": "node scripts/start-demo.mjs",
+    "test:install": "node --test tests/release/install.test.mjs",
+    "test:release": "playwright test --config playwright.release.config.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.14",

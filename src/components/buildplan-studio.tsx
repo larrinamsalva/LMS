@@ -228,12 +228,15 @@ function PlanCustomization({
       <h3>Use words your business understands</h3>
       <div className="studio-cards">
         {active.map((entity) => {
-          const original = base.entities.find((e) => e.id === entity.id)!;
+          const originalPlural =
+            base.entities.find((e) => e.id === entity.id)?.plural ??
+            manifests.find((m) => m.id === entity.module)?.name ??
+            entity.plural;
           return (
             <fieldset className="studio-card" key={entity.id}>
-              <legend>{original.plural}</legend>
+              <legend>{originalPlural}</legend>
               <label htmlFor={`studio-${entity.id}-singular`}>
-                Singular term for {original.plural}
+                Singular term for {originalPlural}
               </label>
               <input
                 id={`studio-${entity.id}-singular`}
@@ -245,7 +248,7 @@ function PlanCustomization({
                 }
               />
               <label htmlFor={`studio-${entity.id}-plural`}>
-                Plural term for {original.plural}
+                Plural term for {originalPlural}
               </label>
               <input
                 id={`studio-${entity.id}-plural`}
@@ -257,7 +260,7 @@ function PlanCustomization({
                 }
               />
               <label htmlFor={`studio-${entity.id}-nav`}>
-                Navigation label for {original.plural}
+                Navigation label for {originalPlural}
               </label>
               <input
                 id={`studio-${entity.id}-nav`}

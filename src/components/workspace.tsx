@@ -332,10 +332,33 @@ export function Workspace({
               Read the setup guide ↗
             </a>
           </div>
-          <p className="muted">
-            Use made-up information only. No billing, messaging, AI or payment
-            services are connected.
-          </p>
+          <section aria-label="First visit" className="first-visit">
+            <h2>Try it with made-up information</h2>
+            <ol>
+              <li>
+                Explore the demo and switch between Property Manager and
+                Cleaning Company.
+              </li>
+              <li>
+                In Customers, add a fictional customer. Link a job or
+                maintenance request, then open Schedule to book it.
+              </li>
+              <li>
+                Try Inventory &amp; stock and Estimates. Enable Equipment &amp;
+                Tools or Invoice Drafts in BuildPlan Studio to try those
+                workflows.
+              </li>
+              <li>
+                To design your own workspace, choose a business starter in
+                BuildPlan Studio, select features and branding, then prepare a
+                preview and export your BuildPlan.
+              </li>
+            </ol>
+            <p>
+              Export your configuration before the two-hour session ends or the
+              server restarts. Records in this demo are temporary.
+            </p>
+          </section>
           {error && (
             <p role="alert" className="error">
               {error}
@@ -1193,6 +1216,7 @@ export function Workspace({
                       setEditor(null);
                       if (entity.module === "inventory") setView("inventory");
                       if (entity.id === "equipment") setView("equipment");
+                      if (entity.id === "estimates") setView("estimates");
                     }}
                   />
                 )}
