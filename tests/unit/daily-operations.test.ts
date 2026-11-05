@@ -92,3 +92,23 @@ it("reports condition/inspection warnings, not retired, archived or foreign equi
   expect(summary.equipment.map((x) => [x.record.id, x.reason]))
     .toEqual([["due", "Inspection due"], ["repair", "Under maintenance"]]);
 });
+
+it("keeps equally named equipment warnings separate by saved asset ID", () => {
+  const equipment = [
+    record("equipment", "asset-1", { name: "Fictional scrubber" }),
+    record("equipment", "asset-2", { name: "Fictional scrubber" }),
+    record("equipment", "foreign", { name: "Fictional scrubber" }, false,
+      "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+  ];
+  const states = [
+    equipmentState("asset-1", "Needs inspection", null),
+    equipmentState("asset-2", "Needs inspection", null),
+    equipmentState("foreign", "Needs inspection", null,
+      "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+  ];
+  const summary = summarizeDailyOperations(
+    { organizationId: org, records: equipment, equipmentStates: states },
+    "America/Los_Angeles", "2026-11-05",
+  );
+  expect(summary.equipment.map((item) => item.record.id)).toEqual(["asset-1", "asset-2"]);
+});
