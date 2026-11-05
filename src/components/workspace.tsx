@@ -85,6 +85,7 @@ export function Workspace({
     | "equipment"
   >("records");
   const [scheduleStartDate, setScheduleStartDate] = useState<string | null>(null);
+  const [focusedAppointmentId, setFocusedAppointmentId] = useState<string | null>(null);
   const [invoiceAction, setInvoiceAction] = useState<{
     record: WorkspaceRecord;
     kind: InvoiceCommand["kind"];
@@ -161,6 +162,7 @@ export function Workspace({
       );
       setView("records");
       setScheduleStartDate(null);
+      setFocusedAppointmentId(null);
       setSelected("customers");
       setQuery("");
       setFocusedRecordId(null);
@@ -237,6 +239,7 @@ export function Workspace({
     // Navigating from the sidebar starts an ordinary calendar; only the
     // explicit Daily Operations action brings its chosen day across.
     if (next === "schedule") setScheduleStartDate(null);
+    setFocusedAppointmentId(null);
     setView(next);
     if (entityId) setSelected(entityId);
     setEditor(null);
@@ -692,6 +695,8 @@ export function Workspace({
                 records={workspace!.records}
                 zone={config!.timeZone ?? "UTC"}
                 initialDate={scheduleStartDate ?? undefined}
+                focusedAppointmentId={focusedAppointmentId}
+                onClearAppointmentFocus={() => setFocusedAppointmentId(null)}
                 canWrite={canWrite}
                 assignments={workspace!.staffAssignments}
                 allocations={workspace!.appointmentAllocations}
@@ -930,6 +935,30 @@ export function Workspace({
                   onSchedule={(selectedDate) => {
                     setEditor(null);
                     setArchive(null);
+                    setFocusedAppointmentId(null);
+                    setScheduleStartDate(selectedDate);
+                    setView("schedule");
+                  }}
+                  onAppointment={(record, selectedDate) => {
+                    // Only link an active appointment from the current
+                    // authorized organization; no record write or editor.
+                    if (
+                      record.entity !== "appointments" ||
+                      record.archived ||
+                      record.data.status === "Cancelled" ||
+                      record.organization_id !== workspace!.organizationId ||
+                      !config!.modules.some((m) => m.id === "scheduling") ||
+                      !workspace!.records.some((r) =>
+                        r.id === record.id &&
+                        r.organization_id === workspace!.organizationId &&
+                        r.entity === "appointments" &&
+                        !r.archived &&
+                        r.data.status !== "Cancelled"
+                      )
+                    ) return;
+                    setEditor(null);
+                    setArchive(null);
+                    setFocusedAppointmentId(record.id);
                     setScheduleStartDate(selectedDate);
                     setView("schedule");
                   }}
