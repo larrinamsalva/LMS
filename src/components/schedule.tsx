@@ -29,6 +29,7 @@ export function Schedule({
   equipmentStates,
   equipmentCheckouts,
   zone,
+  initialDate,
   canWrite,
   busy,
   onAdd,
@@ -45,6 +46,8 @@ export function Schedule({
   equipmentStates: EquipmentState[];
   equipmentCheckouts: EquipmentCheckout[];
   zone: string;
+  /** Optional business-local date chosen from Daily Operations. */
+  initialDate?: string;
   canWrite: boolean;
   busy: boolean;
   onAdd: () => void;
@@ -53,6 +56,9 @@ export function Schedule({
 }) {
   const appointments = records.filter((r) => r.entity === "appointments");
   const [date, setDate] = useState(() => {
+    // A one-time date handoff affects this calendar view only, not stored
+    // appointment dates or the business's own time zone.
+    if (initialDate) return initialDate;
     const first = appointments.find((r) => !r.archived);
     return first
       ? localDate(String(first.data.start), zone)
