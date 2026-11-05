@@ -3,6 +3,12 @@ import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
+import {
+  adjacentOperationsDate,
+  operationsToday,
+  OPERATIONS_DATE_MIN,
+  OPERATIONS_DATE_MAX,
+} from "../core/daily-operations-dates";
 
 
 type OverviewKind = "appointments" | "work" | "equipment";
@@ -57,6 +63,14 @@ export function DailyOperations({
   const zone = workspace.config.document.timeZone ?? "UTC";
   const [date, setDate] = useState(() => localDate(new Date().toISOString(), zone));
   const [visible, setVisible] = useState(initialVisible);
+  const previousDay = adjacentOperationsDate(date, -1);
+  const nextDay = adjacentOperationsDate(date, 1);
+  const today = operationsToday(zone);
+  function selectDate(next: string | null) {
+    if (!next || next === date) return;
+    setDate(next);
+    setVisible(initialVisible());
+  }
   function showMore(kind: OverviewKind, total: number) {
     setVisible((previous) => ({
       ...previous,
@@ -91,14 +105,42 @@ export function DailyOperations({
         <label className="daily-date">
           Operations date
           <input
-            type="date" min="2020-01-01" max="2100-12-31"
+            type="date"
+            min={OPERATIONS_DATE_MIN}
+            max={OPERATIONS_DATE_MAX}
             value={date}
-            onChange={(event) => {
-              setDate(event.target.value);
-              setVisible(initialVisible());
-            }}
+            onChange={(event) => selectDate(event.target.value)}
           />
         </label>
+      </div>
+      <div className="daily-day-controls" role="group" aria-label="Operations day shortcuts">
+        <button
+          className="secondary"
+          type="button"
+          disabled={!previousDay}
+          onClick={() => selectDate(previousDay)}
+          aria-label="Previous operations day"
+        >
+          Previous day
+        </button>
+        <button
+          className="secondary"
+          type="button"
+          disabled={today === date}
+          onClick={() => selectDate(operationsToday(zone))}
+          aria-label="Today in business time zone"
+        >
+          Today
+        </button>
+        <button
+          className="secondary"
+          type="button"
+          disabled={!nextDay}
+          onClick={() => selectDate(nextDay)}
+          aria-label="Next operations day"
+        >
+          Next day
+        </button>
       </div>
       <p className="muted">
         Times and due dates use the business time zone ({zone}). Counts reflect

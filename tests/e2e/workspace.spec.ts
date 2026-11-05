@@ -139,6 +139,28 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-05");
   await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
   await expect(dueWork.locator("li")).toHaveCount(4);
+  // Calendar shortcuts use the business-local day and reset expanded rows.
+  const dayInput = operations.getByLabel("Operations date", { exact: true });
+  await operations.getByRole("button", { name: "Previous operations day", exact: true }).click();
+  await expect(dayInput).toHaveValue("2026-11-05");
+  await operations.getByRole("button", { name: "Next operations day", exact: true }).click();
+  await expect(dayInput).toHaveValue("2026-11-06");
+  await expect(dueWork.locator("li")).toHaveCount(4);
+  // Derive today's calendar date in the business zone, not the CI host zone.
+  const businessToday = await page.evaluate(() => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Los_Angeles",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+    const part = (type: string) => parts.find((p) => p.type === type)!.value;
+    return `${part("year")}-${part("month")}-${part("day")}`;
+  });
+  await dayInput.fill("2020-01-02");
+  await operations.getByRole("button", { name: "Today in business time zone", exact: true }).click();
+  await expect(dayInput).toHaveValue(businessToday);
+  await dayInput.fill("2026-11-06");
   // Focus the exact work record without opening an editor or writing data.
   await operations.getByRole("button", {
     name: "Find Fictional kitchen clean in cleaning jobs",

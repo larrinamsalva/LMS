@@ -1752,3 +1752,20 @@ legend {
 .daily-more p { margin: 0 0 8px; font-size: 12px; }
 .daily-more-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .daily-more-actions button { min-height: 40px; white-space: normal; max-width: 100%; }
+
+/* Business-local day navigation: high-contrast, keyboard and touch-friendly. */
+.daily-day-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0 14px;
+}
+.daily-day-controls button {
+  max-width: 100%;
+  min-height: 44px;
+  white-space: normal;
+}
+@media (max-width: 640px) {
+  .daily-day-controls button { flex: 1 1 9rem; }
+}
