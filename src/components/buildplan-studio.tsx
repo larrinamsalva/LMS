@@ -17,6 +17,7 @@ import {
   moduleRequirements,
   workflowPacks,
   reviewWorkflowPack,
+  undoWorkflowPack,
   builderTemplate,
   customFieldTypes,
   customFieldEntities,
@@ -97,6 +98,16 @@ function WorkflowPackChoices({
   config: BusinessConfig;
   onChange: (config: BusinessConfig) => void;
 }) {
+  // A deliberately bounded, in-memory single-step undo. No draft or business
+  // record is written, and later independent edits cannot be overwritten.
+  const [lastPack, setLastPack] = useState<{
+    name: string;
+    previous: BusinessConfig;
+    applied: BusinessConfig;
+  } | null>(null);
+  const undo = lastPack
+    ? undoWorkflowPack(config, lastPack.previous, lastPack.applied)
+    : null;
   return (
     <section aria-labelledby="studio-workflow-packs-heading">
       <h3 id="studio-workflow-packs-heading">Quick-start workflow packs</h3>
@@ -125,7 +136,14 @@ function WorkflowPackChoices({
                 type="button"
                 className="secondary"
                 disabled={names.length === 0}
-                onClick={() => onChange(review.configuration)}
+                onClick={() => {
+                  setLastPack({
+                    name: pack.name,
+                    previous: structuredClone(config),
+                    applied: structuredClone(review.configuration),
+                  });
+                  onChange(review.configuration);
+                }}
               >
                 {names.length ? `Add ${pack.name} to my plan` : "Already included"}
               </button>
@@ -133,6 +151,30 @@ function WorkflowPackChoices({
           );
         })}
       </div>
+      {lastPack && undo && (
+        <div className="studio-pack-undo">
+          <p role="status">
+            <strong>{lastPack.name} added.</strong> You can undo this one pack
+            now. Later edits are never automatically reversed.
+          </p>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              // Check again at action time. A later edit must not be erased.
+              const restored = undoWorkflowPack(
+                config,
+                lastPack.previous,
+                lastPack.applied,
+              );
+              if (restored) onChange(restored);
+              setLastPack(null);
+            }}
+          >
+            Undo adding {lastPack.name}
+          </button>
+        </div>
+      )}
     </section>
   );
 }

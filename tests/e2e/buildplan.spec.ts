@@ -226,6 +226,17 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   await expect(page.getByRole("checkbox", { name: "Equipment calendar mapping" })).toBeChecked();
   await expect(page.getByRole("checkbox", { name: "Equipment & Tools" })).toBeChecked();
   await expect(pack.getByRole("button", { name: "Already included" })).toBeDisabled();
+  await page.getByRole("button", { name: "Undo adding Crew + machine calendar", exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: "Crew + equipment appointments" })).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Equipment calendar mapping" })).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Equipment & Tools" })).not.toBeChecked();
+  await expect(pack.getByRole("button", { name: "Add Crew + machine calendar to my plan" })).toBeEnabled();
+  await step(page, "3 · Customize");
+  await expect(page.getByLabel("Business name", { exact: true })).toHaveValue("Fictional Spark Studio");
+  await expect(page.getByRole("button", { name: "Remove optional field Access notes" })).toBeVisible();
+  await step(page, "2 · Features");
+  await pack.getByRole("button", { name: "Add Crew + machine calendar to my plan" }).click();
+  await expect(page.getByRole("checkbox", { name: "Crew + equipment appointments" })).toBeChecked();
   await step(page, "4 · Review & try");
   await expect(page.getByText(/Configuration schema/).first()).toBeVisible();
   await expect(page.getByText(/unsaved|save/i).first()).toBeVisible();

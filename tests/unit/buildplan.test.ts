@@ -9,6 +9,7 @@ import {
   moduleRequirements,
   workflowPacks,
   reviewWorkflowPack,
+  undoWorkflowPack,
 } from "../../src/core/buildplan";
 import { configurationImpact } from "../../src/core/config";
 import { presets } from "../../src/presets";
@@ -183,4 +184,44 @@ it("workflow packs keep existing fields, terminology, selections and branding", 
   );
   for (const id of selected) expect(updated.modules.some((m) => m.id === id)).toBe(true);
   expect(config.modules.map((m) => m.id)).toEqual(selected);
+});
+
+it("undoes only the latest unchanged workflow pack and preserves original choices", () => {
+  let before = selectModules(newBuildPlan("cleaning").configuration, [
+    "customers", "tasks", "cleaning", "inventory",
+  ]);
+  before = addCustomField(before, "customers", {
+    key: "extra_gate",
+    label: "Key box location",
+    type: "longtext",
+    required: false,
+  });
+  before.name = "Fictional Goodwill Cleaning";
+  before.entities.find((e) => e.id === "customers")!.plural = "Clients";
+  const pristine = structuredClone(before);
+  const first = reviewWorkflowPack(before, "crew-machine-calendar");
+  const undone = undoWorkflowPack(first.configuration, before, first.configuration);
+  expect(undone).toEqual(pristine);
+  expect(undone).not.toBe(before);
+  expect(before).toEqual(pristine);
+  expect(first.configuration.modules.some((m) => m.id === "coordinated-scheduling")).toBe(true);
+  expect(undone!.modules.some((m) => m.id === "coordinated-scheduling")).toBe(false);
+  expect(validateBuildPlan({
+    ...newBuildPlan("cleaning"), configuration: undone,
+  }).configuration).toEqual(pristine);
+
+  const edited = structuredClone(first.configuration);
+  edited.name = "Changed after applying the pack";
+  expect(undoWorkflowPack(edited, before, first.configuration)).toBeNull();
+  const toggled = selectModules(first.configuration, [
+    ...first.configuration.modules.map((m) => m.id),
+    "invoice-drafts",
+  ]);
+  expect(undoWorkflowPack(toggled, before, first.configuration)).toBeNull();
+
+  const second = reviewWorkflowPack(first.configuration, "estimate-to-draft");
+  expect(
+    undoWorkflowPack(second.configuration, first.configuration, second.configuration),
+  ).toEqual(first.configuration);
+  expect(undoWorkflowPack(second.configuration, before, first.configuration)).toBeNull();
 });

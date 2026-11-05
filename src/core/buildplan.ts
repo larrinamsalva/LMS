@@ -182,6 +182,18 @@ export function reviewWorkflowPack(
   };
 }
 
+/** A pack can be undone only while its complete proposed configuration is unchanged.
+ * Keep the previous snapshot intact: only local editor state is restored, never data.
+ */
+export function undoWorkflowPack(
+  current: BusinessConfig,
+  previous: BusinessConfig,
+  applied: BusinessConfig,
+): BusinessConfig | null {
+  if (JSON.stringify(current) !== JSON.stringify(applied)) return null;
+  return structuredClone(previous);
+}
+
 const envelope = z
   .object({
     format: z.literal("lms-build-plan"),
