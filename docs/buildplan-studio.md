@@ -79,3 +79,22 @@ These are captured from the running fictional application, not generated mockups
 ![BuildPlan Studio feature cards on phone in dark mode](screenshots/buildplan-phone-dark.png)
 
 ![Generated cleaning workspace using the shared form](screenshots/buildplan-generated-cleaning.png)
+
+## Quick-start workflow packs (PR #37)
+
+In **BuildPlan Studio → Features**, the optional **Quick-start workflow packs**
+help beginners choose combinations without needing to know each module's
+technical dependencies. Choose **Team scheduling**, **Estimates to invoice
+drafts**, **Equipment care**, or **Crew + machine calendar**. Each card shows
+the exact modules it would add, including required dependencies, and describes
+important limits. A pack adds modules to your current editor choices; it does
+not remove current features, replace terminology or custom fields, store a
+record, save a draft or publish configuration. Already-complete packs are
+marked **Already included**. Review the individual feature checkboxes, the
+configuration impact and the preview before explicitly saving or publishing.
+
+Packs are local reviewed suggestions, not downloadable executable code or
+new blueprint formats. Existing BuildPlan v1/v2 and configuration import/export
+remain unchanged. The public demo is fictional-only and temporary; selecting a
+pack never authorizes production, automatic equipment checkout, invoice issuance
+or outbound messages.
