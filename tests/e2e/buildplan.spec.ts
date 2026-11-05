@@ -214,6 +214,22 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
     return r.status;
   });
   expect(denied).toBe(403);
+  // Exercise the optional pack in this existing demo session. Adding a standalone
+  // browser case exceeded the production 24-session cap late in each viewport.
+  await step(page, "2 · Features");
+  await expect(page.getByRole("heading", { name: "Quick-start workflow packs" })).toBeVisible();
+  const pack = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Crew + machine calendar" }) });
+  await expect(pack).toContainText("New features:");
+  await expect(pack).toContainText("Crew + equipment appointments");
+  await pack.getByRole("button", { name: "Add Crew + machine calendar to my plan" }).click();
+  await expect(page.getByRole("checkbox", { name: "Crew + equipment appointments" })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Equipment calendar mapping" })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Equipment & Tools" })).toBeChecked();
+  await expect(pack.getByRole("button", { name: "Already included" })).toBeDisabled();
+  await step(page, "4 · Review & try");
+  await expect(page.getByText(/Configuration schema/).first()).toBeVisible();
+  await expect(page.getByText(/unsaved|save/i).first()).toBeVisible();
+  await fits(page);
 });
 test("property publication protects populated schemas and history; custom template uses the shared forms", async ({
   page,
@@ -357,24 +373,4 @@ test("property publication protects populated schemas and history; custom templa
     fullPage: true,
   });
   await preview.close();
-});
-
-test("quick-start packs explain added modules and keep existing editor choices unpublished", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Build My Business System", exact: true }).click();
-  await page.getByRole("button", { name: "Start Custom Business", exact: true }).click();
-  await step(page, "2 · Features");
-  await expect(page.getByRole("heading", { name: "Quick-start workflow packs" })).toBeVisible();
-  const pack = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Crew + machine calendar" }) });
-  await expect(pack).toContainText("New features:");
-  await expect(pack).toContainText("Crew + equipment appointments");
-  await pack.getByRole("button", { name: "Add Crew + machine calendar to my plan" }).click();
-  await expect(page.getByRole("checkbox", { name: "Crew + equipment appointments" })).toBeChecked();
-  await expect(page.getByRole("checkbox", { name: "Equipment calendar mapping" })).toBeChecked();
-  await expect(page.getByRole("checkbox", { name: "Equipment & Tools" })).toBeChecked();
-  await expect(pack.getByRole("button", { name: "Already included" })).toBeDisabled();
-  await step(page, "4 · Review & try");
-  await expect(page.getByText(/Configuration schema/).first()).toBeVisible();
-  await expect(page.getByText(/unsaved|save/i).first()).toBeVisible();
-  await fits(page);
 });
