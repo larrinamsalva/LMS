@@ -112,3 +112,32 @@ it("keeps equally named equipment warnings separate by saved asset ID", () => {
   );
   expect(summary.equipment.map((item) => item.record.id)).toEqual(["asset-1", "asset-2"]);
 });
+
+it("keeps similarly titled appointments distinct by ID and excludes foreign, archived and cancelled ones", () => {
+  const records = [
+    record("appointments", "first", {
+      title: "Fictional morning visit", start: "2026-11-06T17:00:00Z",
+      end: "2026-11-06T18:00:00Z", status: "Scheduled",
+    }),
+    record("appointments", "second", {
+      title: "Fictional morning visit", start: "2026-11-06T19:00:00Z",
+      end: "2026-11-06T20:00:00Z", status: "Scheduled",
+    }),
+    record("appointments", "cancelled", {
+      title: "Fictional morning visit", start: "2026-11-06T20:00:00Z",
+      end: "2026-11-06T21:00:00Z", status: "Cancelled",
+    }),
+    record("appointments", "archived", {
+      title: "Fictional morning visit", start: "2026-11-06T21:00:00Z",
+      end: "2026-11-06T22:00:00Z", status: "Scheduled",
+    }, true),
+    record("appointments", "foreign", {
+      title: "Fictional morning visit", start: "2026-11-06T22:00:00Z",
+      end: "2026-11-06T23:00:00Z", status: "Scheduled",
+    }, false, "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+  ];
+  const overview = summarizeDailyOperations({
+    organizationId: org, records, equipmentStates: [],
+  }, "America/Los_Angeles", "2026-11-06");
+  expect(overview.appointments.map((record) => record.id)).toEqual(["first", "second"]);
+});

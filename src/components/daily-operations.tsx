@@ -4,10 +4,11 @@ import { summarizeDailyOperations } from "../core/daily-operations";
 import { displayTime, localDate } from "../core/time";
 
 export function DailyOperations({
-  workspace, onSchedule, onWork, onEquipment,
+  workspace, onSchedule, onAppointment, onWork, onEquipment,
 }: {
   workspace: WorkspaceSnapshot;
   onSchedule: (selectedDate: string) => void;
+  onAppointment: (record: WorkspaceRecord, selectedDate: string) => void;
   onWork: (record: WorkspaceRecord) => void;
   onEquipment: (record?: WorkspaceRecord) => void;
 }) {
@@ -66,6 +67,16 @@ export function DailyOperations({
                       <span className="muted">
                         {displayTime(String(item.data.start), zone)} · {String(item.data.status)}
                       </span>
+                      {workspace.config.document.modules.some((module) => module.id === "scheduling") && (
+                        <button
+                          type="button"
+                          className="quiet"
+                          aria-label={`Find appointment ${String(item.data.title)}`}
+                          onClick={() => onAppointment(item, date)}
+                        >
+                          Find this appointment
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>

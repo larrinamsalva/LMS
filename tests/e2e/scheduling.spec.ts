@@ -158,6 +158,29 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
     const card = page.getByRole("article", { name: title, exact: true });
     await expect(card).toBeVisible();
+    // Exercise the exact appointment link in this existing fictional session.
+    await page.getByRole("button", {
+      name: industry === "cleaning" ? /^Cleaning jobs/ : /^(Maintenance requests|Tasks)/,
+    }).click();
+    const operations = page.getByRole("region", { name: "Daily operations", exact: true });
+    await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
+    const appointments = operations.getByRole("region", {
+      name: "Appointments for operations date", exact: true,
+    });
+    await expect(appointments).toContainText(title);
+    await appointments.getByRole("button", {
+      name: `Find appointment ${title}`, exact: true,
+    }).click();
+    await expect(page.getByRole("status").filter({
+      hasText: "Showing the exact appointment selected in Daily Operations.",
+    })).toBeVisible();
+    await expect(page.getByLabel("Schedule date", { exact: true })).toHaveValue("2026-11-06");
+    await expect(page.getByRole("article", { name: title, exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Show all appointments", exact: true }).click();
+    await expect(page.getByRole("status").filter({
+      hasText: "Showing the exact appointment selected in Daily Operations.",
+    })).toHaveCount(0);
+    await expect(card).toBeVisible();
     await expect(card.getByText(customer, { exact: true })).toBeVisible();
     await expect(card.getByText(resource, { exact: true })).toBeVisible();
     if (industry === "property")

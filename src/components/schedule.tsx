@@ -30,6 +30,8 @@ export function Schedule({
   equipmentCheckouts,
   zone,
   initialDate,
+  focusedAppointmentId,
+  onClearAppointmentFocus,
   canWrite,
   busy,
   onAdd,
@@ -48,6 +50,9 @@ export function Schedule({
   zone: string;
   /** Optional business-local date chosen from Daily Operations. */
   initialDate?: string;
+  /** Optional current-organization record ID from Daily Operations. */
+  focusedAppointmentId?: string | null;
+  onClearAppointmentFocus?: () => void;
   canWrite: boolean;
   busy: boolean;
   onAdd: () => void;
@@ -74,6 +79,7 @@ export function Schedule({
       .filter(
         (r) =>
           r.archived === archived &&
+          (!focusedAppointmentId || r.id === focusedAppointmentId) &&
           instant(String(r.data.start)).epochNanoseconds < end &&
           instant(String(r.data.end)).epochNanoseconds > start,
       )
@@ -109,11 +115,26 @@ export function Schedule({
         Equipment must be explicitly mapped; collection requires a separate
         checkout review.
       </p>
+      {focusedAppointmentId && (
+        <div className="record-focus" role="status">
+          <span>Showing the exact appointment selected in Daily Operations.</span>
+          <button
+            className="secondary"
+            type="button"
+            onClick={onClearAppointmentFocus}
+          >
+            Show all appointments
+          </button>
+        </div>
+      )}
       <div className="schedule-toolbar">
         <button
           className="secondary"
           disabled={!date || busy}
-          onClick={() => setDate(shiftDate(date, -1))}
+          onClick={() => {
+            onClearAppointmentFocus?.();
+            setDate(shiftDate(date, -1));
+          }}
         >
           Previous day
         </button>
@@ -123,13 +144,19 @@ export function Schedule({
             id="schedule-date"
             type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => {
+              onClearAppointmentFocus?.();
+              setDate(e.target.value);
+            }}
           />
         </div>
         <button
           className="secondary"
           disabled={!date || busy}
-          onClick={() => setDate(shiftDate(date, 1))}
+          onClick={() => {
+            onClearAppointmentFocus?.();
+            setDate(shiftDate(date, 1));
+          }}
         >
           Next day
         </button>
@@ -137,7 +164,10 @@ export function Schedule({
           <input
             type="checkbox"
             checked={archived}
-            onChange={(e) => setArchived(e.target.checked)}
+            onChange={(e) => {
+              onClearAppointmentFocus?.();
+              setArchived(e.target.checked);
+            }}
           />
           Show archived appointments
         </label>

@@ -128,3 +128,18 @@ The focus is read-only and uses the current authorized workspace's records.
 It does not check out or release equipment, sign off an inspection, edit a
 machine, open maintenance automatically or send a reminder. Any such action
 still requires the existing role permissions and explicit separate review.
+
+### Find the exact appointment on a calendar day (PR #43)
+
+In **Daily operations → Appointments**, choose **Find this appointment**
+beside a scheduled or completed appointment to open that specific saved
+appointment on the matching business-local Schedule date. The focused
+calendar shows only its exact record ID, not a title search. Select **Show
+all appointments** to restore the day's other bookings. Changing dates,
+toggling the archived filter, using sidebar navigation or switching businesses
+also clears the focus.
+
+This is temporary read-only navigation. It never reschedules an appointment,
+edits resource allocations, approves equipment checkout or sends notices.
+Cancelled and archived appointments are not offered from Daily Operations,
+and the existing role permissions still govern all separate edit actions.
