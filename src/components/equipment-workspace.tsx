@@ -529,7 +529,7 @@ export function EquipmentWorkspace({
             onChange={(e) => {
               onClearEquipmentFocus?.();
               setQuery(e.target.value);
-            }
+            }}
             placeholder="Name, ID, asset tag, serial or category"
           />
         </label>
@@ -560,7 +560,7 @@ export function EquipmentWorkspace({
             onChange={(e) => {
               onClearEquipmentFocus?.();
               setLocation(e.target.value);
-            }
+            }}
           >
             <option value="">All storage locations</option>
             {locations.map((r) => (
@@ -577,7 +577,7 @@ export function EquipmentWorkspace({
             onChange={(e) => {
               onClearEquipmentFocus?.();
               setEmployee(e.target.value);
-            }
+            }}
           >
             <option value="">All employees / unassigned</option>
             {employees.map((r) => (
