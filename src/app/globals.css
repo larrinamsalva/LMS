@@ -1729,3 +1729,20 @@ legend {
   .daily-date, .daily-date input { width: 100%; }
   .daily-sections { grid-template-columns: 1fr; }
 }
+
+/* The Daily Operations exact-work filter can always be cleared on phones. */
+.record-focus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-alt);
+  overflow-wrap: anywhere;
+}
+.record-focus span { font-size: 13px; }
+.record-focus button { max-width: 100%; white-space: normal; }
