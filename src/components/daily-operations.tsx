@@ -65,9 +65,8 @@ export function DailyOperations({
   const [visible, setVisible] = useState(initialVisible);
   const previousDay = adjacentOperationsDate(date, -1);
   const nextDay = adjacentOperationsDate(date, 1);
-  const today = operationsToday(zone);
   function selectDate(next: string | null) {
-    if (!next || next === date) return;
+    if (next === null || next === date) return;
     setDate(next);
     setVisible(initialVisible());
   }
@@ -126,7 +125,6 @@ export function DailyOperations({
         <button
           className="secondary"
           type="button"
-          disabled={today === date}
           onClick={() => selectDate(operationsToday(zone))}
           aria-label="Today in business time zone"
         >
