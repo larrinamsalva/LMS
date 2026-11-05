@@ -98,6 +98,7 @@ export function Workspace({
   const [query, setQuery] = useState("");
   // A read-only exact record focus from the current organization's Daily Operations.
   const [focusedRecordId, setFocusedRecordId] = useState<string | null>(null);
+  const [focusedEquipmentId, setFocusedEquipmentId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [editor, setEditor] = useState<WorkspaceRecord | "new" | null>(null);
   const [initialData, setInitialData] = useState<RecordData | undefined>();
@@ -163,6 +164,7 @@ export function Workspace({
       setSelected("customers");
       setQuery("");
       setFocusedRecordId(null);
+      setFocusedEquipmentId(null);
       setShowArchived(false);
       setEditor(null);
       setArchive(null);
@@ -213,6 +215,7 @@ export function Workspace({
   const Editor = entity?.id === "estimates" ? EstimateForm : RecordForm;
   function openRecord(entityId: string, record?: WorkspaceRecord) {
     setFocusedRecordId(null);
+    setFocusedEquipmentId(null);
     setInitialData(undefined);
     setSelected(entityId);
     setView("records");
@@ -222,6 +225,7 @@ export function Workspace({
   }
   function archiveRecord(record: WorkspaceRecord) {
     setFocusedRecordId(null);
+    setFocusedEquipmentId(null);
     setSelected(record.entity);
     setView("records");
     setEditor(null);
@@ -239,6 +243,7 @@ export function Workspace({
     setArchive(null);
     setQuery("");
     setFocusedRecordId(null);
+    setFocusedEquipmentId(null);
     setNotice("");
     setError("");
   }
@@ -783,6 +788,8 @@ export function Workspace({
             )}
             {view === "equipment" && (
               <EquipmentWorkspace
+                focusedEquipmentId={focusedEquipmentId}
+                onClearEquipmentFocus={() => setFocusedEquipmentId(null)}
                 records={workspace!.records}
                 states={workspace!.equipmentStates}
                 checkouts={workspace!.equipmentCheckouts}
@@ -942,8 +949,22 @@ export function Workspace({
                     setShowArchived(false);
                     setView("records");
                   }}
-                  onEquipment={() => {
+                  onEquipment={(record) => {
+                    if (record && (
+                      record.entity !== "equipment" ||
+                      record.archived ||
+                      record.organization_id !== workspace!.organizationId ||
+                      !workspace!.records.some(
+                        (r) =>
+                          r.id === record.id &&
+                          r.entity === "equipment" &&
+                          !r.archived &&
+                          r.organization_id === workspace!.organizationId,
+                      )
+                    )) return;
                     setEditor(null);
+                    setArchive(null);
+                    setFocusedEquipmentId(record?.id ?? null);
                     setView("equipment");
                   }}
                 />
