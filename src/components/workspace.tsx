@@ -13,6 +13,7 @@ import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { BuildPlanStudio } from "./buildplan-studio";
 import { Inventory } from "./inventory";
 import { Schedule, relatedLabel } from "./schedule";
+import { DailyOperations } from "./daily-operations";
 import { Workforce } from "./workforce";
 import { recordWriteRoles } from "../core/permissions";
 import { money, type EstimatePricing } from "../core/pricing";
@@ -902,6 +903,26 @@ export function Workspace({
                     </p>
                   </div>
                 </section>
+                <DailyOperations
+                  key={workspace!.organizationId}
+                  workspace={workspace!}
+                  onSchedule={() => {
+                    setEditor(null);
+                    setView("schedule");
+                  }}
+                  onWork={(entityId) => {
+                    setEditor(null);
+                    setArchive(null);
+                    setSelected(entityId);
+                    setQuery("");
+                    setShowArchived(false);
+                    setView("records");
+                  }}
+                  onEquipment={() => {
+                    setEditor(null);
+                    setView("equipment");
+                  }}
+                />
                 <section
                   className="panel records-panel"
                   aria-labelledby="records-heading"
