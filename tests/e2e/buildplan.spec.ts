@@ -240,6 +240,58 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   await step(page, "4 · Review & try");
   await expect(page.getByText(/Configuration schema/).first()).toBeVisible();
   await expect(page.getByText(/unsaved|save/i).first()).toBeVisible();
+
+  // A second preview uses the same demo session and stays inside the
+  // three-preview quota; no standalone test consumes a 25th session.
+  await page.getByRole("button", { name: "Prepare workspace preview", exact: true }).click();
+  const readyWithEquipment = page.getByRole("link", {
+    name: "Open interactive workspace preview (new tab)", exact: true,
+  });
+  await expect(readyWithEquipment).toBeVisible();
+  const equipmentPopup = context.waitForEvent("page");
+  await readyWithEquipment.click();
+  const equipmentPreview = await equipmentPopup;
+  await expect(equipmentPreview.getByRole("heading", {
+    name: "Fictional Spark Studio", exact: true,
+  })).toBeVisible();
+  await equipmentPreview.getByRole("button", { name: /^Storage locations/ }).click();
+  await equipmentPreview.getByRole("button", { name: "+ Add storage location", exact: true }).click();
+  await equipmentPreview.getByLabel("Location name *", { exact: true }).fill("Fictional tool shed");
+  await equipmentPreview.getByRole("button", { name: "Save record", exact: true }).click();
+  await equipmentPreview.getByRole("button", { name: "Equipment & Tools", exact: true }).click();
+
+  for (const [name, code] of [
+    ["Fictional scrubber", "SCRUBBER-01"],
+    ["Fictional polisher", "POLISHER-01"],
+  ]) {
+    await equipmentPreview.getByRole("button", { name: "+ Add equipment item", exact: true }).click();
+    await equipmentPreview.getByLabel("Equipment name *", { exact: true }).fill(name);
+    await equipmentPreview.getByLabel("Business equipment ID (permanent) *", { exact: true }).fill(code);
+    await equipmentPreview.getByLabel("Storage location *", { exact: true })
+      .selectOption({ label: "Fictional tool shed" });
+    await equipmentPreview.getByRole("button", { name: "Save record", exact: true }).click();
+  }
+  await equipmentPreview.getByRole("button", { name: /^My clients/ }).click();
+  const dailyEquipment = equipmentPreview.getByRole("region", { name: "Daily operations" });
+  const warnings = dailyEquipment.getByRole("region", { name: "Equipment needing attention" });
+  await expect(warnings).toContainText("Fictional scrubber");
+  await expect(warnings).toContainText("Fictional polisher");
+  await warnings.getByRole("button", { name: "Find equipment Fictional scrubber", exact: true }).click();
+  await expect(equipmentPreview.getByRole("status").filter({
+    hasText: "Showing the exact equipment item selected in Daily Operations:",
+  })).toContainText("Fictional scrubber");
+  await expect(equipmentPreview.getByRole("article", {
+    name: "Equipment Fictional scrubber", exact: true,
+  })).toBeVisible();
+  await expect(equipmentPreview.getByRole("article", {
+    name: "Equipment Fictional polisher", exact: true,
+  })).toHaveCount(0);
+  await equipmentPreview.getByRole("button", { name: "Show all equipment", exact: true }).click();
+  await expect(equipmentPreview.getByRole("article", {
+    name: "Equipment Fictional polisher", exact: true,
+  })).toBeVisible();
+  await fits(equipmentPreview);
+  await equipmentPreview.close();
   await fits(page);
 });
 test("property publication protects populated schemas and history; custom template uses the shared forms", async ({
