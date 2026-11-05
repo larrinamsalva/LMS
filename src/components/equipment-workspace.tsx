@@ -433,6 +433,8 @@ export function EquipmentWorkspace({
   onEdit,
   onAction,
   calendar,
+  focusedEquipmentId,
+  onClearEquipmentFocus,
 }: {
   calendar: EquipmentCalendarProps;
   records: WorkspaceRecord[];
@@ -445,6 +447,8 @@ export function EquipmentWorkspace({
   busy: boolean;
   onAdd: () => void;
   onEdit: (record: WorkspaceRecord) => void;
+  focusedEquipmentId?: string | null;
+  onClearEquipmentFocus?: () => void;
   onAction: (
     record: WorkspaceRecord,
     kind: EquipmentCommand["kind"],
@@ -463,10 +467,14 @@ export function EquipmentWorkspace({
   const all = records.filter((r) => r.entity === "equipment"),
     locations = records.filter((r) => r.entity === "stock-locations"),
     employees = records.filter((r) => r.entity === "employees");
+  const focused = focusedEquipmentId
+    ? all.find((r) => r.id === focusedEquipmentId && !r.archived)
+    : undefined;
   const rows = all.filter((r) => {
     const s = states.find((s) => s.record_id === r.id),
       c = checkouts.find((c) => c.equipment_id === r.id && !c.returned_at);
     return (
+      (!focusedEquipmentId || (!!focused && r.id === focusedEquipmentId)) &&
       [
         r.data.name,
         r.data.asset_id,
@@ -494,6 +502,18 @@ export function EquipmentWorkspace({
           + Add equipment item
         </button>
       </div>
+      {focusedEquipmentId && (
+        <div className="record-focus" role="status">
+          <span>
+            {focused
+              ? <>Showing the exact equipment item selected in Daily Operations: <strong>{String(focused.data.name)}</strong>.</>
+              : "The selected equipment item is no longer available in this list."}
+          </span>
+          <button className="secondary" type="button" onClick={onClearEquipmentFocus}>
+            Show all equipment
+          </button>
+        </div>
+      )}
       <p>
         Track individual machines and tools separately from consumable stock.
         New items require inspection. Checkout ownership, physical condition and
@@ -506,13 +526,19 @@ export function EquipmentWorkspace({
           <input
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              onClearEquipmentFocus?.();
+              setQuery(e.target.value);
+            }}
             placeholder="Name, ID, asset tag, serial or category"
           />
         </label>
         <label>
           Equipment status
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <select value={status} onChange={(e) => {
+            onClearEquipmentFocus?.();
+            setStatus(e.target.value);
+          }}>
             {[
               "All",
               "Available",
@@ -531,7 +557,10 @@ export function EquipmentWorkspace({
           Equipment location
           <select
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={(e) => {
+              onClearEquipmentFocus?.();
+              setLocation(e.target.value);
+            }}
           >
             <option value="">All storage locations</option>
             {locations.map((r) => (
@@ -545,7 +574,10 @@ export function EquipmentWorkspace({
           Equipment assigned employee
           <select
             value={employee}
-            onChange={(e) => setEmployee(e.target.value)}
+            onChange={(e) => {
+              onClearEquipmentFocus?.();
+              setEmployee(e.target.value);
+            }}
           >
             <option value="">All employees / unassigned</option>
             {employees.map((r) => (

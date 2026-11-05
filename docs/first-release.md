@@ -115,3 +115,16 @@ Finding work is a read-only navigation action, including for viewers. It does
 not open the editor, change deadlines/status, create a notification, publish
 a configuration, or bypass the normal record access permissions. Only records
 from the current authorized organization are considered.
+
+### Find the exact equipment needing inspection (PR #42)
+
+When Equipment & Tools is enabled, each Daily Operations condition or inspection
+warning now offers **Find this equipment**. It opens the existing Equipment &
+Tools list focused on that exact saved asset ID, not a search for its name.
+Use **Show all equipment** to return to the full list. Searching, adjusting
+equipment filters, changing views or switching businesses clears the focus.
+
+The focus is read-only and uses the current authorized workspace's records.
+It does not check out or release equipment, sign off an inspection, edit a
+machine, open maintenance automatically or send a reminder. Any such action
+still requires the existing role permissions and explicit separate review.
