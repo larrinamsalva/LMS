@@ -96,7 +96,7 @@ export function DailyOperations({
             onChange={(event) => {
               setDate(event.target.value);
               setVisible(initialVisible());
-            }
+            }}
           />
         </label>
       </div>
