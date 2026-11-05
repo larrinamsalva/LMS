@@ -98,3 +98,9 @@ new blueprint formats. Existing BuildPlan v1/v2 and configuration import/export
 remain unchanged. The public demo is fictional-only and temporary; selecting a
 pack never authorizes production, automatic equipment checkout, invoice issuance
 or outbound messages.
+
+### Undo a workflow pack (PR #38)
+
+Immediately after adding a quick-start workflow pack in **Features**, use **Undo adding ...** to restore the exact choices you had before that pack. The undo applies only to the **most recently added pack** in the current editor view. If you change the plan afterward, the old undo is hidden rather than deleting those later changes. You can also add the same pack again after undoing it.
+
+Undo is temporary, in-memory editing assistance. It never undoes a published configuration revision, deletes customer or job records, reverses a saved draft on the server or changes any exported BuildPlan format. Save, review, preview and publication continue to require their existing separate actions and permissions. Neither the quick-start pack nor its undo makes the fictional demo suitable for real business information.
