@@ -1746,3 +1746,9 @@ legend {
 }
 .record-focus span { font-size: 13px; }
 .record-focus button { max-width: 100%; white-space: normal; }
+
+/* Progressive Daily Operations lists keep touch targets and labels readable. */
+.daily-more { margin: 12px 0 16px; min-width: 0; }
+.daily-more p { margin: 0 0 8px; font-size: 12px; }
+.daily-more-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.daily-more-actions button { min-height: 40px; white-space: normal; max-width: 100%; }
