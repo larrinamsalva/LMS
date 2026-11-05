@@ -96,6 +96,22 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(
     operations.getByRole("region", { name: "Unfinished work due or overdue" }),
   ).toContainText("Due on date");
+  // Focus the exact work record without opening an editor or writing data.
+  await operations.getByRole("button", {
+    name: "Find Fictional kitchen clean in cleaning jobs",
+    exact: true,
+  }).click();
+  await expect(page.getByRole("status").filter({
+    hasText: "Showing the specific work record selected in Daily Operations.",
+  })).toBeVisible();
+  await expect(page.locator(".record-list > .record-row")).toHaveCount(1);
+  await expect(page.getByRole("heading", {
+    name: "Fictional kitchen clean", exact: true,
+  })).toBeVisible();
+  await page.getByRole("button", { name: "Show all cleaning jobs", exact: true }).click();
+  await expect(page.getByRole("status").filter({
+    hasText: "Showing the specific work record selected in Daily Operations.",
+  })).toHaveCount(0);
   await expect(
     operations.getByRole("button", { name: "Open Schedule for 2026-11-06" }),
   ).toBeVisible();
