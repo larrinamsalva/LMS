@@ -2,6 +2,48 @@ import { useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
 import { displayTime, localDate } from "../core/time";
+import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
+
+
+type OverviewKind = "appointments" | "work" | "equipment";
+const initialVisible = (): Record<OverviewKind, number> => ({
+  appointments: DAILY_OPERATIONS_PAGE_SIZE,
+  work: DAILY_OPERATIONS_PAGE_SIZE,
+  equipment: DAILY_OPERATIONS_PAGE_SIZE,
+});
+
+function DailyMore({
+  total, requested, kind, label, onMore, onFewer,
+}: {
+  total: number;
+  requested: number;
+  kind: OverviewKind;
+  label: string;
+  onMore: () => void;
+  onFewer: () => void;
+}) {
+  const page = dailyPage(total, requested);
+  if (total <= DAILY_OPERATIONS_PAGE_SIZE) return null;
+  return (
+    <div className="daily-more" data-daily-list={kind}>
+      <p className="muted" aria-live="polite">
+        Showing {page.visible} of {total} {label}
+      </p>
+      <div className="daily-more-actions">
+        {page.remaining > 0 && (
+          <button type="button" className="secondary" onClick={onMore}>
+            Show {page.next} more {label}
+          </button>
+        )}
+        {page.canCollapse && (
+          <button type="button" className="secondary" onClick={onFewer}>
+            Show fewer {label}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function DailyOperations({
   workspace, onSchedule, onAppointment, onWork, onEquipment,
@@ -14,6 +56,19 @@ export function DailyOperations({
 }) {
   const zone = workspace.config.document.timeZone ?? "UTC";
   const [date, setDate] = useState(() => localDate(new Date().toISOString(), zone));
+  const [visible, setVisible] = useState(initialVisible);
+  function showMore(kind: OverviewKind, total: number) {
+    setVisible((previous) => ({
+      ...previous,
+      [kind]: Math.min(total, previous[kind] + DAILY_OPERATIONS_PAGE_SIZE),
+    }));
+  }
+  function showFewer(kind: OverviewKind) {
+    setVisible((previous) => ({
+      ...previous,
+      [kind]: DAILY_OPERATIONS_PAGE_SIZE,
+    }));
+  }
   let summary: ReturnType<typeof summarizeDailyOperations> | null = null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     try {
@@ -22,6 +77,7 @@ export function DailyOperations({
       // A partially entered date cannot break the entire workspace.
     }
   }
+  const workItems = summary ? [...summary.overdue, ...summary.dueToday] : [];
   const equipmentEnabled = workspace.config.document.modules.some(
     (module) => module.id === "equipment",
   );
@@ -36,7 +92,11 @@ export function DailyOperations({
           Operations date
           <input
             type="date" min="2020-01-01" max="2100-12-31"
-            value={date} onChange={(event) => setDate(event.target.value)}
+            value={date}
+            onChange={(event) => {
+              setDate(event.target.value);
+              setVisible(initialVisible());
+            }
           />
         </label>
       </div>
@@ -61,7 +121,7 @@ export function DailyOperations({
               <h3>Appointments</h3>
               {summary.appointments.length ? (
                 <ul>
-                  {summary.appointments.slice(0, 4).map((item) => (
+                  {summary.appointments.slice(0, dailyPage(summary.appointments.length, visible.appointments).visible).map((item) => (
                     <li key={item.id}>
                       <strong>{String(item.data.title)}</strong>
                       <span className="muted">
@@ -83,6 +143,14 @@ export function DailyOperations({
               ) : (
                 <p className="muted">No non-cancelled appointments on this date.</p>
               )}
+              <DailyMore
+                total={summary.appointments.length}
+                requested={visible.appointments}
+                kind="appointments"
+                label="appointments"
+                onMore={() => showMore("appointments", summary.appointments.length)}
+                onFewer={() => showFewer("appointments")}
+              />
               {workspace.config.document.modules.some((module) => module.id === "scheduling") ? (
                 <button
                   className="secondary"
@@ -99,7 +167,7 @@ export function DailyOperations({
               <h3>Work to review</h3>
               {summary.dueToday.length + summary.overdue.length ? (
                 <ul>
-                  {[...summary.overdue, ...summary.dueToday].slice(0, 4).map(({ record, due }) => (
+                  {workItems.slice(0, dailyPage(workItems.length, visible.work).visible).map(({ record, due }) => (
                     <li key={record.id}>
                       <strong>{String(record.data.title)}</strong>
                       <span className="muted">{due < date ? "Overdue" : "Due on date"} · {due}</span>
@@ -117,13 +185,21 @@ export function DailyOperations({
               ) : (
                 <p className="muted">No dated unfinished work due by this date.</p>
               )}
+              <DailyMore
+                total={workItems.length}
+                requested={visible.work}
+                kind="work"
+                label="work items"
+                onMore={() => showMore("work", workItems.length)}
+                onFewer={() => showFewer("work")}
+              />
             </section>
             {equipmentEnabled && (
               <section aria-label="Equipment needing attention">
                 <h3>Equipment to review</h3>
                 {summary.equipment.length ? (
                   <ul>
-                    {summary.equipment.slice(0, 4).map(({ record, reason }) => (
+                    {summary.equipment.slice(0, dailyPage(summary.equipment.length, visible.equipment).visible).map(({ record, reason }) => (
                       <li key={record.id}>
                         <strong>{String(record.data.name)}</strong>
                         <span className="muted">{reason}</span>
@@ -141,6 +217,14 @@ export function DailyOperations({
                 ) : (
                   <p className="muted">No recorded equipment condition or inspection warnings.</p>
                 )}
+                <DailyMore
+                  total={summary.equipment.length}
+                  requested={visible.equipment}
+                  kind="equipment"
+                  label="equipment warnings"
+                  onMore={() => showMore("equipment", summary.equipment.length)}
+                  onFewer={() => showFewer("equipment")}
+                />
                 <button className="secondary" type="button" onClick={() => onEquipment()}>
                   Open Equipment &amp; Tools
                 </button>
