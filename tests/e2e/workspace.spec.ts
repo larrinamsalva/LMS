@@ -87,6 +87,18 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(
     page.getByRole("heading", { name: "Fictional kitchen clean", exact: true }),
   ).toBeVisible();
+  // Reuse the existing session rather than adding a new one (24-slot demo limit).
+  const operations = page.getByRole("region", { name: "Daily operations" });
+  await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
+  await expect(
+    operations.getByRole("region", { name: "Unfinished work due or overdue" }),
+  ).toContainText("Fictional kitchen clean");
+  await expect(
+    operations.getByRole("region", { name: "Unfinished work due or overdue" }),
+  ).toContainText("Due on date");
+  await expect(
+    operations.getByRole("button", { name: "Open Schedule" }),
+  ).toBeVisible();
   await fits(page);
   expect(errors).toEqual([]);
 });
