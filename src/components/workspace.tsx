@@ -84,6 +84,7 @@ export function Workspace({
     | "invoices"
     | "equipment"
   >("records");
+  const [scheduleStartDate, setScheduleStartDate] = useState<string | null>(null);
   const [invoiceAction, setInvoiceAction] = useState<{
     record: WorkspaceRecord;
     kind: InvoiceCommand["kind"];
@@ -156,6 +157,7 @@ export function Workspace({
         ),
       );
       setView("records");
+      setScheduleStartDate(null);
       setSelected("customers");
       setQuery("");
       setShowArchived(false);
@@ -222,6 +224,9 @@ export function Workspace({
     setError("");
   }
   function changeView(next: typeof view, entityId?: string) {
+    // Navigating from the sidebar starts an ordinary calendar; only the
+    // explicit Daily Operations action brings its chosen day across.
+    if (next === "schedule") setScheduleStartDate(null);
     setView(next);
     if (entityId) setSelected(entityId);
     setEditor(null);
@@ -671,8 +676,10 @@ export function Workspace({
             )}
             {view === "schedule" && (
               <Schedule
+                key={workspace!.organizationId + ":" + (scheduleStartDate ?? "default")}
                 records={workspace!.records}
                 zone={config!.timeZone ?? "UTC"}
+                initialDate={scheduleStartDate ?? undefined}
                 canWrite={canWrite}
                 assignments={workspace!.staffAssignments}
                 allocations={workspace!.appointmentAllocations}
@@ -906,8 +913,10 @@ export function Workspace({
                 <DailyOperations
                   key={workspace!.organizationId}
                   workspace={workspace!}
-                  onSchedule={() => {
+                  onSchedule={(selectedDate) => {
                     setEditor(null);
+                    setArchive(null);
+                    setScheduleStartDate(selectedDate);
                     setView("schedule");
                   }}
                   onWork={(entityId) => {

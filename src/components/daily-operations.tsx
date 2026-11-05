@@ -7,7 +7,7 @@ export function DailyOperations({
   workspace, onSchedule, onWork, onEquipment,
 }: {
   workspace: WorkspaceSnapshot;
-  onSchedule: () => void;
+  onSchedule: (selectedDate: string) => void;
   onWork: (entity: "tasks" | "jobs") => void;
   onEquipment: () => void;
 }) {
@@ -72,7 +72,17 @@ export function DailyOperations({
               ) : (
                 <p className="muted">No non-cancelled appointments on this date.</p>
               )}
-              <button className="secondary" type="button" onClick={onSchedule}>Open Schedule</button>
+              {workspace.config.document.modules.some((module) => module.id === "scheduling") ? (
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={() => onSchedule(date)}
+                >
+                  Open Schedule for {date}
+                </button>
+              ) : (
+                <p className="muted">Enable Scheduling in BuildPlan Studio to use the calendar.</p>
+              )}
             </section>
             <section aria-label="Unfinished work due or overdue">
               <h3>Work to review</h3>

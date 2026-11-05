@@ -89,3 +89,15 @@ from due-date counts rather than assigned invented deadlines. Retired and
 archived tools are not included in repair warnings. Dates follow the business
 time zone even on daylight-saving days shorter or longer than 24 hours.
 All information remains fictional, session-scoped and temporary.
+
+### Open the matching calendar date (PR #40)
+
+Choose a date in **Daily operations**, then click **Open Schedule for YYYY-MM-DD**
+to open that exact business-local day in the existing Schedule screen. You can
+still move to previous/next day or choose another date in Schedule. This is an
+in-memory navigation aid only: it never reschedules appointments, changes their
+time zones, creates records or publishes configuration. Opening Schedule through
+the normal sidebar uses its usual default date. Switching organizations clears
+the earlier date handoff, keeping each business independent. If the Scheduling
+module is disabled, Daily Operations explains that the calendar is unavailable
+rather than exposing an unavailable feature.

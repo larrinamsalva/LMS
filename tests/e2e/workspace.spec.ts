@@ -97,8 +97,15 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     operations.getByRole("region", { name: "Unfinished work due or overdue" }),
   ).toContainText("Due on date");
   await expect(
-    operations.getByRole("button", { name: "Open Schedule" }),
+    operations.getByRole("button", { name: "Open Schedule for 2026-11-06" }),
   ).toBeVisible();
+  await operations.getByRole("button", { name: "Open Schedule for 2026-11-06" }).click();
+  await expect(page.getByLabel("Schedule date", { exact: true })).toHaveValue("2026-11-06");
+  await expect(page.getByRole("heading", { name: "Schedule", exact: true })).toBeVisible();
+  // A normal sidebar visit is not a second cross-screen handoff. The date
+  // remains editable using the established calendar controls.
+  await page.getByRole("button", { name: "Next day", exact: true }).click();
+  await expect(page.getByLabel("Schedule date", { exact: true })).toHaveValue("2026-11-07");
   await fits(page);
   expect(errors).toEqual([]);
 });
