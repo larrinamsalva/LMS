@@ -15,6 +15,8 @@ import {
   parseBuildPlanText,
   selectModules,
   moduleRequirements,
+  workflowPacks,
+  reviewWorkflowPack,
   builderTemplate,
   customFieldTypes,
   customFieldEntities,
@@ -88,6 +90,53 @@ const questions: Record<string, string> = {
     "Do you need fictional, unissued invoice drafts from reviewed estimates?",
   "custom-records": "Do you need notes with your own optional fields?",
 };
+function WorkflowPackChoices({
+  config,
+  onChange,
+}: {
+  config: BusinessConfig;
+  onChange: (config: BusinessConfig) => void;
+}) {
+  return (
+    <section aria-labelledby="studio-workflow-packs-heading">
+      <h3 id="studio-workflow-packs-heading">Quick-start workflow packs</h3>
+      <p className="muted">
+        Not sure which features to choose? Add a reviewed workflow below. Packs
+        only add features; your existing selections, names and custom fields
+        stay as they are. Nothing is saved or published until you explicitly
+        review and confirm it later.
+      </p>
+      <div className="studio-cards">
+        {workflowPacks.map((pack) => {
+          const review = reviewWorkflowPack(config, pack.id);
+          const names = review.added.map(
+            (id) => manifests.find((m) => m.id === id)?.name ?? id,
+          );
+          return (
+            <article className="studio-card" key={pack.id}>
+              <h4>{pack.name}</h4>
+              <p>{pack.description}</p>
+              <p className="muted">{pack.note}</p>
+              <p>
+                <strong>New features:</strong>{" "}
+                {names.length ? names.join(", ") : "Already included"}
+              </p>
+              <button
+                type="button"
+                className="secondary"
+                disabled={names.length === 0}
+                onClick={() => onChange(review.configuration)}
+              >
+                {names.length ? `Add ${pack.name} to my plan` : "Already included"}
+              </button>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function ModuleChoices({
   config,
   onChange,
@@ -944,6 +993,7 @@ export function BuildPlanStudio({
         )}
         {step === 1 && (
           <>
+            <WorkflowPackChoices config={plan.configuration} onChange={change} />
             <ModuleChoices config={plan.configuration} onChange={change} />
             <section className="subdued studio-unavailable">
               <h3>Planned, unavailable here</h3>

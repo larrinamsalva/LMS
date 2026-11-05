@@ -7,6 +7,8 @@ import {
   selectModules,
   addCustomField,
   moduleRequirements,
+  workflowPacks,
+  reviewWorkflowPack,
 } from "../../src/core/buildplan";
 import { configurationImpact } from "../../src/core/config";
 import { presets } from "../../src/presets";
@@ -123,4 +125,62 @@ it("shares publication impact rules for labels, hidden populated records, schema
       [],
     ).identityChanged,
   ).toBe(true);
+});
+
+it("offers additive, reviewed workflow packs without publishing or changing existing choices", () => {
+  const starter = newBuildPlan("custom").configuration;
+  const sparse = selectModules(starter, ["customers", "tasks"]);
+  const original = structuredClone(sparse);
+  for (const pack of workflowPacks) {
+    const reviewed = reviewWorkflowPack(sparse, pack.id);
+    expect(reviewed.added.length).toBeGreaterThan(0);
+    expect(reviewed.configuration.modules.map((m) => m.id)).toEqual(
+      expect.arrayContaining(["customers", "tasks", ...pack.features]),
+    );
+    expect(reviewWorkflowPack(reviewed.configuration, pack.id).added).toEqual(
+      [],
+    );
+    expect(validateBuildPlan({
+      ...newBuildPlan("custom"),
+      configuration: reviewed.configuration,
+    }).configuration).toEqual(reviewed.configuration);
+  }
+  expect(sparse).toEqual(original);
+  expect(reviewWorkflowPack(sparse, "equipment-care").added).toEqual(
+    expect.arrayContaining(["inventory", "scheduling", "workforce", "equipment"]),
+  );
+  expect(reviewWorkflowPack(sparse, "estimate-to-draft").added).toEqual(
+    expect.arrayContaining(["estimates", "invoice-drafts"]),
+  );
+  expect(
+    reviewWorkflowPack(sparse, "crew-machine-calendar").added,
+  ).toEqual(
+    expect.arrayContaining([
+      "inventory", "scheduling", "workforce", "equipment",
+      "equipment-reservations", "coordinated-scheduling",
+    ]),
+  );
+  expect(() => reviewWorkflowPack(sparse, "unexpected" as never)).toThrow(
+    "Unknown workflow pack.",
+  );
+});
+
+it("workflow packs keep existing fields, terminology, selections and branding", () => {
+  let config = selectModules(newBuildPlan("cleaning").configuration, [
+    "customers", "tasks", "cleaning", "inventory",
+  ]);
+  config = addCustomField(config, "customers", {
+    key: "extra_gate", label: "Arrival instructions", type: "longtext", required: false,
+  });
+  config.name = "Friendly Demo";
+  config.entities.find((e) => e.id === "customers")!.plural = "Clients";
+  const selected = config.modules.map((m) => m.id);
+  const { configuration: updated } = reviewWorkflowPack(config, "estimate-to-draft");
+  expect(updated.name).toBe("Friendly Demo");
+  expect(updated.entities.find((e) => e.id === "customers")!.plural).toBe("Clients");
+  expect(updated.entities.find((e) => e.id === "customers")!.fields).toEqual(
+    expect.arrayContaining([{ key: "extra_gate", label: "Arrival instructions", type: "longtext", required: false }]),
+  );
+  for (const id of selected) expect(updated.modules.some((m) => m.id === id)).toBe(true);
+  expect(config.modules.map((m) => m.id)).toEqual(selected);
 });

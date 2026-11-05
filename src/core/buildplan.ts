@@ -129,6 +129,59 @@ export function selectModules(
     ],
   });
 }
+/** Optional, reviewed guidance for beginners; not a new portable contract. */
+export const workflowPacks = [
+  {
+    id: "team-scheduling",
+    name: "Team scheduling",
+    description: "Book customer work and coordinate worker or crew availability.",
+    features: ["workforce"],
+    note: "Working hours and crew membership must still be reviewed for each booking.",
+  },
+  {
+    id: "estimate-to-draft",
+    name: "Estimates to invoice drafts",
+    description: "Price fictional work and prepare unissued invoice drafts.",
+    features: ["invoice-drafts"],
+    note: "Drafts are not sent, paid or issued as real invoices.",
+  },
+  {
+    id: "equipment-care",
+    name: "Equipment care",
+    description: "Track stock locations, individual tools, checkout and maintenance.",
+    features: ["equipment"],
+    note: "Machines require inspection and explicit release before use.",
+  },
+  {
+    id: "crew-machine-calendar",
+    name: "Crew + machine calendar",
+    description: "Reserve one crew or worker and one mapped machine for an appointment.",
+    features: ["coordinated-scheduling"],
+    note: "Calendar reservations never automatically check out equipment.",
+  },
+] as const;
+export type WorkflowPackId = (typeof workflowPacks)[number]["id"];
+
+/** Additive only. Existing selections, custom fields and labels are retained. */
+export function reviewWorkflowPack(
+  config: BusinessConfig,
+  id: WorkflowPackId,
+): { configuration: BusinessConfig; added: string[] } {
+  const pack = workflowPacks.find((item) => item.id === id);
+  if (!pack) throw new ConfigurationError("Unknown workflow pack.");
+  const current = new Set(config.modules.map((module) => module.id));
+  const configuration = selectModules(config, [
+    ...current,
+    ...pack.features,
+  ]);
+  return {
+    configuration,
+    added: configuration.modules
+      .filter((module) => !current.has(module.id))
+      .map((module) => module.id),
+  };
+}
+
 const envelope = z
   .object({
     format: z.literal("lms-build-plan"),
