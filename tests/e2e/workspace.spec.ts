@@ -87,6 +87,36 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(
     page.getByRole("heading", { name: "Fictional kitchen clean", exact: true }),
   ).toBeVisible();
+  // Add fictional work through the same authorized demo API, then reload
+  // the existing cookie-bound session. Never consume an extra session slot.
+  const orgId = await page.getByLabel("Business workspace", { exact: true }).inputValue();
+  const statuses = await page.evaluate(async (organizationId) => {
+    const results: number[] = [];
+    for (let i = 1; i <= 4; i++) {
+      const response = await fetch("/api/demo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "save",
+          organizationId,
+          entity: "jobs",
+          data: {
+            title: `Fictional overflow job ${i}`,
+            service: "Deep clean",
+            date: "2026-11-06",
+            status: "Planned",
+          },
+        }),
+      });
+      results.push(response.status);
+    }
+    return results;
+  }, orgId);
+  expect(statuses).toEqual([200, 200, 200, 200]);
+  await page.reload();
+  await page.getByLabel("Business workspace", { exact: true })
+    .selectOption({ label: "Cleaning Company" });
+  await expect(page.getByRole("heading", { name: "Bright Path Cleaning" })).toBeVisible();
   // Reuse the existing session rather than adding a new one (24-slot demo limit).
   const operations = page.getByRole("region", { name: "Daily operations" });
   await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
@@ -96,6 +126,19 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(
     operations.getByRole("region", { name: "Unfinished work due or overdue" }),
   ).toContainText("Due on date");
+  const dueWork = operations.getByRole("region", {
+    name: "Unfinished work due or overdue", exact: true,
+  });
+  await expect(dueWork.getByText(/^Showing 4 of \\d+ work items$/)).toBeVisible();
+  await expect(dueWork.locator("li")).toHaveCount(4);
+  await dueWork.getByRole("button", { name: /^Show \\d+ more work items$/ }).click();
+  expect(await dueWork.locator("li").count()).toBeGreaterThan(4);
+  await dueWork.getByRole("button", { name: "Show fewer work items", exact: true }).click();
+  await expect(dueWork.locator("li")).toHaveCount(4);
+  await dueWork.getByRole("button", { name: /^Show \\d+ more work items$/ }).click();
+  await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-05");
+  await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
+  await expect(dueWork.locator("li")).toHaveCount(4);
   // Focus the exact work record without opening an editor or writing data.
   await operations.getByRole("button", {
     name: "Find Fictional kitchen clean in cleaning jobs",
