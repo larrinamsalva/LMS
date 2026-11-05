@@ -9,7 +9,7 @@ export function DailyOperations({
   workspace: WorkspaceSnapshot;
   onSchedule: (selectedDate: string) => void;
   onWork: (record: WorkspaceRecord) => void;
-  onEquipment: () => void;
+  onEquipment: (record?: WorkspaceRecord) => void;
 }) {
   const zone = workspace.config.document.timeZone ?? "UTC";
   const [date, setDate] = useState(() => localDate(new Date().toISOString(), zone));
@@ -116,13 +116,21 @@ export function DailyOperations({
                       <li key={record.id}>
                         <strong>{String(record.data.name)}</strong>
                         <span className="muted">{reason}</span>
+                        <button
+                          type="button"
+                          className="quiet"
+                          aria-label={`Find equipment ${String(record.data.name)}`}
+                          onClick={() => onEquipment(record)}
+                        >
+                          Find this equipment
+                        </button>
                       </li>
                     ))}
                   </ul>
                 ) : (
                   <p className="muted">No recorded equipment condition or inspection warnings.</p>
                 )}
-                <button className="secondary" type="button" onClick={onEquipment}>
+                <button className="secondary" type="button" onClick={() => onEquipment()}>
                   Open Equipment &amp; Tools
                 </button>
               </section>
