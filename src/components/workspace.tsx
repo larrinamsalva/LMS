@@ -96,6 +96,8 @@ export function Workspace({
   } | null>(null);
   const [selected, setSelected] = useState("customers");
   const [query, setQuery] = useState("");
+  // A read-only exact record focus from the current organization's Daily Operations.
+  const [focusedRecordId, setFocusedRecordId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [editor, setEditor] = useState<WorkspaceRecord | "new" | null>(null);
   const [initialData, setInitialData] = useState<RecordData | undefined>();
@@ -160,6 +162,7 @@ export function Workspace({
       setScheduleStartDate(null);
       setSelected("customers");
       setQuery("");
+      setFocusedRecordId(null);
       setShowArchived(false);
       setEditor(null);
       setArchive(null);
@@ -192,6 +195,7 @@ export function Workspace({
       (r) =>
         r.entity === entity?.id &&
         r.archived === showArchived &&
+        (!focusedRecordId || r.id === focusedRecordId) &&
         Object.values(r.data).some((v) =>
           String(v).toLowerCase().includes(query.toLowerCase()),
         ),
@@ -208,6 +212,7 @@ export function Workspace({
     : false;
   const Editor = entity?.id === "estimates" ? EstimateForm : RecordForm;
   function openRecord(entityId: string, record?: WorkspaceRecord) {
+    setFocusedRecordId(null);
     setInitialData(undefined);
     setSelected(entityId);
     setView("records");
@@ -216,6 +221,7 @@ export function Workspace({
     setError("");
   }
   function archiveRecord(record: WorkspaceRecord) {
+    setFocusedRecordId(null);
     setSelected(record.entity);
     setView("records");
     setEditor(null);
@@ -232,6 +238,7 @@ export function Workspace({
     setEditor(null);
     setArchive(null);
     setQuery("");
+    setFocusedRecordId(null);
     setNotice("");
     setError("");
   }
@@ -919,10 +926,18 @@ export function Workspace({
                     setScheduleStartDate(selectedDate);
                     setView("schedule");
                   }}
-                  onWork={(entityId) => {
+                  onWork={(record) => {
+                    // Only focus an active task/job from this authorized business.
+                    // This does not open an editor, including for read-only viewers.
+                    if (
+                      record.organization_id !== workspace!.organizationId ||
+                      record.archived ||
+                      !["jobs", "tasks"].includes(record.entity)
+                    ) return;
                     setEditor(null);
                     setArchive(null);
-                    setSelected(entityId);
+                    setSelected(record.entity);
+                    setFocusedRecordId(record.id);
                     setQuery("");
                     setShowArchived(false);
                     setView("records");
@@ -951,6 +966,18 @@ export function Workspace({
                       + Add {entity.singular.toLowerCase()}
                     </button>
                   </div>
+                  {focusedRecordId && (
+                    <div className="record-focus" role="status">
+                      <span>Showing the specific work record selected in Daily Operations.</span>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => setFocusedRecordId(null)}
+                      >
+                        Show all {entity.plural.toLowerCase()}
+                      </button>
+                    </div>
+                  )}
                   <div className="record-toolbar">
                     <div className="search-field">
                       <label htmlFor="record-search">
@@ -961,14 +988,20 @@ export function Workspace({
                         type="search"
                         placeholder="Find a record…"
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
+                        onChange={(e) => {
+                          setFocusedRecordId(null);
+                          setQuery(e.target.value);
+                        }}
                       />
                     </div>
                     <label className="check-label">
                       <input
                         type="checkbox"
                         checked={showArchived}
-                        onChange={(e) => setShowArchived(e.target.checked)}
+                        onChange={(e) => {
+                          setFocusedRecordId(null);
+                          setShowArchived(e.target.checked);
+                        }}
                       />{" "}
                       Show archived
                     </label>

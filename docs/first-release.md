@@ -101,3 +101,17 @@ the normal sidebar uses its usual default date. Switching organizations clears
 the earlier date handoff, keeping each business independent. If the Scheduling
 module is disabled, Daily Operations explains that the calendar is unavailable
 rather than exposing an unavailable feature.
+
+### Find an exact work record (PR #41)
+
+When Daily Operations shows an unfinished task or cleaning job, choose
+**Find this work** to focus its exact record in the normal work list. The
+focus uses the saved record ID, not a title search, so two similarly named
+jobs are not confused. Select **Show all** to clear the focus and return
+to the complete list. Editing search, switching the archived filter, navigating
+to another section or switching business also clears this focus.
+
+Finding work is a read-only navigation action, including for viewers. It does
+not open the editor, change deadlines/status, create a notification, publish
+a configuration, or bypass the normal record access permissions. Only records
+from the current authorized organization are considered.
