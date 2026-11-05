@@ -258,7 +258,7 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   await equipmentPreview.getByRole("button", { name: "+ Add storage location", exact: true }).click();
   await equipmentPreview.getByLabel("Location name *", { exact: true }).fill("Fictional tool shed");
   await equipmentPreview.getByRole("button", { name: "Save record", exact: true }).click();
-  await equipmentPreview.getByRole("button", { name: "Equipment & Tools", exact: true }).click();
+  await equipmentPreview.getByRole("button", { name: /^Equipment & Tools/ }).click();
 
   for (const [name, code] of [
     ["Fictional scrubber", "SCRUBBER-01"],
