@@ -72,3 +72,20 @@ Both captures are from completed workflows using the production build and the lo
 | Expired session or empty records after restart | Start a fresh demo. Import a previously exported configuration if you want to reuse it. |
 | Demo capacity reached | Export needed configurations and restart the local server. Protected expired histories can hold one of the 24 runtime slots until restart. |
 | Optional feature absent | Check **Features** in the current workspace's BuildPlan and review required dependencies before publishing. |
+
+## Daily Operations (PR #39)
+
+The fictional workspace's **Daily operations** section is a read-only overview
+derived from records in the current organization. Choose a business-local date
+to review non-cancelled appointments overlapping that day (including overnight
+appointments), unfinished cleaning jobs or tasks due on the date, and work
+that was already overdue. When Equipment & Tools is enabled, the overview also
+shows physical condition problems and inspections due by the selected date.
+The links take you to the existing Schedule, work and Equipment screens.
+
+The overview does **not** assign staff, create reminders, guarantee resource
+availability, check out equipment or send messages. Undated tasks are omitted
+from due-date counts rather than assigned invented deadlines. Retired and
+archived tools are not included in repair warnings. Dates follow the business
+time zone even on daylight-saving days shorter or longer than 24 hours.
+All information remains fictional, session-scoped and temporary.
