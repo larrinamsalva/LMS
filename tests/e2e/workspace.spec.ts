@@ -129,13 +129,13 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   const dueWork = operations.getByRole("region", {
     name: "Unfinished work due or overdue", exact: true,
   });
-  await expect(dueWork.getByText(/^Showing 4 of \\d+ work items$/)).toBeVisible();
+  await expect(dueWork.getByText(/^Showing 4 of \d+ work items$/)).toBeVisible();
   await expect(dueWork.locator("li")).toHaveCount(4);
-  await dueWork.getByRole("button", { name: /^Show \\d+ more work items$/ }).click();
+  await dueWork.getByRole("button", { name: /^Show \d+ more work items$/ }).click();
   expect(await dueWork.locator("li").count()).toBeGreaterThan(4);
   await dueWork.getByRole("button", { name: "Show fewer work items", exact: true }).click();
   await expect(dueWork.locator("li")).toHaveCount(4);
-  await dueWork.getByRole("button", { name: /^Show \\d+ more work items$/ }).click();
+  await dueWork.getByRole("button", { name: /^Show \d+ more work items$/ }).click();
   await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-05");
   await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
   await expect(dueWork.locator("li")).toHaveCount(4);
