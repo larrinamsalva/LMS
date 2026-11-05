@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { WorkspaceSnapshot } from "../core/engine";
+import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
 import { displayTime, localDate } from "../core/time";
 
@@ -8,7 +8,7 @@ export function DailyOperations({
 }: {
   workspace: WorkspaceSnapshot;
   onSchedule: (selectedDate: string) => void;
-  onWork: (entity: "tasks" | "jobs") => void;
+  onWork: (record: WorkspaceRecord) => void;
   onEquipment: () => void;
 }) {
   const zone = workspace.config.document.timeZone ?? "UTC";
@@ -93,10 +93,12 @@ export function DailyOperations({
                       <strong>{String(record.data.title)}</strong>
                       <span className="muted">{due < date ? "Overdue" : "Due on date"} · {due}</span>
                       <button
-                        type="button" className="quiet"
-                        onClick={() => onWork(record.entity as "jobs" | "tasks")}
+                        type="button"
+                        className="quiet"
+                        aria-label={`Find ${String(record.data.title)} in ${record.entity === "jobs" ? "cleaning jobs" : "tasks"}`}
+                        onClick={() => onWork(record)}
                       >
-                        Open {record.entity === "jobs" ? "cleaning jobs" : "tasks"}
+                        Find this work
                       </button>
                     </li>
                   ))}
