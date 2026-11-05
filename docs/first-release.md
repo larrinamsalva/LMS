@@ -143,3 +143,17 @@ This is temporary read-only navigation. It never reschedules an appointment,
 edits resource allocations, approves equipment checkout or sends notices.
 Cancelled and archived appointments are not offered from Daily Operations,
 and the existing role permissions still govern all separate edit actions.
+
+### Review all daily items without losing your place (PR #44)
+
+Daily Operations initially shows up to **four** appointments, work items and
+equipment warnings in each section, while the summary cards display the full
+counts. If a section contains more, its **Show N more** control reveals the
+next four (or any smaller remainder), and **Show fewer** restores the first
+four. Each section expands independently; the total is always visible. The
+list resets to four when you choose another operations date or switch business.
+
+This is a local, read-only display preference. Expanding a section never
+loads another business's records, writes to the database, changes due dates,
+books an appointment, modifies equipment or creates a notification. Each row
+retains its existing precise navigation link.
