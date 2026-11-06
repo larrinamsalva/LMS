@@ -41,7 +41,8 @@ it("exports all five undated records, sorted, without assigning any deadlines", 
   expect(csv).toContain('"2026-11-06","Task","Alpha, urgent","In progress","","America/Los_Angeles"');
   expect(csv).toContain('"Cleaning job","Legacy cleanup","Planned","","America/Los_Angeles"');
   expect(csv).toContain('"\'=HYPERLINK(""bad"")"'); // Spreadsheet formula neutralized.
-  expect(lines[1]).toContain("Alpha, urgent");
+  expect(csv.indexOf('"Alpha, urgent"')).toBeLessThan(csv.indexOf('"Delta task"'));
+  expect(csv.indexOf('"Delta task"')).toBeLessThan(csv.indexOf('"Legacy cleanup"'));
   for (const omitted of ["Dated task", "Finished job", "Cancelled",
     "Archived", "Other business"]) expect(csv).not.toContain('"' + omitted + '"');
   // Changing the review date does not convert unassigned work into due work.
