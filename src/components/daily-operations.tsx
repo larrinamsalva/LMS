@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
+import { sevenDayWorkload } from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
@@ -99,6 +100,7 @@ export function DailyOperations({
     }
   }
   const workItems = summary ? [...summary.overdue, ...summary.dueToday] : [];
+  const nextSevenDays = summary ? sevenDayWorkload(summary, zone) : [];
   const equipmentEnabled = workspace.config.document.modules.some(
     (module) => module.id === "equipment",
   );
@@ -242,6 +244,31 @@ export function DailyOperations({
               </div>
             )}
           </div>
+          <section className="daily-workload" aria-label="Seven-day workload by date">
+            <h3>Next seven days · workload by date</h3>
+            <p className="muted">
+              Counts reflect saved appointment start dates and unfinished job/task due dates.
+              They are not staff capacity or guaranteed availability. Select a day to review it.
+            </p>
+            <div className="daily-workload-grid">
+              {nextSevenDays.map((day) => (
+                <button
+                  key={day.date}
+                  type="button"
+                  className="secondary"
+                  onClick={() => selectDate(day.date)}
+                  aria-label={
+                    "Review " + day.date + ": " + day.appointments +
+                    " appointments and " + day.unfinishedWork + " unfinished work items"
+                  }
+                >
+                  <strong>{day.date}</strong>
+                  <span>{day.appointments} appointments</span>
+                  <span>{day.unfinishedWork} work items</span>
+                </button>
+              ))}
+            </div>
+          </section>
           <div className="daily-sections">
             <section aria-label="Appointments for operations date">
               <h3>Appointments</h3>
