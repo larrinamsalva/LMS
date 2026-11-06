@@ -274,6 +274,13 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   await equipmentPreview.getByRole("button", { name: /^My clients/ }).click();
   const dailyEquipment = equipmentPreview.getByRole("region", { name: "Daily operations" });
   const warnings = dailyEquipment.getByRole("region", { name: "Equipment needing attention" });
+  const upcomingInspections = dailyEquipment.getByRole("region", {
+    name: "Upcoming equipment inspections next seven days", exact: true,
+  });
+  await expect(upcomingInspections).toContainText(
+    "No saved equipment inspections due in the next seven days.",
+  );
+  await expect(dailyEquipment.getByText("Inspections next 7 days")).toBeVisible();
   await expect(warnings).toContainText("Fictional scrubber");
   await expect(warnings).toContainText("Fictional polisher");
   await warnings.getByRole("button", { name: "Find equipment Fictional scrubber", exact: true }).click();
