@@ -314,3 +314,21 @@ record write is performed. If there are no upcoming inspections, the exported
 file contains only column headings. The report is a read-only planning
 snapshot and **does not certify that equipment is safe for use**, or
 automatically schedule or confirm an inspection.
+
+### Seven-day workload by date (PR #54)
+
+**Next seven days · workload by date** displays seven business-local calendar
+days after the selected Daily Operations date, including days with zero saved
+items. Each date shows the number of **non-cancelled appointments starting on
+that date** and **unfinished jobs/tasks with that due date**. An overnight
+appointment counts only on its saved start day; it is not counted again on
+each day it overlaps. The counts respect the current business's access and
+exclude archived/foreign records, completed/cancelled work, undated work and
+overdue tasks. Leap days and daylight-saving changes use calendar-day logic.
+
+Select a date to open that day's existing Daily Operations view, preserving
+the original appointment and work record links. Date navigation resets
+expanded lists normally. This is an overview of **saved record dates**, not
+employee availability, job duration, equipment readiness, confirmed resource
+capacity, staff assignment, or a new appointment booking. Nothing is changed
+or stored by opening a date, and all existing CSV exports remain distinct.

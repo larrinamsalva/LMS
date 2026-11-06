@@ -213,6 +213,20 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   });
   await expect(futureWork).toContainText("Fictional upcoming window clean");
   await expect(futureWork).toContainText("Due 2026-11-09");
+  // Group the next seven local calendar days, then drill down to the
+  // selected day's existing records without editing a job or booking.
+  const dailyLoad = operations.getByRole("region", {
+    name: "Seven-day workload by date", exact: true,
+  });
+  await expect(dailyLoad.getByRole("button")).toHaveCount(7);
+  await dailyLoad.getByRole("button", { name: /^Review 2026-11-09:/ }).click();
+  await expect(operations.getByLabel("Operations date", { exact: true }))
+    .toHaveValue("2026-11-09");
+  await expect(operations.getByRole("region", {
+    name: "Unfinished work due or overdue", exact: true,
+  })).toContainText("Fictional upcoming window clean");
+  await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
+  await expect(futureWork).toContainText("Fictional upcoming window clean");
   // Future work can be opened by its exact record ID without an edit.
   await futureWork.getByRole("button", {
     name: "Find upcoming Fictional upcoming window clean in cleaning jobs",
