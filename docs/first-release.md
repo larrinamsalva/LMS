@@ -157,3 +157,14 @@ This is a local, read-only display preference. Expanding a section never
 loads another business's records, writes to the database, changes due dates,
 books an appointment, modifies equipment or creates a notification. Each row
 retains its existing precise navigation link.
+
+### Move between business days (PR #45)
+
+**Previous day**, **Next day** and **Today** let you navigate Daily Operations
+without repeatedly opening the date picker. These controls work in the
+business's selected time zone rather than the device time zone, using calendar
+arithmetic across daylight-saving changes and leap days. **Today** always
+recalculates the business-local date when pressed. Previous and Next become
+unavailable at the existing 2020–2100 date-picker bounds. You can still enter
+a date directly, and any date change restores each list to its first four
+items. No dates are written back to appointments, jobs or equipment records.
