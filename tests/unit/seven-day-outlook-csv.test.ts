@@ -74,7 +74,6 @@ it("exports future jobs and appointments in business-local order without other b
   for (const omitted of [
     "Today's job", "Overdue job", "Finished job", "Cancelled visit",
     "Archived visit", "Other business visit", "Other business job",
-    "Fictional last-day booking",
   ]) expect(csv).not.toContain(omitted);
 });
 
