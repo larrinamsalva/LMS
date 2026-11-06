@@ -161,6 +161,23 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(undatedQueue).toContainText("Fictional inspect filters");
   await expect(operations.getByText("Work needing a date")).toBeVisible();
   await expect(undatedQueue).toContainText("No due date");
+  // Download the separate undated review list in this same existing demo
+  // session. It is deliberately not the daily or weekly dated work plan.
+  const undatedDownloadPending = page.waitForEvent("download");
+  await undatedQueue.getByRole("button", {
+    name: "Download needs scheduling CSV", exact: true,
+  }).click();
+  const undatedDownload = await undatedDownloadPending;
+  expect(undatedDownload.suggestedFilename())
+    .toBe("lms-needs-scheduling-reviewed-2026-11-06.csv");
+  const undatedCsv = (await readFile((await undatedDownload.path())!))
+    .toString("utf8");
+  expect(undatedCsv).toContain("Fictional inspect filters");
+  expect(undatedCsv).toContain("Due date (not assigned)");
+  expect(undatedCsv).not.toContain("Fictional kitchen clean");
+  expect(undatedCsv).not.toContain("Fictional upcoming window clean");
+  expect(undatedCsv).not.toContain("Taylor Edited");
+  expect(undatedCsv).toContain("America/Los_Angeles");
   await undatedQueue.getByRole("button", {
     name: "Find undated Fictional inspect filters in tasks", exact: true,
   }).click();

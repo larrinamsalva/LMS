@@ -5,6 +5,7 @@ import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
 import { sevenDayOutlookCsv } from "../core/seven-day-outlook-csv";
+import { needsSchedulingCsv } from "../core/needs-scheduling-csv";
 import {
   adjacentOperationsDate,
   operationsToday,
@@ -109,6 +110,17 @@ export function DailyOperations({
     const link = document.createElement("a");
     link.href = url;
     link.download = `lms-daily-operations-${summary.date}.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function downloadNeedsScheduling() {
+    if (!summary || !summary.needsScheduling.length) return;
+    const csv = needsSchedulingCsv(summary, zone);
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-needs-scheduling-reviewed-" + summary.date + ".csv";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -427,6 +439,14 @@ export function DailyOperations({
                 onMore={() => showMore("undated", summary.needsScheduling.length)}
                 onFewer={() => showFewer("undated")}
               />
+              <button
+                type="button"
+                className="secondary"
+                disabled={!summary.needsScheduling.length}
+                onClick={downloadNeedsScheduling}
+              >
+                Download needs scheduling CSV
+              </button>
             </section>
             {equipmentEnabled && (
               <section aria-label="Equipment needing attention">
