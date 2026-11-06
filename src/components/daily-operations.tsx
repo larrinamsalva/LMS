@@ -14,7 +14,7 @@ import {
 } from "../core/daily-operations-dates";
 
 
-type OverviewKind = "appointments" | "futureAppointments" | "work" | "upcoming" | "undated" | "equipment";
+type OverviewKind = "appointments" | "futureAppointments" | "work" | "upcoming" | "undated" | "equipment" | "inspections";
 const initialVisible = (): Record<OverviewKind, number> => ({
   appointments: DAILY_OPERATIONS_PAGE_SIZE,
   futureAppointments: DAILY_OPERATIONS_PAGE_SIZE,
@@ -22,6 +22,7 @@ const initialVisible = (): Record<OverviewKind, number> => ({
   upcoming: DAILY_OPERATIONS_PAGE_SIZE,
   undated: DAILY_OPERATIONS_PAGE_SIZE,
   equipment: DAILY_OPERATIONS_PAGE_SIZE,
+  inspections: DAILY_OPERATIONS_PAGE_SIZE,
 });
 
 function DailyMore({
@@ -220,6 +221,12 @@ export function DailyOperations({
             <div><span className="metric-label">Work needing a date</span><strong>{summary.needsScheduling.length}</strong></div>
             {equipmentEnabled && (
               <div><span className="metric-label">Equipment attention</span><strong>{summary.equipment.length}</strong></div>
+            )}
+            {equipmentEnabled && (
+              <div>
+                <span className="metric-label">Inspections next 7 days</span>
+                <strong>{summary.upcomingEquipmentInspections.length}</strong>
+              </div>
             )}
           </div>
           <div className="daily-sections">
@@ -482,6 +489,55 @@ export function DailyOperations({
                 <button className="secondary" type="button" onClick={() => onEquipment()}>
                   Open Equipment &amp; Tools
                 </button>
+              </section>
+            )}
+            {equipmentEnabled && (
+              <section aria-label="Upcoming equipment inspections next seven days">
+                <h3>Equipment inspections coming up</h3>
+                <p className="muted">
+                  After {date} through {summary.upcomingThrough} ·{" "}
+                  {summary.upcomingEquipmentInspections.length} scheduled{" "}
+                  {summary.upcomingEquipmentInspections.length === 1
+                    ? "inspection" : "inspections"}
+                </p>
+                {summary.upcomingEquipmentInspections.length ? (
+                  <ul>
+                    {summary.upcomingEquipmentInspections.slice(
+                      0, dailyPage(
+                        summary.upcomingEquipmentInspections.length, visible.inspections,
+                      ).visible,
+                    ).map(({ record, due }) => (
+                      <li key={record.id}>
+                        <strong>{String(record.data.name)}</strong>
+                        <span className="muted">
+                          Next inspection {due} · Serviceable
+                        </span>
+                        <button
+                          type="button"
+                          className="quiet"
+                          aria-label={`Find upcoming inspection for ${String(record.data.name)}`}
+                          onClick={() => onEquipment(record)}
+                        >
+                          Find this equipment
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="muted">
+                    No saved equipment inspections due in the next seven days.
+                  </p>
+                )}
+                <DailyMore
+                  total={summary.upcomingEquipmentInspections.length}
+                  requested={visible.inspections}
+                  kind="inspections"
+                  label="upcoming inspections"
+                  onMore={() => showMore(
+                    "inspections", summary.upcomingEquipmentInspections.length,
+                  )}
+                  onFewer={() => showFewer("inspections")}
+                />
               </section>
             )}
           </div>

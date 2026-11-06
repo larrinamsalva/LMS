@@ -281,3 +281,74 @@ it("surfaces date-free active tasks without assigning deadlines or mixing them i
     .toEqual(["alpha", "legacy", "spaces", "zulu"]);
   expect(later.overdue.map(({ record }) => record.id)).toEqual(["dated"]);
 });
+
+it("tracks only serviceable inspections due on calendar days +1 through +7", () => {
+  const records = [
+    record("equipment", "first", { name: "Alpha tool" }),
+    record("equipment", "last", { name: "Zulu tool" }),
+    record("equipment", "middle", { name: "Middle tool" }),
+    record("equipment", "today", { name: "Due today" }),
+    record("equipment", "overdue", { name: "Overdue tool" }),
+    record("equipment", "beyond", { name: "Beyond window" }),
+    record("equipment", "not-serviceable", { name: "Needs repair" }),
+    record("equipment", "retired", { name: "Retired tool" }),
+    record("equipment", "archived", { name: "Archived tool" }, true),
+    record("equipment", "foreign", { name: "Foreign tool" }, false,
+      "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+  ];
+  const states = [
+    equipmentState("first", "Serviceable", "2026-11-06"),
+    equipmentState("last", "Serviceable", "2026-11-12"),
+    equipmentState("middle", "Serviceable", "2026-11-09"),
+    equipmentState("today", "Serviceable", "2026-11-05"),
+    equipmentState("overdue", "Serviceable", "2026-11-02"),
+    equipmentState("beyond", "Serviceable", "2026-11-13"),
+    equipmentState("not-serviceable", "Needs inspection", "2026-11-07"),
+    equipmentState("retired", "Retired", "2026-11-08"),
+    equipmentState("archived", "Serviceable", "2026-11-09"),
+    equipmentState("foreign", "Serviceable", "2026-11-06",
+      "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+  ];
+  const snapshot = { organizationId: org, records, equipmentStates: states };
+  const summary = summarizeDailyOperations(snapshot, "America/Los_Angeles", "2026-11-05");
+  expect(summary.upcomingThrough).toBe("2026-11-12");
+  expect(summary.upcomingEquipmentInspections.map(({record, due}) => [record.id, due]))
+    .toEqual([
+      ["first", "2026-11-06"],
+      ["middle", "2026-11-09"],
+      ["last", "2026-11-12"],
+    ]);
+  expect(summary.equipment.map(({ record }) => record.id)).toEqual([
+    "overdue", "today", "not-serviceable",
+  ]);
+  const nextDay = summarizeDailyOperations(snapshot, "America/Los_Angeles", "2026-11-06");
+  expect(nextDay.upcomingEquipmentInspections.map(({ record }) => record.id))
+    .toEqual(["middle", "last", "beyond"]);
+  expect(nextDay.equipment.some(({record}) => record.id === "first")).toBe(true);
+});
+
+it("uses seven calendar days across DST and leap day for future inspections", () => {
+  const snapshot = {
+    organizationId: org,
+    records: [
+      record("equipment", "leap", { name: "Leap tool" }),
+      record("equipment", "edge", { name: "Edge tool" }),
+      record("equipment", "outside", { name: "Outside tool" }),
+    ],
+    equipmentStates: [
+      equipmentState("leap", "Serviceable", "2028-02-29"),
+      equipmentState("edge", "Serviceable", "2028-03-04"),
+      equipmentState("outside", "Serviceable", "2028-03-05"),
+    ],
+  };
+  const result = summarizeDailyOperations(snapshot, "America/Los_Angeles", "2028-02-26");
+  expect(result.upcomingEquipmentInspections.map(({record}) => record.id))
+    .toEqual(["leap", "edge"]);
+  const fall = summarizeDailyOperations({
+    organizationId: org,
+    records: [record("equipment", "fall", { name: "Fall asset" })],
+    equipmentStates: [equipmentState("fall", "Serviceable", "2026-11-02")],
+  }, "America/Los_Angeles", "2026-10-31");
+  expect(fall.upcomingEquipmentInspections.map(({due}) => due))
+    .toEqual(["2026-11-02"]);
+});

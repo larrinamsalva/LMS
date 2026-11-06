@@ -277,3 +277,22 @@ changes, schedules appointments or sends notifications. The original daily
 and seven-day CSV files remain unchanged and exclude undated work. Values
 reuse the existing CSV quoting and spreadsheet-formula protections. In the
 no-login public demo, all records are fictional.
+
+### Upcoming equipment inspections (PR #52)
+
+When **Equipment & Tools** is enabled, Daily Operations displays
+**Equipment inspections coming up** and the **Inspections next 7 days** count
+for serviceable assets with a saved `next inspection` date on the following
+seven **business-local calendar days**. It includes the seventh day and
+excludes today, overdue dates, retired/non-serviceable equipment, archived
+assets and other businesses' equipment. Today's overdue inspections and
+problem conditions remain in **Equipment to review** rather than being
+duplicated into this future-only list.
+
+Results are ordered by inspection date and then asset name; **Show more /
+Show fewer** handles longer lists. **Find this equipment** opens the exact
+asset using the existing business-validated read-only handoff. Merely viewing
+the section never records a service, changes equipment condition, authorizes
+checkout, schedules maintenance, or sends reminders. It is a planning preview,
+not a confirmation that an asset is safe or available to use. The daily,
+seven-day and undated CSV downloads are unchanged.

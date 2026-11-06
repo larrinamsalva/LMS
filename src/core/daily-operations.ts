@@ -6,6 +6,7 @@ import { instant } from "./time";
 export type DailySource = Pick<WorkspaceSnapshot, "organizationId" | "records" | "equipmentStates">;
 export interface DueWork { record: WorkspaceRecord; due: string }
 export interface EquipmentAttention { record: WorkspaceRecord; reason: string }
+export interface UpcomingEquipmentInspection { record: WorkspaceRecord; due: string }
 
 export function summarizeDailyOperations(snapshot: DailySource, zone: string, date: string) {
   // Local calendar days can have 23 or 25 hours during daylight-saving changes.
@@ -95,6 +96,24 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
     .sort((a, b) =>
       String(a.record.data.name).localeCompare(String(b.record.data.name)),
     );
+  // Look ahead only for serviceable assets with a saved next-inspection date.
+  // Current/overdue conditions remain in "Equipment to review" instead.
+  const upcomingEquipmentInspections = snapshot.equipmentStates
+    .filter((state) => state.organization_id === snapshot.organizationId)
+    .flatMap((state): UpcomingEquipmentInspection[] => {
+      const record = records.find(
+        (r) => r.entity === "equipment" && r.id === state.record_id,
+      );
+      if (!record || state.condition !== "Serviceable" || !state.next_inspection)
+        return [];
+      const due = String(state.next_inspection).slice(0, 10);
+      return due > date && due <= upcomingThrough ? [{ record, due }] : [];
+    })
+    .sort((a, b) =>
+      a.due.localeCompare(b.due) ||
+      String(a.record.data.name).localeCompare(String(b.record.data.name)) ||
+      a.record.id.localeCompare(b.record.id),
+    );
   return {
     date,
     appointments,
@@ -107,5 +126,6 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
     ),
     upcomingThrough,
     equipment,
+    upcomingEquipmentInspections,
   };
 }
