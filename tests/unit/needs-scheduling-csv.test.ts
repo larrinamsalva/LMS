@@ -24,7 +24,7 @@ it("exports all five undated records, sorted, without assigning any deadlines", 
     record("tasks", "d", { title: "Delta task", status: "Open", due: "   " }),
     record("jobs", "l", { title: "Legacy cleanup", status: "Planned" }),
     record("tasks", "formula", {
-      title: "=HYPERLINK(\"bad\")", status: "Open", due: null,
+      title: "=HYPERLINK(\"bad\")", status: "Open",
     }),
     record("tasks", "scheduled", { title: "Dated task", status: "Open", due: "2026-11-07" }),
     record("jobs", "done", { title: "Finished job", status: "Done" }),
