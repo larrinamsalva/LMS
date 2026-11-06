@@ -222,9 +222,12 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await dailyLoad.getByRole("button", { name: /^Review 2026-11-09:/ }).click();
   await expect(operations.getByLabel("Operations date", { exact: true }))
     .toHaveValue("2026-11-09");
-  await expect(operations.getByRole("region", {
-    name: "Unfinished work due or overdue", exact: true,
-  })).toContainText("Fictional upcoming window clean");
+  // The drill-down respects the existing first-four pagination; reveal
+  // later rows before asserting the future job is visible on its due day.
+  await expect(dueWork.getByText(/^Showing 4 of \d+ work items$/)).toBeVisible();
+  await dueWork.getByRole("button", { name: /^Show \d+ more work items$/ }).click();
+  await expect(dueWork).toContainText("Fictional upcoming window clean");
+  await expect(dueWork).toContainText("Due on date · 2026-11-09");
   await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
   await expect(futureWork).toContainText("Fictional upcoming window clean");
   // Future work can be opened by its exact record ID without an edit.
