@@ -1769,3 +1769,18 @@ legend {
 @media (max-width: 640px) {
   .daily-day-controls button { flex: 1 1 9rem; }
 }
+
+/* Local-only Daily Operations CSV export, no external service. */
+.daily-export {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  min-width: 0;
+  margin: 8px 0 16px;
+}
+.daily-export button { max-width: 100%; min-height: 44px; white-space: normal; }
+.daily-export p { flex: 1 1 20rem; margin: 0; font-size: 12px; }
+@media (max-width: 640px) {
+  .daily-export button { width: 100%; }
+}
