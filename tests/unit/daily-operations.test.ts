@@ -141,3 +141,51 @@ it("keeps similarly titled appointments distinct by ID and excludes foreign, arc
   }, "America/Los_Angeles", "2026-11-06");
   expect(overview.appointments.map((record) => record.id)).toEqual(["first", "second"]);
 });
+
+it("previews only unfinished work due in the following seven calendar days", () => {
+  const records = [
+    record("jobs", "today", { title: "Today", date: "2026-11-05", status: "Planned" }),
+    record("tasks", "first", { title: "First upcoming", due: "2026-11-06", status: "Open" }),
+    record("jobs", "middle", { title: "Middle upcoming", date: "2026-11-09", status: "In progress" }),
+    record("tasks", "seventh", { title: "Seventh day", due: "2026-11-12", status: "Open" }),
+    record("tasks", "eighth", { title: "Eighth day", due: "2026-11-13", status: "Open" }),
+    record("jobs", "overdue", { title: "Overdue", date: "2026-11-04", status: "Planned" }),
+    record("jobs", "done", { title: "Completed", date: "2026-11-06", status: "Done" }),
+    record("tasks", "cancel", { title: "Cancelled", due: "2026-11-07", status: "Cancelled" }),
+    record("tasks", "undated", { title: "Unscheduled", status: "Open" }),
+    record("tasks", "archived", { title: "Archived", due: "2026-11-06", status: "Open" }, true),
+    record("tasks", "foreign", { title: "Other business", due: "2026-11-06", status: "Open" }, false, "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+  ];
+  const summary = summarizeDailyOperations(
+    { organizationId: org, records, equipmentStates: [] },
+    "America/Los_Angeles", "2026-11-05",
+  );
+  expect(summary.upcomingThrough).toBe("2026-11-12");
+  expect(summary.upcoming.map(({ record }) => record.id)).toEqual([
+    "first", "middle", "seventh",
+  ]);
+  expect(summary.dueToday.map(({ record }) => record.id)).toEqual(["today"]);
+  expect(summary.overdue.map(({ record }) => record.id)).toEqual(["overdue"]);
+});
+
+it("counts calendar dates across leap days and DST without overlapping today", () => {
+  const records = [
+    record("tasks", "leap", { title: "Leap day work", status: "Open", due: "2028-02-29" }),
+    record("tasks", "edge", { title: "Last included", status: "Open", due: "2028-03-04" }),
+    record("tasks", "beyond", { title: "Out of range", status: "Open", due: "2028-03-05" }),
+  ];
+  const summary = summarizeDailyOperations(
+    { organizationId: org, records, equipmentStates: [] },
+    "America/Los_Angeles", "2028-02-26",
+  );
+  expect(summary.upcomingThrough).toBe("2028-03-04");
+  expect(summary.upcoming.map(({ record }) => record.id)).toEqual(["leap", "edge"]);
+  const dst = summarizeDailyOperations(
+    { organizationId: org, records: [
+      record("tasks", "after-dst", { title: "After DST", due: "2026-11-03", status: "Open" }),
+    ], equipmentStates: [] },
+    "America/Los_Angeles", "2026-10-31",
+  );
+  expect(dst.upcomingThrough).toBe("2026-11-07");
+  expect(dst.upcoming.map(({ record }) => record.id)).toEqual(["after-dst"]);
+});

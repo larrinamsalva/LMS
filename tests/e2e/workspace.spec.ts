@@ -111,9 +111,27 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
       });
       results.push(response.status);
     }
+    // This uses the same authorized demo session and adds one future job
+    // for the seven-day overview; no new session is allocated.
+    const future = await fetch("/api/demo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "save",
+        organizationId,
+        entity: "jobs",
+        data: {
+          title: "Fictional upcoming window clean",
+          service: "Deep clean",
+          date: "2026-11-09",
+          status: "Planned",
+        },
+      }),
+    });
+    results.push(future.status);
     return results;
   }, orgId);
-  expect(statuses).toEqual([200, 200, 200, 200]);
+  expect(statuses).toEqual([200, 200, 200, 200, 200]);
   await page.reload();
   await page.getByLabel("Business workspace", { exact: true })
     .selectOption({ label: "Cleaning Company" });
@@ -140,6 +158,30 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-05");
   await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
   await expect(dueWork.locator("li")).toHaveCount(4);
+  const futureWork = operations.getByRole("region", {
+    name: "Upcoming work next seven days", exact: true,
+  });
+  await expect(futureWork).toContainText("Fictional upcoming window clean");
+  await expect(futureWork).toContainText("Due 2026-11-09");
+  // Future work can be opened by its exact record ID without an edit.
+  await futureWork.getByRole("button", {
+    name: "Find upcoming Fictional upcoming window clean in cleaning jobs",
+    exact: true,
+  }).click();
+  await expect(page.getByRole("status").filter({
+    hasText: "Showing the specific work record selected in Daily Operations.",
+  })).toBeVisible();
+  await expect(page.getByRole("heading", {
+    name: "Fictional upcoming window clean", exact: true,
+  })).toBeVisible();
+  await page.getByRole("button", {
+    name: "Show all cleaning jobs", exact: true,
+  }).click();
+  // Once its due date is the selected day, it no longer appears as "upcoming".
+  await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-09");
+  await expect(futureWork).not.toContainText("Fictional upcoming window clean");
+  await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
+  await expect(futureWork).toContainText("Fictional upcoming window clean");
   // Calendar shortcuts use the business-local day and reset expanded rows.
   const dayInput = operations.getByLabel("Operations date", { exact: true });
   await operations.getByRole("button", { name: "Previous operations day", exact: true }).click();
@@ -172,6 +214,8 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   expect(download.suggestedFilename()).toBe("lms-daily-operations-2026-11-06.csv");
   const csvText = (await readFile((await download.path())!)).toString("utf8");
   expect(csvText).toContain("Fictional overflow job 4");
+  // The selected-day CSV stays daily-only; upcoming work is not silently added.
+  expect(csvText).not.toContain("Fictional upcoming window clean");
   expect(csvText).toContain("Fictional kitchen clean");
   expect(csvText).not.toContain("Taylor Edited");
   expect(csvText).toContain("America/Los_Angeles");

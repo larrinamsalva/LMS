@@ -10,6 +10,9 @@ export interface EquipmentAttention { record: WorkspaceRecord; reason: string }
 export function summarizeDailyOperations(snapshot: DailySource, zone: string, date: string) {
   // Local calendar days can have 23 or 25 hours during daylight-saving changes.
   const day = Temporal.PlainDate.from(date);
+  // Dates one through seven after the selected business-local calendar day.
+  // No millisecond/24-hour arithmetic: DST and leap days stay calendar-correct.
+  const upcomingThrough = day.add({ days: 7 }).toString();
   const from = day.toZonedDateTime(zone).epochNanoseconds;
   const until = day.add({ days: 1 }).toZonedDateTime(zone).epochNanoseconds;
   const records = snapshot.records.filter(
@@ -69,6 +72,10 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
     appointments,
     dueToday: unfinished.filter((item) => item.due === date),
     overdue: unfinished.filter((item) => item.due < date),
+    upcoming: unfinished.filter(
+      (item) => item.due > date && item.due <= upcomingThrough,
+    ),
+    upcomingThrough,
     equipment,
   };
 }
