@@ -49,12 +49,23 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
         instant(String(b.data.start)),
       ),
     );
-  const unfinished = records
-    .filter(
-      (r) =>
-        (r.entity === "tasks" || r.entity === "jobs") &&
-        !["Done", "Completed", "Cancelled"].includes(String(r.data.status)),
-    )
+  // Keep work without an assigned date visible, without fabricating a due date.
+  const activeWork = records.filter(
+    (r) =>
+      (r.entity === "tasks" || r.entity === "jobs") &&
+      !["Done", "Completed", "Cancelled"].includes(String(r.data.status)),
+  );
+  const needsScheduling = activeWork
+    .filter((record) => {
+      const value = record.entity === "jobs" ? record.data.date : record.data.due;
+      return value === null || value === undefined ||
+        (typeof value === "string" && value.trim() === "");
+    })
+    .sort((a, b) =>
+      String(a.data.title).localeCompare(String(b.data.title)) ||
+      a.id.localeCompare(b.id),
+    );
+  const unfinished = activeWork
     .flatMap((record): DueWork[] => {
       const value = record.entity === "jobs" ? record.data.date : record.data.due;
       // Do not invent deadlines for work that has no due date.
@@ -90,6 +101,7 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
     upcomingAppointments,
     dueToday: unfinished.filter((item) => item.due === date),
     overdue: unfinished.filter((item) => item.due < date),
+    needsScheduling,
     upcoming: unfinished.filter(
       (item) => item.due > date && item.due <= upcomingThrough,
     ),

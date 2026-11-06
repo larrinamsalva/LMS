@@ -255,3 +255,29 @@ it("handles spring-forward next-week appointment starts using local day boundari
   );
   expect(result.upcomingAppointments.map((r) => r.id)).toEqual(["spring", "seventh"]);
 });
+ 
+it("surfaces date-free active tasks without assigning deadlines or mixing them into dated views", () => {
+  const records = [
+    record("tasks", "zulu", { title: "Zulu task", status: "Open" }),
+    record("tasks", "alpha", { title: "Alpha task", status: "In progress", due: "" }),
+    record("tasks", "spaces", { title: "Spaces task", status: "Open", due: "   " }),
+    record("jobs", "legacy", { title: "Legacy job", status: "Planned" }),
+    record("tasks", "dated", { title: "Dated task", due: "2026-11-06", status: "Open" }),
+    record("tasks", "finished", { title: "Finished task", status: "Done" }),
+    record("tasks", "cancelled", { title: "Cancelled task", status: "Cancelled" }),
+    record("tasks", "archived", { title: "Archived task", status: "Open" }, true),
+    record("tasks", "foreign", { title: "Foreign task", status: "Open" }, false,
+      "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+  ];
+  const snap = { organizationId: org, records, equipmentStates: [] };
+  const result = summarizeDailyOperations(snap, "America/Los_Angeles", "2026-11-05");
+  expect(result.needsScheduling.map((r) => r.id))
+    .toEqual(["alpha", "legacy", "spaces", "zulu"]);
+  expect(result.dueToday).toEqual([]);
+  expect(result.overdue).toEqual([]);
+  expect(result.upcoming.map(({ record }) => record.id)).toEqual(["dated"]);
+  const later = summarizeDailyOperations(snap, "America/Los_Angeles", "2026-11-07");
+  expect(later.needsScheduling.map((r) => r.id))
+    .toEqual(["alpha", "legacy", "spaces", "zulu"]);
+  expect(later.overdue.map(({ record }) => record.id)).toEqual(["dated"]);
+});
