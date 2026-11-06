@@ -283,7 +283,7 @@ export function DailyOperations({
                       <button
                         type="button"
                         className="quiet"
-                        aria-label={\`Find upcoming \${String(record.data.title)} in \${record.entity === "jobs" ? "cleaning jobs" : "tasks"}\`}
+                        aria-label={`Find upcoming ${String(record.data.title)} in ${record.entity === "jobs" ? "cleaning jobs" : "tasks"}`}
                         onClick={() => onWork(record)}
                       >
                         Find this work
