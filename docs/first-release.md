@@ -168,3 +168,23 @@ recalculates the business-local date when pressed. Previous and Next become
 unavailable at the existing 2020–2100 date-picker bounds. You can still enter
 a date directly, and any date change restores each list to its first four
 items. No dates are written back to appointments, jobs or equipment records.
+
+### Download a local daily plan (PR #46)
+
+The **Download daily plan CSV** button exports the **selected business-local
+date** from the authorized fictional workspace into a file suitable for
+opening in spreadsheet apps. It includes all matching non-cancelled
+appointments, all unfinished due/overdue jobs and tasks, and relevant equipment
+condition/inspection warnings if Equipment & Tools is enabled. The export
+includes every matching item, even when the on-screen lists show only four,
+and labels all rows with the business time zone. It omits customers' contact
+details, private notes, payroll, invoices and payments.
+
+The file is generated **locally in the browser**; no background job, external
+service, API endpoint, new demo session or data write is involved. All values
+are CSV-quoted and spreadsheet-formula prefixes are escaped to prevent a
+record title from being evaluated as a formula. As with any download, keep
+the resulting file in a suitable location. A draft, report or export is **not**
+an invoice, legal notice, confirmation of booking availability or equipment
+checkout authorization. No actual business data is included in the public
+fictional demo.

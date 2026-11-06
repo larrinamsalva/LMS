@@ -3,6 +3,7 @@ import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
+import { dailyOperationsCsv } from "../core/daily-operations-csv";
 import {
   adjacentOperationsDate,
   operationsToday,
@@ -94,6 +95,19 @@ export function DailyOperations({
   const equipmentEnabled = workspace.config.document.modules.some(
     (module) => module.id === "equipment",
   );
+  function downloadDailyPlan() {
+    // Build only from the current business's authorized in-memory summary.
+    // No API calls, record mutations, or separate demo sessions are involved.
+    if (!summary) return;
+    const csv = dailyOperationsCsv(summary, zone, equipmentEnabled);
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `lms-daily-operations-${summary.date}.csv`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   return (
     <section className="panel daily-operations" aria-label="Daily operations">
       <div className="section-heading daily-heading">
@@ -139,6 +153,20 @@ export function DailyOperations({
         >
           Next day
         </button>
+      </div>
+      <div className="daily-export">
+        <button
+          className="secondary"
+          type="button"
+          disabled={!summary}
+          onClick={downloadDailyPlan}
+        >
+          Download daily plan CSV
+        </button>
+        <p className="muted">
+          Downloads all matching fictional records for this date, including
+          items beyond the first four. No contact details, notes or financial data.
+        </p>
       </div>
       <p className="muted">
         Times and due dates use the business time zone ({zone}). Counts reflect

@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { readFile } from "node:fs/promises";
 async function start(page: Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "Explore the working demo" }).click();
@@ -160,6 +161,24 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await dayInput.fill("2020-01-02");
   await operations.getByRole("button", { name: "Today in business time zone", exact: true }).click();
   await expect(dayInput).toHaveValue(businessToday);
+  await dayInput.fill("2026-11-06");
+  // Export all organization-scoped work rows, including ones beyond the first
+  // four, without creating a new session or sending data to another service.
+  const savedDownload = page.waitForEvent("download");
+  await operations.getByRole("button", {
+    name: "Download daily plan CSV", exact: true,
+  }).click();
+  const download = await savedDownload;
+  expect(download.suggestedFilename()).toBe("lms-daily-operations-2026-11-06.csv");
+  const csvText = (await readFile((await download.path())!)).toString("utf8");
+  expect(csvText).toContain("Fictional overflow job 4");
+  expect(csvText).toContain("Fictional kitchen clean");
+  expect(csvText).not.toContain("Taylor Edited");
+  expect(csvText).toContain("America/Los_Angeles");
+  await dayInput.fill("");
+  await expect(operations.getByRole("button", {
+    name: "Download daily plan CSV", exact: true,
+  })).toBeDisabled();
   await dayInput.fill("2026-11-06");
   // Focus the exact work record without opening an editor or writing data.
   await operations.getByRole("button", {
