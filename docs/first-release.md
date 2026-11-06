@@ -224,3 +224,22 @@ outlook. Archived/cancelled bookings and other organizations' records are
 excluded. The Daily Plan CSV remains intentionally scoped to the selected
 day, not the coming week. Viewing this outlook makes no booking or
 reservation changes and does not predict availability.
+
+### Download seven-day outlook CSV (PR #49)
+
+**Download seven-day outlook CSV** saves a separate, read-only spreadsheet file
+for the **seven business-local calendar dates after** the selected Daily
+Operations date (days +1 through +7, inclusive). It includes every upcoming
+non-cancelled appointment and unfinished dated job/task from the current
+authorized business, even items currently hidden behind **Show more**. Rows
+are sorted by business-local date/time; jobs/tasks with no appointment time
+appear before timed bookings on the same day. The filename specifies the
+selected date and last included date.
+
+The original **Download daily plan CSV** remains a distinct download for the
+selected date, overdue work and relevant equipment alerts. Neither download
+changes bookings, assignments, records or availability. Both files are built
+locally in the browser, contain no contact details, financial amounts or
+notes, and use the existing spreadsheet-safe CSV escaping. The public demo
+contains fictional records only; treat downloaded files as sensitive if used
+with a real workspace.
