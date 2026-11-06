@@ -1,6 +1,6 @@
 import type { summarizeDailyOperations } from "./daily-operations";
 import { csvSafeCell } from "./daily-operations-csv";
-import { displayTime, localDate, localTime } from "./time";
+import { displayTime, localTime } from "./time";
 
 type Outlook = ReturnType<typeof summarizeDailyOperations>;
 
