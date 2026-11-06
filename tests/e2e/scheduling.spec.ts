@@ -158,6 +158,25 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
     const card = page.getByRole("article", { name: title, exact: true });
     await expect(card).toBeVisible();
+    // Verify the seven-day appointment outlook from the previous business day
+    // using this existing demo session, then hand off the actual start date.
+    await page.getByRole("button", {
+      name: industry === "cleaning" ? /^Cleaning jobs/ : /^(Maintenance requests|Tasks)/,
+    }).click();
+    const futureOverview = page.getByRole("region", {
+      name: "Daily operations", exact: true,
+    });
+    await futureOverview.getByLabel("Operations date", { exact: true }).fill("2026-11-05");
+    const futureAppointments = futureOverview.getByRole("region", {
+      name: "Upcoming appointments next seven days", exact: true,
+    });
+    await expect(futureAppointments).toContainText(title);
+    await futureAppointments.getByRole("button", {
+      name: `Find upcoming appointment ${title}`, exact: true,
+    }).click();
+    await expect(page.getByLabel("Schedule date", { exact: true })).toHaveValue("2026-11-06");
+    await expect(page.getByRole("article", { name: title, exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Show all appointments", exact: true }).click();
     // Exercise the exact appointment link in this existing fictional session.
     await page.getByRole("button", {
       name: industry === "cleaning" ? /^Cleaning jobs/ : /^(Maintenance requests|Tasks)/,

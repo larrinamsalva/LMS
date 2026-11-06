@@ -15,6 +15,9 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
   const upcomingThrough = day.add({ days: 7 }).toString();
   const from = day.toZonedDateTime(zone).epochNanoseconds;
   const until = day.add({ days: 1 }).toZonedDateTime(zone).epochNanoseconds;
+  // Upcoming starts the next local midnight and ends at midnight on day +8.
+  // This includes starts on day +7 even across DST transitions.
+  const upcomingEnd = day.add({ days: 8 }).toZonedDateTime(zone).epochNanoseconds;
   const records = snapshot.records.filter(
     (r) => r.organization_id === snapshot.organizationId && !r.archived,
   );
@@ -25,6 +28,20 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
         r.data.status !== "Cancelled" &&
         instant(String(r.data.start)).epochNanoseconds < until &&
         instant(String(r.data.end)).epochNanoseconds > from,
+    )
+    .sort((a, b) =>
+      Temporal.Instant.compare(
+        instant(String(a.data.start)),
+        instant(String(b.data.start)),
+      ),
+    );
+  const upcomingAppointments = records
+    .filter(
+      (r) =>
+        r.entity === "appointments" &&
+        r.data.status !== "Cancelled" &&
+        instant(String(r.data.start)).epochNanoseconds >= until &&
+        instant(String(r.data.start)).epochNanoseconds < upcomingEnd,
     )
     .sort((a, b) =>
       Temporal.Instant.compare(
@@ -70,6 +87,7 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
   return {
     date,
     appointments,
+    upcomingAppointments,
     dueToday: unfinished.filter((item) => item.due === date),
     overdue: unfinished.filter((item) => item.due < date),
     upcoming: unfinished.filter(

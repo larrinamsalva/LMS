@@ -12,9 +12,10 @@ import {
 } from "../core/daily-operations-dates";
 
 
-type OverviewKind = "appointments" | "work" | "upcoming" | "equipment";
+type OverviewKind = "appointments" | "futureAppointments" | "work" | "upcoming" | "equipment";
 const initialVisible = (): Record<OverviewKind, number> => ({
   appointments: DAILY_OPERATIONS_PAGE_SIZE,
+  futureAppointments: DAILY_OPERATIONS_PAGE_SIZE,
   work: DAILY_OPERATIONS_PAGE_SIZE,
   upcoming: DAILY_OPERATIONS_PAGE_SIZE,
   equipment: DAILY_OPERATIONS_PAGE_SIZE,
@@ -231,6 +232,57 @@ export function DailyOperations({
               ) : (
                 <p className="muted">Enable Scheduling in BuildPlan Studio to use the calendar.</p>
               )}
+            </section>
+            <section aria-label="Upcoming appointments next seven days">
+              <h3>Coming up · appointments</h3>
+              <p className="muted">
+                Starts after {date} through {summary.upcomingThrough} ·{" "}
+                {summary.upcomingAppointments.length}{" "}
+                {summary.upcomingAppointments.length === 1 ? "appointment" : "appointments"}
+              </p>
+              {summary.upcomingAppointments.length ? (
+                <ul>
+                  {summary.upcomingAppointments.slice(
+                    0, dailyPage(
+                      summary.upcomingAppointments.length, visible.futureAppointments,
+                    ).visible,
+                  ).map((item) => {
+                    const startDate = localDate(String(item.data.start), zone);
+                    return (
+                      <li key={item.id}>
+                        <strong>{String(item.data.title)}</strong>
+                        <span className="muted">
+                          {displayTime(String(item.data.start), zone)} · {String(item.data.status)}
+                        </span>
+                        {workspace.config.document.modules.some(
+                          (module) => module.id === "scheduling",
+                        ) && (
+                          <button
+                            type="button"
+                            className="quiet"
+                            aria-label={`Find upcoming appointment ${String(item.data.title)}`}
+                            onClick={() => onAppointment(item, startDate)}
+                          >
+                            Find this appointment
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="muted">No appointments start in the following seven days.</p>
+              )}
+              <DailyMore
+                total={summary.upcomingAppointments.length}
+                requested={visible.futureAppointments}
+                kind="futureAppointments"
+                label="upcoming appointments"
+                onMore={() => showMore(
+                  "futureAppointments", summary.upcomingAppointments.length,
+                )}
+                onFewer={() => showFewer("futureAppointments")}
+              />
             </section>
             <section aria-label="Unfinished work due or overdue">
               <h3>Work to review</h3>
