@@ -129,9 +129,25 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
       }),
     });
     results.push(future.status);
+    // An intentionally undated task stays visible in Needs scheduling, not
+    // the selected-day or upcoming schedule. Same demo session and workspace.
+    const undated = await fetch("/api/demo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "save",
+        organizationId,
+        entity: "tasks",
+        data: {
+          title: "Fictional inspect filters",
+          status: "Open",
+        },
+      }),
+    });
+    results.push(undated.status);
     return results;
   }, orgId);
-  expect(statuses).toEqual([200, 200, 200, 200, 200]);
+  expect(statuses).toEqual([200, 200, 200, 200, 200, 200]);
   await page.reload();
   await page.getByLabel("Business workspace", { exact: true })
     .selectOption({ label: "Cleaning Company" });
@@ -139,6 +155,23 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   // Reuse the existing session rather than adding a new one (24-slot demo limit).
   const operations = page.getByRole("region", { name: "Daily operations" });
   await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
+  const undatedQueue = operations.getByRole("region", {
+    name: "Undated work needing scheduling", exact: true,
+  });
+  await expect(undatedQueue).toContainText("Fictional inspect filters");
+  await expect(operations.getByText("Work needing a date")).toBeVisible();
+  await expect(undatedQueue).toContainText("No due date");
+  await undatedQueue.getByRole("button", {
+    name: "Find undated Fictional inspect filters in tasks", exact: true,
+  }).click();
+  await expect(page.getByRole("status").filter({
+    hasText: "Showing the specific work record selected in Daily Operations.",
+  })).toBeVisible();
+  await expect(page.getByRole("heading", {
+    name: "Fictional inspect filters", exact: true,
+  })).toBeVisible();
+  await page.getByRole("button", { name: "Show all tasks", exact: true }).click();
+  await page.getByRole("button", { name: /^Cleaning jobs/ }).click();
   await expect(
     operations.getByRole("region", { name: "Unfinished work due or overdue" }),
   ).toContainText("Fictional kitchen clean");
@@ -216,6 +249,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   expect(csvText).toContain("Fictional overflow job 4");
   // The selected-day CSV stays daily-only; upcoming work is not silently added.
   expect(csvText).not.toContain("Fictional upcoming window clean");
+  expect(csvText).not.toContain("Fictional inspect filters");
   expect(csvText).toContain("Fictional kitchen clean");
   expect(csvText).not.toContain("Taylor Edited");
   expect(csvText).toContain("America/Los_Angeles");
@@ -231,6 +265,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   );
   const weeklyCsv = (await readFile((await weekly.path())!)).toString("utf8");
   expect(weeklyCsv).toContain("Fictional upcoming window clean");
+  expect(weeklyCsv).not.toContain("Fictional inspect filters");
   expect(weeklyCsv).not.toContain("Fictional kitchen clean");
   expect(weeklyCsv).not.toContain("Fictional overflow job 4");
   expect(weeklyCsv).toContain("America/Los_Angeles");

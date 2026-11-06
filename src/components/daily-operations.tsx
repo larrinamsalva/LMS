@@ -13,12 +13,13 @@ import {
 } from "../core/daily-operations-dates";
 
 
-type OverviewKind = "appointments" | "futureAppointments" | "work" | "upcoming" | "equipment";
+type OverviewKind = "appointments" | "futureAppointments" | "work" | "upcoming" | "undated" | "equipment";
 const initialVisible = (): Record<OverviewKind, number> => ({
   appointments: DAILY_OPERATIONS_PAGE_SIZE,
   futureAppointments: DAILY_OPERATIONS_PAGE_SIZE,
   work: DAILY_OPERATIONS_PAGE_SIZE,
   upcoming: DAILY_OPERATIONS_PAGE_SIZE,
+  undated: DAILY_OPERATIONS_PAGE_SIZE,
   equipment: DAILY_OPERATIONS_PAGE_SIZE,
 });
 
@@ -204,6 +205,7 @@ export function DailyOperations({
             <div><span className="metric-label">Appointments on date</span><strong>{summary.appointments.length}</strong></div>
             <div><span className="metric-label">Work due on date</span><strong>{summary.dueToday.length}</strong></div>
             <div><span className="metric-label">Overdue unfinished work</span><strong>{summary.overdue.length}</strong></div>
+            <div><span className="metric-label">Work needing a date</span><strong>{summary.needsScheduling.length}</strong></div>
             {equipmentEnabled && (
               <div><span className="metric-label">Equipment attention</span><strong>{summary.equipment.length}</strong></div>
             )}
@@ -377,6 +379,53 @@ export function DailyOperations({
                 label="upcoming work items"
                 onMore={() => showMore("upcoming", summary.upcoming.length)}
                 onFewer={() => showFewer("upcoming")}
+              />
+            </section>
+            <section aria-label="Undated work needing scheduling">
+              <h3>Needs scheduling</h3>
+              <p className="muted">
+                {summary.needsScheduling.length} unfinished{" "}
+                {summary.needsScheduling.length === 1 ? "task or job" : "tasks or jobs"}{" "}
+                without a due date. No deadline has been assumed.
+              </p>
+              {summary.needsScheduling.length ? (
+                <ul>
+                  {summary.needsScheduling.slice(
+                    0, dailyPage(
+                      summary.needsScheduling.length, visible.undated,
+                    ).visible,
+                  ).map((record) => (
+                    <li key={record.id}>
+                      <strong>{String(record.data.title)}</strong>
+                      <span className="muted">
+                        No due date · {String(record.data.status)}
+                      </span>
+                      <button
+                        type="button"
+                        className="quiet"
+                        aria-label={
+                          "Find undated " + String(record.data.title) +
+                          " in " + (record.entity === "jobs" ? "cleaning jobs" : "tasks")
+                        }
+                        onClick={() => onWork(record)}
+                      >
+                        Find this work
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">
+                  No unfinished tasks or jobs missing a due date.
+                </p>
+              )}
+              <DailyMore
+                total={summary.needsScheduling.length}
+                requested={visible.undated}
+                kind="undated"
+                label="undated work items"
+                onMore={() => showMore("undated", summary.needsScheduling.length)}
+                onFewer={() => showFewer("undated")}
               />
             </section>
             {equipmentEnabled && (

@@ -243,3 +243,20 @@ locally in the browser, contain no contact details, financial amounts or
 notes, and use the existing spreadsheet-safe CSV escaping. The public demo
 contains fictional records only; treat downloaded files as sensitive if used
 with a real workspace.
+
+### Find unfinished work without a due date (PR #50)
+
+**Needs scheduling** is a separate Daily Operations section for unfinished
+tasks or jobs in the current authorized business that have **no saved due
+date**. It does not infer or assign a deadline and will not place those items
+in today's overdue/due list or in the seven-day forecast. The section provides
+a total count, expandable **Show more / Show fewer** list and **Find this
+work** links to the exact task/job record, where a permitted user can review
+the details and separately decide whether to add a due date.
+
+Completed/cancelled, archived and cross-business records are excluded. This
+undated queue is a planning observation, not a booking or a due-date
+recommendation, and is not silently included in either the existing
+selected-day CSV or seven-day outlook CSV. The display is read-only, is
+responsive on phones/tablets, and uses the fictional data already present
+in the public demo.
