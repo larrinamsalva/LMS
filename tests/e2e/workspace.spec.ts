@@ -219,9 +219,27 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   expect(csvText).toContain("Fictional kitchen clean");
   expect(csvText).not.toContain("Taylor Edited");
   expect(csvText).toContain("America/Los_Angeles");
+  // Separate weekly download includes future work but not the selected day's
+  // jobs or the older overdue work. Reuse the same demo session.
+  const weeklyPending = page.waitForEvent("download");
+  await operations.getByRole("button", {
+    name: "Download seven-day outlook CSV", exact: true,
+  }).click();
+  const weekly = await weeklyPending;
+  expect(weekly.suggestedFilename()).toBe(
+    "lms-seven-day-outlook-2026-11-06-through-2026-11-13.csv",
+  );
+  const weeklyCsv = (await readFile((await weekly.path())!)).toString("utf8");
+  expect(weeklyCsv).toContain("Fictional upcoming window clean");
+  expect(weeklyCsv).not.toContain("Fictional kitchen clean");
+  expect(weeklyCsv).not.toContain("Fictional overflow job 4");
+  expect(weeklyCsv).toContain("America/Los_Angeles");
   await dayInput.fill("");
   await expect(operations.getByRole("button", {
     name: "Download daily plan CSV", exact: true,
+  })).toBeDisabled();
+  await expect(operations.getByRole("button", {
+    name: "Download seven-day outlook CSV", exact: true,
   })).toBeDisabled();
   await dayInput.fill("2026-11-06");
   // Focus the exact work record without opening an editor or writing data.

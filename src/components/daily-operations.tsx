@@ -4,6 +4,7 @@ import { summarizeDailyOperations } from "../core/daily-operations";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
+import { sevenDayOutlookCsv } from "../core/seven-day-outlook-csv";
 import {
   adjacentOperationsDate,
   operationsToday,
@@ -110,6 +111,18 @@ export function DailyOperations({
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
+  function downloadSevenDayOutlook() {
+    if (!summary) return;
+    const csv = sevenDayOutlookCsv(summary, zone);
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-seven-day-outlook-" + summary.date +
+      "-through-" + summary.upcomingThrough + ".csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   return (
     <section className="panel daily-operations" aria-label="Daily operations">
       <div className="section-heading daily-heading">
@@ -165,9 +178,18 @@ export function DailyOperations({
         >
           Download daily plan CSV
         </button>
+        <button
+          className="secondary"
+          type="button"
+          disabled={!summary}
+          onClick={downloadSevenDayOutlook}
+        >
+          Download seven-day outlook CSV
+        </button>
         <p className="muted">
-          Downloads all matching fictional records for this date, including
-          items beyond the first four. No contact details, notes or financial data.
+          Daily plan: selected day. Seven-day outlook: upcoming appointments,
+          jobs and tasks only. Includes all matching fictional records, never
+          customer contact details, notes or financial data.
         </p>
       </div>
       <p className="muted">
