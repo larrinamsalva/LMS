@@ -6,6 +6,7 @@ import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
 import { sevenDayOutlookCsv } from "../core/seven-day-outlook-csv";
 import { needsSchedulingCsv } from "../core/needs-scheduling-csv";
+import { upcomingInspectionsCsv } from "../core/upcoming-equipment-inspections-csv";
 import {
   adjacentOperationsDate,
   operationsToday,
@@ -122,6 +123,18 @@ export function DailyOperations({
     const link = document.createElement("a");
     link.href = url;
     link.download = "lms-needs-scheduling-reviewed-" + summary.date + ".csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function downloadUpcomingInspections() {
+    if (!summary || !equipmentEnabled) return;
+    const csv = upcomingInspectionsCsv(summary, zone);
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-upcoming-inspections-" + summary.date +
+      "-through-" + summary.upcomingThrough + ".csv";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -538,6 +551,13 @@ export function DailyOperations({
                   )}
                   onFewer={() => showFewer("inspections")}
                 />
+                <button
+                  className="secondary"
+                  type="button"
+                  onClick={downloadUpcomingInspections}
+                >
+                  Download upcoming inspections CSV
+                </button>
               </section>
             )}
           </div>

@@ -296,3 +296,21 @@ the section never records a service, changes equipment condition, authorizes
 checkout, schedules maintenance, or sends reminders. It is a planning preview,
 not a confirmation that an asset is safe or available to use. The daily,
 seven-day and undated CSV downloads are unchanged.
+
+### Download the upcoming equipment inspection list (PR #53)
+
+Within **Equipment inspections coming up**, choose **Download upcoming
+inspections CSV** to save the entire list of current-business, serviceable
+assets with a recorded next-inspection date in the following **seven
+business-local calendar days**. It includes items beyond the first four
+visible on screen, along with the saved business equipment ID, next-inspection
+date, recorded condition, business time zone and the selected review window.
+It omits contacts, serial numbers, private notes and equipment purchase costs.
+
+This download is separate from the daily, seven-day work and undated-work
+CSVs. It is created locally in the browser using the existing formula-safe
+spreadsheet escaping; no API request, equipment checkout, service command or
+record write is performed. If there are no upcoming inspections, the exported
+file contains only column headings. The report is a read-only planning
+snapshot and **does not certify that equipment is safe for use**, or
+automatically schedule or confirm an inspection.

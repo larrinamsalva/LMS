@@ -281,6 +281,22 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
     "No saved equipment inspections due in the next seven days.",
   );
   await expect(dailyEquipment.getByText("Inspections next 7 days")).toBeVisible();
+  // The download remains useful as a header-only checklist when no future
+  // inspection has been scheduled. Reuse this existing preview session.
+  await dailyEquipment.getByLabel("Operations date", { exact: true }).fill("2026-11-05");
+  const downloadPending = equipmentPreview.waitForEvent("download");
+  await upcomingInspections.getByRole("button", {
+    name: "Download upcoming inspections CSV", exact: true,
+  }).click();
+  const downloaded = await downloadPending;
+  expect(downloaded.suggestedFilename()).toBe(
+    "lms-upcoming-inspections-2026-11-05-through-2026-11-12.csv",
+  );
+  const inspectionCsv = (await readFile((await downloaded.path())!)).toString("utf8");
+  expect(inspectionCsv).toContain("Next inspection date");
+  expect(inspectionCsv).not.toContain("Fictional scrubber");
+  expect(inspectionCsv).not.toContain("Fictional polisher");
+  expect(inspectionCsv.trim().split("\r\n")).toHaveLength(1);
   await expect(warnings).toContainText("Fictional scrubber");
   await expect(warnings).toContainText("Fictional polisher");
   await warnings.getByRole("button", { name: "Find equipment Fictional scrubber", exact: true }).click();
