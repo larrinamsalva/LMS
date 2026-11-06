@@ -189,3 +189,69 @@ it("counts calendar dates across leap days and DST without overlapping today", (
   expect(dst.upcomingThrough).toBe("2026-11-07");
   expect(dst.upcoming.map(({ record }) => record.id)).toEqual(["after-dst"]);
 });
+
+it("lists future appointments starting on days +1 through +7 in business time, separate from current day", () => {
+  const records = [
+    record("appointments", "today", {
+      title: "Today", status: "Scheduled",
+      start: "2026-11-06T06:30:00Z", end: "2026-11-06T08:00:00Z",
+    }),
+    record("appointments", "first", {
+      title: "First future visit", status: "Scheduled",
+      start: "2026-11-06T08:00:00Z", end: "2026-11-06T09:00:00Z",
+    }),
+    record("appointments", "seventh", {
+      title: "Last included visit", status: "Scheduled",
+      start: "2026-11-13T07:30:00Z", end: "2026-11-13T08:00:00Z",
+    }),
+    record("appointments", "eighth", {
+      title: "Too far", status: "Scheduled",
+      start: "2026-11-13T08:00:00Z", end: "2026-11-13T09:00:00Z",
+    }),
+    record("appointments", "cancelled", {
+      title: "Cancelled", status: "Cancelled",
+      start: "2026-11-09T18:00:00Z", end: "2026-11-09T19:00:00Z",
+    }),
+    record("appointments", "archived", {
+      title: "Archived", status: "Scheduled",
+      start: "2026-11-09T18:00:00Z", end: "2026-11-09T19:00:00Z",
+    }, true),
+    record("appointments", "foreign", {
+      title: "Different business", status: "Scheduled",
+      start: "2026-11-09T18:00:00Z", end: "2026-11-09T19:00:00Z",
+    }, false, "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"),
+  ];
+  const result = summarizeDailyOperations(
+    { organizationId: org, records, equipmentStates: [] },
+    "America/Los_Angeles", "2026-11-05",
+  );
+  expect(result.upcomingThrough).toBe("2026-11-12");
+  expect(result.upcomingAppointments.map((r) => r.id)).toEqual(["first", "seventh"]);
+  expect(result.appointments.map((r) => r.id)).toEqual(["today"]);
+});
+
+it("handles spring-forward next-week appointment starts using local day boundaries", () => {
+  const records = [
+    record("appointments", "before", {
+      title: "Selected-day booking", status: "Scheduled",
+      start: "2026-03-08T07:30:00Z", end: "2026-03-08T08:30:00Z",
+    }),
+    record("appointments", "spring", {
+      title: "Morning after spring-forward", status: "Scheduled",
+      start: "2026-03-08T10:15:00Z", end: "2026-03-08T11:15:00Z",
+    }),
+    record("appointments", "seventh", {
+      title: "Last day", status: "Scheduled",
+      start: "2026-03-15T06:00:00Z", end: "2026-03-15T07:00:00Z",
+    }),
+    record("appointments", "too-late", {
+      title: "Beyond seventh day", status: "Scheduled",
+      start: "2026-03-15T07:00:00Z", end: "2026-03-15T08:00:00Z",
+    }),
+  ];
+  const result = summarizeDailyOperations(
+    { organizationId: org, records, equipmentStates: [] },
+    "America/Los_Angeles", "2026-03-07",
+  );
+  expect(result.upcomingAppointments.map((r) => r.id)).toEqual(["spring", "seventh"]);
+});

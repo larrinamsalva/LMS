@@ -206,3 +206,21 @@ continues to export only the selected day's appointments, current/overdue
 work and equipment warnings: future upcoming work does **not** silently
 appear in that daily export. All preview data remains fictional in the public
 no-login demonstration.
+
+### Seven-day upcoming appointment outlook (PR #48)
+
+The same seven-day window also displays **Coming up · appointments** for
+non-cancelled, non-archived appointments whose **start time** falls on business
+calendar days 1 through 7 after the selected operations date, inclusive.
+Results are ordered by actual appointment start time, and the time and date
+are shown in the business's configured time zone. If Scheduling is enabled,
+**Find this appointment** opens that exact saved booking on its actual start
+date in Schedule. Pagination follows the same independent Show more / Show
+fewer behavior.
+
+An overnight appointment that starts on the selected day stays in the
+selected-day appointment section; it is not duplicated in the future-start
+outlook. Archived/cancelled bookings and other organizations' records are
+excluded. The Daily Plan CSV remains intentionally scoped to the selected
+day, not the coming week. Viewing this outlook makes no booking or
+reservation changes and does not predict availability.
