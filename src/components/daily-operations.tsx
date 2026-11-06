@@ -12,10 +12,11 @@ import {
 } from "../core/daily-operations-dates";
 
 
-type OverviewKind = "appointments" | "work" | "equipment";
+type OverviewKind = "appointments" | "work" | "upcoming" | "equipment";
 const initialVisible = (): Record<OverviewKind, number> => ({
   appointments: DAILY_OPERATIONS_PAGE_SIZE,
   work: DAILY_OPERATIONS_PAGE_SIZE,
+  upcoming: DAILY_OPERATIONS_PAGE_SIZE,
   equipment: DAILY_OPERATIONS_PAGE_SIZE,
 });
 
@@ -260,6 +261,48 @@ export function DailyOperations({
                 label="work items"
                 onMore={() => showMore("work", workItems.length)}
                 onFewer={() => showFewer("work")}
+              />
+            </section>
+            <section aria-label="Upcoming work next seven days">
+              <h3>Coming up · next 7 days</h3>
+              <p className="muted">
+                After {date} through {summary.upcomingThrough} ·{" "}
+                {summary.upcoming.length} unfinished{" "}
+                {summary.upcoming.length === 1 ? "job or task" : "jobs or tasks"}
+              </p>
+              {summary.upcoming.length ? (
+                <ul>
+                  {summary.upcoming.slice(
+                    0, dailyPage(summary.upcoming.length, visible.upcoming).visible,
+                  ).map(({ record, due }) => (
+                    <li key={record.id}>
+                      <strong>{String(record.data.title)}</strong>
+                      <span className="muted">
+                        Due {due} · {String(record.data.status)}
+                      </span>
+                      <button
+                        type="button"
+                        className="quiet"
+                        aria-label={\`Find upcoming \${String(record.data.title)} in \${record.entity === "jobs" ? "cleaning jobs" : "tasks"}\`}
+                        onClick={() => onWork(record)}
+                      >
+                        Find this work
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="muted">
+                  No dated unfinished jobs or tasks in the next seven days.
+                </p>
+              )}
+              <DailyMore
+                total={summary.upcoming.length}
+                requested={visible.upcoming}
+                kind="upcoming"
+                label="upcoming work items"
+                onMore={() => showMore("upcoming", summary.upcoming.length)}
+                onFewer={() => showFewer("upcoming")}
               />
             </section>
             {equipmentEnabled && (

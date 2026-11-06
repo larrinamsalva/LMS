@@ -188,3 +188,21 @@ the resulting file in a suitable location. A draft, report or export is **not**
 an invoice, legal notice, confirmation of booking availability or equipment
 checkout authorization. No actual business data is included in the public
 fictional demo.
+
+### Seven-day upcoming work outlook (PR #47)
+
+Daily Operations shows **Coming up · next 7 days** for unfinished jobs and
+tasks dated **after** the selected operations date, through the seventh
+following **business-local calendar day** (inclusive). It excludes work due
+today, overdue items, completed/cancelled jobs, archived records, undated
+tasks and records from any other business. The list orders work by due
+date and then name, supports **Show more / Show fewer**, and offers the same
+**Find this work** link to the exact current-business record.
+
+This is planning visibility only, not an automatic booking, staff allocation,
+reminder or guarantee of availability. Changing the operations date updates
+the upcoming window and resets expansion. The **Download daily plan CSV**
+continues to export only the selected day's appointments, current/overdue
+work and equipment warnings: future upcoming work does **not** silently
+appear in that daily export. All preview data remains fictional in the public
+no-login demonstration.
