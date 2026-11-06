@@ -260,3 +260,20 @@ recommendation, and is not silently included in either the existing
 selected-day CSV or seven-day outlook CSV. The display is read-only, is
 responsive on phones/tablets, and uses the fictional data already present
 in the public demo.
+
+### Download the Needs Scheduling review list (PR #51)
+
+The **Download needs scheduling CSV** button inside **Needs scheduling**
+produces a separate local spreadsheet file containing **all** undated,
+unfinished work from the current authorized business, even when the list is
+collapsed to four visible items. The review-date column identifies when the
+list was downloaded; it is **not a due date**. Every due-date cell is blank,
+because no deadline is known or assigned. The file contains work type,
+title, current status and business time zone, but does not include customer
+contact information, notes or financial records.
+
+The download is disabled when no work needs scheduling, and never saves
+changes, schedules appointments or sends notifications. The original daily
+and seven-day CSV files remain unchanged and exclude undated work. Values
+reuse the existing CSV quoting and spreadsheet-formula protections. In the
+no-login public demo, all records are fictional.
