@@ -319,7 +319,7 @@ it("tracks only serviceable inspections due on calendar days +1 through +7", () 
       ["last", "2026-11-12"],
     ]);
   expect(summary.equipment.map(({ record }) => record.id)).toEqual([
-    "overdue", "today", "not-serviceable",
+    "today", "not-serviceable", "overdue",
   ]);
   const nextDay = summarizeDailyOperations(snapshot, "America/Los_Angeles", "2026-11-06");
   expect(nextDay.upcomingEquipmentInspections.map(({ record }) => record.id))
