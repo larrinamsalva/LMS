@@ -73,3 +73,16 @@ export function summarizeSevenDayWorkload(
     },
   );
 }
+
+/** The activity-only display filter uses exactly the same definition as totals. */
+export function visibleWorkloadDays(
+  days: readonly DailyWorkload[],
+  includeInspections: boolean,
+  activityOnly: boolean,
+): DailyWorkload[] {
+  if (!activityOnly) return [...days];
+  return days.filter((day) =>
+    day.appointments > 0 || day.unfinishedWork > 0 ||
+    (includeInspections && day.inspections > 0),
+  );
+}

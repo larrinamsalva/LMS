@@ -388,3 +388,19 @@ and includes the reviewed date range and business time zone. The daily plan,
 upcoming work, equipment inspections and Needs Scheduling exports remain
 independent, and these counts must not be interpreted as staff availability
 or confirmed capacity.
+
+### Filter the seven-day cards to dates with saved activity (PR #58)
+
+**Show active days only** filters the seven Daily Operations workload cards to
+dates with at least one saved upcoming appointment start or unfinished work
+due, plus an upcoming inspection when Equipment & Tools is enabled.
+**Show all seven days** restores the default display, including empty days.
+A live count explains how many dates are currently visible, with an explicit
+empty state if there is no upcoming saved activity.
+
+This is a **display-only, reversible filter**. The seven-day summary totals
+and all CSV exports still cover the **full seven-day period**, even when
+empty-day cards are temporarily hidden. It never infers employee capacity,
+excludes a valid active day from calculations, changes bookings, or writes
+records. In workspaces without Equipment & Tools, inspection-only dates do
+not qualify as active.

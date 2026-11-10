@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { summarizeDailyOperations } from "../../src/core/daily-operations";
-import { sevenDayWorkload, summarizeSevenDayWorkload } from "../../src/core/daily-operations-workload";
+import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
 
@@ -200,4 +200,48 @@ it("shows zero work and zero active days when the business has no dated items", 
     appointments: 0, unfinishedWork: 0, inspections: 0,
     daysWithActivity: 0, daysInWindow: 7,
   });
+});
+
+it("filters only dated activity while preserving seven-day totals and original order", () => {
+  const days = [
+    { date: "2026-11-06", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-07", appointments: 0, unfinishedWork: 0, inspections: 2 },
+    { date: "2026-11-08", appointments: 1, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-09", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-10", appointments: 0, unfinishedWork: 3, inspections: 0 },
+    { date: "2026-11-11", appointments: 0, unfinishedWork: 0, inspections: 1 },
+    { date: "2026-11-12", appointments: 0, unfinishedWork: 0, inspections: 0 },
+  ];
+  const whole = visibleWorkloadDays(days, true, false);
+  expect(whole).toEqual(days);
+  expect(whole).not.toBe(days);
+  const enabled = visibleWorkloadDays(days, true, true);
+  expect(enabled.map((day) => day.date)).toEqual([
+    "2026-11-07", "2026-11-08", "2026-11-10", "2026-11-11",
+  ]);
+  const disabled = visibleWorkloadDays(days, false, true);
+  expect(disabled.map((day) => day.date)).toEqual([
+    "2026-11-08", "2026-11-10",
+  ]);
+  expect(enabled.length).toBe(summarizeSevenDayWorkload(days, true).daysWithActivity);
+  expect(disabled.length).toBe(summarizeSevenDayWorkload(days, false).daysWithActivity);
+  expect(days[1].inspections).toBe(2); // no changes to source records
+});
+
+it("has a reversible empty active-day view and includes leap/DST calendar days", () => {
+  const leap = summarizeDailyOperations(
+    { organizationId: org, records: [], equipmentStates: [] },
+    "America/Los_Angeles", "2028-02-26",
+  );
+  const dates = sevenDayWorkload(leap, "America/Los_Angeles");
+  expect(visibleWorkloadDays(dates, true, true)).toEqual([]);
+  expect(visibleWorkloadDays(dates, true, false)).toHaveLength(7);
+  expect(dates.some(({ date }) => date === "2028-02-29")).toBe(true);
+  const fall = summarizeDailyOperations(
+    { organizationId: org, records: [], equipmentStates: [] },
+    "America/Los_Angeles", "2026-10-31",
+  );
+  expect(visibleWorkloadDays(
+    sevenDayWorkload(fall, "America/Los_Angeles"), false, false,
+  )).toHaveLength(7);
 });

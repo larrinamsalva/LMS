@@ -1823,3 +1823,21 @@ legend {
   border-radius: 7px;
 }
 .daily-workload-totals strong { font-size: 22px; }
+
+/* The optional active-days filter remains readable on narrow devices. */
+.daily-workload-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 12px 0;
+}
+.daily-workload-filter button {
+  min-height: 44px;
+  white-space: normal;
+  max-width: 100%;
+}
+.daily-workload-filter span { font-size: 13px; }
+@media (max-width: 640px) {
+  .daily-workload-filter button { width: 100%; }
+}
