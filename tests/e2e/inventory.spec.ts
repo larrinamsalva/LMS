@@ -51,6 +51,15 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       exact: true,
     });
     await expect(product).toBeVisible();
+    const location =
+      industry === "property" ? "Maintenance store" : "Supply shelf";
+    const watchlist = page.getByRole("region", {
+      name: "Low-stock watchlist", exact: true,
+    });
+    const lowAlert = watchlist.getByRole("article", {
+      name: "Low stock " + name + " at " + location, exact: true,
+    });
+    await expect(lowAlert).toContainText("Below minimum by 25 glove");
     await page
       .getByLabel("Search inventory products", { exact: true })
       .fill("GLOVE-13");
@@ -85,8 +94,6 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
     await page
       .getByLabel("Quantity packaging *", { exact: true })
       .selectOption("Cases");
-    const location =
-      industry === "property" ? "Maintenance store" : "Supply shelf";
     await page
       .getByLabel("Storage location *", { exact: true })
       .selectOption({ label: location });
@@ -112,6 +119,7 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       .click();
     await expect(product).toContainText(location + ": 24 glove");
     await expect(product).toContainText("Low stock");
+    await expect(lowAlert).toContainText("Below minimum by 1 glove");
     const original = posted!;
     const retry = await page.evaluate(async (input) => {
       const r = await fetch("/api/demo", {
@@ -161,6 +169,7 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       .getByRole("button", { name: "Post stock movement", exact: true })
       .click();
     await expect(product).toContainText(location + ": 21 glove");
+    await expect(lowAlert).toContainText("Below minimum by 4 glove");
     await product
       .getByRole("button", { name: "Archive " + name, exact: true })
       .click();
@@ -170,6 +179,7 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
     await page
       .getByRole("button", { name: "Inventory & stock", exact: true })
       .click();
+    await expect(lowAlert).toHaveCount(0);
     await page.getByLabel("Show archived products", { exact: true }).check();
     await expect(product).toContainText(location + ": 21 glove");
     await product
@@ -182,6 +192,7 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       .getByRole("button", { name: "Inventory & stock", exact: true })
       .click();
     await expect(product).toContainText(location + ": 21 glove");
+    await expect(lowAlert).toContainText("Below minimum by 4 glove");
     if (industry === "cleaning")
       await page
         .getByRole("button", { name: "Switch to dark theme", exact: true })
