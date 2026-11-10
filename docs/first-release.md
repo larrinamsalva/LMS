@@ -477,3 +477,17 @@ CSV export continue to reflect the complete seven-day snapshot. Switching
 to a business without Equipment & Tools safely falls back to the all-activity
 view if an inspection filter had been selected in the prior workspace. No
 database, permission, schedule, financial, session or release changes.
+
+
+### Category-aware workload date ordering (PR #63)
+
+With "Activity to show" set to appointment starts, unfinished work due
+dates or equipment inspection dates, sorting by "most" ranks the visible
+days using only the chosen category's saved-record counts. Dates with
+equal selected counts remain ordered from earliest to latest. The sort
+control and order status name the selected category. The default
+"All recorded activity" sorting and "Sort by calendar date" retain their
+prior behavior. Counts come only from the authorized business-local
+seven-day snapshot. Full-week totals, the busiest overall day and every
+CSV export remain unaffected. Disabled equipment modules contribute no
+inspection counts. No mutations, capacity inference or release changes.

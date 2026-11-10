@@ -293,17 +293,42 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   expect(await datedCards.evaluateAll((elements) =>
     elements.map((element) => element.getAttribute("aria-label") || ""),
   )).toEqual(appointmentDates);
+  await dailyLoad.getByRole("button", {
+    name: "Sort by most appointment starts", exact: true,
+  }).click();
+  await expect(dailyLoad.getByText("Order: Most appointment starts first")).toBeVisible();
+  const byAppointments = appointmentDates.map((name) => ({
+    name, date: recorded(name).date,
+    count: Number(name.match(/: (\d+) appointments/)?.[1] ?? 0),
+  })).sort((a, b) => b.count - a.count || a.date.localeCompare(b.date))
+    .map(({ name }) => name);
+  expect(await datedCards.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("aria-label") || ""),
+  )).toEqual(byAppointments);
   await activitySelect.selectOption("work");
+  await expect(dailyLoad.getByText("Order: Most unfinished work first")).toBeVisible();
   const workDates = originalLabels.filter((name) =>
     Number(name.match(/and (\d+) unfinished work/)?.[1] ?? 0) > 0,
   );
   await expect(datedCards).toHaveCount(workDates.length);
+  const byWork = workDates.map((name) => ({
+    name, date: recorded(name).date,
+    count: Number(name.match(/and (\d+) unfinished work/)?.[1] ?? 0),
+  })).sort((a, b) => b.count - a.count || a.date.localeCompare(b.date))
+    .map(({ name }) => name);
+  expect(await datedCards.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("aria-label") || ""),
+  )).toEqual(byWork);
   const savedWork = originalLabels.reduce((total, name) =>
     total + Number(name.match(/and (\d+) unfinished work/)?.[1] ?? 0), 0);
   await expect(dailyLoad.locator(".daily-workload-focused")).toContainText(
     "Focused activity: " + savedWork + " unfinished work items across " +
     workDates.length + " of 7 days",
   );
+  await dailyLoad.getByRole("button", {
+    name: "Sort by calendar date", exact: true,
+  }).click();
+  await expect(dailyLoad.getByText("Order: Calendar date")).toBeVisible();
   await dailyLoad.getByRole("button", {
     name: "Show all seven days", exact: true,
   }).click();

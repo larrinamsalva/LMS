@@ -120,20 +120,22 @@ export function busiestRecordedDay(
 /**
  * Optional presentation-only ordering of the same authorized calendar days.
  * Largest *saved record count* first, with earliest date winning any tie.
- * The default preserves ascending business-local dates. No input mutation.
+ * The default preserves ascending business-local dates. An optional activity
+ * category changes only the ranking, not dates or saved records. No mutation.
  */
 export function orderWorkloadDays(
   days: readonly DailyWorkload[],
   includeInspections: boolean,
   mode: "calendar" | "most-recorded",
+  activityType: WorkloadActivityType = "all",
 ): DailyWorkload[] {
   const result = [...days];
   if (mode === "calendar") {
     return result.sort((a, b) => a.date.localeCompare(b.date));
   }
   return result.sort((a, b) =>
-    recordedItemCount(b, includeInspections) -
-      recordedItemCount(a, includeInspections) ||
+    focusedRecordedItemCount(b, includeInspections, activityType) -
+      focusedRecordedItemCount(a, includeInspections, activityType) ||
     a.date.localeCompare(b.date),
   );
 }
@@ -141,6 +143,20 @@ export function orderWorkloadDays(
 
 /** Optional date-card focus, using only current-business saved record counts. */
 export type WorkloadActivityType = "all" | "appointments" | "work" | "inspections";
+
+/** Count the chosen category without mixing in unrelated saved records. */
+function focusedRecordedItemCount(
+  day: DailyWorkload,
+  includeInspections: boolean,
+  type: WorkloadActivityType,
+): number {
+  switch (type) {
+    case "appointments": return day.appointments;
+    case "work": return day.unfinishedWork;
+    case "inspections": return includeInspections ? day.inspections : 0;
+    case "all": return recordedItemCount(day, includeInspections);
+  }
+}
 
 export function filterWorkloadDaysByType(
   days: readonly DailyWorkload[],
@@ -165,10 +181,7 @@ export function summarizeFocusedWorkload(
   type: WorkloadActivityType,
 ): { savedItems: number; matchingDays: number; daysInWindow: number } {
   return days.reduce((result, day) => {
-    const saved = type === "appointments" ? day.appointments
-      : type === "work" ? day.unfinishedWork
-      : type === "inspections" ? (includeInspections ? day.inspections : 0)
-      : recordedItemCount(day, includeInspections);
+    const saved = focusedRecordedItemCount(day, includeInspections, type);
     return {
       savedItems: result.savedItems + saved,
       matchingDays: result.matchingDays + Number(saved > 0),
