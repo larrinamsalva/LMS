@@ -5,7 +5,7 @@ import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
   summarizeFocusedWorkload, busiestFocusedDay, focusedRecordedItemCount,
-  type WorkloadActivityType,
+  workloadWeekday, type WorkloadActivityType,
 } from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
@@ -481,12 +481,16 @@ export function DailyOperations({
                   type="button"
                   className="secondary"
                   onClick={() => selectDate(day.date)}
+                  aria-description={"Business-local weekday: " + workloadWeekday(day.date)}
                   aria-label={
                     "Review " + day.date + ": " + day.appointments +
                     " appointments and " + day.unfinishedWork + " unfinished work items" +
                     (equipmentEnabled ? " and " + day.inspections + " equipment inspections" : "")
                   }
                 >
+                  <span className="daily-workload-weekday" aria-hidden="true">
+                    {workloadWeekday(day.date)}
+                  </span>
                   <strong>{day.date}</strong>
                   {effectiveActivityType !== "all" && (
                     <span className="daily-workload-selected-count" aria-hidden="true">

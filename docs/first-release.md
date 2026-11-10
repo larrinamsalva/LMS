@@ -537,3 +537,19 @@ switching businesses with different enabled modules. Reset does not
 change the selected operations date, any saved records, dashboard
 totals, the overall or focused peak logic, CSV data, or permissions.
 The no-login public demonstration still uses only fictional data.
+
+
+### Business-local weekdays on seven-day workload cards (PR #67)
+
+Each Daily Operations seven-day workload date card now shows its full
+**weekday name** alongside the ISO calendar date, including on small screens.
+The name is calculated from the business-local plain date rather than from
+the browser's machine time zone, so DST transitions and leap dates do not
+shift the label. Screen readers retain the existing date-card action label
+and receive the weekday as a separate description. Weekday labels remain
+visible while filtering, sorting or resetting the workload view.
+
+This is calendar context only: Saturday or Sunday does not imply staff
+availability, operating hours, equipment readiness or booking rules.
+Workload counts, saved records, selected date, exports, permissions,
+modules, account controls and the fictional no-login demo are unchanged.

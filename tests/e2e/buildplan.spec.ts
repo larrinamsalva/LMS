@@ -345,6 +345,10 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   const dated = workload.getByRole("button", {
     name: /^Review \d{4}-\d{2}-\d{2}:/,
   });
+  await expect(dated.locator(".daily-workload-weekday")).toHaveCount(7);
+  await expect(dated.first()).toHaveAttribute(
+    "aria-description", /^Business-local weekday: (Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$/,
+  );
   const originalDates = await dated.evaluateAll((elements) =>
     elements.map((element) => element.getAttribute("aria-label") || ""),
   );

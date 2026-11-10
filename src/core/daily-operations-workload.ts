@@ -214,3 +214,16 @@ export function busiestFocusedDay(
   }
   return result;
 }
+
+
+/**
+ * Name the weekday of a saved business-local YYYY-MM-DD date without passing
+ * through UTC or the browser's/system's time zone. ISO Monday=1 ... Sunday=7.
+ * This is presentation metadata only and never a staffing/availability claim.
+ */
+export function workloadWeekday(date: string): string {
+  return [
+    "Monday", "Tuesday", "Wednesday", "Thursday",
+    "Friday", "Saturday", "Sunday",
+  ][Temporal.PlainDate.from(date).dayOfWeek - 1];
+}
