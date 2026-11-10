@@ -367,3 +367,24 @@ overdue work is not silently counted as future activity. These are
 **counts of saved records**, not scheduled hours, free capacity, safe
 equipment status or proof that staff can accept more bookings. No edits,
 automatic bookings, new exports or notifications are created.
+
+### Download seven-day workload summary CSV (PR #57)
+
+**Download seven-day workload CSV** in the seven-day workload section saves
+a separate read-only report of **seven individual business-local dates**
+followed by a **TOTAL (7 days)** row. Each date includes saved appointment
+starts, unfinished work due and whether any recorded activity exists;
+workspaces with **Equipment & Tools** enabled also include saved upcoming
+inspection counts. The final row reports the same totals and count of
+activity days as the displayed summary cards.
+
+This report contains **counts only**: it excludes record titles, names,
+customer contacts, private notes, financial amounts and other businesses'
+data. If Equipment & Tools is disabled, inspection columns are omitted and
+inspection-only dates do not count as active. All values derive from the
+existing authorized seven-day workload; no bookings or records are changed.
+The file is created locally using existing spreadsheet-safe CSV quoting
+and includes the reviewed date range and business time zone. The daily plan,
+upcoming work, equipment inspections and Needs Scheduling exports remain
+independent, and these counts must not be interpreted as staff availability
+or confirmed capacity.

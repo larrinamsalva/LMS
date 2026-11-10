@@ -286,7 +286,9 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   const workload = dailyEquipment.getByRole("region", {
     name: "Seven-day workload by date", exact: true,
   });
-  await expect(workload.getByRole("button")).toHaveCount(7);
+  await expect(workload.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:/,
+  })).toHaveCount(7);
   await expect(workload.getByRole("button", {
     name: /^Review \d{4}-\d{2}-\d{2}:.*equipment inspections$/,
   })).toHaveCount(7);
@@ -297,6 +299,16 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   await expect(weeklyTotals.getByText("Equipment inspections · 7 days")).toBeVisible();
   await expect(weeklyTotals.getByText("Days with saved activity")).toBeVisible();
   await expect(weeklyTotals.getByText(/^\d+ of 7$/)).toBeVisible();
+  const workloadPending = equipmentPreview.waitForEvent("download");
+  await workload.getByRole("button", {
+    name: "Download seven-day workload CSV", exact: true,
+  }).click();
+  const savedWorkload = await workloadPending;
+  const csv = (await readFile((await savedWorkload.path())!)).toString("utf8");
+  expect(csv.trimEnd().split("\r\n")).toHaveLength(9);
+  expect(csv).toContain("Equipment inspections due");
+  expect(csv).toContain("TOTAL (7 days)");
+  expect(csv).not.toContain("Fictional scrubber");
   // The download remains useful as a header-only checklist when no future
   // inspection has been scheduled. Reuse this existing preview session.
   await dailyEquipment.getByLabel("Operations date", { exact: true }).fill("2026-11-05");
