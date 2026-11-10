@@ -293,6 +293,24 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
     name: /^Review \d{4}-\d{2}-\d{2}:.*equipment inspections$/,
   })).toHaveCount(7);
   await expect(workload.getByText("0 inspections")).toHaveCount(7);
+  const focus = workload.getByRole("combobox", {
+    name: "Activity to show", exact: true,
+  });
+  await expect(focus.locator('option[value="inspections"]')).toHaveCount(1);
+  await focus.selectOption("inspections");
+  await expect(workload.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:/,
+  })).toHaveCount(0);
+  await expect(workload).toContainText(
+    "No upcoming equipment inspections in the next seven days.",
+  );
+  await workload.getByRole("button", {
+    name: "Show all seven days", exact: true,
+  }).click();
+  await expect(focus).toHaveValue("all");
+  await expect(workload.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:/,
+  })).toHaveCount(7);
   const dated = workload.getByRole("button", {
     name: /^Review \d{4}-\d{2}-\d{2}:/,
   });

@@ -137,3 +137,22 @@ export function orderWorkloadDays(
     a.date.localeCompare(b.date),
   );
 }
+
+
+/** Optional date-card focus, using only current-business saved record counts. */
+export type WorkloadActivityType = "all" | "appointments" | "work" | "inspections";
+
+export function filterWorkloadDaysByType(
+  days: readonly DailyWorkload[],
+  includeInspections: boolean,
+  type: WorkloadActivityType,
+): DailyWorkload[] {
+  if (type === "all") return [...days];
+  return days.filter((day) => {
+    switch (type) {
+      case "appointments": return day.appointments > 0;
+      case "work": return day.unfinishedWork > 0;
+      case "inspections": return includeInspections && day.inspections > 0;
+    }
+  });
+}

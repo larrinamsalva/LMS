@@ -438,3 +438,24 @@ the full-window totals, selected Operations date, record navigation,
 read-only summary, and all CSV files stay unchanged and chronological.
 A recorded-item count is **not a measure of job duration, staff workload,
 equipment safety, availability or business capacity**.
+
+
+### Filter workload dates by recorded activity type (PR #61)
+
+**Activity to show** allows a business owner to focus the seven-day date
+cards on saved **appointment start dates** or **unfinished work due dates**.
+When Equipment & Tools is enabled, **Equipment inspection dates** is also
+available, using only serviceable equipment's saved future inspection
+dates. The selection narrows visible dates, not their per-day counts,
+permissions, work status or the business's underlying schedule.
+
+Selecting a specific type automatically turns on the visible-date filter.
+**Show all seven days** clears the type selection and displays the full
+calendar again. **All recorded activity** uses the existing active-days
+toggle. Type filtering combines with sorting by recorded items and has a
+specific empty state when no dates match.
+
+The full seven-day totals, busiest-recorded-day shortcut and all CSV
+exports remain based on the complete authorized week, independent of
+on-screen filtering. Record counts cannot establish job hours, resource
+availability or equipment safety. No business records are modified.

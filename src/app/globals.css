@@ -1864,3 +1864,26 @@ legend {
 @media (max-width: 640px) {
   .daily-workload-peak button { width: 100%; }
 }
+
+/* Activity-type selection is explicit, keyboard-accessible, and mobile-safe. */
+.daily-workload-category {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  min-width: 175px;
+  max-width: 100%;
+}
+.daily-workload-category select {
+  min-height: 44px;
+  width: 100%;
+  max-width: 100%;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+}
+@media (max-width: 640px) {
+  .daily-workload-category { flex: 1 1 100%; }
+}
