@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { summarizeDailyOperations } from "../../src/core/daily-operations";
-import { sevenDayWorkload } from "../../src/core/daily-operations-workload";
+import { sevenDayWorkload, summarizeSevenDayWorkload } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
 
@@ -163,4 +163,41 @@ it("counts a saved leap-day inspection on February 29", () => {
   }, "America/Los_Angeles", "2028-02-26");
   const days = sevenDayWorkload(summary, "America/Los_Angeles");
   expect(days.find(({ date }) => date === "2028-02-29")?.inspections).toBe(1);
+});
+
+it("rolls up a week of saved activity without treating individual bookings as capacity", () => {
+  const days = [
+    { date: "2026-11-06", appointments: 2, unfinishedWork: 3, inspections: 0 },
+    { date: "2026-11-07", appointments: 0, unfinishedWork: 0, inspections: 2 },
+    { date: "2026-11-08", appointments: 1, unfinishedWork: 0, inspections: 1 },
+    { date: "2026-11-09", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-10", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-11", appointments: 0, unfinishedWork: 1, inspections: 0 },
+    { date: "2026-11-12", appointments: 0, unfinishedWork: 0, inspections: 0 },
+  ];
+  expect(summarizeSevenDayWorkload(days, true)).toEqual({
+    appointments: 3, unfinishedWork: 4, inspections: 3,
+    daysWithActivity: 4, daysInWindow: 7,
+  });
+  // Disabled Equipment & Tools must neither expose inspections nor turn
+  // equipment-only days into "days with activity".
+  expect(summarizeSevenDayWorkload(days, false)).toEqual({
+    appointments: 3, unfinishedWork: 4, inspections: 0,
+    daysWithActivity: 3, daysInWindow: 7,
+  });
+  expect(days[1].inspections).toBe(2); // No mutation of the source dates.
+});
+
+it("shows zero work and zero active days when the business has no dated items", () => {
+  const overview = summarizeDailyOperations(
+    { organizationId: org, records: [], equipmentStates: [] },
+    "America/Los_Angeles", "2028-02-26",
+  );
+  const result = summarizeSevenDayWorkload(
+    sevenDayWorkload(overview, "America/Los_Angeles"), true,
+  );
+  expect(result).toEqual({
+    appointments: 0, unfinishedWork: 0, inspections: 0,
+    daysWithActivity: 0, daysInWindow: 7,
+  });
 });
