@@ -5,7 +5,7 @@ import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
   summarizeFocusedWorkload, busiestFocusedDay, focusedRecordedItemCount,
-  workloadWeekday, filterWorkloadDaysByCalendarDay,
+  workloadWeekday, filterWorkloadDaysByCalendarDay, compareSevenDayWorkloadTotals,
   type WorkloadActivityType, type WorkloadCalendarDayFilter,
 } from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
@@ -82,6 +82,7 @@ export function DailyOperations({
   const [visible, setVisible] = useState(initialVisible);
   const [activityOnly, setActivityOnly] = useState(false);
   const [sortByActivity, setSortByActivity] = useState(false);
+  const [showFollowingWeek, setShowFollowingWeek] = useState(false);
   const [activityType, setActivityType] = useState<WorkloadActivityType>("all");
   const [calendarDayFilter, setCalendarDayFilter] =
     useState<WorkloadCalendarDayFilter>("all");
@@ -120,6 +121,23 @@ export function DailyOperations({
     (module) => module.id === "equipment",
   );
   const weeklyTotals = summarizeSevenDayWorkload(nextSevenDays, equipmentEnabled);
+  // Optional comparison uses the same authorized business snapshot, shifted
+  // by seven business-local dates. It never reads beyond this workspace.
+  let followingDays: ReturnType<typeof sevenDayWorkload> = [];
+  if (showFollowingWeek && nextWeek && summary) {
+    try {
+      const followingSummary = summarizeDailyOperations(workspace, zone, nextWeek);
+      followingDays = sevenDayWorkload(followingSummary, zone);
+    } catch {
+      // An invalid/out-of-range future window must not break daily operations.
+    }
+  }
+  const followingTotals = followingDays.length
+    ? summarizeSevenDayWorkload(followingDays, equipmentEnabled)
+    : null;
+  const comparisonChange = followingTotals
+    ? compareSevenDayWorkloadTotals(weeklyTotals, followingTotals) : null;
+  const changeLabel = (value: number) => value > 0 ? "+" + value : String(value);
   // A selected Equipment-only filter cannot apply after switching to a
   // workspace where that module is disabled.
   const unavailableEquipmentFilter = activityType === "inspections" && !equipmentEnabled;
@@ -355,6 +373,66 @@ export function DailyOperations({
                 Next 7 days
               </button>
             </div>
+            <div className="daily-workload-comparison-toggle">
+              <button
+                type="button"
+                className="secondary"
+                disabled={!nextWeek && !showFollowingWeek}
+                aria-expanded={showFollowingWeek}
+                onClick={() => setShowFollowingWeek((current) => !current)}
+              >
+                {showFollowingWeek ? "Hide following 7-day comparison" :
+                  "Compare following 7 days"}
+              </button>
+            </div>
+            {showFollowingWeek && comparisonChange && followingTotals && (
+              <div
+                className="daily-workload-following-comparison"
+                role="group"
+                aria-label="Following seven-day workload comparison"
+              >
+                <strong>Following {followingDays[0]?.date} through{" "}
+                  {followingDays[followingDays.length - 1]?.date}</strong>
+                <p className="muted">
+                  Compared with the seven days currently selected. Counts are
+                  saved records, not work hours or available appointments.
+                </p>
+                <div className="daily-workload-comparison-grid">
+                  <div className="daily-workload-following-appointments">
+                    <span>Appointment starts</span>
+                    <strong>{followingTotals.appointments}</strong>
+                    <span>Change: {changeLabel(comparisonChange.appointments)}</span>
+                  </div>
+                  <div className="daily-workload-following-work">
+                    <span>Unfinished work due</span>
+                    <strong>{followingTotals.unfinishedWork}</strong>
+                    <span>Change: {changeLabel(comparisonChange.unfinishedWork)}</span>
+                  </div>
+                  {equipmentEnabled && (
+                    <div className="daily-workload-following-inspections">
+                      <span>Equipment inspections</span>
+                      <strong>{followingTotals.inspections}</strong>
+                      <span>Change: {changeLabel(comparisonChange.inspections)}</span>
+                    </div>
+                  )}
+                  <div className="daily-workload-following-active">
+                    <span>Days with saved activity</span>
+                    <strong>{followingTotals.daysWithActivity} of{" "}
+                      {followingTotals.daysInWindow}</strong>
+                    <span>Change: {changeLabel(comparisonChange.daysWithActivity)} days</span>
+                  </div>
+                </div>
+                <p className="muted">
+                  Comparison always uses complete seven-day windows, independent
+                  of date-card filters. CSV exports are unchanged.
+                </p>
+              </div>
+            )}
+            {showFollowingWeek && !followingTotals && (
+              <p className="muted" role="status">
+                Following seven-day comparison is unavailable for this date.
+              </p>
+            )}
             <div className="daily-workload-totals" role="group" aria-label="Seven-day workload totals">
               <div>
                 <span className="metric-label">Upcoming appointments · 7 days</span>

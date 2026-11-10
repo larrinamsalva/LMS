@@ -255,6 +255,36 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   const weeklyTotals = dailyLoad.getByRole("group", {
     name: "Seven-day workload totals", exact: true,
   });
+  const compareToggle = dailyLoad.getByRole("button", {
+    name: "Compare following 7 days", exact: true,
+  });
+  await compareToggle.click();
+  const compare = dailyLoad.getByRole("group", {
+    name: "Following seven-day workload comparison", exact: true,
+  });
+  await expect(compare).toContainText("Following 2026-11-14 through 2026-11-20");
+  await expect(compare.locator(".daily-workload-following-inspections"))
+    .toHaveCount(0);
+  const laterAppointments = await compare.locator(
+    ".daily-workload-following-appointments strong",
+  ).textContent();
+  const laterWork = await compare.locator(
+    ".daily-workload-following-work strong",
+  ).textContent();
+  await weekNav.getByRole("button", {
+    name: "Next seven-day workload window", exact: true,
+  }).click();
+  await expect(weeklyTotals.getByText("Upcoming appointments · 7 days")
+    .locator("..").locator("strong")).toHaveText(laterAppointments!.trim());
+  await expect(weeklyTotals.getByText("Unfinished work · 7 days")
+    .locator("..").locator("strong")).toHaveText(laterWork!.trim());
+  await weekNav.getByRole("button", {
+    name: "Previous seven-day workload window", exact: true,
+  }).click();
+  await dailyLoad.getByRole("button", {
+    name: "Hide following 7-day comparison", exact: true,
+  }).click();
+  await expect(compare).toHaveCount(0);
   await expect(weeklyTotals.getByText("Upcoming appointments · 7 days")).toBeVisible();
   await expect(weeklyTotals.getByText("Unfinished work · 7 days")).toBeVisible();
   await expect(weeklyTotals.getByText("Days with saved activity")).toBeVisible();

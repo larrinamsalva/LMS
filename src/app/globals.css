@@ -1953,3 +1953,36 @@ legend {
   .daily-workload-window-controls button { flex: 1 1 130px; }
   .daily-workload-window-controls > span { flex: 1 1 100%; order: -1; }
 }
+
+
+/* Optional comparison of consecutive full-week authorized saved-record counts. */
+.daily-workload-comparison-toggle { margin: 12px 0; }
+.daily-workload-comparison-toggle button { min-height: 44px; white-space: normal; }
+.daily-workload-following-comparison {
+  margin: 12px 0 16px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-alt);
+  color: var(--text);
+}
+.daily-workload-following-comparison p { margin: 8px 0; }
+.daily-workload-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 10px;
+  margin: 10px 0;
+}
+.daily-workload-comparison-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+}
+.daily-workload-comparison-grid strong { font-size: 22px; }
+.daily-workload-comparison-grid span { font-size: 13px; }
+@media (max-width: 640px) {
+  .daily-workload-comparison-toggle button { width: 100%; }
+}
