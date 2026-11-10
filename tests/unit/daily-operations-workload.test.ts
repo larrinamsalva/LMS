@@ -561,3 +561,41 @@ it("focuses calendar weekdays or weekends without inferring business opening day
   expect(filterWorkloadDaysByCalendarDay(leap, "weekends")).toEqual([leap[1]]);
   expect(summarizeSevenDayWorkload(days, false).daysInWindow).toBe(7);
 });
+
+
+it("summarizes displayed dates separately from the complete saved week", () => {
+  const days = [
+    { date: "2026-11-06", appointments: 3, unfinishedWork: 1, inspections: 0 },
+    { date: "2026-11-07", appointments: 2, unfinishedWork: 0, inspections: 1 },
+    { date: "2026-11-08", appointments: 0, unfinishedWork: 2, inspections: 2 },
+    { date: "2026-11-09", appointments: 1, unfinishedWork: 3, inspections: 0 },
+    { date: "2026-11-10", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-11", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-12", appointments: 2, unfinishedWork: 1, inspections: 0 },
+  ];
+  const snapshot = days.map((day) => ({ ...day }));
+  const fullWeek = summarizeSevenDayWorkload(days, true);
+  const weekendDays = filterWorkloadDaysByCalendarDay(days, "weekends");
+  expect(summarizeSevenDayWorkload(weekendDays, true)).toEqual({
+    appointments: 2, unfinishedWork: 2, inspections: 3,
+    daysWithActivity: 2, daysInWindow: 2,
+  });
+  const appointmentDays = filterWorkloadDaysByType(days, true, "appointments");
+  expect(summarizeSevenDayWorkload(appointmentDays, true)).toEqual({
+    appointments: 8, unfinishedWork: 5, inspections: 1,
+    daysWithActivity: 4, daysInWindow: 4,
+  });
+  expect(summarizeSevenDayWorkload(
+    filterWorkloadDaysByCalendarDay(appointmentDays, "weekends"), true,
+  )).toEqual({
+    appointments: 2, unfinishedWork: 0, inspections: 1,
+    daysWithActivity: 1, daysInWindow: 1,
+  });
+  expect(summarizeSevenDayWorkload([], true)).toEqual({
+    appointments: 0, unfinishedWork: 0, inspections: 0,
+    daysWithActivity: 0, daysInWindow: 0,
+  });
+  expect(summarizeSevenDayWorkload(weekendDays, false).inspections).toBe(0);
+  expect(summarizeSevenDayWorkload(days, true)).toEqual(fullWeek);
+  expect(days).toEqual(snapshot);
+});

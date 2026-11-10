@@ -293,10 +293,27 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     elements.map((element) => element.getAttribute("aria-label") || ""),
   )).toEqual(expectedWeekendLabels);
   await expect(dailyLoad.getByText("Showing 2 of 7 days")).toBeVisible();
+  const visibleSummary = dailyLoad.getByRole("group", {
+    name: "Visible date-card totals", exact: true,
+  });
+  await expect(visibleSummary).toContainText("Currently shown: 2 of 7 dates");
+  const weekendCounts = expectedWeekendLabels.reduce((totals, label) => ({
+    appointments: totals.appointments +
+      Number(label.match(/: (\d+) appointments/)?.[1] ?? 0),
+    work: totals.work +
+      Number(label.match(/and (\d+) unfinished work/)?.[1] ?? 0),
+  }), { appointments: 0, work: 0 });
+  await expect(visibleSummary.locator(".daily-workload-visible-appointments"))
+    .toHaveText("Appointments: " + weekendCounts.appointments);
+  await expect(visibleSummary.locator(".daily-workload-visible-work"))
+    .toHaveText("Unfinished work: " + weekendCounts.work);
+  await expect(visibleSummary.locator(".daily-workload-visible-inspections"))
+    .toHaveCount(0);
   await calendarFilter.selectOption("weekdays");
   await expect(datedCards).toHaveCount(5);
   await calendarFilter.selectOption("all");
   await expect(datedCards).toHaveCount(7);
+  await expect(visibleSummary).toHaveCount(0);
   const activitySelect = dailyLoad.getByRole("combobox", {
     name: "Activity to show", exact: true,
   });
@@ -307,6 +324,9 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     .filter(({name}) => Number(name.match(/: (\d+) appointments/)?.[1] ?? 0) > 0)
     .map(({name}) => name);
   await expect(datedCards).toHaveCount(appointmentDates.length);
+  await expect(visibleSummary).toContainText(
+    "Currently shown: " + appointmentDates.length + " of 7 dates",
+  );
   const selectedAppointmentLabels = await datedCards.evaluateAll((buttons) =>
     buttons.map((button) =>
       button.querySelector(".daily-workload-selected-count")?.textContent?.trim() ?? "",
@@ -405,6 +425,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   }).click();
   await expect(activitySelect).toHaveValue("all");
   await expect(dailyLoad.locator(".daily-workload-focused")).toHaveCount(0);
+  await expect(visibleSummary).toHaveCount(0);
   await expect(dailyLoad.locator(".daily-workload-selected-count")).toHaveCount(0);
   await expect(dailyLoad.getByRole("group", {
     name: "Most recorded selected activity day",

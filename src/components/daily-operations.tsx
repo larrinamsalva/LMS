@@ -144,6 +144,12 @@ export function DailyOperations({
     sortByActivity ? "most-recorded" : "calendar",
     effectiveActivityType,
   );
+  // The visible summary counts only dates remaining after date filters.
+  // It reuses existing authorized data; a category filter selects dates,
+  // not individual items on those dates.
+  const visibleTotals = summarizeSevenDayWorkload(displayedDays, equipmentEnabled);
+  const isFiltered = effectiveActivityOnly ||
+    effectiveActivityType !== "all" || calendarDayFilter !== "all";
   // Always use the complete seven-day window, even when filtered on screen.
   const peakDay = busiestRecordedDay(nextSevenDays, equipmentEnabled);
   function downloadDailyPlan() {
@@ -449,6 +455,35 @@ export function DailyOperations({
                   : "Calendar date"}
               </span>
             </div>
+            {isFiltered && (
+              <div
+                className="daily-workload-visible-summary"
+                role="group"
+                aria-label="Visible date-card totals"
+                aria-live="polite"
+              >
+                <strong>Currently shown: {visibleTotals.daysInWindow} of{" "}
+                  {nextSevenDays.length} dates</strong>
+                <div className="daily-workload-visible-counts">
+                  <span className="daily-workload-visible-appointments">
+                    Appointments: <strong>{visibleTotals.appointments}</strong>
+                  </span>
+                  <span className="daily-workload-visible-work">
+                    Unfinished work: <strong>{visibleTotals.unfinishedWork}</strong>
+                  </span>
+                  {equipmentEnabled && (
+                    <span className="daily-workload-visible-inspections">
+                      Inspections: <strong>{visibleTotals.inspections}</strong>
+                    </span>
+                  )}
+                </div>
+                <p className="muted">
+                  Counts include all saved activity types on displayed dates.
+                  Filters select dates, not individual records. Full-week totals
+                  above and CSV downloads remain unchanged.
+                </p>
+              </div>
+            )}
             {effectiveActivityType !== "all" && (
               <p className="muted daily-workload-focused" aria-live="polite">
                 Focused activity: <strong>{focusedTotals.savedItems}</strong>{" "}

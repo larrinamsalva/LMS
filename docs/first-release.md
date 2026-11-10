@@ -576,3 +576,20 @@ Monday–Friday and Saturday–Sunday are calendar categories, not
 assumptions about a business's hours, whether employees work weekends,
 appointment conflicts, equipment readiness, capacity or availability.
 No records are changed; the fictional no-login demo remains unchanged.
+
+
+### Visible date-card totals after filtering (PR #69)
+
+When a seven-day workload filter is active, a separate **Currently shown**
+summary reports the visible date count and the saved appointment, unfinished
+work and enabled equipment-inspection counts on those date cards. The
+summary displays zeros when no dates match and disappears after resetting
+the view. An activity-type filter selects matching *dates*, not individual
+records within those dates: totals across the visible cards still include
+other saved activity types on the same dates.
+
+This display is separate from complete seven-day totals, focused-category
+counts and busiest-day shortcuts. Full-window CSV exports and underlying
+records are unchanged. No conclusions are drawn about staff capacity,
+operating hours, booking conflicts or equipment safety. Public demo data
+remain fictional.
