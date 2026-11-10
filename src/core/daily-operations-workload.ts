@@ -93,14 +93,18 @@ export function visibleWorkloadDays(
  * For ties, choose the earliest business-local calendar date, regardless
  * of caller input ordering. No-record weeks have no peak date.
  */
+function recordedItemCount(day: DailyWorkload, includeInspections: boolean) {
+  return day.appointments + day.unfinishedWork +
+    (includeInspections ? day.inspections : 0);
+}
+
 export function busiestRecordedDay(
   days: readonly DailyWorkload[],
   includeInspections: boolean,
 ): { date: string; recordedItems: number; tiedDates: number } | null {
   let result: { date: string; recordedItems: number; tiedDates: number } | null = null;
   for (const day of days) {
-    const count = day.appointments + day.unfinishedWork +
-      (includeInspections ? day.inspections : 0);
+    const count = recordedItemCount(day, includeInspections);
     if (count <= 0) continue;
     if (!result || count > result.recordedItems) {
       result = { date: day.date, recordedItems: count, tiedDates: 1 };
@@ -110,4 +114,26 @@ export function busiestRecordedDay(
     }
   }
   return result;
+}
+
+
+/**
+ * Optional presentation-only ordering of the same authorized calendar days.
+ * Largest *saved record count* first, with earliest date winning any tie.
+ * The default preserves ascending business-local dates. No input mutation.
+ */
+export function orderWorkloadDays(
+  days: readonly DailyWorkload[],
+  includeInspections: boolean,
+  mode: "calendar" | "most-recorded",
+): DailyWorkload[] {
+  const result = [...days];
+  if (mode === "calendar") {
+    return result.sort((a, b) => a.date.localeCompare(b.date));
+  }
+  return result.sort((a, b) =>
+    recordedItemCount(b, includeInspections) -
+      recordedItemCount(a, includeInspections) ||
+    a.date.localeCompare(b.date),
+  );
 }

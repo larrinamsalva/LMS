@@ -243,6 +243,35 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(weeklyTotals.getByText("Unfinished work · 7 days")).toBeVisible();
   await expect(weeklyTotals.getByText("Days with saved activity")).toBeVisible();
   await expect(weeklyTotals.getByText("Equipment inspections · 7 days")).toHaveCount(0);
+  // Compare the actual seven date-card counts before and after sorting,
+  // rather than hard-coding which fictional day happens to be busiest.
+  const datedCards = dailyLoad.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:/,
+  });
+  const originalLabels = await datedCards.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("aria-label") || ""),
+  );
+  const recorded = (name: string) => {
+    const match = name.match(/^Review (\d{4}-\d{2}-\d{2}): (\d+) appointments and (\d+) unfinished work items$/);
+    expect(match).not.toBeNull();
+    return { name, date: match![1], count: Number(match![2]) + Number(match![3]) };
+  };
+  const expectedSorted = originalLabels.map(recorded).sort((a, b) =>
+    b.count - a.count || a.date.localeCompare(b.date),
+  ).map(({ name }) => name);
+  await dailyLoad.getByRole("button", {
+    name: "Sort by most recorded items", exact: true,
+  }).click();
+  await expect(dailyLoad.getByText("Order: Most recorded first")).toBeVisible();
+  expect(await datedCards.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("aria-label") || ""),
+  )).toEqual(expectedSorted);
+  await dailyLoad.getByRole("button", {
+    name: "Sort by calendar date", exact: true,
+  }).click();
+  expect(await datedCards.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("aria-label") || ""),
+  )).toEqual(originalLabels);
   const activeDays = Number(
     (await weeklyTotals.getByText(/^\d+ of 7$/).textContent())!.split(" of ")[0],
   );

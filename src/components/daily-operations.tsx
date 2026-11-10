@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
-import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays, busiestRecordedDay } from "../core/daily-operations-workload";
+import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays, busiestRecordedDay, orderWorkloadDays } from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
@@ -74,6 +74,7 @@ export function DailyOperations({
   const [date, setDate] = useState(() => localDate(new Date().toISOString(), zone));
   const [visible, setVisible] = useState(initialVisible);
   const [activityOnly, setActivityOnly] = useState(false);
+  const [sortByActivity, setSortByActivity] = useState(false);
   const previousDay = adjacentOperationsDate(date, -1);
   const nextDay = adjacentOperationsDate(date, 1);
   function selectDate(next: string | null) {
@@ -107,8 +108,10 @@ export function DailyOperations({
     (module) => module.id === "equipment",
   );
   const weeklyTotals = summarizeSevenDayWorkload(nextSevenDays, equipmentEnabled);
-  const displayedDays = visibleWorkloadDays(
-    nextSevenDays, equipmentEnabled, activityOnly,
+  const displayedDays = orderWorkloadDays(
+    visibleWorkloadDays(nextSevenDays, equipmentEnabled, activityOnly),
+    equipmentEnabled,
+    sortByActivity ? "most-recorded" : "calendar",
   );
   // Always use the complete seven-day window, even when filtered on screen.
   const peakDay = busiestRecordedDay(nextSevenDays, equipmentEnabled);
@@ -333,8 +336,19 @@ export function DailyOperations({
               >
                 {activityOnly ? "Show all seven days" : "Show active days only"}
               </button>
+              <button
+                type="button"
+                className="secondary"
+                aria-pressed={sortByActivity}
+                onClick={() => setSortByActivity((value) => !value)}
+              >
+                {sortByActivity ? "Sort by calendar date" : "Sort by most recorded items"}
+              </button>
               <span className="muted" role="status" aria-live="polite">
                 Showing {displayedDays.length} of {nextSevenDays.length} days
+              </span>
+              <span className="muted">
+                Order: {sortByActivity ? "Most recorded first" : "Calendar date"}
               </span>
             </div>
             {activityOnly && displayedDays.length === 0 && (

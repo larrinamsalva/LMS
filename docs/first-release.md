@@ -421,3 +421,20 @@ It uses the *full authorized seven-day window* even if **Show active
 days only** is selected. An empty week displays a message instead of a
 button. The shortcut makes no record changes and does not alter existing
 weekly totals, CSV downloads, schedules or date filtering.
+
+
+### Sort the seven-day workload cards by saved activity (PR #60)
+
+The **Sort by most recorded items** button temporarily orders the seven
+future business-local dates from the largest to the smallest count of
+saved appointments, unfinished work and (only for Equipment & Tools
+workspaces) upcoming equipment inspections. Ties use the **earliest date**
+first, consistent with **Most recorded activity**. **Sort by calendar
+date** restores the chronological order used by default.
+
+Sorting combines with **Show active days only** without changing which
+dates qualify as active. It only changes the order of the visible cards:
+the full-window totals, selected Operations date, record navigation,
+read-only summary, and all CSV files stay unchanged and chronological.
+A recorded-item count is **not a measure of job duration, staff workload,
+equipment safety, availability or business capacity**.
