@@ -402,6 +402,18 @@ export function DailyOperations({
                   effectiveActivityType === "inspections" ? "Sort by most equipment inspections" :
                   "Sort by most recorded items"}
               </button>
+              <button
+                type="button"
+                className="secondary"
+                disabled={!activityOnly && activityType === "all" && !sortByActivity}
+                onClick={() => {
+                  setActivityOnly(false);
+                  setActivityType("all");
+                  setSortByActivity(false);
+                }}
+              >
+                Reset workload view
+              </button>
               <span className="muted" role="status" aria-live="polite">
                 Showing {displayedDays.length} of {nextSevenDays.length} days
               </span>

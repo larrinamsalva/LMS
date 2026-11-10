@@ -523,3 +523,17 @@ This is a read-only visual aid, not a sign of staffing capacity, job
 duration, booking availability or equipment clearance. Dates, source
 records, exports, week totals, permissions, sessions and other systems
 are unchanged; fictional no-login demos and MIT license remain intact.
+
+
+### Reset the seven-day workload view (PR #66)
+
+Daily Operations offers **Reset workload view** to clear both the selected
+activity type and active-days-only filter and restore the original seven
+business-local dates in chronological order with one action. This is
+distinct from **Show all seven days**, which intentionally does not
+change sorting. The reset button is disabled when all controls are at
+their initial values. It works for empty category filters and after
+switching businesses with different enabled modules. Reset does not
+change the selected operations date, any saved records, dashboard
+totals, the overall or focused peak logic, CSV data, or permissions.
+The no-login public demonstration still uses only fictional data.

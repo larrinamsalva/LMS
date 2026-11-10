@@ -326,6 +326,22 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   await expect(workload.getByRole("button", {
     name: /^Review \d{4}-\d{2}-\d{2}:/,
   })).toHaveCount(7);
+  // Reset also works when a module-specific filter finds no matching dates.
+  await focus.selectOption("inspections");
+  await workload.getByRole("button", {
+    name: "Sort by most equipment inspections", exact: true,
+  }).click();
+  await workload.getByRole("button", {
+    name: "Reset workload view", exact: true,
+  }).click();
+  await expect(focus).toHaveValue("all");
+  await expect(workload.getByText("Order: Calendar date")).toBeVisible();
+  await expect(workload.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:/,
+  })).toHaveCount(7);
+  await expect(workload.getByRole("button", {
+    name: "Reset workload view", exact: true,
+  })).toBeDisabled();
   const dated = workload.getByRole("button", {
     name: /^Review \d{4}-\d{2}-\d{2}:/,
   });

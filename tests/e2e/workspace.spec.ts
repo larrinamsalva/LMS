@@ -387,6 +387,24 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     name: "Most recorded selected activity day",
   })).toHaveCount(0);
   await expect(datedCards).toHaveCount(7);
+  const resetWorkload = dailyLoad.getByRole("button", {
+    name: "Reset workload view", exact: true,
+  });
+  await expect(resetWorkload).toBeDisabled();
+  await activitySelect.selectOption("appointments");
+  await dailyLoad.getByRole("button", {
+    name: "Sort by most appointment starts", exact: true,
+  }).click();
+  await expect(resetWorkload).toBeEnabled();
+  await resetWorkload.click();
+  await expect(activitySelect).toHaveValue("all");
+  await expect(dailyLoad.getByText("Order: Calendar date")).toBeVisible();
+  await expect(datedCards).toHaveCount(7);
+  await expect(dailyLoad.locator(".daily-workload-selected-count")).toHaveCount(0);
+  expect(await datedCards.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("aria-label") || ""),
+  )).toEqual(originalLabels);
+  await expect(resetWorkload).toBeDisabled();
   const activeDays = Number(
     (await weeklyTotals.getByText(/^\d+ of 7$/).textContent())!.split(" of ")[0],
   );
