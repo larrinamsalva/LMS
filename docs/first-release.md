@@ -637,3 +637,24 @@ full-week summaries and date cards recalculate from the new selected
 date. Calendar navigation does not imply staffing, business opening
 hours, booking availability or equipment safety. The public no-login
 demo remains fictional, and the MIT license is unchanged.
+
+
+### Compare with the following seven business-local dates (PR #72)
+
+The optional **Compare following 7 days** view shows the next
+non-overlapping seven-date window beside the current window's complete
+saved-record totals. Appointments, unfinished due work, enabled
+equipment inspections and the number of dates with saved activity
+display exact counts and signed changes. A positive sign means more
+saved records in the following period; it is not a measure of work
+hours, utilization, staffing requirements, guaranteed availability
+or equipment readiness.
+
+Both periods use the existing current-business authorization and
+business time zone. The comparison is read-only and does not apply
+the display-only date-card filters, change the selected operations
+date, create appointments, modify records or change CSV exports.
+The comparison remains available as the user browses weeks but can
+be hidden at any time. A future period outside supported date bounds
+shows an unavailable message rather than inventing records.
+Fictional no-login demos and MIT licensing are unchanged.

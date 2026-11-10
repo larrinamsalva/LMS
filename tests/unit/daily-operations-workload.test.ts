@@ -4,7 +4,7 @@ import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
   summarizeFocusedWorkload, busiestFocusedDay, focusedRecordedItemCount,
-  workloadWeekday, filterWorkloadDaysByCalendarDay,
+  workloadWeekday, filterWorkloadDaysByCalendarDay, compareSevenDayWorkloadTotals,
 } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
@@ -598,4 +598,35 @@ it("summarizes displayed dates separately from the complete saved week", () => {
   expect(summarizeSevenDayWorkload(weekendDays, false).inspections).toBe(0);
   expect(summarizeSevenDayWorkload(days, true)).toEqual(fullWeek);
   expect(days).toEqual(snapshot);
+});
+
+
+it("compares only complete saved-record totals of consecutive seven-day windows", () => {
+  const earlier = [
+    { date: "2028-02-26", appointments: 4, unfinishedWork: 0, inspections: 0 },
+    { date: "2028-02-27", appointments: 0, unfinishedWork: 2, inspections: 1 },
+    { date: "2028-02-28", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2028-02-29", appointments: 0, unfinishedWork: 0, inspections: 0 },
+  ];
+  const later = [
+    { date: "2028-03-04", appointments: 1, unfinishedWork: 0, inspections: 2 },
+    { date: "2028-03-05", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2028-03-06", appointments: 0, unfinishedWork: 4, inspections: 0 },
+    { date: "2028-03-07", appointments: 0, unfinishedWork: 0, inspections: 0 },
+  ];
+  const before = earlier.map((d) => ({ ...d }));
+  const current = summarizeSevenDayWorkload(earlier, true);
+  const following = summarizeSevenDayWorkload(later, true);
+  expect(compareSevenDayWorkloadTotals(current, following)).toEqual({
+    appointments: -3, unfinishedWork: 2, inspections: 1,
+    daysWithActivity: 0,
+  });
+  const disabledCurrent = summarizeSevenDayWorkload(earlier, false);
+  const disabledFollowing = summarizeSevenDayWorkload(later, false);
+  expect(compareSevenDayWorkloadTotals(disabledCurrent, disabledFollowing).inspections)
+    .toBe(0);
+  expect(compareSevenDayWorkloadTotals(current, current)).toEqual({
+    appointments: 0, unfinishedWork: 0, inspections: 0, daysWithActivity: 0,
+  });
+  expect(earlier).toEqual(before);
 });

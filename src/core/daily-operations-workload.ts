@@ -246,3 +246,22 @@ export function filterWorkloadDaysByCalendarDay(
     return filter === "weekdays" ? weekday <= 5 : weekday >= 6;
   });
 }
+
+
+/**
+ * Pure saved-record count change for two non-overlapping seven-date windows.
+ * Positive means more recorded items in the following window, not increased
+ * workload hours, staffing needs, equipment safety or bookable capacity.
+ */
+export function compareSevenDayWorkloadTotals(
+  current: ReturnType<typeof summarizeSevenDayWorkload>,
+  following: ReturnType<typeof summarizeSevenDayWorkload>,
+): { appointments: number; unfinishedWork: number; inspections: number;
+  daysWithActivity: number } {
+  return {
+    appointments: following.appointments - current.appointments,
+    unfinishedWork: following.unfinishedWork - current.unfinishedWork,
+    inspections: following.inspections - current.inspections,
+    daysWithActivity: following.daysWithActivity - current.daysWithActivity,
+  };
+}
