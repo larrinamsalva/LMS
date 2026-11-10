@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { summarizeDailyOperations } from "../../src/core/daily-operations";
-import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays, busiestRecordedDay } from "../../src/core/daily-operations-workload";
+import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays, busiestRecordedDay, orderWorkloadDays } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
 
@@ -306,4 +306,50 @@ it("finds a saved calendar-date peak across a daylight-saving change", () => {
   ), false)).toEqual({
     date: "2026-11-01", recordedItems: 2, tiedDates: 1,
   });
+});
+
+
+it("sorts recorded item counts with earliest-date ties and equipment-aware totals", () => {
+  const days = [
+    { date: "2026-11-10", appointments: 1, unfinishedWork: 2, inspections: 0 },
+    { date: "2026-11-07", appointments: 0, unfinishedWork: 0, inspections: 4 },
+    { date: "2026-11-09", appointments: 1, unfinishedWork: 1, inspections: 2 },
+    { date: "2026-11-06", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-08", appointments: 0, unfinishedWork: 3, inspections: 0 },
+  ];
+  const before = days.map(({date})=>date);
+  expect(orderWorkloadDays(days, true, "most-recorded").map(d=>d.date))
+    .toEqual(["2026-11-07", "2026-11-09", "2026-11-08", "2026-11-10", "2026-11-06"]);
+  // Without equipment, inspection-only dates sort last, not first.
+  expect(orderWorkloadDays(days, false, "most-recorded").map(d=>d.date))
+    .toEqual(["2026-11-08", "2026-11-10", "2026-11-09", "2026-11-06", "2026-11-07"]);
+  expect(orderWorkloadDays(days, true, "calendar").map(d=>d.date))
+    .toEqual(["2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10"]);
+  expect(days.map(d=>d.date)).toEqual(before); // do not mutate snapshots
+  expect(busiestRecordedDay(days, true)?.date)
+    .toBe(orderWorkloadDays(days, true, "most-recorded")[0].date);
+  expect(busiestRecordedDay(days, false)?.date)
+    .toBe(orderWorkloadDays(days, false, "most-recorded")[0].date);
+});
+
+it("composes optional active-day filtering and sorting while keeping empty weeks intact", () => {
+  const days = [
+    { date: "2028-02-29", appointments: 0, unfinishedWork: 0, inspections: 1 },
+    { date: "2028-02-27", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2028-03-01", appointments: 2, unfinishedWork: 0, inspections: 0 },
+    { date: "2028-02-28", appointments: 1, unfinishedWork: 0, inspections: 0 },
+  ];
+  expect(orderWorkloadDays(
+    visibleWorkloadDays(days, true, true), true, "most-recorded",
+  ).map(d=>d.date)).toEqual(["2028-03-01", "2028-02-28", "2028-02-29"]);
+  expect(orderWorkloadDays(
+    visibleWorkloadDays(days, false, true), false, "most-recorded",
+  ).map(d=>d.date)).toEqual(["2028-03-01", "2028-02-28"]);
+  const empty = days.map(d=>({...d,appointments:0,unfinishedWork:0,inspections:0}));
+  expect(orderWorkloadDays(
+    visibleWorkloadDays(empty, true, true), true, "most-recorded",
+  )).toEqual([]);
+  expect(orderWorkloadDays(empty, true, "calendar").map(d=>d.date)).toEqual([
+    "2028-02-27", "2028-02-28", "2028-02-29", "2028-03-01",
+  ]);
 });

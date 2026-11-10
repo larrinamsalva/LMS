@@ -293,6 +293,22 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
     name: /^Review \d{4}-\d{2}-\d{2}:.*equipment inspections$/,
   })).toHaveCount(7);
   await expect(workload.getByText("0 inspections")).toHaveCount(7);
+  const dated = workload.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:/,
+  });
+  const originalDates = await dated.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("aria-label") || ""),
+  );
+  await workload.getByRole("button", {
+    name: "Sort by most recorded items", exact: true,
+  }).click();
+  await expect(workload.getByText("Order: Most recorded first")).toBeVisible();
+  await workload.getByRole("button", {
+    name: "Sort by calendar date", exact: true,
+  }).click();
+  expect(await dated.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("aria-label") || ""),
+  )).toEqual(originalDates);
   const weeklyTotals = workload.getByRole("group", {
     name: "Seven-day workload totals", exact: true,
   });
