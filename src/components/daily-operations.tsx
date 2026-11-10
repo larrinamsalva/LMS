@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
-import { sevenDayWorkload } from "../core/daily-operations-workload";
+import { sevenDayWorkload, summarizeSevenDayWorkload } from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
@@ -104,6 +104,7 @@ export function DailyOperations({
   const equipmentEnabled = workspace.config.document.modules.some(
     (module) => module.id === "equipment",
   );
+  const weeklyTotals = summarizeSevenDayWorkload(nextSevenDays, equipmentEnabled);
   function downloadDailyPlan() {
     // Build only from the current business's authorized in-memory summary.
     // No API calls, record mutations, or separate demo sessions are involved.
@@ -252,6 +253,26 @@ export function DailyOperations({
               They are not staff capacity, equipment clearance, or guaranteed availability.
               Select a day to review it.
             </p>
+            <div className="daily-workload-totals" role="group" aria-label="Seven-day workload totals">
+              <div>
+                <span className="metric-label">Upcoming appointments · 7 days</span>
+                <strong>{weeklyTotals.appointments}</strong>
+              </div>
+              <div>
+                <span className="metric-label">Unfinished work · 7 days</span>
+                <strong>{weeklyTotals.unfinishedWork}</strong>
+              </div>
+              {equipmentEnabled && (
+                <div>
+                  <span className="metric-label">Equipment inspections · 7 days</span>
+                  <strong>{weeklyTotals.inspections}</strong>
+                </div>
+              )}
+              <div>
+                <span className="metric-label">Days with saved activity</span>
+                <strong>{weeklyTotals.daysWithActivity} of {weeklyTotals.daysInWindow}</strong>
+              </div>
+            </div>
             <div className="daily-workload-grid">
               {nextSevenDays.map((day) => (
                 <button

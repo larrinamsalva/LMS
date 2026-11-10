@@ -219,6 +219,13 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     name: "Seven-day workload by date", exact: true,
   });
   await expect(dailyLoad.getByRole("button")).toHaveCount(7);
+  const weeklyTotals = dailyLoad.getByRole("group", {
+    name: "Seven-day workload totals", exact: true,
+  });
+  await expect(weeklyTotals.getByText("Upcoming appointments · 7 days")).toBeVisible();
+  await expect(weeklyTotals.getByText("Unfinished work · 7 days")).toBeVisible();
+  await expect(weeklyTotals.getByText("Days with saved activity")).toBeVisible();
+  await expect(weeklyTotals.getByText("Equipment inspections · 7 days")).toHaveCount(0);
   await dailyLoad.getByRole("button", { name: /^Review 2026-11-09:/ }).click();
   await expect(operations.getByLabel("Operations date", { exact: true }))
     .toHaveValue("2026-11-09");

@@ -291,6 +291,12 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
     name: /^Review \d{4}-\d{2}-\d{2}:.*equipment inspections$/,
   })).toHaveCount(7);
   await expect(workload.getByText("0 inspections")).toHaveCount(7);
+  const weeklyTotals = workload.getByRole("group", {
+    name: "Seven-day workload totals", exact: true,
+  });
+  await expect(weeklyTotals.getByText("Equipment inspections · 7 days")).toBeVisible();
+  await expect(weeklyTotals.getByText("Days with saved activity")).toBeVisible();
+  await expect(weeklyTotals.getByText(/^\d+ of 7$/)).toBeVisible();
   // The download remains useful as a header-only checklist when no future
   // inspection has been scheduled. Reuse this existing preview session.
   await dailyEquipment.getByLabel("Operations date", { exact: true }).fill("2026-11-05");

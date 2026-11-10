@@ -46,3 +46,30 @@ export function sevenDayWorkload(overview: Overview, zone: string): DailyWorkloa
   }
   return days;
 }
+
+/**
+ * Small, read-only weekly rollup of the exact same seven dates shown on screen.
+ * Equipment counts only affect active-day totals for equipment-enabled
+ * workspaces. The totals never infer staff availability, urgency or capacity.
+ */
+export function summarizeSevenDayWorkload(
+  days: readonly DailyWorkload[],
+  includeInspections: boolean,
+) {
+  return days.reduce(
+    (totals, day) => ({
+      appointments: totals.appointments + day.appointments,
+      unfinishedWork: totals.unfinishedWork + day.unfinishedWork,
+      inspections: totals.inspections + (includeInspections ? day.inspections : 0),
+      daysWithActivity: totals.daysWithActivity + Number(
+        day.appointments > 0 || day.unfinishedWork > 0 ||
+        (includeInspections && day.inspections > 0),
+      ),
+      daysInWindow: totals.daysInWindow + 1,
+    }),
+    {
+      appointments: 0, unfinishedWork: 0,
+      inspections: 0, daysWithActivity: 0, daysInWindow: 0,
+    },
+  );
+}

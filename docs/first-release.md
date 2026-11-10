@@ -348,3 +348,22 @@ hidden so other workspace types keep the simpler two-count overview.
 Selecting a date still navigates to existing Daily Operations; it does not
 change an asset's condition, record a service, create a maintenance task,
 or determine whether equipment is safe/available for use.
+
+### Seven-day workload summary totals (PR #56)
+
+Above the seven individual date cards, **Seven-day workload totals** adds
+read-only counts for saved upcoming appointment starts, unfinished work due
+within the next seven business-local calendar days, and the number of days
+with at least one recorded item. Workspaces with **Equipment & Tools**
+enabled also display upcoming inspection totals and count an
+inspection-only day as a day with saved activity. Workspaces without the
+module do not include inspections in either measure.
+
+The totals are derived from the same seven authorized per-day cards, so
+the reporting window, organization boundaries, exclusions for cancelled
+or finished/archived work, and business-local time-zone behavior stay
+identical. An appointment appears once on its start date, and undated or
+overdue work is not silently counted as future activity. These are
+**counts of saved records**, not scheduled hours, free capacity, safe
+equipment status or proof that staff can accept more bookings. No edits,
+automatic bookings, new exports or notifications are created.
