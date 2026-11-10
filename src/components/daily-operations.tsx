@@ -129,6 +129,7 @@ export function DailyOperations({
     ),
     equipmentEnabled,
     sortByActivity ? "most-recorded" : "calendar",
+    effectiveActivityType,
   );
   // Always use the complete seven-day window, even when filtered on screen.
   const peakDay = busiestRecordedDay(nextSevenDays, equipmentEnabled);
@@ -388,13 +389,22 @@ export function DailyOperations({
                 aria-pressed={sortByActivity}
                 onClick={() => setSortByActivity((value) => !value)}
               >
-                {sortByActivity ? "Sort by calendar date" : "Sort by most recorded items"}
+                {sortByActivity ? "Sort by calendar date" :
+                  effectiveActivityType === "appointments" ? "Sort by most appointment starts" :
+                  effectiveActivityType === "work" ? "Sort by most unfinished work" :
+                  effectiveActivityType === "inspections" ? "Sort by most equipment inspections" :
+                  "Sort by most recorded items"}
               </button>
               <span className="muted" role="status" aria-live="polite">
                 Showing {displayedDays.length} of {nextSevenDays.length} days
               </span>
               <span className="muted">
-                Order: {sortByActivity ? "Most recorded first" : "Calendar date"}
+                Order: {sortByActivity
+                  ? effectiveActivityType === "appointments" ? "Most appointment starts first"
+                    : effectiveActivityType === "work" ? "Most unfinished work first"
+                    : effectiveActivityType === "inspections" ? "Most equipment inspections first"
+                    : "Most recorded first"
+                  : "Calendar date"}
               </span>
             </div>
             {effectiveActivityType !== "all" && (

@@ -437,3 +437,37 @@ it("summarizes focused saved records without changing full-week metrics or sourc
   expect(summarizeFocusedWorkload([], true, "work"))
     .toEqual({ savedItems: 0, matchingDays: 0, daysInWindow: 0 });
 });
+
+
+it("sorts matching dates by the selected type rather than unrelated workload", () => {
+  const days = [
+    { date: "2028-02-29", appointments: 2, unfinishedWork: 1, inspections: 0 },
+    { date: "2028-03-01", appointments: 1, unfinishedWork: 4, inspections: 1 },
+    { date: "2028-03-02", appointments: 2, unfinishedWork: 0, inspections: 3 },
+    { date: "2028-03-03", appointments: 0, unfinishedWork: 0, inspections: 5 },
+  ];
+  const before = days.map((day) => ({ ...day }));
+  const dates = (type: "all"|"appointments"|"work"|"inspections", enabled = true) =>
+    orderWorkloadDays(days, enabled, "most-recorded", type).map((day) => day.date);
+  expect(dates("appointments")).toEqual([
+    "2028-02-29", "2028-03-02", "2028-03-01", "2028-03-03",
+  ]);
+  expect(dates("work")).toEqual([
+    "2028-03-01", "2028-02-29", "2028-03-02", "2028-03-03",
+  ]);
+  expect(dates("inspections")).toEqual([
+    "2028-03-03", "2028-03-02", "2028-03-01", "2028-02-29",
+  ]);
+  expect(dates("inspections", false)).toEqual([
+    "2028-02-29", "2028-03-01", "2028-03-02", "2028-03-03",
+  ]);
+  expect(dates("all")).toEqual([
+    "2028-03-03", "2028-03-01", "2028-03-02", "2028-02-29",
+  ]);
+  expect(dates("all")).toEqual(
+    orderWorkloadDays(days, true, "most-recorded").map((day) => day.date),
+  );
+  expect(orderWorkloadDays(days, true, "calendar", "inspections").map((day) => day.date))
+    .toEqual(["2028-02-29", "2028-03-01", "2028-03-02", "2028-03-03"]);
+  expect(days).toEqual(before);
+});
