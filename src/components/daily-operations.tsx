@@ -350,10 +350,13 @@ export function DailyOperations({
                 className="secondary"
                 aria-pressed={effectiveActivityOnly}
                 onClick={() => {
-                  if (activityOnly) {
+                  if (effectiveActivityOnly) {
                     setActivityOnly(false);
                     setActivityType("all");
                   } else {
+                    // An equipment-only choice from a different business is
+                    // unavailable here; activate the all-activity filter.
+                    if (unavailableEquipmentFilter) setActivityType("all");
                     setActivityOnly(true);
                   }
                 }}
