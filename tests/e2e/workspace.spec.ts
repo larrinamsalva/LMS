@@ -295,9 +295,6 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   });
   await expect(compare).toContainText("Change to following:");
   // The following comparison retains the behavior verified by PR #72.
-  const compare = dailyLoad.getByRole("group", {
-    name: "Following seven-day workload comparison", exact: true,
-  });
   await expect(compare).toContainText("Following 2026-11-14 through 2026-11-20");
   await expect(compare.locator(".daily-workload-following-inspections"))
     .toHaveCount(0);
