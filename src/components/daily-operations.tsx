@@ -5,7 +5,8 @@ import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
   summarizeFocusedWorkload, busiestFocusedDay, focusedRecordedItemCount,
-  workloadWeekday, type WorkloadActivityType,
+  workloadWeekday, filterWorkloadDaysByCalendarDay,
+  type WorkloadActivityType, type WorkloadCalendarDayFilter,
 } from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
@@ -81,6 +82,8 @@ export function DailyOperations({
   const [activityOnly, setActivityOnly] = useState(false);
   const [sortByActivity, setSortByActivity] = useState(false);
   const [activityType, setActivityType] = useState<WorkloadActivityType>("all");
+  const [calendarDayFilter, setCalendarDayFilter] =
+    useState<WorkloadCalendarDayFilter>("all");
   const previousDay = adjacentOperationsDate(date, -1);
   const nextDay = adjacentOperationsDate(date, 1);
   function selectDate(next: string | null) {
@@ -129,10 +132,13 @@ export function DailyOperations({
     : effectiveActivityType === "work" ? "unfinished work"
     : "equipment inspections";
   const displayedDays = orderWorkloadDays(
-    filterWorkloadDaysByType(
-      visibleWorkloadDays(nextSevenDays, equipmentEnabled, effectiveActivityOnly),
-      equipmentEnabled,
-      effectiveActivityType,
+    filterWorkloadDaysByCalendarDay(
+      filterWorkloadDaysByType(
+        visibleWorkloadDays(nextSevenDays, equipmentEnabled, effectiveActivityOnly),
+        equipmentEnabled,
+        effectiveActivityType,
+      ),
+      calendarDayFilter,
     ),
     equipmentEnabled,
     sortByActivity ? "most-recorded" : "calendar",
@@ -361,6 +367,7 @@ export function DailyOperations({
                   if (effectiveActivityOnly) {
                     setActivityOnly(false);
                     setActivityType("all");
+                    setCalendarDayFilter("all");
                   } else {
                     // An equipment-only choice from a different business is
                     // unavailable here; activate the all-activity filter.
@@ -390,6 +397,20 @@ export function DailyOperations({
                   )}
                 </select>
               </label>
+              <label className="daily-workload-category">
+                Calendar days to show
+                <select
+                  aria-label="Calendar days to show"
+                  value={calendarDayFilter}
+                  onChange={(event) => setCalendarDayFilter(
+                    event.target.value as WorkloadCalendarDayFilter,
+                  )}
+                >
+                  <option value="all">All seven days</option>
+                  <option value="weekdays">Monday–Friday dates</option>
+                  <option value="weekends">Saturday–Sunday dates</option>
+                </select>
+              </label>
               <button
                 type="button"
                 className="secondary"
@@ -405,10 +426,12 @@ export function DailyOperations({
               <button
                 type="button"
                 className="secondary"
-                disabled={!activityOnly && activityType === "all" && !sortByActivity}
+                disabled={!activityOnly && activityType === "all" &&
+                  !sortByActivity && calendarDayFilter === "all"}
                 onClick={() => {
                   setActivityOnly(false);
                   setActivityType("all");
+                  setCalendarDayFilter("all");
                   setSortByActivity(false);
                 }}
               >
@@ -462,16 +485,19 @@ export function DailyOperations({
                 </button>
               </div>
             )}
-            {effectiveActivityOnly && displayedDays.length === 0 && (
+            {displayedDays.length === 0 && (effectiveActivityOnly ||
+              calendarDayFilter !== "all") && (
               <p className="muted" role="status">
-                {effectiveActivityType === "all"
-                  ? "No saved activity in the next seven days."
-                  : effectiveActivityType === "appointments"
-                    ? "No appointment starts in the next seven days."
-                    : effectiveActivityType === "work"
-                      ? "No unfinished work due in the next seven days."
-                      : "No upcoming equipment inspections in the next seven days."}
-                {" "}Show all seven days to reset the filter.
+                {calendarDayFilter !== "all"
+                  ? "No saved activity matches the selected calendar days and activity filters."
+                  : effectiveActivityType === "all"
+                    ? "No saved activity in the next seven days."
+                    : effectiveActivityType === "appointments"
+                      ? "No appointment starts in the next seven days."
+                      : effectiveActivityType === "work"
+                        ? "No unfinished work due in the next seven days."
+                        : "No upcoming equipment inspections in the next seven days."}
+                {" "}Reset workload view to restore all seven dates.
               </p>
             )}
             <div className="daily-workload-grid">

@@ -227,3 +227,22 @@ export function workloadWeekday(date: string): string {
     "Friday", "Saturday", "Sunday",
   ][Temporal.PlainDate.from(date).dayOfWeek - 1];
 }
+
+
+/**
+ * Optional calendar-day focus on the already authorized business-local
+ * workload snapshot. Monday-Friday and Saturday-Sunday are only day labels,
+ * never assumptions about the business's operating hours or staffing.
+ */
+export type WorkloadCalendarDayFilter = "all" | "weekdays" | "weekends";
+
+export function filterWorkloadDaysByCalendarDay(
+  days: readonly DailyWorkload[],
+  filter: WorkloadCalendarDayFilter,
+): DailyWorkload[] {
+  if (filter === "all") return [...days];
+  return days.filter((day) => {
+    const weekday = Temporal.PlainDate.from(day.date).dayOfWeek;
+    return filter === "weekdays" ? weekday <= 5 : weekday >= 6;
+  });
+}

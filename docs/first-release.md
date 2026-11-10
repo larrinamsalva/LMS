@@ -553,3 +553,26 @@ This is calendar context only: Saturday or Sunday does not imply staff
 availability, operating hours, equipment readiness or booking rules.
 Workload counts, saved records, selected date, exports, permissions,
 modules, account controls and the fictional no-login demo are unchanged.
+
+
+### Calendar weekday/weekend focus for workload date cards (PR #68)
+
+The **Calendar days to show** control in Daily Operations can display
+all seven business-local dates, Monday–Friday dates, or Saturday–Sunday
+dates. It composes with the existing saved-activity, active-only and
+sorting controls. The seven-day window itself does not change: full-week
+totals, overall and selected-activity peaks, and every CSV export still
+reflect the same authorized current-business dates and records. A peak
+shortcut may legitimately lead to a date not currently shown under a
+calendar-day filter.
+
+**Reset workload view** clears the new calendar focus along with other
+filters and sorting. The existing **Show all seven days** action clears
+the weekday/weekend focus when reverting an active-only selection.
+Empty intersections say that no saved activity *matches the selected
+filters*, not that the business has no activity that week.
+
+Monday–Friday and Saturday–Sunday are calendar categories, not
+assumptions about a business's hours, whether employees work weekends,
+appointment conflicts, equipment readiness, capacity or availability.
+No records are changed; the fictional no-login demo remains unchanged.

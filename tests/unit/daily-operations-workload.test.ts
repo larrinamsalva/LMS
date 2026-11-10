@@ -4,7 +4,7 @@ import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
   summarizeFocusedWorkload, busiestFocusedDay, focusedRecordedItemCount,
-  workloadWeekday,
+  workloadWeekday, filterWorkloadDaysByCalendarDay,
 } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
@@ -534,4 +534,30 @@ it("labels ISO business-local weekdays across DST and leap-day boundaries", () =
   expect(workloadWeekday("2028-02-29")).toBe("Tuesday"); // leap day
   expect(workloadWeekday("2028-03-01")).toBe("Wednesday");
   expect(() => workloadWeekday("2028-02-30")).toThrow();
+});
+
+
+it("focuses calendar weekdays or weekends without inferring business opening days", () => {
+  const dates = [
+    "2026-10-31", "2026-11-01", "2026-11-02", "2026-11-03",
+    "2026-11-04", "2026-11-05", "2026-11-06",
+  ];
+  const days = dates.map((date, index) => ({
+    date, appointments: index, unfinishedWork: 1, inspections: 0,
+  }));
+  const before = days.map((day) => ({ ...day }));
+  expect(filterWorkloadDaysByCalendarDay(days, "weekdays").map((d) => d.date))
+    .toEqual(dates.slice(2));
+  expect(filterWorkloadDaysByCalendarDay(days, "weekends").map((d) => d.date))
+    .toEqual(dates.slice(0, 2));
+  expect(filterWorkloadDaysByCalendarDay(days, "all")).toEqual(days);
+  expect(filterWorkloadDaysByCalendarDay([], "weekends")).toEqual([]);
+  expect(days).toEqual(before);
+  const leap = [
+    { date: "2028-02-29", appointments: 1, unfinishedWork: 0, inspections: 0 },
+    { date: "2028-03-04", appointments: 0, unfinishedWork: 0, inspections: 1 },
+  ];
+  expect(filterWorkloadDaysByCalendarDay(leap, "weekdays")).toEqual([leap[0]]);
+  expect(filterWorkloadDaysByCalendarDay(leap, "weekends")).toEqual([leap[1]]);
+  expect(summarizeSevenDayWorkload(days, false).daysInWindow).toBe(7);
 });
