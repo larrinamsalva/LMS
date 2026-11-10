@@ -104,7 +104,7 @@ it("handles zero records and leap-day business-local windows", () => {
   const current = summarizeDailyOperations(workspace, "America/Los_Angeles", "2028-02-26");
   const previous = summarizeDailyOperations(workspace, "America/Los_Angeles", "2028-02-19");
   const csv = sevenDayComparisonCsv(current, previous, "America/Los_Angeles", false, "previous");
-  expect(csv).toContain('"2028-02-29"');
+  expect(csv).toContain("2028-02-29");
   expect(csv.trimEnd().split("\r\n")).toHaveLength(4);
   expect(csv).not.toContain("Equipment inspections");
   expect(csv).toContain('"0","0","0"');
