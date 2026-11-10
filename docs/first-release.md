@@ -679,3 +679,25 @@ comparison remains read-only: no appointment, work, equipment,
 permissions, customer records or exports are modified. No hours,
 staffing availability, equipment safety or actual resource capacity
 are inferred. Fictional no-login demos and MIT licensing remain intact.
+
+
+### Download previous/following workload comparison (PR #74)
+
+The optional **Download comparison CSV** button inside the seven-day
+comparison panel exports saved-record aggregates for the selected
+current week and its adjacent previous/following week. Each metric row
+contains the current and compared business-local date ranges, the
+comparison direction, both saved counts and a signed change (**Change
+to current** or **Change to following**). It includes appointments,
+unfinished due work, days with saved activity and equipment inspections
+only when that module is enabled.
+
+The CSV is generated from the authorized current-business overview,
+not copied from UI labels or from display-only filters. It verifies
+the date windows are adjacent, contains no personal contacts, notes,
+customer titles, record identifiers or financial amounts, and uses
+formula-safe CSV escaping. The existing workload and other exports
+remain unchanged. Downloading is local and read-only; no bookings,
+records, permissions or user data are altered. Comparisons express
+saved record counts, not staffing, duration, equipment readiness or
+booking availability. Public no-login demo data remain fictional.

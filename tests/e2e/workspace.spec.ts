@@ -266,6 +266,21 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     "Previous 2026-10-31 through 2026-11-06",
   );
   await expect(previousCompare).toContainText("Change to current:");
+  const previousCsvPending = page.waitForEvent("download");
+  await previousCompare.getByRole("button", {
+    name: "Download comparison CSV", exact: true,
+  }).click();
+  const previousCsvDownload = await previousCsvPending;
+  expect(previousCsvDownload.suggestedFilename()).toBe(
+    "lms-previous-week-comparison-2026-11-06.csv",
+  );
+  const previousCsv = (await readFile((await previousCsvDownload.path())!))
+    .toString("utf8");
+  expect(previousCsv.trimEnd().split("\r\n")).toHaveLength(4);
+  expect(previousCsv).toContain("Change to current");
+  expect(previousCsv).toContain("2026-10-31 through 2026-11-06");
+  expect(previousCsv).not.toContain("Equipment inspections");
+  expect(previousCsv).not.toContain("Fictional upcoming window clean");
   await expect(previousCompare.locator(".daily-workload-following-inspections"))
     .toHaveCount(0);
   const previousAppointments = await previousCompare.locator(
@@ -294,6 +309,20 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     name: "Following seven-day workload comparison", exact: true,
   });
   await expect(compare).toContainText("Change to following:");
+  const followingCsvPending = page.waitForEvent("download");
+  await compare.getByRole("button", {
+    name: "Download comparison CSV", exact: true,
+  }).click();
+  const followingCsvDownload = await followingCsvPending;
+  expect(followingCsvDownload.suggestedFilename()).toBe(
+    "lms-following-week-comparison-2026-11-06.csv",
+  );
+  const followingCsv = (await readFile((await followingCsvDownload.path())!))
+    .toString("utf8");
+  expect(followingCsv.trimEnd().split("\r\n")).toHaveLength(4);
+  expect(followingCsv).toContain("Change to following");
+  expect(followingCsv).toContain("2026-11-14 through 2026-11-20");
+  expect(followingCsv).not.toContain("Equipment inspections");
   // The following comparison retains the behavior verified by PR #72.
   await expect(compare).toContainText("Following 2026-11-14 through 2026-11-20");
   await expect(compare.locator(".daily-workload-following-inspections"))
