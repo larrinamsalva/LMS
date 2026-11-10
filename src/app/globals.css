@@ -1956,7 +1956,12 @@ legend {
 
 
 /* Optional comparison of consecutive full-week authorized saved-record counts. */
-.daily-workload-comparison-toggle { margin: 12px 0; }
+.daily-workload-comparison-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0;
+}
 .daily-workload-comparison-toggle button { min-height: 44px; white-space: normal; }
 .daily-workload-following-comparison {
   margin: 12px 0 16px;

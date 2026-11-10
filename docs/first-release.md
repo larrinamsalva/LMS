@@ -658,3 +658,24 @@ The comparison remains available as the user browses weeks but can
 be hidden at any time. A future period outside supported date bounds
 shows an unavailable message rather than inventing records.
 Fictional no-login demos and MIT licensing are unchanged.
+
+
+### Compare with the previous seven business-local dates (PR #73)
+
+The comparison panel now also supports **Compare previous 7 days**,
+without requiring the owner to navigate away from the currently selected
+planning window. The previous period is the seven business-local dates
+directly before the current seven-day workload. The display shows the
+previous window's saved-record counts plus signed **Change to current**
+values, calculated as current minus previous. The existing following
+period continues to show **Change to following**, calculated as following
+minus current. Only one comparison panel is visible at a time, and the
+owner can switch directions or hide it.
+
+Both period snapshots use the same authorized workspace and original
+business time zone. Date-card filters do not alter the comparison,
+and unavailable date boundaries never show made-up data. The
+comparison remains read-only: no appointment, work, equipment,
+permissions, customer records or exports are modified. No hours,
+staffing availability, equipment safety or actual resource capacity
+are inferred. Fictional no-login demos and MIT licensing remain intact.
