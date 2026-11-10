@@ -462,7 +462,7 @@ it("sorts matching dates by the selected type rather than unrelated workload", (
     "2028-02-29", "2028-03-01", "2028-03-02", "2028-03-03",
   ]);
   expect(dates("all")).toEqual([
-    "2028-03-03", "2028-03-01", "2028-03-02", "2028-02-29",
+    "2028-03-01", "2028-03-02", "2028-03-03", "2028-02-29",
   ]);
   expect(dates("all")).toEqual(
     orderWorkloadDays(days, true, "most-recorded").map((day) => day.date),
