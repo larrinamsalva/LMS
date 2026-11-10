@@ -309,6 +309,17 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   await expect(previousComparison.locator(".daily-workload-following-inspections"))
     .toBeVisible();
   await expect(previousComparison).toContainText("Change to current:");
+  const comparisonCsvPending = equipmentPreview.waitForEvent("download");
+  await previousComparison.getByRole("button", {
+    name: "Download comparison CSV", exact: true,
+  }).click();
+  const previousCsvDownload = await comparisonCsvPending;
+  const comparisonCsv = (await readFile((await previousCsvDownload.path())!))
+    .toString("utf8");
+  expect(comparisonCsv.trimEnd().split("\r\n")).toHaveLength(5);
+  expect(comparisonCsv).toContain("Equipment inspections");
+  expect(comparisonCsv).toContain("Change to current");
+  expect(comparisonCsv).not.toContain("Fictional scrubber");
   await workload.getByRole("button", {
     name: "Compare following 7 days", exact: true,
   }).click();

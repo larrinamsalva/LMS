@@ -13,6 +13,7 @@ import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
 import { sevenDayOutlookCsv } from "../core/seven-day-outlook-csv";
 import { sevenDayWorkloadCsv, visibleWorkloadCsv } from "../core/seven-day-workload-csv";
+import { sevenDayComparisonCsv } from "../core/seven-day-comparison-csv";
 import { needsSchedulingCsv } from "../core/needs-scheduling-csv";
 import { upcomingInspectionsCsv } from "../core/upcoming-equipment-inspections-csv";
 import {
@@ -128,10 +129,11 @@ export function DailyOperations({
   const comparisonAnchor = comparisonDirection === "previous" ? previousWeek
     : comparisonDirection === "following" ? nextWeek : null;
   let comparisonDays: ReturnType<typeof sevenDayWorkload> = [];
+  let comparisonSummary: ReturnType<typeof summarizeDailyOperations> | null = null;
   if (comparisonAnchor && summary) {
     try {
-      const compareSummary = summarizeDailyOperations(workspace, zone, comparisonAnchor);
-      comparisonDays = sevenDayWorkload(compareSummary, zone);
+      comparisonSummary = summarizeDailyOperations(workspace, zone, comparisonAnchor);
+      comparisonDays = sevenDayWorkload(comparisonSummary, zone);
     } catch {
       // Out-of-range or invalid dates cannot break the main operations view.
     }
@@ -239,6 +241,21 @@ export function DailyOperations({
     link.href = url;
     link.download = "lms-visible-workload-" + summary.date +
       "-through-" + summary.upcomingThrough + ".csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function downloadComparison() {
+    if (!summary || !comparisonSummary || !comparisonTotals ||
+        comparisonDirection === "none") return;
+    const csv = sevenDayComparisonCsv(
+      summary, comparisonSummary, zone, equipmentEnabled, comparisonDirection,
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-" + comparisonDirection + "-week-comparison-" +
+      summary.date + ".csv";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -449,8 +466,15 @@ export function DailyOperations({
                 </div>
                 <p className="muted">
                   Both periods use complete seven-day windows, independent
-                  of date-card filters. CSV exports are unchanged.
+                  of date-card filters. Existing exports are unchanged.
                 </p>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={downloadComparison}
+                >
+                  Download comparison CSV
+                </button>
               </div>
             )}
             {comparisonDirection !== "none" && !comparisonTotals && (
