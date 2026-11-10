@@ -4,7 +4,7 @@ import { summarizeDailyOperations } from "../core/daily-operations";
 import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
-  summarizeFocusedWorkload, type WorkloadActivityType,
+  summarizeFocusedWorkload, busiestFocusedDay, type WorkloadActivityType,
 } from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
@@ -121,6 +121,12 @@ export function DailyOperations({
   const focusedTotals = summarizeFocusedWorkload(
     nextSevenDays, equipmentEnabled, effectiveActivityType,
   );
+  const focusedPeak = effectiveActivityType === "all" ? null : busiestFocusedDay(
+    nextSevenDays, equipmentEnabled, effectiveActivityType,
+  );
+  const focusedLabel = effectiveActivityType === "appointments" ? "appointment starts"
+    : effectiveActivityType === "work" ? "unfinished work"
+    : "equipment inspections";
   const displayedDays = orderWorkloadDays(
     filterWorkloadDaysByType(
       visibleWorkloadDays(nextSevenDays, equipmentEnabled, effectiveActivityOnly),
@@ -416,6 +422,32 @@ export function DailyOperations({
                 {focusedTotals.daysInWindow} days. Full-week totals above and CSV
                 downloads are unchanged.
               </p>
+            )}
+            {focusedPeak && (
+              <div
+                className="daily-workload-peak daily-workload-focused-peak"
+                role="group"
+                aria-label="Most recorded selected activity day"
+              >
+                <p>
+                  <strong>Most recorded {focusedLabel}: {focusedPeak.date}</strong>
+                  <span className="muted">
+                    {" "}· {focusedPeak.matchingItems} saved{" "}
+                    {focusedPeak.matchingItems === 1 ? "item" : "items"}
+                    {focusedPeak.tiedDates > 1 ? (
+                      <> · {focusedPeak.tiedDates} dates tied (earliest shown)</>
+                    ) : null}
+                  </span>
+                </p>
+                <button
+                  type="button"
+                  className="secondary"
+                  aria-label={"Review top selected activity day " + focusedPeak.date}
+                  onClick={() => selectDate(focusedPeak.date)}
+                >
+                  Review {focusedPeak.date}
+                </button>
+              </div>
             )}
             {effectiveActivityOnly && displayedDays.length === 0 && (
               <p className="muted" role="status">

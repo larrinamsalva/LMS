@@ -301,6 +301,9 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   await expect(workload.locator(".daily-workload-focused")).toContainText(
     "Focused activity: 0 equipment inspections across 0 of 7 days",
   );
+  await expect(workload.getByRole("group", {
+    name: "Most recorded selected activity day", exact: true,
+  })).toHaveCount(0);
   await workload.getByRole("button", {
     name: "Sort by most equipment inspections", exact: true,
   }).click();

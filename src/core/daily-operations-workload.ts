@@ -189,3 +189,28 @@ export function summarizeFocusedWorkload(
     };
   }, { savedItems: 0, matchingDays: 0, daysInWindow: 0 });
 }
+
+
+/**
+ * Largest selected-category saved-record count in the authorized business's
+ * seven-day snapshot. The date and tie result are independent of UI sorting
+ * and caller ordering. Never estimates staffing, duration or availability.
+ */
+export function busiestFocusedDay(
+  days: readonly DailyWorkload[],
+  includeInspections: boolean,
+  type: WorkloadActivityType,
+): { date: string; matchingItems: number; tiedDates: number } | null {
+  let result: { date: string; matchingItems: number; tiedDates: number } | null = null;
+  for (const day of days) {
+    const count = focusedRecordedItemCount(day, includeInspections, type);
+    if (count <= 0) continue;
+    if (!result || count > result.matchingItems) {
+      result = { date: day.date, matchingItems: count, tiedDates: 1 };
+    } else if (count === result.matchingItems) {
+      result.tiedDates += 1;
+      if (day.date < result.date) result.date = day.date;
+    }
+  }
+  return result;
+}
