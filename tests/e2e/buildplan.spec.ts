@@ -298,6 +298,9 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   });
   await expect(focus.locator('option[value="inspections"]')).toHaveCount(1);
   await focus.selectOption("inspections");
+  await expect(workload.locator(".daily-workload-focused")).toContainText(
+    "Focused activity: 0 equipment inspections across 0 of 7 days",
+  );
   await expect(workload.getByRole("button", {
     name: /^Review \d{4}-\d{2}-\d{2}:/,
   })).toHaveCount(0);
