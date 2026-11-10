@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { summarizeDailyOperations } from "../../src/core/daily-operations";
 import { sevenDayWorkload } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
+import type { EquipmentState } from "../../src/core/equipment";
 
 const org = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const foreign = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -53,13 +54,13 @@ it("groups the entire seven-day queue by business-local date, including empty da
     "America/Los_Angeles", "2026-11-05",
   );
   expect(sevenDayWorkload(overview, "America/Los_Angeles")).toEqual([
-    { date: "2026-11-06", appointments: 1, unfinishedWork: 2 },
-    { date: "2026-11-07", appointments: 0, unfinishedWork: 0 },
-    { date: "2026-11-08", appointments: 0, unfinishedWork: 0 },
-    { date: "2026-11-09", appointments: 0, unfinishedWork: 0 },
-    { date: "2026-11-10", appointments: 0, unfinishedWork: 0 },
-    { date: "2026-11-11", appointments: 0, unfinishedWork: 0 },
-    { date: "2026-11-12", appointments: 1, unfinishedWork: 1 },
+    { date: "2026-11-06", appointments: 1, unfinishedWork: 2, inspections: 0 },
+    { date: "2026-11-07", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-08", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-09", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-10", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-11", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-12", appointments: 1, unfinishedWork: 1, inspections: 0 },
   ]);
   expect(overview.needsScheduling).toHaveLength(1);
 });
@@ -82,7 +83,7 @@ it("keeps two repeated local clock-hour bookings on the same DST day", () => {
   const days = sevenDayWorkload(overview, "America/Los_Angeles");
   expect(days).toHaveLength(7);
   expect(days[0]).toEqual({
-    date: "2026-11-01", appointments: 2, unfinishedWork: 0,
+    date: "2026-11-01", appointments: 2, unfinishedWork: 0, inspections: 0,
   });
 });
 
@@ -97,4 +98,69 @@ it("advances across leap day as calendar dates without inventing activity", () =
     "2028-03-02", "2028-03-03", "2028-03-04",
   ]);
   expect(days.every((d) => d.appointments === 0 && d.unfinishedWork === 0)).toBe(true);
+});
+
+function equipment(
+  record_id: string, condition: EquipmentState["condition"],
+  next_inspection: string | null, organization_id = org,
+): EquipmentState {
+  return {
+    organization_id, record_id, revision: 1,
+    asset_key: record_id, barcode_key: null,
+    condition, maintenance: "Clear",
+    work_id: null, technician_id: null, last_service: null, next_inspection,
+  };
+}
+
+it("adds inspection counts to the correct dates without counting unsafe, archived or foreign assets", () => {
+  const records = [
+    record("equipment", "first", { name: "Floor scrubber" }),
+    record("equipment", "second", { name: "Carpet extractor" }),
+    record("equipment", "last", { name: "Final day tool" }),
+    record("equipment", "today", { name: "Inspection due today" }),
+    record("equipment", "overdue", { name: "Overdue asset" }),
+    record("equipment", "outside", { name: "Eighth-day equipment" }),
+    record("equipment", "broken", { name: "Out of service tool" }),
+    record("equipment", "retired", { name: "Retired tool" }),
+    record("equipment", "archived", { name: "Archived tool" }, org, true),
+    record("equipment", "foreign", { name: "Other business tool" }, foreign),
+  ];
+  const equipmentStates = [
+    equipment("first", "Serviceable", "2026-11-06"),
+    equipment("second", "Serviceable", "2026-11-06"),
+    equipment("last", "Serviceable", "2026-11-12"),
+    equipment("today", "Serviceable", "2026-11-05"),
+    equipment("overdue", "Serviceable", "2026-11-04"),
+    equipment("outside", "Serviceable", "2026-11-13"),
+    equipment("broken", "Out of service", "2026-11-06"),
+    equipment("retired", "Retired", "2026-11-06"),
+    equipment("archived", "Serviceable", "2026-11-06"),
+    equipment("foreign", "Serviceable", "2026-11-06", foreign),
+  ];
+  const source = { organizationId: org, records, equipmentStates };
+  const summary = summarizeDailyOperations(source, "America/Los_Angeles", "2026-11-05");
+  const days = sevenDayWorkload(summary, "America/Los_Angeles");
+  expect(days).toHaveLength(7);
+  expect(days.map(({ inspections }) => inspections)).toEqual([2, 0, 0, 0, 0, 0, 1]);
+  expect(days[0]).toEqual({
+    date: "2026-11-06", appointments: 0, unfinishedWork: 0, inspections: 2,
+  });
+  // A date becoming "today" moves its inspection out of the future queue,
+  // but does not write back to the saved equipment record.
+  const next = sevenDayWorkload(
+    summarizeDailyOperations(source, "America/Los_Angeles", "2026-11-06"),
+    "America/Los_Angeles",
+  );
+  expect(next[0].inspections).toBe(0);
+  expect(next[6].inspections).toBe(1); // Nov 13 enters the seven-day window.
+});
+
+it("counts a saved leap-day inspection on February 29", () => {
+  const summary = summarizeDailyOperations({
+    organizationId: org,
+    records: [record("equipment", "leap", { name: "Leap day inspection" })],
+    equipmentStates: [equipment("leap", "Serviceable", "2028-02-29")],
+  }, "America/Los_Angeles", "2028-02-26");
+  const days = sevenDayWorkload(summary, "America/Los_Angeles");
+  expect(days.find(({ date }) => date === "2028-02-29")?.inspections).toBe(1);
 });
