@@ -248,6 +248,12 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   const datedCards = dailyLoad.getByRole("button", {
     name: /^Review \d{4}-\d{2}-\d{2}:/,
   });
+  await expect(datedCards).toHaveCount(7);
+  await expect(datedCards.first().locator(".daily-workload-weekday")).toHaveText("Saturday");
+  await expect(datedCards.last().locator(".daily-workload-weekday")).toHaveText("Friday");
+  await expect(datedCards.first()).toHaveAttribute(
+    "aria-description", "Business-local weekday: Saturday",
+  );
   const originalLabels = await datedCards.evaluateAll((elements) =>
     elements.map((element) => element.getAttribute("aria-label") || ""),
   );

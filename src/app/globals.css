@@ -1902,3 +1902,11 @@ legend {
   font-weight: 700;
   overflow-wrap: anywhere;
 }
+
+
+/* Business-local weekday is readable on mobile with no color-only meaning. */
+.daily-workload-grid button .daily-workload-weekday {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}

@@ -4,6 +4,7 @@ import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
   summarizeFocusedWorkload, busiestFocusedDay, focusedRecordedItemCount,
+  workloadWeekday,
 } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
@@ -522,4 +523,15 @@ it("uses one selected-card count across category summaries and sorting", () => {
   expect(focusedRecordedItemCount(days[1], false, "inspections")).toBe(0);
   expect(focusedRecordedItemCount(days[1], false, "all")).toBe(4);
   expect(days).toEqual(unchanged);
+});
+
+
+it("labels ISO business-local weekdays across DST and leap-day boundaries", () => {
+  expect(workloadWeekday("2026-11-01")).toBe("Sunday"); // DST transition
+  expect(workloadWeekday("2026-11-07")).toBe("Saturday");
+  expect(workloadWeekday("2026-11-09")).toBe("Monday");
+  expect(workloadWeekday("2026-11-13")).toBe("Friday");
+  expect(workloadWeekday("2028-02-29")).toBe("Tuesday"); // leap day
+  expect(workloadWeekday("2028-03-01")).toBe("Wednesday");
+  expect(() => workloadWeekday("2028-02-30")).toThrow();
 });
