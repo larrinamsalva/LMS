@@ -4,7 +4,8 @@ import { summarizeDailyOperations } from "../core/daily-operations";
 import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
-  summarizeFocusedWorkload, busiestFocusedDay, type WorkloadActivityType,
+  summarizeFocusedWorkload, busiestFocusedDay, focusedRecordedItemCount,
+  type WorkloadActivityType,
 } from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
@@ -475,6 +476,13 @@ export function DailyOperations({
                   }
                 >
                   <strong>{day.date}</strong>
+                  {effectiveActivityType !== "all" && (
+                    <span className="daily-workload-selected-count" aria-hidden="true">
+                      Selected: {focusedRecordedItemCount(
+                        day, equipmentEnabled, effectiveActivityType,
+                      )} {focusedLabel}
+                    </span>
+                  )}
                   <span>{day.appointments} appointments</span>
                   <span>{day.unfinishedWork} work items</span>
                   {equipmentEnabled && <span>{day.inspections} inspections</span>}

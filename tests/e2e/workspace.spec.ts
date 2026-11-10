@@ -284,6 +284,15 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     .filter(({name}) => Number(name.match(/: (\d+) appointments/)?.[1] ?? 0) > 0)
     .map(({name}) => name);
   await expect(datedCards).toHaveCount(appointmentDates.length);
+  const selectedAppointmentLabels = await datedCards.evaluateAll((buttons) =>
+    buttons.map((button) =>
+      button.querySelector(".daily-workload-selected-count")?.textContent?.trim() ?? "",
+    ),
+  );
+  expect(selectedAppointmentLabels).toEqual(appointmentDates.map((label) =>
+    "Selected: " + Number(label.match(/: (\d+) appointments/)?.[1] ?? 0) +
+      " appointment starts",
+  ));
   const savedAppointments = originalLabels.reduce((total, name) =>
     total + Number(name.match(/: (\d+) appointments/)?.[1] ?? 0), 0);
   await expect(dailyLoad.locator(".daily-workload-focused")).toContainText(
@@ -333,6 +342,15 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     count: Number(name.match(/and (\d+) unfinished work/)?.[1] ?? 0),
   })).sort((a, b) => b.count - a.count || a.date.localeCompare(b.date))
     .map(({ name }) => name);
+  const selectedWorkLabels = await datedCards.evaluateAll((buttons) =>
+    buttons.map((button) =>
+      button.querySelector(".daily-workload-selected-count")?.textContent?.trim() ?? "",
+    ),
+  );
+  expect(selectedWorkLabels).toEqual(byWork.map((label) =>
+    "Selected: " + Number(label.match(/and (\d+) unfinished work/)?.[1] ?? 0) +
+      " unfinished work",
+  ));
   expect(await datedCards.evaluateAll((elements) =>
     elements.map((element) => element.getAttribute("aria-label") || ""),
   )).toEqual(byWork);
@@ -364,6 +382,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   }).click();
   await expect(activitySelect).toHaveValue("all");
   await expect(dailyLoad.locator(".daily-workload-focused")).toHaveCount(0);
+  await expect(dailyLoad.locator(".daily-workload-selected-count")).toHaveCount(0);
   await expect(dailyLoad.getByRole("group", {
     name: "Most recorded selected activity day",
   })).toHaveCount(0);

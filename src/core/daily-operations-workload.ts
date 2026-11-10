@@ -145,7 +145,7 @@ export function orderWorkloadDays(
 export type WorkloadActivityType = "all" | "appointments" | "work" | "inspections";
 
 /** Count the chosen category without mixing in unrelated saved records. */
-function focusedRecordedItemCount(
+export function focusedRecordedItemCount(
   day: DailyWorkload,
   includeInspections: boolean,
   type: WorkloadActivityType,

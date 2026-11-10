@@ -3,7 +3,7 @@ import { summarizeDailyOperations } from "../../src/core/daily-operations";
 import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
-  summarizeFocusedWorkload, busiestFocusedDay,
+  summarizeFocusedWorkload, busiestFocusedDay, focusedRecordedItemCount,
 } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
@@ -499,4 +499,27 @@ it("finds a selected-category peak independently of other saved activity", () =>
     ...day, appointments: 0, unfinishedWork: 0, inspections: 0,
   })), true, "appointments")).toBeNull();
   expect(days).toEqual(original);
+});
+
+
+it("uses one selected-card count across category summaries and sorting", () => {
+  const days = [
+    { date: "2028-02-29", appointments: 2, unfinishedWork: 1, inspections: 0 },
+    { date: "2028-03-01", appointments: 1, unfinishedWork: 3, inspections: 4 },
+  ];
+  const unchanged = days.map((day) => ({ ...day }));
+  for (const [type, counts] of [
+    ["appointments", [2, 1]],
+    ["work", [1, 3]],
+    ["inspections", [0, 4]],
+    ["all", [3, 8]],
+  ] as const) {
+    expect(days.map((day) => focusedRecordedItemCount(day, true, type)))
+      .toEqual(counts);
+    expect(summarizeFocusedWorkload(days, true, type).savedItems)
+      .toBe(counts[0] + counts[1]);
+  }
+  expect(focusedRecordedItemCount(days[1], false, "inspections")).toBe(0);
+  expect(focusedRecordedItemCount(days[1], false, "all")).toBe(4);
+  expect(days).toEqual(unchanged);
 });

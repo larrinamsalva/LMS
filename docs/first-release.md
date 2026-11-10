@@ -505,3 +505,21 @@ the complete authorized seven-day snapshot. Both are read-only saved-record
 counts, not duration, staffing, safety or availability assessments.
 The existing date, export, sorting, full-week totals and financial behavior
 remain unchanged. All examples in the public no-login demo are fictional.
+
+
+### Selected-category counts on individual workload date cards (PR #65)
+
+When an activity-type filter is selected, each visible seven-day workload
+date card puts its saved matching activity count first under a clear
+**Selected:** label. The appointment, unfinished-work, and enabled equipment
+inspection counts remain visible below it, as before. The visual callout
+reuses the same deterministic current-business count as category totals
+and ranking, with no new server query. Screen-reader date-card labels still
+announce those underlying category counts without redundantly repeating
+the visual callout. When All recorded activity is selected or the filter
+is reset, the extra callout disappears.
+
+This is a read-only visual aid, not a sign of staffing capacity, job
+duration, booking availability or equipment clearance. Dates, source
+records, exports, week totals, permissions, sessions and other systems
+are unchanged; fictional no-login demos and MIT license remain intact.
