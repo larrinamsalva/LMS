@@ -6,6 +6,7 @@ import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
 import { sevenDayOutlookCsv } from "../core/seven-day-outlook-csv";
+import { sevenDayWorkloadCsv } from "../core/seven-day-workload-csv";
 import { needsSchedulingCsv } from "../core/needs-scheduling-csv";
 import { upcomingInspectionsCsv } from "../core/upcoming-equipment-inspections-csv";
 import {
@@ -137,6 +138,18 @@ export function DailyOperations({
     const link = document.createElement("a");
     link.href = url;
     link.download = "lms-upcoming-inspections-" + summary.date +
+      "-through-" + summary.upcomingThrough + ".csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function downloadSevenDayWorkload() {
+    if (!summary) return;
+    const csv = sevenDayWorkloadCsv(summary, zone, equipmentEnabled);
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-seven-day-workload-" + summary.date +
       "-through-" + summary.upcomingThrough + ".csv";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -273,6 +286,13 @@ export function DailyOperations({
                 <strong>{weeklyTotals.daysWithActivity} of {weeklyTotals.daysInWindow}</strong>
               </div>
             </div>
+            <button
+              type="button"
+              className="secondary"
+              onClick={downloadSevenDayWorkload}
+            >
+              Download seven-day workload CSV
+            </button>
             <div className="daily-workload-grid">
               {nextSevenDays.map((day) => (
                 <button

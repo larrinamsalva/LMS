@@ -218,7 +218,9 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   const dailyLoad = operations.getByRole("region", {
     name: "Seven-day workload by date", exact: true,
   });
-  await expect(dailyLoad.getByRole("button")).toHaveCount(7);
+  await expect(dailyLoad.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:/,
+  })).toHaveCount(7);
   const weeklyTotals = dailyLoad.getByRole("group", {
     name: "Seven-day workload totals", exact: true,
   });
@@ -226,6 +228,21 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(weeklyTotals.getByText("Unfinished work · 7 days")).toBeVisible();
   await expect(weeklyTotals.getByText("Days with saved activity")).toBeVisible();
   await expect(weeklyTotals.getByText("Equipment inspections · 7 days")).toHaveCount(0);
+  const csvPending = page.waitForEvent("download");
+  await dailyLoad.getByRole("button", {
+    name: "Download seven-day workload CSV", exact: true,
+  }).click();
+  const csvDownload = await csvPending;
+  expect(csvDownload.suggestedFilename()).toBe(
+    "lms-seven-day-workload-2026-11-06-through-2026-11-13.csv",
+  );
+  const workloadCsv = (await readFile((await csvDownload.path())!)).toString("utf8");
+  expect(workloadCsv.trimEnd().split("\r\n")).toHaveLength(9);
+  expect(workloadCsv).toContain("TOTAL (7 days)");
+  expect(workloadCsv).not.toContain("Equipment inspections due");
+  expect(workloadCsv).not.toContain("Fictional upcoming window clean");
+  expect(workloadCsv).not.toContain("Taylor Edited");
+  expect(workloadCsv).toContain("America/Los_Angeles");
   await dailyLoad.getByRole("button", { name: /^Review 2026-11-09:/ }).click();
   await expect(operations.getByLabel("Operations date", { exact: true }))
     .toHaveValue("2026-11-09");
