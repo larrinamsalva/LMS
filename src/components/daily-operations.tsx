@@ -247,8 +247,10 @@ export function DailyOperations({
           <section className="daily-workload" aria-label="Seven-day workload by date">
             <h3>Next seven days · workload by date</h3>
             <p className="muted">
-              Counts reflect saved appointment start dates and unfinished job/task due dates.
-              They are not staff capacity or guaranteed availability. Select a day to review it.
+              Counts reflect saved appointment starts, unfinished work due dates
+              {equipmentEnabled ? ", and upcoming inspections" : ""}.
+              They are not staff capacity, equipment clearance, or guaranteed availability.
+              Select a day to review it.
             </p>
             <div className="daily-workload-grid">
               {nextSevenDays.map((day) => (
@@ -259,12 +261,14 @@ export function DailyOperations({
                   onClick={() => selectDate(day.date)}
                   aria-label={
                     "Review " + day.date + ": " + day.appointments +
-                    " appointments and " + day.unfinishedWork + " unfinished work items"
+                    " appointments and " + day.unfinishedWork + " unfinished work items" +
+                    (equipmentEnabled ? " and " + day.inspections + " equipment inspections" : "")
                   }
                 >
                   <strong>{day.date}</strong>
                   <span>{day.appointments} appointments</span>
                   <span>{day.unfinishedWork} work items</span>
+                  {equipmentEnabled && <span>{day.inspections} inspections</span>}
                 </button>
               ))}
             </div>

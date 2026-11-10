@@ -281,6 +281,16 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
     "No saved equipment inspections due in the next seven days.",
   );
   await expect(dailyEquipment.getByText("Inspections next 7 days")).toBeVisible();
+  // All seven dates show equipment inspections when the module is enabled,
+  // and no inspection event is created by opening a date.
+  const workload = dailyEquipment.getByRole("region", {
+    name: "Seven-day workload by date", exact: true,
+  });
+  await expect(workload.getByRole("button")).toHaveCount(7);
+  await expect(workload.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:.*equipment inspections$/,
+  })).toHaveCount(7);
+  await expect(workload.getByText("0 inspections")).toHaveCount(7);
   // The download remains useful as a header-only checklist when no future
   // inspection has been scheduled. Reuse this existing preview session.
   await dailyEquipment.getByLabel("Operations date", { exact: true }).fill("2026-11-05");

@@ -332,3 +332,19 @@ expanded lists normally. This is an overview of **saved record dates**, not
 employee availability, job duration, equipment readiness, confirmed resource
 capacity, staff assignment, or a new appointment booking. Nothing is changed
 or stored by opening a date, and all existing CSV exports remain distinct.
+
+### Equipment inspections in the seven-day workload (PR #55)
+
+When **Equipment & Tools** is enabled, each date in **Next seven days ·
+workload by date** now shows a third count: upcoming equipment inspections
+with a **saved next-inspection date** on that business-local day. This uses
+the same authorized, read-only inspection outlook as the existing detailed
+equipment panel and CSV. Serviceable assets only; today's and overdue
+inspections, retired or non-serviceable assets, archived records and other
+businesses' assets do not appear in these future counts.
+
+When the Equipment & Tools module is disabled, the inspection count stays
+hidden so other workspace types keep the simpler two-count overview.
+Selecting a date still navigates to existing Daily Operations; it does not
+change an asset's condition, record a service, create a maintenance task,
+or determine whether equipment is safe/available for use.

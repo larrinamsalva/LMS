@@ -7,6 +7,7 @@ export interface DailyWorkload {
   date: string;
   appointments: number;
   unfinishedWork: number;
+  inspections: number;
 }
 
 /**
@@ -15,8 +16,11 @@ export interface DailyWorkload {
  * and not a change to booking or job records.
  *
  * Appointments count by saved START day, not each day an overnight booking
- * overlaps. Jobs/tasks count by saved due date. Undated/overdue/finished work,
- * cancelled/archived and foreign records are already excluded by the overview.
+ * overlaps. Jobs/tasks count by saved due date. Upcoming equipment inspections
+ * count by their recorded next-inspection date, only for serviceable assets.
+ * Undated/overdue/finished/cancelled/archived/foreign records are already
+ * excluded by the authorized overview. These are planning counts, not
+ * evidence of resource availability or safety.
  */
 export function sevenDayWorkload(overview: Overview, zone: string): DailyWorkload[] {
   const selected = Temporal.PlainDate.from(overview.date);
@@ -24,6 +28,7 @@ export function sevenDayWorkload(overview: Overview, zone: string): DailyWorkloa
     date: selected.add({ days: offset + 1 }).toString(),
     appointments: 0,
     unfinishedWork: 0,
+    inspections: 0,
   }));
   const byDate = new Map(days.map((day) => [day.date, day]));
   for (const item of overview.upcomingAppointments) {
@@ -34,6 +39,10 @@ export function sevenDayWorkload(overview: Overview, zone: string): DailyWorkloa
   for (const item of overview.upcoming) {
     const day = byDate.get(item.due);
     if (day) day.unfinishedWork += 1;
+  }
+  for (const item of overview.upcomingEquipmentInspections) {
+    const day = byDate.get(item.due);
+    if (day) day.inspections += 1;
   }
   return days;
 }
