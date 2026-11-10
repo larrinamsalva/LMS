@@ -337,20 +337,20 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     Number(name.match(/and (\d+) unfinished work/)?.[1] ?? 0) > 0,
   );
   await expect(datedCards).toHaveCount(workDates.length);
-  const selectedWorkLabels = await datedCards.evaluateAll((buttons) =>
-    buttons.map((button) =>
-      button.querySelector(".daily-workload-selected-count")?.textContent?.trim() ?? "",
-    ),
-  );
-  expect(selectedWorkLabels).toEqual(workDates.map((label) =>
-    "Selected: " + Number(label.match(/and (\d+) unfinished work/)?.[1] ?? 0) +
-      " unfinished work",
-  ));
   const byWork = workDates.map((name) => ({
     name, date: recorded(name).date,
     count: Number(name.match(/and (\d+) unfinished work/)?.[1] ?? 0),
   })).sort((a, b) => b.count - a.count || a.date.localeCompare(b.date))
     .map(({ name }) => name);
+  const selectedWorkLabels = await datedCards.evaluateAll((buttons) =>
+    buttons.map((button) =>
+      button.querySelector(".daily-workload-selected-count")?.textContent?.trim() ?? "",
+    ),
+  );
+  expect(selectedWorkLabels).toEqual(byWork.map((label) =>
+    "Selected: " + Number(label.match(/and (\d+) unfinished work/)?.[1] ?? 0) +
+      " unfinished work",
+  ));
   expect(await datedCards.evaluateAll((elements) =>
     elements.map((element) => element.getAttribute("aria-label") || ""),
   )).toEqual(byWork);
