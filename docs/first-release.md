@@ -593,3 +593,28 @@ counts and busiest-day shortcuts. Full-window CSV exports and underlying
 records are unchanged. No conclusions are drawn about staff capacity,
 operating hours, booking conflicts or equipment safety. Public demo data
 remain fictional.
+
+
+### Download the visible seven-day workload date cards (PR #70)
+
+When any date-card filter is active, Daily Operations now offers a
+separate **Download visible workload CSV** action. It exports the
+exact dates displayed in the current order, with saved appointments,
+unfinished work and (if enabled) equipment inspections on each date.
+Because activity-type filters select *dates*, exported rows still
+include every authorized saved activity type on those displayed dates.
+
+The export is explicitly labeled with a **Visible business-local date**
+column and a **TOTAL (visible N dates)** row. It remains useful with
+zero visible dates (header plus zero totals). It contains no customer
+names, notes, record IDs, phone numbers or financial amounts. Every
+date and count is resolved again against the current authorized
+workspace's original seven-day snapshot, never accepted from
+unverified or stale display data. Inspection columns are omitted
+when Equipment & Tools is disabled. The full **Download seven-day
+workload CSV** stays byte-for-byte unchanged and always covers the
+entire week regardless of UI filters.
+
+The new download is local and read-only. No new API, scheduled
+notification, business record change or capacity assumption is added.
+The fictional no-login demo and MIT license are unaffected.

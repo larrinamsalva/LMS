@@ -305,6 +305,15 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
     name: "Most recorded selected activity day", exact: true,
   })).toHaveCount(0);
   await expect(workload.locator(".daily-workload-selected-count")).toHaveCount(0);
+  const visibleDownloadPending = equipmentPreview.waitForEvent("download");
+  await workload.getByRole("button", {
+    name: "Download visible workload CSV", exact: true,
+  }).click();
+  const visibleDownload = await visibleDownloadPending;
+  const visibleCsv = (await readFile((await visibleDownload.path())!)).toString("utf8");
+  expect(visibleCsv.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(visibleCsv).toContain("Equipment inspections due");
+  expect(visibleCsv).toContain("TOTAL (visible 0 dates)");
   await workload.getByRole("button", {
     name: "Sort by most equipment inspections", exact: true,
   }).click();
