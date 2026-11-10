@@ -228,6 +228,23 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(weeklyTotals.getByText("Unfinished work · 7 days")).toBeVisible();
   await expect(weeklyTotals.getByText("Days with saved activity")).toBeVisible();
   await expect(weeklyTotals.getByText("Equipment inspections · 7 days")).toHaveCount(0);
+  const activeDays = Number(
+    (await weeklyTotals.getByText(/^\d+ of 7$/).textContent())!.split(" of ")[0],
+  );
+  await dailyLoad.getByRole("button", {
+    name: "Show active days only", exact: true,
+  }).click();
+  await expect(dailyLoad.getByText("Showing " + activeDays + " of 7 days"))
+    .toBeVisible();
+  await expect(dailyLoad.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:/,
+  })).toHaveCount(activeDays);
+  await dailyLoad.getByRole("button", {
+    name: "Show all seven days", exact: true,
+  }).click();
+  await expect(dailyLoad.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:/,
+  })).toHaveCount(7);
   const csvPending = page.waitForEvent("download");
   await dailyLoad.getByRole("button", {
     name: "Download seven-day workload CSV", exact: true,

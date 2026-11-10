@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
-import { sevenDayWorkload, summarizeSevenDayWorkload } from "../core/daily-operations-workload";
+import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays } from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
@@ -73,6 +73,7 @@ export function DailyOperations({
   const zone = workspace.config.document.timeZone ?? "UTC";
   const [date, setDate] = useState(() => localDate(new Date().toISOString(), zone));
   const [visible, setVisible] = useState(initialVisible);
+  const [activityOnly, setActivityOnly] = useState(false);
   const previousDay = adjacentOperationsDate(date, -1);
   const nextDay = adjacentOperationsDate(date, 1);
   function selectDate(next: string | null) {
@@ -106,6 +107,9 @@ export function DailyOperations({
     (module) => module.id === "equipment",
   );
   const weeklyTotals = summarizeSevenDayWorkload(nextSevenDays, equipmentEnabled);
+  const displayedDays = visibleWorkloadDays(
+    nextSevenDays, equipmentEnabled, activityOnly,
+  );
   function downloadDailyPlan() {
     // Build only from the current business's authorized in-memory summary.
     // No API calls, record mutations, or separate demo sessions are involved.
@@ -293,8 +297,27 @@ export function DailyOperations({
             >
               Download seven-day workload CSV
             </button>
+            <div className="daily-workload-filter">
+              <button
+                type="button"
+                className="secondary"
+                aria-pressed={activityOnly}
+                onClick={() => setActivityOnly((value) => !value)}
+              >
+                {activityOnly ? "Show all seven days" : "Show active days only"}
+              </button>
+              <span className="muted" role="status" aria-live="polite">
+                Showing {displayedDays.length} of {nextSevenDays.length} days
+              </span>
+            </div>
+            {activityOnly && displayedDays.length === 0 && (
+              <p className="muted" role="status">
+                No saved activity in the next seven days. Show all seven days
+                to review dates without recorded items.
+              </p>
+            )}
             <div className="daily-workload-grid">
-              {nextSevenDays.map((day) => (
+              {displayedDays.map((day) => (
                 <button
                   key={day.date}
                   type="button"

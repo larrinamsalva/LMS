@@ -299,6 +299,24 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   await expect(weeklyTotals.getByText("Equipment inspections · 7 days")).toBeVisible();
   await expect(weeklyTotals.getByText("Days with saved activity")).toBeVisible();
   await expect(weeklyTotals.getByText(/^\d+ of 7$/)).toBeVisible();
+  const activityDays = Number(
+    (await weeklyTotals.getByText(/^\d+ of 7$/).textContent())!.split(" of ")[0],
+  );
+  await workload.getByRole("button", {
+    name: "Show active days only", exact: true,
+  }).click();
+  await expect(workload.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:/,
+  })).toHaveCount(activityDays);
+  if (activityDays === 0) {
+    await expect(workload).toContainText("No saved activity in the next seven days");
+  }
+  await workload.getByRole("button", {
+    name: "Show all seven days", exact: true,
+  }).click();
+  await expect(workload.getByRole("button", {
+    name: /^Review \d{4}-\d{2}-\d{2}:/,
+  })).toHaveCount(7);
   const workloadPending = equipmentPreview.waitForEvent("download");
   await workload.getByRole("button", {
     name: "Download seven-day workload CSV", exact: true,
