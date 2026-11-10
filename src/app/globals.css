@@ -1930,3 +1930,26 @@ legend {
 }
 .daily-workload-visible-counts > span { font-size: 13px; }
 .daily-workload-visible-summary p { margin: 8px 0 0; }
+
+
+/* Readable, touch-friendly navigation between business-local planning weeks. */
+.daily-workload-window-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 12px 0 16px;
+}
+.daily-workload-window-controls button {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+}
+.daily-workload-window-controls > span {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .daily-workload-window-controls button { flex: 1 1 130px; }
+  .daily-workload-window-controls > span { flex: 1 1 100%; order: -1; }
+}

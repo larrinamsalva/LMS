@@ -293,6 +293,21 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
     name: /^Review \d{4}-\d{2}-\d{2}:.*equipment inspections$/,
   })).toHaveCount(7);
   await expect(workload.getByText("0 inspections")).toHaveCount(7);
+  const weekNav = workload.getByRole("group", {
+    name: "Seven-day workload window navigation", exact: true,
+  });
+  const equipmentDateInput = dailyEquipment.getByLabel("Operations date", {
+    exact: true,
+  });
+  const originalEquipmentDate = await equipmentDateInput.inputValue();
+  await weekNav.getByRole("button", {
+    name: "Next seven-day workload window", exact: true,
+  }).click();
+  await expect(equipmentDateInput).not.toHaveValue(originalEquipmentDate);
+  await weekNav.getByRole("button", {
+    name: "Previous seven-day workload window", exact: true,
+  }).click();
+  await expect(equipmentDateInput).toHaveValue(originalEquipmentDate);
   const focus = workload.getByRole("combobox", {
     name: "Activity to show", exact: true,
   });

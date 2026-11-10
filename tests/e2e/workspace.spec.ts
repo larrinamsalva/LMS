@@ -221,6 +221,22 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(dailyLoad.getByRole("button", {
     name: /^Review \d{4}-\d{2}-\d{2}:/,
   })).toHaveCount(7);
+  const weekNav = dailyLoad.getByRole("group", {
+    name: "Seven-day workload window navigation", exact: true,
+  });
+  await expect(weekNav).toContainText("Viewing 2026-11-07 through 2026-11-13");
+  await weekNav.getByRole("button", {
+    name: "Next seven-day workload window", exact: true,
+  }).click();
+  await expect(operations.getByLabel("Operations date", { exact: true }))
+    .toHaveValue("2026-11-13");
+  await expect(weekNav).toContainText("Viewing 2026-11-14 through 2026-11-20");
+  await weekNav.getByRole("button", {
+    name: "Previous seven-day workload window", exact: true,
+  }).click();
+  await expect(operations.getByLabel("Operations date", { exact: true }))
+    .toHaveValue("2026-11-06");
+  await expect(weekNav).toContainText("Viewing 2026-11-07 through 2026-11-13");
   // The quick shortcut uses the same authorized recorded counts as the seven
   // daily cards, and clicking it is only a date-navigation action.
   const peakDay = dailyLoad.getByRole("group", {
