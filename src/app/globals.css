@@ -1910,3 +1910,23 @@ legend {
   font-weight: 600;
   color: var(--text);
 }
+
+
+/* Filtered date-card summary, distinct from the complete week's totals. */
+.daily-workload-visible-summary {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-alt);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.daily-workload-visible-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 8px 0;
+}
+.daily-workload-visible-counts > span { font-size: 13px; }
+.daily-workload-visible-summary p { margin: 8px 0 0; }
