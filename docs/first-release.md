@@ -701,3 +701,22 @@ remain unchanged. Downloading is local and read-only; no bookings,
 records, permissions or user data are altered. Comparisons express
 saved record counts, not staffing, duration, equipment readiness or
 booking availability. Public no-login demo data remain fictional.
+
+
+### Inventory low-stock watchlist (PR #75)
+
+Inventory & stock now provides a read-only Low-stock watchlist across
+active products and storage locations below their configured minimum
+whole-unit balance per location. Each alert shows the product, location,
+current saved stock, minimum, and exact unit shortfall. The existing
+location dropdown narrows the watchlist, and a shortcut opens the
+authorized stock movement editor for review without posting any stock.
+
+Archived products and locations do not trigger alerts. A missing
+balance counts as zero; a missing or zero minimum disables an alert.
+The watchlist uses exact whole-unit arithmetic without rounding case
+packaging, relying only on the current authorized organization snapshot.
+Stock history, permissions, scanner selection, movements, pricing,
+purchase orders and customer records are unchanged. No automatic
+replenishment or stock movement occurs. The public no-login demo
+remains fictional, and MIT licensing is unchanged.
