@@ -301,8 +301,18 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   });
   const originalEquipmentDate = await equipmentDateInput.inputValue();
   await workload.getByRole("button", {
+    name: "Compare previous 7 days", exact: true,
+  }).click();
+  const previousComparison = workload.getByRole("group", {
+    name: "Previous seven-day workload comparison", exact: true,
+  });
+  await expect(previousComparison.locator(".daily-workload-following-inspections"))
+    .toBeVisible();
+  await expect(previousComparison).toContainText("Change to current:");
+  await workload.getByRole("button", {
     name: "Compare following 7 days", exact: true,
   }).click();
+  await expect(previousComparison).toHaveCount(0);
   const comparison = workload.getByRole("group", {
     name: "Following seven-day workload comparison", exact: true,
   });

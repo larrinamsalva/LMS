@@ -82,7 +82,8 @@ export function DailyOperations({
   const [visible, setVisible] = useState(initialVisible);
   const [activityOnly, setActivityOnly] = useState(false);
   const [sortByActivity, setSortByActivity] = useState(false);
-  const [showFollowingWeek, setShowFollowingWeek] = useState(false);
+  const [comparisonDirection, setComparisonDirection] =
+    useState<"none" | "previous" | "following">("none");
   const [activityType, setActivityType] = useState<WorkloadActivityType>("all");
   const [calendarDayFilter, setCalendarDayFilter] =
     useState<WorkloadCalendarDayFilter>("all");
@@ -121,22 +122,30 @@ export function DailyOperations({
     (module) => module.id === "equipment",
   );
   const weeklyTotals = summarizeSevenDayWorkload(nextSevenDays, equipmentEnabled);
-  // Optional comparison uses the same authorized business snapshot, shifted
-  // by seven business-local dates. It never reads beyond this workspace.
-  let followingDays: ReturnType<typeof sevenDayWorkload> = [];
-  if (showFollowingWeek && nextWeek && summary) {
+  // Optional adjacent comparisons use the same authorized business snapshot.
+  // Previous: delta = current minus previous. Following: delta = following
+  // minus current. Neither direction uses screen-only date filters.
+  const comparisonAnchor = comparisonDirection === "previous" ? previousWeek
+    : comparisonDirection === "following" ? nextWeek : null;
+  let comparisonDays: ReturnType<typeof sevenDayWorkload> = [];
+  if (comparisonAnchor && summary) {
     try {
-      const followingSummary = summarizeDailyOperations(workspace, zone, nextWeek);
-      followingDays = sevenDayWorkload(followingSummary, zone);
+      const compareSummary = summarizeDailyOperations(workspace, zone, comparisonAnchor);
+      comparisonDays = sevenDayWorkload(compareSummary, zone);
     } catch {
-      // An invalid/out-of-range future window must not break daily operations.
+      // Out-of-range or invalid dates cannot break the main operations view.
     }
   }
-  const followingTotals = followingDays.length
-    ? summarizeSevenDayWorkload(followingDays, equipmentEnabled)
+  const comparisonTotals = comparisonDays.length
+    ? summarizeSevenDayWorkload(comparisonDays, equipmentEnabled)
     : null;
-  const comparisonChange = followingTotals
-    ? compareSevenDayWorkloadTotals(weeklyTotals, followingTotals) : null;
+  const comparisonChange = comparisonTotals
+    ? comparisonDirection === "previous"
+      ? compareSevenDayWorkloadTotals(comparisonTotals, weeklyTotals)
+      : compareSevenDayWorkloadTotals(weeklyTotals, comparisonTotals)
+    : null;
+  const comparisonName = comparisonDirection === "previous" ? "Previous" : "Following";
+  const comparisonChangeName = comparisonDirection === "previous" ? "current" : "following";
   const changeLabel = (value: number) => value > 0 ? "+" + value : String(value);
   // A selected Equipment-only filter cannot apply after switching to a
   // workspace where that module is disabled.
@@ -377,60 +386,76 @@ export function DailyOperations({
               <button
                 type="button"
                 className="secondary"
-                disabled={!nextWeek && !showFollowingWeek}
-                aria-expanded={showFollowingWeek}
-                onClick={() => setShowFollowingWeek((current) => !current)}
+                disabled={!previousWeek && comparisonDirection !== "previous"}
+                aria-expanded={comparisonDirection === "previous"}
+                onClick={() => setComparisonDirection((current) =>
+                  current === "previous" ? "none" : "previous"
+                )}
               >
-                {showFollowingWeek ? "Hide following 7-day comparison" :
+                {comparisonDirection === "previous" ? "Hide previous 7-day comparison" :
+                  "Compare previous 7 days"}
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                disabled={!nextWeek && comparisonDirection !== "following"}
+                aria-expanded={comparisonDirection === "following"}
+                onClick={() => setComparisonDirection((current) =>
+                  current === "following" ? "none" : "following"
+                )}
+              >
+                {comparisonDirection === "following" ? "Hide following 7-day comparison" :
                   "Compare following 7 days"}
               </button>
             </div>
-            {showFollowingWeek && comparisonChange && followingTotals && (
+            {comparisonDirection !== "none" && comparisonChange && comparisonTotals && (
               <div
                 className="daily-workload-following-comparison"
                 role="group"
-                aria-label="Following seven-day workload comparison"
+                aria-label={comparisonName + " seven-day workload comparison"}
               >
-                <strong>Following {followingDays[0]?.date} through{" "}
-                  {followingDays[followingDays.length - 1]?.date}</strong>
+                <strong>{comparisonName} {comparisonDays[0]?.date} through{" "}
+                  {comparisonDays[comparisonDays.length - 1]?.date}</strong>
                 <p className="muted">
-                  Compared with the seven days currently selected. Counts are
-                  saved records, not work hours or available appointments.
+                  Compared with the seven days currently selected. Changes show
+                  {comparisonDirection === "previous" ?
+                    " current minus previous" : " following minus current"}
+                  {" "}saved-record counts, not hours or available appointments.
                 </p>
                 <div className="daily-workload-comparison-grid">
                   <div className="daily-workload-following-appointments">
                     <span>Appointment starts</span>
-                    <strong>{followingTotals.appointments}</strong>
-                    <span>Change: {changeLabel(comparisonChange.appointments)}</span>
+                    <strong>{comparisonTotals.appointments}</strong>
+                    <span>Change to {comparisonChangeName}: {changeLabel(comparisonChange.appointments)}</span>
                   </div>
                   <div className="daily-workload-following-work">
                     <span>Unfinished work due</span>
-                    <strong>{followingTotals.unfinishedWork}</strong>
-                    <span>Change: {changeLabel(comparisonChange.unfinishedWork)}</span>
+                    <strong>{comparisonTotals.unfinishedWork}</strong>
+                    <span>Change to {comparisonChangeName}: {changeLabel(comparisonChange.unfinishedWork)}</span>
                   </div>
                   {equipmentEnabled && (
                     <div className="daily-workload-following-inspections">
                       <span>Equipment inspections</span>
-                      <strong>{followingTotals.inspections}</strong>
-                      <span>Change: {changeLabel(comparisonChange.inspections)}</span>
+                      <strong>{comparisonTotals.inspections}</strong>
+                      <span>Change to {comparisonChangeName}: {changeLabel(comparisonChange.inspections)}</span>
                     </div>
                   )}
                   <div className="daily-workload-following-active">
                     <span>Days with saved activity</span>
-                    <strong>{followingTotals.daysWithActivity} of{" "}
-                      {followingTotals.daysInWindow}</strong>
-                    <span>Change: {changeLabel(comparisonChange.daysWithActivity)} days</span>
+                    <strong>{comparisonTotals.daysWithActivity} of{" "}
+                      {comparisonTotals.daysInWindow}</strong>
+                    <span>Change to {comparisonChangeName}: {changeLabel(comparisonChange.daysWithActivity)} days</span>
                   </div>
                 </div>
                 <p className="muted">
-                  Comparison always uses complete seven-day windows, independent
+                  Both periods use complete seven-day windows, independent
                   of date-card filters. CSV exports are unchanged.
                 </p>
               </div>
             )}
-            {showFollowingWeek && !followingTotals && (
+            {comparisonDirection !== "none" && !comparisonTotals && (
               <p className="muted" role="status">
-                Following seven-day comparison is unavailable for this date.
+                {comparisonName} seven-day comparison is unavailable for this date.
               </p>
             )}
             <div className="daily-workload-totals" role="group" aria-label="Seven-day workload totals">

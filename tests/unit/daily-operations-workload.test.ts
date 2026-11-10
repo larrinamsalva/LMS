@@ -630,3 +630,28 @@ it("compares only complete saved-record totals of consecutive seven-day windows"
   });
   expect(earlier).toEqual(before);
 });
+
+
+it("calculates directional week-to-week changes consistently in either direction", () => {
+  const previous = summarizeSevenDayWorkload([
+    { date: "2028-02-27", appointments: 1, unfinishedWork: 4, inspections: 2 },
+    { date: "2028-02-28", appointments: 0, unfinishedWork: 0, inspections: 0 },
+  ], true);
+  const current = summarizeSevenDayWorkload([
+    { date: "2028-03-05", appointments: 4, unfinishedWork: 2, inspections: 1 },
+    { date: "2028-03-06", appointments: 0, unfinishedWork: 0, inspections: 0 },
+  ], true);
+  const previousToCurrent = compareSevenDayWorkloadTotals(previous, current);
+  expect(previousToCurrent).toEqual({
+    appointments: 3, unfinishedWork: -2, inspections: -1,
+    daysWithActivity: 0,
+  });
+  const currentToPrevious = compareSevenDayWorkloadTotals(current, previous);
+  expect(currentToPrevious).toEqual({
+    appointments: -3, unfinishedWork: 2, inspections: 1,
+    daysWithActivity: 0,
+  });
+  expect(previousToCurrent.appointments).toBe(-currentToPrevious.appointments);
+  expect(previous).toMatchObject({ appointments: 1, unfinishedWork: 4 });
+  expect(current).toMatchObject({ appointments: 4, unfinishedWork: 2 });
+});

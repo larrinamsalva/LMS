@@ -255,13 +255,46 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   const weeklyTotals = dailyLoad.getByRole("group", {
     name: "Seven-day workload totals", exact: true,
   });
-  const compareToggle = dailyLoad.getByRole("button", {
-    name: "Compare following 7 days", exact: true,
+  const previousToggle = dailyLoad.getByRole("button", {
+    name: "Compare previous 7 days", exact: true,
   });
-  await compareToggle.click();
+  await previousToggle.click();
+  const previousCompare = dailyLoad.getByRole("group", {
+    name: "Previous seven-day workload comparison", exact: true,
+  });
+  await expect(previousCompare).toContainText(
+    "Previous 2026-10-31 through 2026-11-06",
+  );
+  await expect(previousCompare).toContainText("Change to current:");
+  await expect(previousCompare.locator(".daily-workload-following-inspections"))
+    .toHaveCount(0);
+  const previousAppointments = await previousCompare.locator(
+    ".daily-workload-following-appointments strong",
+  ).textContent();
+  await weekNav.getByRole("button", {
+    name: "Previous seven-day workload window", exact: true,
+  }).click();
+  await expect(operations.getByLabel("Operations date", { exact: true }))
+    .toHaveValue("2026-10-30");
+  const previousTotal = dailyLoad.getByRole("group", {
+    name: "Seven-day workload totals", exact: true,
+  });
+  await expect(previousTotal.getByText("Upcoming appointments · 7 days")
+    .locator("..").locator("strong")).toHaveText(previousAppointments!.trim());
+  await weekNav.getByRole("button", {
+    name: "Next seven-day workload window", exact: true,
+  }).click();
+  await expect(operations.getByLabel("Operations date", { exact: true }))
+    .toHaveValue("2026-11-06");
+  await dailyLoad.getByRole("button", {
+    name: "Compare following 7 days", exact: true,
+  }).click();
+  await expect(previousCompare).toHaveCount(0);
   const compare = dailyLoad.getByRole("group", {
     name: "Following seven-day workload comparison", exact: true,
   });
+  await expect(compare).toContainText("Change to following:");
+  // The following comparison retains the behavior verified by PR #72.
   await expect(compare).toContainText("Following 2026-11-14 through 2026-11-20");
   await expect(compare.locator(".daily-workload-following-inspections"))
     .toHaveCount(0);
