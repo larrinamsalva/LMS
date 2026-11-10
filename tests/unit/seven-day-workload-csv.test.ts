@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { summarizeDailyOperations } from "../../src/core/daily-operations";
-import { sevenDayWorkloadCsv } from "../../src/core/seven-day-workload-csv";
+import { sevenDayWorkloadCsv, visibleWorkloadCsv } from "../../src/core/seven-day-workload-csv";
+import { sevenDayWorkload, filterWorkloadDaysByCalendarDay, orderWorkloadDays } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
 
@@ -113,4 +114,75 @@ it("keeps leap-day and daylight-saving windows calendar-correct", () => {
   const csv = sevenDayWorkloadCsv(fall, "America/Los_Angeles", false);
   expect(csv).toContain('"2026-11-01"');
   expect(csv.trimEnd().split("\r\n")).toHaveLength(9);
+});
+
+
+it("exports only displayed weekend cards, preserving their order and full-week export", () => {
+  const summary = summarizeDailyOperations({
+    organizationId: org,
+    records: [
+      record("appointments", "weekday-visit", {
+        title: "Private weekday name", status: "Scheduled",
+        start: "2026-11-06T18:30:00Z", end: "2026-11-06T19:30:00Z",
+      }),
+      record("appointments", "weekend-visit", {
+        title: "Private weekend name", status: "Scheduled",
+        start: "2026-11-07T18:30:00Z", end: "2026-11-07T19:30:00Z",
+      }),
+      record("tasks", "weekend-work", {
+        title: "Private task name", due: "2026-11-08", status: "Open",
+      }),
+      record("equipment", "tool", { name: "Private buffer" }),
+    ],
+    equipmentStates: [equipmentState("tool", "2026-11-07")],
+  }, "America/Los_Angeles", "2026-11-05");
+  const original = sevenDayWorkloadCsv(summary, "America/Los_Angeles", true);
+  const week = sevenDayWorkload(summary, "America/Los_Angeles");
+  const weekend = filterWorkloadDaysByCalendarDay(week, "weekends");
+  const unsorted = [...weekend];
+  const visible = orderWorkloadDays(weekend, true, "most-recorded");
+  const csv = visibleWorkloadCsv(summary, "America/Los_Angeles", true, visible);
+  const rows = csv.trimEnd().split("\r\n");
+  expect(rows).toHaveLength(4); // Header + Saturday + Sunday + visible TOTAL.
+  expect(rows[0]).toContain('"Visible business-local date"');
+  expect(rows[0]).toContain('"Equipment inspections due"');
+  expect(rows[1]).toContain('"2026-11-07","1","0","1"');
+  expect(rows[2]).toContain('"2026-11-08","0","1","0"');
+  expect(rows[3]).toContain('"TOTAL (visible 2 dates)","1","1","1"');
+  expect(rows[3]).toContain('"2 of 2 visible dates"');
+  for (const name of [
+    "Private weekday name", "Private weekend name", "Private task name",
+    "Private buffer",
+  ]) expect(csv).not.toContain(name);
+  expect(visible).toEqual(unsorted); // Source order remains stable.
+  expect(sevenDayWorkloadCsv(summary, "America/Los_Angeles", true)).toBe(original);
+  expect(original.trimEnd().split("\r\n")).toHaveLength(9);
+});
+
+it("exports empty filtered sets, ignores injected or stale counts and omits disabled equipment", () => {
+  const summary = summarizeDailyOperations({
+    organizationId: org,
+    records: [record("equipment", "tool", { name: "Private asset" })],
+    equipmentStates: [equipmentState("tool", "2026-11-07")],
+  }, "America/Los_Angeles", "2026-11-05");
+  const empty = visibleWorkloadCsv(summary, "America/Los_Angeles", true, []);
+  expect(empty.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(empty).toContain('"TOTAL (visible 0 dates)"');
+  expect(empty).toContain('"0 of 0 visible dates"');
+  const fake = [
+    { date: "2026-11-07", appointments: 999, unfinishedWork: 888, inspections: 777 },
+    { date: "2026-11-07", appointments: 111, unfinishedWork: 111, inspections: 111 },
+    { date: "2040-01-01", appointments: 5, unfinishedWork: 5, inspections: 5 },
+  ];
+  const withoutEquipment = visibleWorkloadCsv(
+    summary, "America/Los_Angeles", false, fake,
+  );
+  const rows = withoutEquipment.trimEnd().split("\r\n");
+  expect(rows).toHaveLength(3);
+  expect(rows[0]).not.toContain("Equipment inspections due");
+  expect(rows[1]).toContain('"2026-11-07","0","0","No"');
+  expect(rows[2]).toContain('"TOTAL (visible 1 dates)","0","0"');
+  expect(withoutEquipment).not.toContain("999");
+  expect(withoutEquipment).not.toContain("2040");
+  expect(withoutEquipment).not.toContain("Private asset");
 });

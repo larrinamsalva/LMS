@@ -309,11 +309,30 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     .toHaveText("Unfinished work: " + weekendCounts.work);
   await expect(visibleSummary.locator(".daily-workload-visible-inspections"))
     .toHaveCount(0);
+  const visibleDownloadPending = page.waitForEvent("download");
+  await dailyLoad.getByRole("button", {
+    name: "Download visible workload CSV", exact: true,
+  }).click();
+  const visibleDownload = await visibleDownloadPending;
+  expect(visibleDownload.suggestedFilename()).toBe(
+    "lms-visible-workload-2026-11-06-through-2026-11-13.csv",
+  );
+  const visibleCsv = (await readFile((await visibleDownload.path())!)).toString("utf8");
+  expect(visibleCsv.trimEnd().split("\r\n")).toHaveLength(4);
+  expect(visibleCsv).toContain("TOTAL (visible 2 dates)");
+  expect(visibleCsv).toContain('"' + weekendCounts.appointments +
+    '","' + weekendCounts.work + '"');
+  expect(visibleCsv).not.toContain("TOTAL (7 days)");
+  expect(visibleCsv).not.toContain("Equipment inspections due");
+  expect(visibleCsv).not.toContain("Fictional upcoming window clean");
   await calendarFilter.selectOption("weekdays");
   await expect(datedCards).toHaveCount(5);
   await calendarFilter.selectOption("all");
   await expect(datedCards).toHaveCount(7);
   await expect(visibleSummary).toHaveCount(0);
+  await expect(dailyLoad.getByRole("button", {
+    name: "Download visible workload CSV", exact: true,
+  })).toHaveCount(0);
   const activitySelect = dailyLoad.getByRole("combobox", {
     name: "Activity to show", exact: true,
   });
