@@ -1887,3 +1887,18 @@ legend {
 @media (max-width: 640px) {
   .daily-workload-category { flex: 1 1 100%; }
 }
+
+
+/* Focused type count is a visual duplicate of accessible per-type card counts. */
+.daily-workload-grid button .daily-workload-selected-count {
+  display: block;
+  width: 100%;
+  padding: 5px 7px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-alt);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}

@@ -284,6 +284,15 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     .filter(({name}) => Number(name.match(/: (\d+) appointments/)?.[1] ?? 0) > 0)
     .map(({name}) => name);
   await expect(datedCards).toHaveCount(appointmentDates.length);
+  const selectedAppointmentLabels = await datedCards.evaluateAll((buttons) =>
+    buttons.map((button) =>
+      button.querySelector(".daily-workload-selected-count")?.textContent?.trim() ?? "",
+    ),
+  );
+  expect(selectedAppointmentLabels).toEqual(appointmentDates.map((label) =>
+    "Selected: " + Number(label.match(/: (\d+) appointments/)?.[1] ?? 0) +
+      " appointment starts",
+  ));
   const savedAppointments = originalLabels.reduce((total, name) =>
     total + Number(name.match(/: (\d+) appointments/)?.[1] ?? 0), 0);
   await expect(dailyLoad.locator(".daily-workload-focused")).toContainText(
@@ -328,6 +337,15 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     Number(name.match(/and (\d+) unfinished work/)?.[1] ?? 0) > 0,
   );
   await expect(datedCards).toHaveCount(workDates.length);
+  const selectedWorkLabels = await datedCards.evaluateAll((buttons) =>
+    buttons.map((button) =>
+      button.querySelector(".daily-workload-selected-count")?.textContent?.trim() ?? "",
+    ),
+  );
+  expect(selectedWorkLabels).toEqual(workDates.map((label) =>
+    "Selected: " + Number(label.match(/and (\d+) unfinished work/)?.[1] ?? 0) +
+      " unfinished work",
+  ));
   const byWork = workDates.map((name) => ({
     name, date: recorded(name).date,
     count: Number(name.match(/and (\d+) unfinished work/)?.[1] ?? 0),
@@ -364,6 +382,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   }).click();
   await expect(activitySelect).toHaveValue("all");
   await expect(dailyLoad.locator(".daily-workload-focused")).toHaveCount(0);
+  await expect(dailyLoad.locator(".daily-workload-selected-count")).toHaveCount(0);
   await expect(dailyLoad.getByRole("group", {
     name: "Most recorded selected activity day",
   })).toHaveCount(0);

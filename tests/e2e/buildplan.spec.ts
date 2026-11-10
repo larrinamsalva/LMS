@@ -304,6 +304,7 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   await expect(workload.getByRole("group", {
     name: "Most recorded selected activity day", exact: true,
   })).toHaveCount(0);
+  await expect(workload.locator(".daily-workload-selected-count")).toHaveCount(0);
   await workload.getByRole("button", {
     name: "Sort by most equipment inspections", exact: true,
   }).click();
