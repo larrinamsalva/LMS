@@ -280,6 +280,23 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   )).toEqual(originalLabels);
   // Focus by activity type, then restore the complete week before the
   // existing active-only and export checks. Counts come from saved labels.
+  const calendarFilter = dailyLoad.getByRole("combobox", {
+    name: "Calendar days to show", exact: true,
+  });
+  await expect(calendarFilter).toHaveValue("all");
+  await calendarFilter.selectOption("weekends");
+  const expectedWeekendLabels = originalLabels.filter((label) => {
+    const date = label.match(/^Review (\d{4}-\d{2}-\d{2})/)?.[1];
+    return date ? [0, 6].includes(new Date(date + "T12:00:00Z").getUTCDay()) : false;
+  });
+  expect(await datedCards.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("aria-label") || ""),
+  )).toEqual(expectedWeekendLabels);
+  await expect(dailyLoad.getByText("Showing 2 of 7 days")).toBeVisible();
+  await calendarFilter.selectOption("weekdays");
+  await expect(datedCards).toHaveCount(5);
+  await calendarFilter.selectOption("all");
+  await expect(datedCards).toHaveCount(7);
   const activitySelect = dailyLoad.getByRole("combobox", {
     name: "Activity to show", exact: true,
   });
@@ -397,13 +414,21 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     name: "Reset workload view", exact: true,
   });
   await expect(resetWorkload).toBeDisabled();
+  await calendarFilter.selectOption("weekends");
+  await expect(resetWorkload).toBeEnabled();
+  await resetWorkload.click();
+  await expect(calendarFilter).toHaveValue("all");
+  await expect(datedCards).toHaveCount(7);
+  await expect(resetWorkload).toBeDisabled();
   await activitySelect.selectOption("appointments");
+  await calendarFilter.selectOption("weekends");
   await dailyLoad.getByRole("button", {
     name: "Sort by most appointment starts", exact: true,
   }).click();
   await expect(resetWorkload).toBeEnabled();
   await resetWorkload.click();
   await expect(activitySelect).toHaveValue("all");
+  await expect(calendarFilter).toHaveValue("all");
   await expect(dailyLoad.getByText("Order: Calendar date")).toBeVisible();
   await expect(datedCards).toHaveCount(7);
   await expect(dailyLoad.locator(".daily-workload-selected-count")).toHaveCount(0);

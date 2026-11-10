@@ -352,6 +352,18 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   const originalDates = await dated.evaluateAll((elements) =>
     elements.map((element) => element.getAttribute("aria-label") || ""),
   );
+  const calendarDays = workload.getByRole("combobox", {
+    name: "Calendar days to show", exact: true,
+  });
+  await calendarDays.selectOption("weekends");
+  await expect(dated).toHaveCount(2);
+  await calendarDays.selectOption("weekdays");
+  await expect(dated).toHaveCount(5);
+  await workload.getByRole("button", {
+    name: "Reset workload view", exact: true,
+  }).click();
+  await expect(calendarDays).toHaveValue("all");
+  await expect(dated).toHaveCount(7);
   await workload.getByRole("button", {
     name: "Sort by most recorded items", exact: true,
   }).click();
