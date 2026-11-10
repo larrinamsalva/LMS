@@ -299,6 +299,20 @@ test("guided cleaning plan resolves dependencies, customizes, previews the real 
   await expect(weeklyTotals.getByText("Equipment inspections · 7 days")).toBeVisible();
   await expect(weeklyTotals.getByText("Days with saved activity")).toBeVisible();
   await expect(weeklyTotals.getByText(/^\d+ of 7$/)).toBeVisible();
+  const peak = workload.getByRole("group", { name: "Busiest recorded day", exact: true });
+  const peakControl = peak.getByRole("button", {
+    name: /^Review busiest recorded day \d{4}-\d{2}-\d{2}$/,
+  });
+  const hasActiveDates = Number(
+    (await weeklyTotals.getByText(/^\d+ of 7$/).textContent())!.split(" of ")[0],
+  ) > 0;
+  if (hasActiveDates) {
+    await expect(peak).toContainText("Most recorded activity:");
+    await expect(peakControl).toHaveCount(1);
+  } else {
+    await expect(peak).toContainText("No saved upcoming activity");
+    await expect(peakControl).toHaveCount(0);
+  }
   const activityDays = Number(
     (await weeklyTotals.getByText(/^\d+ of 7$/).textContent())!.split(" of ")[0],
   );

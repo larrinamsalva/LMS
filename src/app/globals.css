@@ -1841,3 +1841,26 @@ legend {
 @media (max-width: 640px) {
   .daily-workload-filter button { width: 100%; }
 }
+
+/* Peak recorded day: unobtrusive overview, not a staffing/capacity alert. */
+.daily-workload-peak {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 12px 0;
+  min-width: 0;
+}
+.daily-workload-peak p {
+  flex: 1 1 230px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.daily-workload-peak button {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+}
+@media (max-width: 640px) {
+  .daily-workload-peak button { width: 100%; }
+}

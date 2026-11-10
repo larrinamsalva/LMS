@@ -86,3 +86,28 @@ export function visibleWorkloadDays(
     (includeInspections && day.inspections > 0),
   );
 }
+
+/**
+ * The date with the most *recorded items*, not the most work hours.
+ * Appointments, due work, and enabled inspections each count as one.
+ * For ties, choose the earliest business-local calendar date, regardless
+ * of caller input ordering. No-record weeks have no peak date.
+ */
+export function busiestRecordedDay(
+  days: readonly DailyWorkload[],
+  includeInspections: boolean,
+): { date: string; recordedItems: number; tiedDates: number } | null {
+  let result: { date: string; recordedItems: number; tiedDates: number } | null = null;
+  for (const day of days) {
+    const count = day.appointments + day.unfinishedWork +
+      (includeInspections ? day.inspections : 0);
+    if (count <= 0) continue;
+    if (!result || count > result.recordedItems) {
+      result = { date: day.date, recordedItems: count, tiedDates: 1 };
+    } else if (count === result.recordedItems) {
+      result.tiedDates++;
+      if (day.date < result.date) result.date = day.date;
+    }
+  }
+  return result;
+}
