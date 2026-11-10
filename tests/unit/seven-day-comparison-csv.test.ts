@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { summarizeDailyOperations } from "../../src/core/daily-operations";
 import { sevenDayComparisonCsv } from "../../src/core/seven-day-comparison-csv";
+import { sevenDayWorkload } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
 
@@ -104,7 +105,10 @@ it("handles zero records and leap-day business-local windows", () => {
   const current = summarizeDailyOperations(workspace, "America/Los_Angeles", "2028-02-26");
   const previous = summarizeDailyOperations(workspace, "America/Los_Angeles", "2028-02-19");
   const csv = sevenDayComparisonCsv(current, previous, "America/Los_Angeles", false, "previous");
-  expect(csv).toContain("2028-02-29");
+  // The aggregate CSV carries ranges, not an individual row for leap day.
+  expect(csv).toContain("2028-02-27 through 2028-03-04");
+  expect(sevenDayWorkload(current, "America/Los_Angeles").map((day) => day.date))
+    .toContain("2028-02-29");
   expect(csv.trimEnd().split("\r\n")).toHaveLength(4);
   expect(csv).not.toContain("Equipment inspections");
   expect(csv).toContain('"0","0","0"');
