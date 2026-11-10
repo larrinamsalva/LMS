@@ -3,7 +3,7 @@ import { summarizeDailyOperations } from "../../src/core/daily-operations";
 import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
-  summarizeFocusedWorkload,
+  summarizeFocusedWorkload, busiestFocusedDay,
 } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
@@ -470,4 +470,33 @@ it("sorts matching dates by the selected type rather than unrelated workload", (
   expect(orderWorkloadDays(days, true, "calendar", "inspections").map((day) => day.date))
     .toEqual(["2028-02-29", "2028-03-01", "2028-03-02", "2028-03-03"]);
   expect(days).toEqual(before);
+});
+
+
+it("finds a selected-category peak independently of other saved activity", () => {
+  const days = [
+    { date: "2028-03-03", appointments: 0, unfinishedWork: 0, inspections: 5 },
+    { date: "2028-03-02", appointments: 2, unfinishedWork: 0, inspections: 3 },
+    { date: "2028-02-29", appointments: 2, unfinishedWork: 1, inspections: 0 },
+    { date: "2028-03-01", appointments: 1, unfinishedWork: 4, inspections: 1 },
+  ];
+  const original = days.map((day) => ({ ...day }));
+  expect(busiestFocusedDay(days, true, "appointments")).toEqual({
+    date: "2028-02-29", matchingItems: 2, tiedDates: 2,
+  });
+  expect(busiestFocusedDay(days, true, "work")).toEqual({
+    date: "2028-03-01", matchingItems: 4, tiedDates: 1,
+  });
+  expect(busiestFocusedDay(days, true, "inspections")).toEqual({
+    date: "2028-03-03", matchingItems: 5, tiedDates: 1,
+  });
+  expect(busiestFocusedDay(days, false, "inspections")).toBeNull();
+  expect(busiestFocusedDay(days, false, "all")).toEqual({
+    date: "2028-03-01", matchingItems: 5, tiedDates: 1,
+  });
+  expect(busiestFocusedDay([], true, "appointments")).toBeNull();
+  expect(busiestFocusedDay(days.map((day) => ({
+    ...day, appointments: 0, unfinishedWork: 0, inspections: 0,
+  })), true, "appointments")).toBeNull();
+  expect(days).toEqual(original);
 });

@@ -491,3 +491,17 @@ prior behavior. Counts come only from the authorized business-local
 seven-day snapshot. Full-week totals, the busiest overall day and every
 CSV export remain unaffected. Disabled equipment modules contribute no
 inspection counts. No mutations, capacity inference or release changes.
+
+
+### Selected activity peak-day shortcut (PR #64)
+
+When a specific seven-day workload category is selected, Daily Operations
+offers a separate **Most recorded [selected activity]** date and a review
+shortcut, using only that category's saved records. Ties select the earliest
+business-local date and report the count of tied days. A category with no
+saved matching records has no peak shortcut. This differs deliberately
+from the existing **Most recorded activity** shortcut, which always uses
+the complete authorized seven-day snapshot. Both are read-only saved-record
+counts, not duration, staffing, safety or availability assessments.
+The existing date, export, sorting, full-week totals and financial behavior
+remain unchanged. All examples in the public no-login demo are fictional.
