@@ -284,6 +284,12 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     .filter(({name}) => Number(name.match(/: (\d+) appointments/)?.[1] ?? 0) > 0)
     .map(({name}) => name);
   await expect(datedCards).toHaveCount(appointmentDates.length);
+  const savedAppointments = originalLabels.reduce((total, name) =>
+    total + Number(name.match(/: (\d+) appointments/)?.[1] ?? 0), 0);
+  await expect(dailyLoad.locator(".daily-workload-focused")).toContainText(
+    "Focused activity: " + savedAppointments + " appointment starts across " +
+    appointmentDates.length + " of 7 days",
+  );
   expect(await datedCards.evaluateAll((elements) =>
     elements.map((element) => element.getAttribute("aria-label") || ""),
   )).toEqual(appointmentDates);
@@ -292,10 +298,17 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     Number(name.match(/and (\d+) unfinished work/)?.[1] ?? 0) > 0,
   );
   await expect(datedCards).toHaveCount(workDates.length);
+  const savedWork = originalLabels.reduce((total, name) =>
+    total + Number(name.match(/and (\d+) unfinished work/)?.[1] ?? 0), 0);
+  await expect(dailyLoad.locator(".daily-workload-focused")).toContainText(
+    "Focused activity: " + savedWork + " unfinished work items across " +
+    workDates.length + " of 7 days",
+  );
   await dailyLoad.getByRole("button", {
     name: "Show all seven days", exact: true,
   }).click();
   await expect(activitySelect).toHaveValue("all");
+  await expect(dailyLoad.locator(".daily-workload-focused")).toHaveCount(0);
   await expect(datedCards).toHaveCount(7);
   const activeDays = Number(
     (await weeklyTotals.getByText(/^\d+ of 7$/).textContent())!.split(" of ")[0],

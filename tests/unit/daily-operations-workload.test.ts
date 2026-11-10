@@ -3,6 +3,7 @@ import { summarizeDailyOperations } from "../../src/core/daily-operations";
 import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
+  summarizeFocusedWorkload,
 } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
@@ -407,4 +408,32 @@ it("combines type selection with active-only and descending recorded-item sortin
   ).map(d=>d.date)).toEqual([
     "2028-02-28", "2028-02-29", "2028-03-01", "2028-03-02",
   ]);
+});
+
+it("summarizes focused saved records without changing full-week metrics or source dates", () => {
+  const days = [
+    { date: "2028-02-29", appointments: 1, unfinishedWork: 2, inspections: 0 },
+    { date: "2028-03-01", appointments: 2, unfinishedWork: 0, inspections: 3 },
+    { date: "2028-03-02", appointments: 0, unfinishedWork: 0, inspections: 2 },
+    { date: "2028-03-03", appointments: 0, unfinishedWork: 0, inspections: 0 },
+  ];
+  const untouched = days.map((day) => ({ ...day }));
+  expect(summarizeFocusedWorkload(days, true, "appointments"))
+    .toEqual({ savedItems: 3, matchingDays: 2, daysInWindow: 4 });
+  expect(summarizeFocusedWorkload(days, true, "work"))
+    .toEqual({ savedItems: 2, matchingDays: 1, daysInWindow: 4 });
+  expect(summarizeFocusedWorkload(days, true, "inspections"))
+    .toEqual({ savedItems: 5, matchingDays: 2, daysInWindow: 4 });
+  expect(summarizeFocusedWorkload(days, false, "inspections"))
+    .toEqual({ savedItems: 0, matchingDays: 0, daysInWindow: 4 });
+  expect(summarizeFocusedWorkload(days, true, "all"))
+    .toEqual({ savedItems: 10, matchingDays: 3, daysInWindow: 4 });
+  expect(summarizeFocusedWorkload(days, false, "all"))
+    .toEqual({ savedItems: 5, matchingDays: 2, daysInWindow: 4 });
+  expect(summarizeSevenDayWorkload(days, true)).toMatchObject({
+    appointments: 3, unfinishedWork: 2, inspections: 5,
+  });
+  expect(days).toEqual(untouched);
+  expect(summarizeFocusedWorkload([], true, "work"))
+    .toEqual({ savedItems: 0, matchingDays: 0, daysInWindow: 0 });
 });

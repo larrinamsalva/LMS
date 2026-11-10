@@ -156,3 +156,23 @@ export function filterWorkloadDaysByType(
     }
   });
 }
+
+// Focused activity is a display-only rollup of the same authorized seven-day
+// business-local snapshot. It never alters full-week totals, saved data or CSV.
+export function summarizeFocusedWorkload(
+  days: readonly DailyWorkload[],
+  includeInspections: boolean,
+  type: WorkloadActivityType,
+): { savedItems: number; matchingDays: number; daysInWindow: number } {
+  return days.reduce((result, day) => {
+    const saved = type === "appointments" ? day.appointments
+      : type === "work" ? day.unfinishedWork
+      : type === "inspections" ? (includeInspections ? day.inspections : 0)
+      : recordedItemCount(day, includeInspections);
+    return {
+      savedItems: result.savedItems + saved,
+      matchingDays: result.matchingDays + Number(saved > 0),
+      daysInWindow: result.daysInWindow + 1,
+    };
+  }, { savedItems: 0, matchingDays: 0, daysInWindow: 0 });
+}

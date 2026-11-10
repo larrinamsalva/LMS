@@ -459,3 +459,21 @@ The full seven-day totals, busiest-recorded-day shortcut and all CSV
 exports remain based on the complete authorized week, independent of
 on-screen filtering. Record counts cannot establish job hours, resource
 availability or equipment safety. No business records are modified.
+
+
+
+### Focused activity counts for workload date filters (PR #62)
+
+When a business owner selects appointment dates, unfinished work due dates,
+or enabled equipment inspection dates, Daily Operations now shows the number
+of saved matching items and the number of matching business-local calendar
+days within the same seven-day window. A zero-match category explicitly
+shows zero rather than suggesting that there are no records of other types.
+The focused count is a read-only presentation of the authorized workspace's
+existing date snapshot, not work hours, staff capacity or a readiness signal.
+
+The full-week totals, busiest day, source date cards, other controls and every
+CSV export continue to reflect the complete seven-day snapshot. Switching
+to a business without Equipment & Tools safely falls back to the all-activity
+view if an inspection filter had been selected in the prior workspace. No
+database, permission, schedule, financial, session or release changes.

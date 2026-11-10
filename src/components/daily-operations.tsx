@@ -4,7 +4,7 @@ import { summarizeDailyOperations } from "../core/daily-operations";
 import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
   busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
-  type WorkloadActivityType,
+  summarizeFocusedWorkload, type WorkloadActivityType,
 } from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
@@ -113,11 +113,19 @@ export function DailyOperations({
     (module) => module.id === "equipment",
   );
   const weeklyTotals = summarizeSevenDayWorkload(nextSevenDays, equipmentEnabled);
+  // A selected Equipment-only filter cannot apply after switching to a
+  // workspace where that module is disabled.
+  const unavailableEquipmentFilter = activityType === "inspections" && !equipmentEnabled;
+  const effectiveActivityType = unavailableEquipmentFilter ? "all" : activityType;
+  const effectiveActivityOnly = unavailableEquipmentFilter ? false : activityOnly;
+  const focusedTotals = summarizeFocusedWorkload(
+    nextSevenDays, equipmentEnabled, effectiveActivityType,
+  );
   const displayedDays = orderWorkloadDays(
     filterWorkloadDaysByType(
-      visibleWorkloadDays(nextSevenDays, equipmentEnabled, activityOnly),
+      visibleWorkloadDays(nextSevenDays, equipmentEnabled, effectiveActivityOnly),
       equipmentEnabled,
-      activityType,
+      effectiveActivityType,
     ),
     equipmentEnabled,
     sortByActivity ? "most-recorded" : "calendar",
@@ -340,23 +348,26 @@ export function DailyOperations({
               <button
                 type="button"
                 className="secondary"
-                aria-pressed={activityOnly}
+                aria-pressed={effectiveActivityOnly}
                 onClick={() => {
-                  if (activityOnly) {
+                  if (effectiveActivityOnly) {
                     setActivityOnly(false);
                     setActivityType("all");
                   } else {
+                    // An equipment-only choice from a different business is
+                    // unavailable here; activate the all-activity filter.
+                    if (unavailableEquipmentFilter) setActivityType("all");
                     setActivityOnly(true);
                   }
                 }}
               >
-                {activityOnly ? "Show all seven days" : "Show active days only"}
+                {effectiveActivityOnly ? "Show all seven days" : "Show active days only"}
               </button>
               <label className="daily-workload-category">
                 Activity to show
                 <select
                   aria-label="Activity to show"
-                  value={activityType}
+                  value={effectiveActivityType}
                   onChange={(event) => {
                     const nextType = event.target.value as WorkloadActivityType;
                     setActivityType(nextType);
@@ -386,13 +397,23 @@ export function DailyOperations({
                 Order: {sortByActivity ? "Most recorded first" : "Calendar date"}
               </span>
             </div>
-            {activityOnly && displayedDays.length === 0 && (
+            {effectiveActivityType !== "all" && (
+              <p className="muted daily-workload-focused" aria-live="polite">
+                Focused activity: <strong>{focusedTotals.savedItems}</strong>{" "}
+                {effectiveActivityType === "appointments" ? "appointment starts"
+                  : effectiveActivityType === "work" ? "unfinished work items"
+                  : "equipment inspections"} across {focusedTotals.matchingDays} of{" "}
+                {focusedTotals.daysInWindow} days. Full-week totals above and CSV
+                downloads are unchanged.
+              </p>
+            )}
+            {effectiveActivityOnly && displayedDays.length === 0 && (
               <p className="muted" role="status">
-                {activityType === "all"
+                {effectiveActivityType === "all"
                   ? "No saved activity in the next seven days."
-                  : activityType === "appointments"
+                  : effectiveActivityType === "appointments"
                     ? "No appointment starts in the next seven days."
-                    : activityType === "work"
+                    : effectiveActivityType === "work"
                       ? "No unfinished work due in the next seven days."
                       : "No upcoming equipment inspections in the next seven days."}
                 {" "}Show all seven days to reset the filter.
