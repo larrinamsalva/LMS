@@ -1,6 +1,9 @@
 import { expect, it } from "vitest";
 import { summarizeDailyOperations } from "../../src/core/daily-operations";
-import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays, busiestRecordedDay, orderWorkloadDays } from "../../src/core/daily-operations-workload";
+import {
+  sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
+  busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
+} from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
 
@@ -351,5 +354,57 @@ it("composes optional active-day filtering and sorting while keeping empty weeks
   )).toEqual([]);
   expect(orderWorkloadDays(empty, true, "calendar").map(d=>d.date)).toEqual([
     "2028-02-27", "2028-02-28", "2028-02-29", "2028-03-01",
+  ]);
+});
+
+
+it("filters saved-activity types without losing chronology, counts or source days", () => {
+  const days = [
+    { date: "2026-11-09", appointments: 1, unfinishedWork: 2, inspections: 1 },
+    { date: "2026-11-06", appointments: 1, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-10", appointments: 0, unfinishedWork: 1, inspections: 0 },
+    { date: "2026-11-08", appointments: 0, unfinishedWork: 0, inspections: 2 },
+    { date: "2026-11-07", appointments: 0, unfinishedWork: 0, inspections: 0 },
+  ];
+  const snapshot = days.map((day) => ({...day}));
+  const dates = (type: "all"|"appointments"|"work"|"inspections", include: boolean) =>
+    orderWorkloadDays(filterWorkloadDaysByType(days, include, type),
+      include, "calendar").map(({date}) => date);
+  expect(dates("all", true)).toEqual([
+    "2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10",
+  ]);
+  expect(dates("appointments", true)).toEqual(["2026-11-06", "2026-11-09"]);
+  expect(dates("work", true)).toEqual(["2026-11-09", "2026-11-10"]);
+  expect(dates("inspections", true)).toEqual(["2026-11-08", "2026-11-09"]);
+  expect(dates("inspections", false)).toEqual([]);
+  expect(days).toEqual(snapshot);
+  const totals = summarizeSevenDayWorkload(days, true);
+  expect(totals).toMatchObject({
+    appointments: 2, unfinishedWork: 3, inspections: 3, daysWithActivity: 4,
+  });
+  expect(summarizeSevenDayWorkload(days, false).daysWithActivity).toBe(3);
+});
+
+it("combines type selection with active-only and descending recorded-item sorting", () => {
+  const days = [
+    { date: "2028-02-28", appointments: 1, unfinishedWork: 0, inspections: 0 },
+    { date: "2028-02-29", appointments: 0, unfinishedWork: 2, inspections: 1 },
+    { date: "2028-03-01", appointments: 0, unfinishedWork: 0, inspections: 2 },
+    { date: "2028-03-02", appointments: 0, unfinishedWork: 0, inspections: 0 },
+  ];
+  const ordered = orderWorkloadDays(
+    filterWorkloadDaysByType(
+      visibleWorkloadDays(days, true, true), true, "inspections",
+    ), true, "most-recorded",
+  );
+  expect(ordered.map(({date})=>date)).toEqual(["2028-02-29", "2028-03-01"]);
+  expect(filterWorkloadDaysByType(
+    visibleWorkloadDays(days, false, true), false, "inspections",
+  )).toEqual([]);
+  expect(filterWorkloadDaysByType([], true, "all")).toEqual([]);
+  expect(orderWorkloadDays(
+    filterWorkloadDaysByType(days, true, "all"), true, "calendar",
+  ).map(d=>d.date)).toEqual([
+    "2028-02-28", "2028-02-29", "2028-03-01", "2028-03-02",
   ]);
 });

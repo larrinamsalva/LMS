@@ -272,6 +272,31 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   expect(await datedCards.evaluateAll((elements) =>
     elements.map((element) => element.getAttribute("aria-label") || ""),
   )).toEqual(originalLabels);
+  // Focus by activity type, then restore the complete week before the
+  // existing active-only and export checks. Counts come from saved labels.
+  const activitySelect = dailyLoad.getByRole("combobox", {
+    name: "Activity to show", exact: true,
+  });
+  await expect(activitySelect).toHaveValue("all");
+  await expect(activitySelect.locator('option[value="inspections"]')).toHaveCount(0);
+  await activitySelect.selectOption("appointments");
+  const appointmentDates = originalLabels.map(recorded)
+    .filter(({name}) => Number(name.match(/: (\d+) appointments/)?.[1] ?? 0) > 0)
+    .map(({name}) => name);
+  await expect(datedCards).toHaveCount(appointmentDates.length);
+  expect(await datedCards.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("aria-label") || ""),
+  )).toEqual(appointmentDates);
+  await activitySelect.selectOption("work");
+  const workDates = originalLabels.filter((name) =>
+    Number(name.match(/and (\d+) unfinished work/)?.[1] ?? 0) > 0,
+  );
+  await expect(datedCards).toHaveCount(workDates.length);
+  await dailyLoad.getByRole("button", {
+    name: "Show all seven days", exact: true,
+  }).click();
+  await expect(activitySelect).toHaveValue("all");
+  await expect(datedCards).toHaveCount(7);
   const activeDays = Number(
     (await weeklyTotals.getByText(/^\d+ of 7$/).textContent())!.split(" of ")[0],
   );

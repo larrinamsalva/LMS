@@ -1,7 +1,11 @@
 import { useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
-import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays, busiestRecordedDay, orderWorkloadDays } from "../core/daily-operations-workload";
+import {
+  sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
+  busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
+  type WorkloadActivityType,
+} from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
@@ -75,6 +79,7 @@ export function DailyOperations({
   const [visible, setVisible] = useState(initialVisible);
   const [activityOnly, setActivityOnly] = useState(false);
   const [sortByActivity, setSortByActivity] = useState(false);
+  const [activityType, setActivityType] = useState<WorkloadActivityType>("all");
   const previousDay = adjacentOperationsDate(date, -1);
   const nextDay = adjacentOperationsDate(date, 1);
   function selectDate(next: string | null) {
@@ -109,7 +114,11 @@ export function DailyOperations({
   );
   const weeklyTotals = summarizeSevenDayWorkload(nextSevenDays, equipmentEnabled);
   const displayedDays = orderWorkloadDays(
-    visibleWorkloadDays(nextSevenDays, equipmentEnabled, activityOnly),
+    filterWorkloadDaysByType(
+      visibleWorkloadDays(nextSevenDays, equipmentEnabled, activityOnly),
+      equipmentEnabled,
+      activityType,
+    ),
     equipmentEnabled,
     sortByActivity ? "most-recorded" : "calendar",
   );
@@ -332,10 +341,36 @@ export function DailyOperations({
                 type="button"
                 className="secondary"
                 aria-pressed={activityOnly}
-                onClick={() => setActivityOnly((value) => !value)}
+                onClick={() => {
+                  if (activityOnly) {
+                    setActivityOnly(false);
+                    setActivityType("all");
+                  } else {
+                    setActivityOnly(true);
+                  }
+                }}
               >
                 {activityOnly ? "Show all seven days" : "Show active days only"}
               </button>
+              <label className="daily-workload-category">
+                Activity to show
+                <select
+                  aria-label="Activity to show"
+                  value={activityType}
+                  onChange={(event) => {
+                    const nextType = event.target.value as WorkloadActivityType;
+                    setActivityType(nextType);
+                    if (nextType !== "all") setActivityOnly(true);
+                  }}
+                >
+                  <option value="all">All recorded activity</option>
+                  <option value="appointments">Appointment dates</option>
+                  <option value="work">Unfinished work due dates</option>
+                  {equipmentEnabled && (
+                    <option value="inspections">Equipment inspection dates</option>
+                  )}
+                </select>
+              </label>
               <button
                 type="button"
                 className="secondary"
@@ -353,8 +388,14 @@ export function DailyOperations({
             </div>
             {activityOnly && displayedDays.length === 0 && (
               <p className="muted" role="status">
-                No saved activity in the next seven days. Show all seven days
-                to review dates without recorded items.
+                {activityType === "all"
+                  ? "No saved activity in the next seven days."
+                  : activityType === "appointments"
+                    ? "No appointment starts in the next seven days."
+                    : activityType === "work"
+                      ? "No unfinished work due in the next seven days."
+                      : "No upcoming equipment inspections in the next seven days."}
+                {" "}Show all seven days to reset the filter.
               </p>
             )}
             <div className="daily-workload-grid">
