@@ -17,6 +17,7 @@ import { needsSchedulingCsv } from "../core/needs-scheduling-csv";
 import { upcomingInspectionsCsv } from "../core/upcoming-equipment-inspections-csv";
 import {
   adjacentOperationsDate,
+  weeklyOperationsDate,
   operationsToday,
   OPERATIONS_DATE_MIN,
   OPERATIONS_DATE_MAX,
@@ -86,6 +87,8 @@ export function DailyOperations({
     useState<WorkloadCalendarDayFilter>("all");
   const previousDay = adjacentOperationsDate(date, -1);
   const nextDay = adjacentOperationsDate(date, 1);
+  const previousWeek = weeklyOperationsDate(date, -1);
+  const nextWeek = weeklyOperationsDate(date, 1);
   function selectDate(next: string | null) {
     if (next === null || next === date) return;
     setDate(next);
@@ -324,6 +327,34 @@ export function DailyOperations({
               They are not staff capacity, equipment clearance, or guaranteed availability.
               Select a day to review it.
             </p>
+            <div
+              className="daily-workload-window-controls"
+              role="group"
+              aria-label="Seven-day workload window navigation"
+            >
+              <button
+                type="button"
+                className="secondary"
+                disabled={!previousWeek}
+                onClick={() => selectDate(previousWeek)}
+                aria-label="Previous seven-day workload window"
+              >
+                Previous 7 days
+              </button>
+              <span className="muted" aria-live="polite">
+                Viewing {nextSevenDays[0]?.date} through{" "}
+                {nextSevenDays[nextSevenDays.length - 1]?.date}
+              </span>
+              <button
+                type="button"
+                className="secondary"
+                disabled={!nextWeek}
+                onClick={() => selectDate(nextWeek)}
+                aria-label="Next seven-day workload window"
+              >
+                Next 7 days
+              </button>
+            </div>
             <div className="daily-workload-totals" role="group" aria-label="Seven-day workload totals">
               <div>
                 <span className="metric-label">Upcoming appointments · 7 days</span>

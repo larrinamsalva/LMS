@@ -618,3 +618,22 @@ entire week regardless of UI filters.
 The new download is local and read-only. No new API, scheduled
 notification, business record change or capacity assumption is added.
 The fictional no-login demo and MIT license are unaffected.
+
+
+### Seven-day workload window navigation (PR #71)
+
+Daily Operations now offers **Previous 7 days** and **Next 7 days**
+shortcuts above the workload date cards, with the business-local
+visible start/end dates shown between them. The controls move the
+selected operations date exactly seven calendar days, even through
+daylight-saving changes and leap dates, and reuse the existing
+authorized daily-operations snapshot. Existing filters and sorting
+stay selected during navigation; ordinary detail pagination resets.
+Controls are disabled if shifting a full week leaves the supported
+operations-date range.
+
+The selected view changes, not any saved business record. Exports,
+full-week summaries and date cards recalculate from the new selected
+date. Calendar navigation does not imply staffing, business opening
+hours, booking availability or equipment safety. The public no-login
+demo remains fictional, and the MIT license is unchanged.
