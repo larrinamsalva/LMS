@@ -221,6 +221,21 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(dailyLoad.getByRole("button", {
     name: /^Review \d{4}-\d{2}-\d{2}:/,
   })).toHaveCount(7);
+  // The quick shortcut uses the same authorized recorded counts as the seven
+  // daily cards, and clicking it is only a date-navigation action.
+  const peakDay = dailyLoad.getByRole("group", {
+    name: "Busiest recorded day", exact: true,
+  });
+  await expect(peakDay).toContainText("Most recorded activity:");
+  const peakButton = peakDay.getByRole("button", {
+    name: /^Review busiest recorded day \d{4}-\d{2}-\d{2}$/,
+  });
+  const peakLabel = (await peakButton.getAttribute("aria-label"))!;
+  const peakDate = peakLabel.slice(-10);
+  await peakButton.click();
+  await expect(operations.getByLabel("Operations date", { exact: true }))
+    .toHaveValue(peakDate);
+  await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
   const weeklyTotals = dailyLoad.getByRole("group", {
     name: "Seven-day workload totals", exact: true,
   });

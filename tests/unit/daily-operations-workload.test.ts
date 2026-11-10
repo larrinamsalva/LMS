@@ -1,6 +1,6 @@
 import { expect, it } from "vitest";
 import { summarizeDailyOperations } from "../../src/core/daily-operations";
-import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays } from "../../src/core/daily-operations-workload";
+import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays, busiestRecordedDay } from "../../src/core/daily-operations-workload";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { EquipmentState } from "../../src/core/equipment";
 
@@ -244,4 +244,66 @@ it("has a reversible empty active-day view and includes leap/DST calendar days",
   expect(visibleWorkloadDays(
     sevenDayWorkload(fall, "America/Los_Angeles"), false, false,
   )).toHaveLength(7);
+});
+
+it("finds the earliest highest-count date and reports tied dates without inferring capacity", () => {
+  // Intentionally out of order: tie-breaking must use date rather than
+  // input position. Different record types each contribute one item.
+  const days = [
+    { date: "2026-11-10", appointments: 2, unfinishedWork: 1, inspections: 0 },
+    { date: "2026-11-07", appointments: 0, unfinishedWork: 0, inspections: 4 },
+    { date: "2026-11-08", appointments: 1, unfinishedWork: 2, inspections: 1 },
+    { date: "2026-11-06", appointments: 0, unfinishedWork: 0, inspections: 0 },
+  ];
+  expect(busiestRecordedDay(days, true)).toEqual({
+    date: "2026-11-07", recordedItems: 4, tiedDates: 2,
+  });
+  // Equipment-disabled businesses must ignore inspection-only peaks.
+  expect(busiestRecordedDay(days, false)).toEqual({
+    date: "2026-11-08", recordedItems: 3, tiedDates: 2,
+  });
+  expect(days[1].inspections).toBe(4); // never edit the saved summary
+});
+
+it("has no peak for empty weeks or inspection-only days with equipment disabled", () => {
+  const overview = summarizeDailyOperations(
+    { organizationId: org, records: [], equipmentStates: [] },
+    "America/Los_Angeles", "2028-02-26",
+  );
+  const dates = sevenDayWorkload(overview, "America/Los_Angeles");
+  expect(busiestRecordedDay(dates, true)).toBeNull();
+  expect(busiestRecordedDay(dates, false)).toBeNull();
+  expect(busiestRecordedDay([], true)).toBeNull();
+  expect(busiestRecordedDay([
+    { date: "2028-02-29", appointments: 0, unfinishedWork: 0, inspections: 1 },
+  ], false)).toBeNull();
+  expect(busiestRecordedDay([
+    { date: "2028-02-29", appointments: 0, unfinishedWork: 0, inspections: 1 },
+  ], true)).toEqual({
+    date: "2028-02-29", recordedItems: 1, tiedDates: 1,
+  });
+});
+
+it("finds a saved calendar-date peak across a daylight-saving change", () => {
+  const summary = summarizeDailyOperations({
+    organizationId: org,
+    records: [
+      record("appointments", "one", {
+        title: "Fictional morning A", status: "Scheduled",
+        start: "2026-11-01T08:30:00Z",
+        end: "2026-11-01T09:00:00Z",
+      }),
+      record("appointments", "two", {
+        title: "Fictional morning B", status: "Scheduled",
+        start: "2026-11-01T09:30:00Z",
+        end: "2026-11-01T10:00:00Z",
+      }),
+    ],
+    equipmentStates: [],
+  }, "America/Los_Angeles", "2026-10-31");
+  expect(busiestRecordedDay(sevenDayWorkload(
+    summary, "America/Los_Angeles",
+  ), false)).toEqual({
+    date: "2026-11-01", recordedItems: 2, tiedDates: 1,
+  });
 });

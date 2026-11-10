@@ -404,3 +404,20 @@ empty-day cards are temporarily hidden. It never infers employee capacity,
 excludes a valid active day from calculations, changes bookings, or writes
 records. In workspaces without Equipment & Tools, inspection-only dates do
 not qualify as active.
+
+### Jump to the day with the most saved activity (PR #59)
+
+**Most recorded activity** highlights the future date with the greatest
+number of saved items in the seven-day workload: appointments starting
+that day, unfinished work due, and (only when Equipment & Tools is
+enabled) upcoming inspections. Every recorded item counts as one,
+regardless of duration or difficulty. When multiple dates tie, the
+**earliest date** is shown, with the number of tied dates. The **Review
+DATE** shortcut opens that day's existing Daily Operations view.
+
+This is a **record-count shortcut, not a claim about a business's
+staffing capacity, actual workload hours, priority or equipment safety**.
+It uses the *full authorized seven-day window* even if **Show active
+days only** is selected. An empty week displays a message instead of a
+button. The shortcut makes no record changes and does not alter existing
+weekly totals, CSV downloads, schedules or date filtering.

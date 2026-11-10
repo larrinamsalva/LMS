@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
-import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays } from "../core/daily-operations-workload";
+import { sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays, busiestRecordedDay } from "../core/daily-operations-workload";
 import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
@@ -110,6 +110,8 @@ export function DailyOperations({
   const displayedDays = visibleWorkloadDays(
     nextSevenDays, equipmentEnabled, activityOnly,
   );
+  // Always use the complete seven-day window, even when filtered on screen.
+  const peakDay = busiestRecordedDay(nextSevenDays, equipmentEnabled);
   function downloadDailyPlan() {
     // Build only from the current business's authorized in-memory summary.
     // No API calls, record mutations, or separate demo sessions are involved.
@@ -289,6 +291,31 @@ export function DailyOperations({
                 <span className="metric-label">Days with saved activity</span>
                 <strong>{weeklyTotals.daysWithActivity} of {weeklyTotals.daysInWindow}</strong>
               </div>
+            </div>
+            <div className="daily-workload-peak" role="group" aria-label="Busiest recorded day">
+              {peakDay ? (
+                <>
+                  <p>
+                    <strong>Most recorded activity: {peakDay.date}</strong>
+                    <span className="muted">
+                      {" "}· {peakDay.recordedItems} saved {peakDay.recordedItems === 1 ? "item" : "items"}
+                      {peakDay.tiedDates > 1 ? (
+                        <> · {peakDay.tiedDates} dates tied (earliest shown)</>
+                      ) : null}
+                    </span>
+                  </p>
+                  <button
+                    type="button"
+                    className="secondary"
+                    aria-label={"Review busiest recorded day " + peakDay.date}
+                    onClick={() => selectDate(peakDay.date)}
+                  >
+                    Review {peakDay.date}
+                  </button>
+                </>
+              ) : (
+                <p className="muted">No saved upcoming activity to highlight this week.</p>
+              )}
             </div>
             <button
               type="button"
