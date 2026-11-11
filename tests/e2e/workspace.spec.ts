@@ -762,8 +762,11 @@ test("configuration validation, retained module data, rollback and export work t
     page.getByRole("heading", { name: "Cedar Grove Property", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: /^Supply catalog/ }).click();
+  // The low-stock watchlist also names this product; select the catalog
+  // card explicitly rather than relying on a globally unique heading.
   await expect(
-    page.getByRole("heading", { name: "Water fittings", exact: true }),
+    page.getByRole("article", { name: "Product Water fittings", exact: true })
+      .getByRole("heading", { name: "Water fittings", exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Project & modules" }).click();
   const projectDownload = page.waitForEvent("download");

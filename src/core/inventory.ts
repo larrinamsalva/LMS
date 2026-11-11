@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { EntityDefinition, RecordData } from "./config";
+import type { WorkspaceRecord } from "./engine";
 export const stockActions = [
   "Receiving",
   "Usage",
@@ -176,4 +177,62 @@ export interface StockMovement {
   destination_name: string;
   work_title: string;
   reason: string;
+}
+
+
+/** Read-only low-stock snapshot for a single authorized organization. */
+export interface LowStockAlert {
+  productId: string;
+  productName: string;
+  locationId: string;
+  locationName: string;
+  units: string;
+  minimum: string;
+  shortfall: string;
+  unit: string;
+}
+
+/**
+ * Compare active product/location balances against each product's optional
+ * per-location minimum using exact whole units, never floating point.
+ * Skip archived/foreign entities, missing or zero minima, invalid balances
+ * and balances that already meet their configured minimum.
+ */
+export function lowStockAlerts(
+  records: readonly WorkspaceRecord[],
+  balances: readonly StockBalance[],
+): LowStockAlert[] {
+  const products = records.filter((r) => r.entity === "items" && !r.archived);
+  const locations = records.filter((r) => r.entity === "stock-locations" && !r.archived);
+  const alerts: LowStockAlert[] = [];
+  for (const product of products) {
+    const minimum = String(product.data.minimum ?? "0");
+    if (!stockSchema.safeParse(minimum).success || BigInt(minimum) === 0n) continue;
+    for (const location of locations) {
+      if (location.organization_id !== product.organization_id) continue;
+      const balance = balances.find((b) =>
+        b.organization_id === product.organization_id &&
+        b.product_id === product.id && b.location_id === location.id
+      );
+      const units = balance?.units ?? "0";
+      if (!stockSchema.safeParse(units).success || BigInt(units) >= BigInt(minimum))
+        continue;
+      alerts.push({
+        productId: product.id,
+        productName: String(product.data.name ?? "Unnamed product"),
+        locationId: location.id,
+        locationName: String(location.data.name ?? "Unnamed location"),
+        units,
+        minimum,
+        shortfall: (BigInt(minimum) - BigInt(units)).toString(),
+        unit: String(product.data.unit || "units"),
+      });
+    }
+  }
+  return alerts.sort((a, b) =>
+    a.productName.localeCompare(b.productName) ||
+    a.locationName.localeCompare(b.locationName) ||
+    a.productId.localeCompare(b.productId) ||
+    a.locationId.localeCompare(b.locationId)
+  );
 }

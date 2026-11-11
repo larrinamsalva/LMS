@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { relatedLabel } from "./schedule";
+import { lowStockAlerts } from "../core/inventory";
 export function Inventory({
   workspace,
   busy,
@@ -33,6 +34,9 @@ export function Inventory({
       ),
   );
   const locations = records.filter((r) => r.entity === "stock-locations");
+  const lowStock = lowStockAlerts(records, workspace.stockBalances).filter(
+    (item) => !location || item.locationId === location,
+  );
   const movementIds = new Set(
     workspace.stockMovements
       .filter(
@@ -185,6 +189,49 @@ export function Inventory({
             Show archived products
           </label>
         </div>
+      </section>
+      <section className="panel" aria-labelledby="stock-watchlist-heading">
+        <h2 id="stock-watchlist-heading">Low-stock watchlist</h2>
+        <p className="muted">
+          Active products and storage locations below a configured minimum
+          per location. Archived products and locations are excluded. Missing
+          balances count as zero; minimum zero disables alerts.
+          This is a review list, not an automatic purchase or stock movement.
+        </p>
+        <p role="status">
+          {lowStock.length} product-location {lowStock.length === 1 ? "shortfall" : "shortfalls"}
+          {location ? " at the selected storage location" : " across active storage locations"}.
+        </p>
+        <div className="workforce-grid">
+          {lowStock.map((alert) => {
+            const product = records.find((r) =>
+              r.id === alert.productId && r.entity === "items" && !r.archived
+            );
+            return (
+              <article
+                className="workforce-card stock-low"
+                key={alert.productId + ":" + alert.locationId}
+                aria-label={"Low stock " + alert.productName + " at " + alert.locationName}
+              >
+                <h3>{alert.productName}</h3>
+                <p><strong>{alert.locationName}</strong></p>
+                <p>{alert.units} {alert.unit} on hand · minimum {alert.minimum}</p>
+                <p><strong>Below minimum by {alert.shortfall} {alert.unit}</strong></p>
+                <button
+                  className="secondary"
+                  type="button"
+                  disabled={!write || busy || !product}
+                  onClick={() => { if (product) onAdd("stock-movements", product); }}
+                >
+                  Review stock movement
+                </button>
+              </article>
+            );
+          })}
+        </div>
+        {lowStock.length === 0 && (
+          <p>No active product locations are below a configured minimum.</p>
+        )}
       </section>
       <section className="panel" aria-labelledby="stock-products-heading">
         <h2 id="stock-products-heading">Products & available stock</h2>
