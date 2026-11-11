@@ -898,3 +898,22 @@ there is no automatic rate creation, notifications, customer
 communication, invoice, ledger write or permission change. This
 reuses the existing demo session and pricing browser flow, preserves
 all historical rates and MIT licensing.
+
+
+### Export missing-rate audit review checklist (PR #84)
+
+The **Rate coverage audit** offers **Download missing-rate review CSV**
+only after an active authorized service area, valid date and at least
+one missing-rate candidate are selected. It recomputes the review
+list from current-organization records rather than trusting cached
+UI names or counts. Each candidate has its selected area/date, service,
+kind, pricing mode, unit and a review-only status. Blank operator
+decision and review notes columns support manual review.
+
+No customer/employee data, raw IDs, prices or financial information
+are included. Formula-like CSV values are escaped. Invalid or
+foreign selections fail closed; a valid zero-gap selection disables
+the button. The CSV is not a rate import or instruction to offer
+a service in an area. Nothing is saved or changed, no notifications
+are sent, and the existing demo session, permission limits, MIT
+license and historical records are preserved.

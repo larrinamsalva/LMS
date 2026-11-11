@@ -12,6 +12,7 @@ import type { RecordData } from "../core/config";
 import { relatedLabel } from "./schedule";
 import { serviceRateCardCsv, serviceRateCardRows, rateCoversDate, rateMatchesArea } from "../core/service-rate-card-csv";
 import { rateCoverageAudit } from "../core/service-rate-coverage";
+import { serviceRateCoverageReviewCsv } from "../core/service-rate-coverage-csv";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -50,6 +51,19 @@ export function Catalog({
   const coverage = rateCoverageAudit(
     records, organizationId, selectedAreaId, asOfDate,
   );
+  function downloadMissingRateReview() {
+    if (coverage.status !== "ready" || coverage.gaps.length === 0) return;
+    const csv = serviceRateCoverageReviewCsv(
+      records, organizationId, selectedAreaId, asOfDate,
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-missing-service-rates-review.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   function downloadRateCard() {
     if (!exportRows.length) return;
     const csv = serviceRateCardCsv(
@@ -251,13 +265,25 @@ export function Catalog({
         )}
       </section>
       <section className="panel" aria-labelledby="rate-coverage-heading">
-        <h2 id="rate-coverage-heading">Rate coverage audit</h2>
+        <div className="section-heading">
+          <h2 id="rate-coverage-heading">Rate coverage audit</h2>
+          <button
+            type="button"
+            className="secondary"
+            disabled={coverage.status !== "ready" || coverage.gaps.length === 0}
+            onClick={downloadMissingRateReview}
+          >
+            Download missing-rate review CSV
+          </button>
+        </div>
         <p className="muted">
           Check which active catalog services lack a live saved rate for
           a chosen service area and date. This is an informational check,
           not a promise that every service is offered in every area. A
           matching rate is not a verified quote or price approval.
-          Nothing is saved or automatically priced.
+          Nothing is saved or automatically priced. The optional CSV
+          contains missing candidates with blank decision and notes
+          columns; downloading cannot create a saved rate.
         </p>
         {coverage.status === "choose" && (
           <p>Choose a service area and a rate date above to audit coverage.</p>

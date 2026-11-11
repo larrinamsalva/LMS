@@ -83,11 +83,16 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const audit = page.getByRole("region", {
       name: "Rate coverage audit", exact: true,
     });
+    const missingRateDownload = audit.getByRole("button", {
+      name: "Download missing-rate review CSV", exact: true,
+    });
+    await expect(missingRateDownload).toBeDisabled();
     await expect(audit).toContainText(
       "Choose a service area and a rate date above to audit coverage.",
     );
     await areaFilter.selectOption({ label: "Local service area" });
     await expect(audit).toContainText("0 missing rate candidates.");
+    await expect(missingRateDownload).toBeDisabled();
     await expect(audit.getByText(
       "No missing active saved-rate coverage found for this selection.",
       { exact: true },
@@ -110,6 +115,23 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     expect(areaCsv).not.toContain(customer);
     await areaFilter.selectOption({ label: "Outer service area" });
     await expect(audit).toContainText("3 missing rate candidates.");
+    await expect(missingRateDownload).toBeEnabled();
+    const missingPending = page.waitForEvent("download");
+    await missingRateDownload.click();
+    const missingExport = await missingPending;
+    expect(missingExport.suggestedFilename()).toBe(
+      "lms-missing-service-rates-review.csv",
+    );
+    const missingCsv = (await readFile((await missingExport.path())!))
+      .toString("utf8");
+    expect(missingCsv.trimEnd().split("\r\n")).toHaveLength(4);
+    expect(missingCsv).toContain('"Outer service area"');
+    expect(missingCsv).toContain(
+      '"' + (industry === "cleaning" ? "Oven detail" : "Disposal add-on") + '"',
+    );
+    expect(missingCsv).toContain('"Operator decision (fill manually)"');
+    expect(missingCsv).not.toContain(customer);
+    expect(missingCsv).not.toContain(work);
     await expect(audit.getByRole("article", {
       name: "Missing rate for " +
         (industry === "cleaning" ? "Oven detail" : "Disposal add-on"),
@@ -123,10 +145,17 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     })).toBeVisible();
     await rateDate.fill("2025-11-06");
     await expect(audit).toContainText("4 missing rate candidates.");
+    const historicPending = page.waitForEvent("download");
+    await missingRateDownload.click();
+    const historicExport = await historicPending;
+    const historicCsv = (await readFile((await historicExport.path())!))
+      .toString("utf8");
+    expect(historicCsv.trimEnd().split("\r\n")).toHaveLength(5);
     await expect(page.getByRole("button", {
       name: "Download active service rates CSV", exact: true,
     })).toBeDisabled();
     await rateDate.fill("");
+    await expect(missingRateDownload).toBeDisabled();
     await expect(audit).toContainText(
       "Choose a service area and a rate date above to audit coverage.",
     );
