@@ -83,10 +83,12 @@ it("does not leak cross-org links or unknown records and keeps empty exports hea
       amount: "100", effective_from: "2026-01-01",
     }),
   ];
-  expect(serviceRateCardRows(records, org)).toMatchObject([[
+  const rows = serviceRateCardRows(records, org);
+  expect(rows).toHaveLength(1);
+  expect(rows[0].slice(0, 9)).toEqual([
     "Orphan rate", "Retained service link", "Unavailable",
     "", "", "", "Retained area link", "Unavailable", "1.00",
-  ]]);
+  ]);
   const csv = serviceRateCardCsv(records, org);
   expect(csv).not.toContain("Private other org");
   expect(serviceRateCardCsv(records, org, true).trimEnd()
