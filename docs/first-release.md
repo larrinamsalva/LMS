@@ -765,3 +765,25 @@ organization stock. An empty filtered list disables the download
 button. It does not create orders, send supplier messages, alter
 inventory, grant extra permissions, or change the existing stock
 ledger. The public no-login demo remains fictional.
+
+
+### Manual physical inventory count sheet (PR #78)
+
+Inventory & stock now offers **Download physical count sheet CSV**,
+a read-only worksheet for every active product at each active storage
+location, including zero balances and products without low-stock
+thresholds. Catalog search (name, SKU, barcode, category) and the
+selected storage location narrow the export. The worksheet includes
+name, SKU, barcode, location, recorded whole units at download, unit
+and units-per-case, with deliberately blank counted-units, difference
+and optional notes cells to fill in after physically checking stock.
+
+The export uses only current-organization records and balances,
+excludes archived/foreign products and locations, preserves exact
+whole-unit numbers, and safely quotes formula-like catalog fields.
+The downloaded document is a point-in-time saved-ledger snapshot,
+not evidence of a physical count or an adjustment import. Users must
+review differences and apply any changes through the existing
+authorized stock-adjustment process. No inventory, ledger history,
+permissions, purchasing, invoices or customer data are changed
+by downloading. The fictional public demo and MIT license remain.
