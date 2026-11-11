@@ -80,7 +80,18 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const areaFilter = page.getByLabel("Filter service rates by area", {
       exact: true,
     });
+    const audit = page.getByRole("region", {
+      name: "Rate coverage audit", exact: true,
+    });
+    await expect(audit).toContainText(
+      "Choose a service area and a rate date above to audit coverage.",
+    );
     await areaFilter.selectOption({ label: "Local service area" });
+    await expect(audit).toContainText("0 missing rate candidates.");
+    await expect(audit.getByText(
+      "No missing active saved-rate coverage found for this selection.",
+      { exact: true },
+    )).toBeVisible();
     await expect(page.getByRole("article", {
       name: "Rate Local hourly rate", exact: true,
     })).toBeVisible();
@@ -98,6 +109,12 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     expect(areaCsv).not.toContain('"Outer-area hourly rate"');
     expect(areaCsv).not.toContain(customer);
     await areaFilter.selectOption({ label: "Outer service area" });
+    await expect(audit).toContainText("3 missing rate candidates.");
+    await expect(audit.getByRole("article", {
+      name: "Missing rate for " +
+        (industry === "cleaning" ? "Oven detail" : "Disposal add-on"),
+      exact: true,
+    })).toBeVisible();
     await expect(page.getByRole("article", {
       name: "Rate Local hourly rate", exact: true,
     })).toHaveCount(0);
@@ -105,10 +122,14 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Rate Outer-area hourly rate", exact: true,
     })).toBeVisible();
     await rateDate.fill("2025-11-06");
+    await expect(audit).toContainText("4 missing rate candidates.");
     await expect(page.getByRole("button", {
       name: "Download active service rates CSV", exact: true,
     })).toBeDisabled();
     await rateDate.fill("");
+    await expect(audit).toContainText(
+      "Choose a service area and a rate date above to audit coverage.",
+    );
     await areaFilter.selectOption("");
     await page.getByRole("button", { name: /^Estimates/ }).click();
     await page

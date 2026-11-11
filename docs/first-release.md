@@ -875,3 +875,26 @@ and show an explicit message. No service-area geocoding, rate
 edits, estimate repricing, financial posting, notifications,
 new demo sessions or permission changes occur. All example
 records are fictional, and the MIT license is unchanged.
+
+
+### Identify missing saved rates by area and date (PR #83)
+
+The **Rate coverage audit** on Services & Rates uses the existing
+explicit area selector and date picker to show which **active catalog
+services**, including extras, have no **active saved rate** effective
+on that date in that one area. It displays the number of active
+services with at least one candidate rate and an accessible list
+of candidates missing an active rate, without changing anything.
+Effective-until dates are exclusive. An archived rate never counts
+as current coverage. Archived services are not counted, and archived
+areas refuse a live-coverage audit (but remain available for
+historical rate-card review). Missing/foreign organizations and
+invalid dates are not interpreted as empty but valid coverage.
+
+This is a planning aid, not a business-rule claim that every
+service must be offered in every area. A present saved rate is not
+proof of an approved/quotable price. Users review gaps first, and
+there is no automatic rate creation, notifications, customer
+communication, invoice, ledger write or permission change. This
+reuses the existing demo session and pricing browser flow, preserves
+all historical rates and MIT licensing.
