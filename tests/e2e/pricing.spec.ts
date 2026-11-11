@@ -110,13 +110,6 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const areaFilter = page.getByLabel("Filter service rates by area", {
       exact: true,
     });
-    await allAreas.getByRole("button", {
-      name: "Review missing rates in Outer service area", exact: true,
-    }).click();
-    await expect(areaFilter).toHaveValue(
-      await areaFilter.locator("option", { hasText: "Outer service area" })
-        .getAttribute("value") ?? "",
-    );
     const audit = page.getByRole("region", {
       name: "Rate coverage audit", exact: true,
     });
@@ -127,6 +120,15 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(audit).toContainText(
       "Choose a service area and a rate date above to audit coverage.",
     );
+    await allAreas.getByRole("button", {
+      name: "Review missing rates in Outer service area", exact: true,
+    }).click();
+    await expect(audit).toContainText("3 missing rate candidates.");
+    const outerOptionValue = await areaFilter
+      .locator("option", { hasText: "Outer service area" })
+      .getAttribute("value");
+    expect(outerOptionValue).toBeTruthy();
+    await expect(areaFilter).toHaveValue(outerOptionValue!);
     await areaFilter.selectOption({ label: "Local service area" });
     await expect(audit).toContainText("0 missing rate candidates.");
     await expect(missingRateDownload).toBeDisabled();
