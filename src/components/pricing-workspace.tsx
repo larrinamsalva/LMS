@@ -10,6 +10,7 @@ import {
 import { invoiceLabel } from "../core/invoices";
 import type { RecordData } from "../core/config";
 import { relatedLabel } from "./schedule";
+import { serviceRateCardCsv, serviceRateCardRows } from "../core/service-rate-card-csv";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -24,7 +25,8 @@ export function Catalog({
   onAdd,
   onEdit,
   onArchive,
-}: Actions & { records: WorkspaceRecord[] }) {
+  organizationId,
+}: Actions & { records: WorkspaceRecord[]; organizationId: string }) {
   const [archived, setArchived] = useState(false);
   const services = records.filter(
       (r) => r.entity === "services" && r.archived === archived,
@@ -35,6 +37,20 @@ export function Catalog({
     zones = records.filter(
       (r) => r.entity === "pricing-zones" && r.archived === archived,
     );
+  const exportRows = serviceRateCardRows(records, organizationId, archived);
+  function downloadRateCard() {
+    if (!exportRows.length) return;
+    const csv = serviceRateCardCsv(records, organizationId, archived);
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = archived
+      ? "lms-archived-service-rates.csv"
+      : "lms-active-service-rates.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   const actions = (r: WorkspaceRecord) => (
     <div className="actions">
       {!r.archived && (
@@ -101,7 +117,22 @@ export function Catalog({
             />
             Show archived catalog records
           </label>
+          <button
+            className="secondary"
+            type="button"
+            disabled={exportRows.length === 0}
+            onClick={downloadRateCard}
+          >
+            Download {archived ? "archived" : "active"} service rates CSV
+          </button>
         </div>
+        <p className="muted">
+          The read-only rate card lists saved prices by service and area,
+          with effective dates, USD amounts and archived-link status.
+          It follows the active/archived catalog view. Effective-until
+          dates are exclusive. Exporting does not create a quote,
+          update prices or contact a customer.
+        </p>
       </section>
       <section className="panel">
         <h2>Services</h2>

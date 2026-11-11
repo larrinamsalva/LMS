@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { selectModules } from "../../src/core/buildplan";
 import AxeBuilder from "@axe-core/playwright";
+import { readFile } from "node:fs/promises";
 test("saved rates populate fictional cleaning and maintenance drafts, retain snapshots and print accessibly", async ({
   page,
 }, testInfo) => {
@@ -31,6 +32,24 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(
       page.getByRole("article", { name: "Service " + service, exact: true }),
     ).toContainText("Hourly");
+    const rateCardPending = page.waitForEvent("download");
+    await page.getByRole("button", {
+      name: "Download active service rates CSV", exact: true,
+    }).click();
+    const rateCardDownload = await rateCardPending;
+    expect(rateCardDownload.suggestedFilename()).toBe(
+      "lms-active-service-rates.csv",
+    );
+    const rateCardText = (await readFile((await rateCardDownload.path())!))
+      .toString("utf8");
+    expect(rateCardText).toContain("Local hourly rate");
+    expect(rateCardText).toContain("Local service area");
+    expect(rateCardText).toContain(
+      '"' + (industry === "cleaning" ? "35.00" : "55.00") + '"',
+    );
+    expect(rateCardText).toContain('"Effective until (exclusive)"');
+    expect(rateCardText).not.toContain(customer);
+    expect(rateCardText).not.toContain(work);
     await page.getByRole("button", { name: /^Estimates/ }).click();
     await page
       .getByRole("button", { name: "+ Add estimate draft", exact: true })

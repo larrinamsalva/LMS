@@ -773,6 +773,7 @@ export function Workspace({
             {view === "catalog" && (
               <Catalog
                 records={workspace!.records}
+                organizationId={workspace!.organizationId}
                 canManage={canAdmin}
                 busy={busy}
                 onAdd={(id) => openRecord(id)}

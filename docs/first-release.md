@@ -811,3 +811,27 @@ stock movement, ledger entry, approval, invoice or purchase.
 Actual corrections still require the existing authorized
 owner/admin stock adjustment. Fictional no-login demos, dark-mode
 and MIT licensing are preserved.
+
+
+### Export Services & Rates by area (PR #80)
+
+**Services & Rates** now offers a read-only **Download active service rates
+CSV** button. The existing "Show archived catalog records" checkbox changes
+it to **Download archived service rates CSV**, reflecting the same saved
+rate status currently displayed. Each row includes rate title, linked
+service name and status, service kind, pricing mode and unit, configured
+service area and status, exact USD amount, saved effective-from and
+exclusive effective-until dates, and the rate revision/status.
+
+Only current-organization records are considered. Archived referenced
+services or areas are explicitly marked; missing and cross-organization
+links are labeled unavailable without exposing record IDs or private
+names. Formula-safe CSV quoting neutralizes service-area and catalog
+titles starting with spreadsheet operators. Empty sets disable
+download; no estimates, customer data, employee details or payment
+records are exported. A rate card is a point-in-time review of saved
+configuration, not a quote, tax calculation, approval or assertion
+that every old rate remains applicable today. It creates no invoice,
+changes no records and sends no communication. No permissions,
+authentication, demo session limit, schema, ledger or invoice logic
+is changed. The MIT license and fictional public demo remain.
