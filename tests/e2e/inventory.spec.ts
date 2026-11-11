@@ -78,24 +78,6 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
     );
     expect(initialCountSheet).toContain("Counted units (fill manually)");
     expect(initialCountSheet).not.toContain("Fictional customer");
-    const preview = page.getByRole("region", {
-      name: "Physical count variance preview", exact: true,
-    });
-    await preview.getByLabel("Product and location to compare", {
-      exact: true,
-    }).selectOption({ label: name + " — " + location });
-    const countedInput = preview.getByLabel("Physically counted units", {
-      exact: true,
-    });
-    await countedInput.fill("5");
-    await expect(preview).toContainText("Difference: +5 glove");
-    await countedInput.fill("0");
-    await expect(preview).toContainText("Counts match: difference 0 glove");
-    await countedInput.fill("3.5");
-    await expect(preview).toContainText(
-      "Enter a valid whole-unit count from 0 to 999,999,999,999.",
-    );
-    await countedInput.fill("");
     const zeroOnly = watchlist.getByLabel("Show out-of-stock only", {
       exact: true,
     });
@@ -184,12 +166,6 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       .getByRole("button", { name: "Post stock movement", exact: true })
       .click();
     await expect(product).toContainText(location + ": 24 glove");
-    await countedInput.fill("21");
-    await expect(preview).toContainText("Recorded stock: 24 glove");
-    await expect(preview).toContainText("Difference: -3 glove");
-    await expect(preview).toContainText("Review an Adjustment decrease");
-    await countedInput.fill("24");
-    await expect(preview).toContainText("Counts match: difference 0 glove");
     const updatedCountPending = page.waitForEvent("download");
     await countSheetButton.click();
     const updatedCount = await updatedCountPending;
@@ -316,4 +292,62 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       fullPage: true,
     });
   }
+});
+
+
+test("physical stock count preview compares whole units without saving adjustments", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Explore the working demo" }).click();
+  await page.getByRole("button", { name: "Inventory & stock", exact: true }).click();
+
+  const name = "Fictional preview gloves";
+  await page.getByRole("button", { name: "+ Add product", exact: true }).click();
+  await page.getByLabel("Item name *", { exact: true }).fill(name);
+  await page.getByLabel("Unit / package", { exact: true }).fill("glove");
+  await page.getByLabel("SKU", { exact: true }).fill("PREVIEW-91");
+  await page.getByRole("button", { name: "Save record", exact: true }).click();
+  await expect(page.getByRole("article", {
+    name: "Product " + name, exact: true,
+  })).toBeVisible();
+
+  const preview = page.getByRole("region", {
+    name: "Physical count variance preview", exact: true,
+  });
+  await expect(preview).toBeVisible();
+  const picker = preview.getByLabel("Product and location to compare", {
+    exact: true,
+  });
+  const option = picker.locator("option")
+    .filter({ hasText: name })
+    .filter({ hasText: "Maintenance store" });
+  await expect(option).toHaveCount(1);
+  const optionValue = await option.getAttribute("value");
+  expect(optionValue).toBeTruthy();
+  await picker.selectOption(optionValue!);
+
+  const count = preview.getByLabel("Physically counted units", {
+    exact: true,
+  });
+  await expect(count).toBeEnabled();
+  await expect(preview).toContainText("Recorded stock: 0 glove");
+  await count.fill("5");
+  await expect(preview).toContainText("Difference: +5 glove");
+  await expect(preview).toContainText("Review an Adjustment increase");
+  await count.fill("0");
+  await expect(preview).toContainText("Counts match: difference 0 glove");
+  await count.fill("3.5");
+  await expect(preview).toContainText(
+    "Enter a valid whole-unit count from 0 to 999,999,999,999.",
+  );
+  await count.fill("");
+  await expect(preview).toContainText("Enter a physical count");
+  // A preview never posts an adjustment or persists a manual count.
+  await page.getByRole("button", { name: "Inventory & stock", exact: true })
+    .click();
+  await expect(page.getByRole("article", {
+    name: "Product " + name, exact: true,
+  })).toBeVisible();
+  await expect(preview).toContainText("Recorded stock: 0 glove");
 });
