@@ -150,6 +150,10 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       .click();
     await expect(product).toContainText(location + ": 24 glove");
     await expect(product).toContainText("Low stock");
+    // Other locations may still have zero units of this same product.
+    // Narrow to the location where the fictional receipt was recorded.
+    await page.getByLabel("Filter storage location", { exact: true })
+      .selectOption({ label: location });
     await zeroOnly.check();
     await expect(lowAlert).toHaveCount(0);
     await expect(watchlist.getByRole("button", {
@@ -158,6 +162,8 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
     await zeroOnly.uncheck();
     await expect(lowAlert).toBeVisible();
     await expect(lowAlert).toContainText("Below minimum by 1 glove");
+    await page.getByLabel("Filter storage location", { exact: true })
+      .selectOption("");
     const original = posted!;
     const retry = await page.evaluate(async (input) => {
       const r = await fetch("/api/demo", {
