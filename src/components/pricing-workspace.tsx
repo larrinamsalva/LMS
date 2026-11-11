@@ -10,7 +10,7 @@ import {
 import { invoiceLabel } from "../core/invoices";
 import type { RecordData } from "../core/config";
 import { relatedLabel } from "./schedule";
-import { serviceRateCardCsv, serviceRateCardRows } from "../core/service-rate-card-csv";
+import { serviceRateCardCsv, serviceRateCardRows, rateCoversDate } from "../core/service-rate-card-csv";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -28,19 +28,21 @@ export function Catalog({
   organizationId,
 }: Actions & { records: WorkspaceRecord[]; organizationId: string }) {
   const [archived, setArchived] = useState(false);
+  const [asOfDate, setAsOfDate] = useState("");
   const services = records.filter(
       (r) => r.entity === "services" && r.archived === archived,
     ),
     rates = records.filter(
-      (r) => r.entity === "service-rates" && r.archived === archived,
+      (r) => r.entity === "service-rates" && r.archived === archived &&
+        rateCoversDate(r, asOfDate),
     ),
     zones = records.filter(
       (r) => r.entity === "pricing-zones" && r.archived === archived,
     );
-  const exportRows = serviceRateCardRows(records, organizationId, archived);
+  const exportRows = serviceRateCardRows(records, organizationId, archived, asOfDate);
   function downloadRateCard() {
     if (!exportRows.length) return;
-    const csv = serviceRateCardCsv(records, organizationId, archived);
+    const csv = serviceRateCardCsv(records, organizationId, archived, asOfDate);
     const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(file);
     const link = document.createElement("a");
@@ -117,6 +119,15 @@ export function Catalog({
             />
             Show archived catalog records
           </label>
+          <div>
+            <label htmlFor="service-rate-date">Rates covering date (optional)</label>
+            <input
+              id="service-rate-date"
+              type="date"
+              value={asOfDate}
+              onChange={(event) => setAsOfDate(event.target.value)}
+            />
+          </div>
           <button
             className="secondary"
             type="button"
@@ -129,8 +140,11 @@ export function Catalog({
         <p className="muted">
           The read-only rate card lists saved prices by service and area,
           with effective dates, USD amounts and archived-link status.
-          It follows the active/archived catalog view. Effective-until
-          dates are exclusive. Exporting does not create a quote,
+          It follows the active/archived catalog view and the optional
+          date filter on saved rate ranges. Clear the date to show every
+          saved range. Effective-until dates are exclusive. Archived rates
+          and linked services or areas are not automatically available for
+          quoting even when a date matches. Exporting does not create a quote,
           update prices or contact a customer.
         </p>
       </section>
@@ -202,6 +216,11 @@ export function Catalog({
             </article>
           ))}
         </div>
+        {!rates.length && (
+          <p className="empty-state">
+            No saved rates match this status and date selection.
+          </p>
+        )}
       </section>
       <section className="panel">
         <h2>Pricing zones / service areas</h2>

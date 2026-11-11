@@ -94,3 +94,51 @@ it("does not leak cross-org links or unknown records and keeps empty exports hea
   expect(serviceRateCardCsv(records, org, true).trimEnd()
     .split("\r\n")).toHaveLength(1);
 });
+
+
+it("filters saved rate cards by effective-from inclusive and until exclusive", () => {
+  const records = [
+    record("service", "services", {
+      name: "Cleaning", kind: "Service", mode: "Hourly", unit: "hour",
+    }),
+    record("area", "pricing-zones", { name: "Local" }),
+    record("old", "service-rates", {
+      title: "Old period", service: "service", zone: "area",
+      amount: "1000", effective_from: "2025-01-01",
+      effective_until: "2026-01-01",
+    }, true),
+    record("current", "service-rates", {
+      title: "Current period", service: "service", zone: "area",
+      amount: "1500", effective_from: "2026-01-01",
+      effective_until: "2027-01-01",
+    }),
+    record("future", "service-rates", {
+      title: "Future period", service: "service", zone: "area",
+      amount: "2000", effective_from: "2027-01-01",
+      effective_until: "",
+    }),
+    record("other", "service-rates", {
+      title: "Private other business", service: "service", zone: "area",
+      amount: "3000", effective_from: "2025-01-01",
+    }, false, foreign),
+  ];
+  const original = structuredClone(records);
+  const titles = (archived: boolean, date: string) =>
+    serviceRateCardRows(records, org, archived, date).map((row) => row[0]);
+  expect(titles(false, "")).toEqual(["Current period", "Future period"]);
+  expect(titles(false, "2025-12-31")).toEqual([]);
+  expect(titles(false, "2026-01-01")).toEqual(["Current period"]);
+  expect(titles(false, "2026-12-31")).toEqual(["Current period"]);
+  expect(titles(false, "2027-01-01")).toEqual(["Future period"]);
+  expect(titles(true, "2025-12-31")).toEqual(["Old period"]);
+  expect(titles(true, "2026-01-01")).toEqual([]);
+  expect(titles(false, "2026-02-30")).toEqual([]);
+  expect(titles(false, "not-a-date")).toEqual([]);
+  expect(serviceRateCardCsv(records, org, false, "2026-11-06"))
+    .toContain('"Current period"');
+  expect(serviceRateCardCsv(records, org, false, "2026-11-06"))
+    .not.toContain('"Future period"');
+  expect(serviceRateCardCsv(records, org, false, "2025-11-06").trimEnd()
+    .split("\r\n")).toHaveLength(1);
+  expect(records).toEqual(original);
+});
