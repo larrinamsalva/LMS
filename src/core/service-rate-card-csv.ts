@@ -1,6 +1,25 @@
 import type { WorkspaceRecord } from "./engine";
 import { minorToDecimal } from "./pricing";
+import { Temporal } from "@js-temporal/polyfill";
 import { csvSafeCell } from "./daily-operations-csv";
+
+/**
+ * Date boundary check shared by visible saved-rate cards and CSV exports.
+ * Empty selection means show all saved ranges, not "effective today".
+ * The end date is exclusive; no zone inference, automatic quoting, or
+ * archived-link policy changes are implied by a matching date range.
+ */
+export function rateCoversDate(rate: WorkspaceRecord, asOfDate = ""): boolean {
+  if (!asOfDate) return true;
+  try {
+    if (Temporal.PlainDate.from(asOfDate).toString() !== asOfDate) return false;
+  } catch {
+    return false;
+  }
+  const from = String(rate.data.effective_from ?? "");
+  const until = String(rate.data.effective_until ?? "");
+  return from <= asOfDate && (!until || asOfDate < until);
+}
 
 /**
  * One row per saved rate in the authorized organization's selected
@@ -12,11 +31,13 @@ export function serviceRateCardRows(
   records: readonly WorkspaceRecord[],
   organizationId: string,
   showArchived = false,
+  asOfDate = "",
 ): string[][] {
   const scoped = records.filter((r) => r.organization_id === organizationId);
   const references = new Map(scoped.map((r) => [r.id, r]));
   const values = scoped.filter((r) =>
-    r.entity === "service-rates" && r.archived === showArchived,
+    r.entity === "service-rates" && r.archived === showArchived &&
+    rateCoversDate(r, asOfDate),
   );
   const rows = values.map((rate) => {
     const serviceId = String(rate.data.service ?? "");
@@ -61,6 +82,7 @@ export function serviceRateCardCsv(
   records: readonly WorkspaceRecord[],
   organizationId: string,
   showArchived = false,
+  asOfDate = "",
 ): string {
   const header = [
     "Rate title", "Service", "Service status", "Service kind",
@@ -68,7 +90,7 @@ export function serviceRateCardCsv(
     "Rate amount (USD)", "Effective from",
     "Effective until (exclusive)", "Rate revision", "Rate status",
   ];
-  return [header, ...serviceRateCardRows(records, organizationId, showArchived)]
+  return [header, ...serviceRateCardRows(records, organizationId, showArchived, asOfDate)]
     .map((row) => row.map(csvSafeCell).join(","))
     .join("\r\n") + "\r\n";
 }

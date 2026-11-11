@@ -835,3 +835,22 @@ that every old rate remains applicable today. It creates no invoice,
 changes no records and sends no communication. No permissions,
 authentication, demo session limit, schema, ledger or invoice logic
 is changed. The MIT license and fictional public demo remain.
+
+
+### Review rate periods by effective date (PR #81)
+
+The **Services & Rates** page offers an optional **Rates covering date**
+selector. When populated, the saved-rate cards and current-organization
+CSV both include only rate rows whose configured start is on or before
+that date and whose end is either open or strictly after that date.
+Empty date restores the existing full active/archived list. No
+calendar auto-selection or service-area inference is applied. A date
+matching an *archived* rate, service or area does not make it active
+or quotable; this filter audits saved date ranges only.
+
+No matching rows display an explicit empty state and disable the
+download button. Exact money, catalog-link confidentiality, CSV
+formula protection and historical source records remain unchanged.
+No rate is edited, revalidated, reopened, selected for an estimate,
+posted to a bill or sent to any customer. This uses the existing
+fictional session rather than creating another demo connection.

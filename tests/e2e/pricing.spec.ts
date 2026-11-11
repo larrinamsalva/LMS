@@ -50,6 +50,34 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     expect(rateCardText).toContain('"Effective until (exclusive)"');
     expect(rateCardText).not.toContain(customer);
     expect(rateCardText).not.toContain(work);
+    const rateDate = page.getByLabel("Rates covering date (optional)", {
+      exact: true,
+    });
+    await rateDate.fill("2025-11-06");
+    await expect(page.getByRole("article", {
+      name: "Rate Local hourly rate", exact: true,
+    })).toHaveCount(0);
+    await expect(page.getByText(
+      "No saved rates match this status and date selection.",
+      { exact: true },
+    )).toBeVisible();
+    await expect(page.getByRole("button", {
+      name: "Download active service rates CSV", exact: true,
+    })).toBeDisabled();
+    await rateDate.fill("2026-11-06");
+    await expect(page.getByRole("article", {
+      name: "Rate Local hourly rate", exact: true,
+    })).toBeVisible();
+    const filteredPending = page.waitForEvent("download");
+    await page.getByRole("button", {
+      name: "Download active service rates CSV", exact: true,
+    }).click();
+    const filteredDownload = await filteredPending;
+    const filteredCsv = (await readFile((await filteredDownload.path())!))
+      .toString("utf8");
+    expect(filteredCsv).toContain('"Local hourly rate"');
+    expect(filteredCsv).not.toContain(customer);
+    await rateDate.fill("");
     await page.getByRole("button", { name: /^Estimates/ }).click();
     await page
       .getByRole("button", { name: "+ Add estimate draft", exact: true })
