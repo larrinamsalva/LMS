@@ -787,3 +787,27 @@ review differences and apply any changes through the existing
 authorized stock-adjustment process. No inventory, ledger history,
 permissions, purchasing, invoices or customer data are changed
 by downloading. The fictional public demo and MIT license remain.
+
+
+### Physical count variance preview (PR #79)
+
+The **Physical count variance preview** is a local, read-only
+calculator beside the existing downloadable count sheet. Select
+one active product and storage location and enter the physically
+counted whole-unit quantity. The panel displays the current authorized
+saved balance and exact signed difference, identifies a match,
+or points to the existing *Adjustment increase* or *Adjustment
+decrease* review process without submitting any change.
+
+The calculation uses exact integer arithmetic for quantities from
+zero through 999,999,999,999. Negative, fractional, exponential,
+leading-zero, whitespace, formula-like and out-of-range inputs are
+refused. Search or storage-location changes clear the selection
+and count rather than silently carrying them to another product.
+The displayed balance is recalculated from the current authorized
+organization's latest snapshot, including zero balances. No
+count, difference or draft persists, and there is no automatic
+stock movement, ledger entry, approval, invoice or purchase.
+Actual corrections still require the existing authorized
+owner/admin stock adjustment. Fictional no-login demos, dark-mode
+and MIT licensing are preserved.

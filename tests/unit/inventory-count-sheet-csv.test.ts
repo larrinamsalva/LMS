@@ -4,6 +4,7 @@ import type { StockBalance } from "../../src/core/inventory";
 import {
   physicalCountRows,
   physicalCountSheetCsv,
+  previewPhysicalCountVariance,
 } from "../../src/core/inventory-count-sheet-csv";
 
 const org = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -102,4 +103,44 @@ it("escapes spreadsheet formulas and blocks invalid or duplicate balances", () =
   expect(physicalCountRows(records, [
     { ...balance, organization_id: other, units: "not-a-number" },
   ], org)).toHaveLength(1);
+});
+
+
+it("previews exact positive, negative and equal physical count differences", () => {
+  expect(previewPhysicalCountVariance("0", "")).toEqual({
+    status: "not-entered",
+  });
+  expect(previewPhysicalCountVariance("0", "0")).toEqual({
+    status: "match", recorded: "0", counted: "0", difference: "0",
+  });
+  expect(previewPhysicalCountVariance("21", "25")).toEqual({
+    status: "increase", recorded: "21", counted: "25",
+    difference: "+4", magnitude: "4",
+  });
+  expect(previewPhysicalCountVariance("24", "21")).toEqual({
+    status: "decrease", recorded: "24", counted: "21",
+    difference: "-3", magnitude: "3",
+  });
+  expect(previewPhysicalCountVariance("999999999999", "0")).toEqual({
+    status: "decrease", recorded: "999999999999", counted: "0",
+    difference: "-999999999999", magnitude: "999999999999",
+  });
+  expect(previewPhysicalCountVariance("0", "999999999999")).toEqual({
+    status: "increase", recorded: "0", counted: "999999999999",
+    difference: "+999999999999", magnitude: "999999999999",
+  });
+});
+
+it("rejects invalid and out-of-range counts without inventing adjustments", () => {
+  for (const invalid of [
+    "-1", "01", "3.5", "1e3", " 4", "4 ", "9999999999999",
+    "=SUM(1,1)", "no count",
+  ]) {
+    expect(previewPhysicalCountVariance("4", invalid)).toEqual({
+      status: "invalid",
+    });
+  }
+  expect(previewPhysicalCountVariance("unknown", "3")).toEqual({
+    status: "invalid",
+  });
 });

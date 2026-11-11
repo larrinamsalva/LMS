@@ -78,6 +78,24 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
     );
     expect(initialCountSheet).toContain("Counted units (fill manually)");
     expect(initialCountSheet).not.toContain("Fictional customer");
+    const preview = page.getByRole("region", {
+      name: "Physical count variance preview", exact: true,
+    });
+    await preview.getByLabel("Product and location to compare", {
+      exact: true,
+    }).selectOption({ label: name + " — " + location });
+    const countedInput = preview.getByLabel("Physically counted units", {
+      exact: true,
+    });
+    await countedInput.fill("5");
+    await expect(preview).toContainText("Difference: +5 glove");
+    await countedInput.fill("0");
+    await expect(preview).toContainText("Counts match: difference 0 glove");
+    await countedInput.fill("3.5");
+    await expect(preview).toContainText(
+      "Enter a valid whole-unit count from 0 to 999,999,999,999.",
+    );
+    await countedInput.fill("");
     const zeroOnly = watchlist.getByLabel("Show out-of-stock only", {
       exact: true,
     });
@@ -166,6 +184,12 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       .getByRole("button", { name: "Post stock movement", exact: true })
       .click();
     await expect(product).toContainText(location + ": 24 glove");
+    await countedInput.fill("21");
+    await expect(preview).toContainText("Recorded stock: 24 glove");
+    await expect(preview).toContainText("Difference: -3 glove");
+    await expect(preview).toContainText("Review an Adjustment decrease");
+    await countedInput.fill("24");
+    await expect(preview).toContainText("Counts match: difference 0 glove");
     const updatedCountPending = page.waitForEvent("download");
     await countSheetButton.click();
     const updatedCount = await updatedCountPending;
