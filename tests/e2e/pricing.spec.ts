@@ -58,7 +58,7 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Rate Local hourly rate", exact: true,
     })).toHaveCount(0);
     await expect(page.getByText(
-      "No saved rates match this status and date selection.",
+      "No saved rates match the selected status, date and service area.",
       { exact: true },
     )).toBeVisible();
     await expect(page.getByRole("button", {
@@ -77,7 +77,39 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       .toString("utf8");
     expect(filteredCsv).toContain('"Local hourly rate"');
     expect(filteredCsv).not.toContain(customer);
+    const areaFilter = page.getByLabel("Filter service rates by area", {
+      exact: true,
+    });
+    await areaFilter.selectOption({ label: "Local service area" });
+    await expect(page.getByRole("article", {
+      name: "Rate Local hourly rate", exact: true,
+    })).toBeVisible();
+    await expect(page.getByRole("article", {
+      name: "Rate Outer-area hourly rate", exact: true,
+    })).toHaveCount(0);
+    const areaDownloadPending = page.waitForEvent("download");
+    await page.getByRole("button", {
+      name: "Download active service rates CSV", exact: true,
+    }).click();
+    const areaDownload = await areaDownloadPending;
+    const areaCsv = (await readFile((await areaDownload.path())!))
+      .toString("utf8");
+    expect(areaCsv).toContain('"Local hourly rate"');
+    expect(areaCsv).not.toContain('"Outer-area hourly rate"');
+    expect(areaCsv).not.toContain(customer);
+    await areaFilter.selectOption({ label: "Outer service area" });
+    await expect(page.getByRole("article", {
+      name: "Rate Local hourly rate", exact: true,
+    })).toHaveCount(0);
+    await expect(page.getByRole("article", {
+      name: "Rate Outer-area hourly rate", exact: true,
+    })).toBeVisible();
+    await rateDate.fill("2025-11-06");
+    await expect(page.getByRole("button", {
+      name: "Download active service rates CSV", exact: true,
+    })).toBeDisabled();
     await rateDate.fill("");
+    await areaFilter.selectOption("");
     await page.getByRole("button", { name: /^Estimates/ }).click();
     await page
       .getByRole("button", { name: "+ Add estimate draft", exact: true })

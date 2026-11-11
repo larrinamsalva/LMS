@@ -22,6 +22,14 @@ export function rateCoversDate(rate: WorkspaceRecord, asOfDate = ""): boolean {
 }
 
 /**
+ * A saved rate's explicitly configured area ID; no geographical lookup.
+ * A blank selection includes every area, even retained/unavailable links.
+ */
+export function rateMatchesArea(rate: WorkspaceRecord, areaId = ""): boolean {
+  return !areaId || rate.data.zone === areaId;
+}
+
+/**
  * One row per saved rate in the authorized organization's selected
  * active/archived view. No estimate, customer, billing or contact records.
  * Archived linked services/areas are flagged instead of silently presented
@@ -32,12 +40,17 @@ export function serviceRateCardRows(
   organizationId: string,
   showArchived = false,
   asOfDate = "",
+  selectedAreaId = "",
 ): string[][] {
   const scoped = records.filter((r) => r.organization_id === organizationId);
   const references = new Map(scoped.map((r) => [r.id, r]));
+  // Never accept an arbitrary foreign/missing reference as a filter;
+  // a selected area must be a real one from the authorized organization.
+  if (selectedAreaId &&
+      references.get(selectedAreaId)?.entity !== "pricing-zones") return [];
   const values = scoped.filter((r) =>
     r.entity === "service-rates" && r.archived === showArchived &&
-    rateCoversDate(r, asOfDate),
+    rateCoversDate(r, asOfDate) && rateMatchesArea(r, selectedAreaId),
   );
   const rows = values.map((rate) => {
     const serviceId = String(rate.data.service ?? "");
@@ -83,6 +96,7 @@ export function serviceRateCardCsv(
   organizationId: string,
   showArchived = false,
   asOfDate = "",
+  selectedAreaId = "",
 ): string {
   const header = [
     "Rate title", "Service", "Service status", "Service kind",
@@ -90,7 +104,9 @@ export function serviceRateCardCsv(
     "Rate amount (USD)", "Effective from",
     "Effective until (exclusive)", "Rate revision", "Rate status",
   ];
-  return [header, ...serviceRateCardRows(records, organizationId, showArchived, asOfDate)]
+  return [header, ...serviceRateCardRows(
+    records, organizationId, showArchived, asOfDate, selectedAreaId,
+  )]
     .map((row) => row.map(csvSafeCell).join(","))
     .join("\r\n") + "\r\n";
 }
