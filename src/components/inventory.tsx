@@ -3,7 +3,7 @@ import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { relatedLabel } from "./schedule";
 import { lowStockAlerts, filterLowStockAlerts, type LowStockSort } from "../core/inventory";
 import { lowStockPlanningCsv } from "../core/inventory-low-stock-csv";
-import { physicalCountRows, physicalCountSheetCsv } from "../core/inventory-count-sheet-csv";
+import { physicalCountRows, physicalCountSheetCsv, previewPhysicalCountVariance } from "../core/inventory-count-sheet-csv";
 export function Inventory({
   workspace,
   busy,
@@ -23,7 +23,9 @@ export function Inventory({
     [archived, setArchived] = useState(false),
     [location, setLocation] = useState(""),
     [outOfStockOnly, setOutOfStockOnly] = useState(false),
-    [lowStockSort, setLowStockSort] = useState<LowStockSort>("product");
+    [lowStockSort, setLowStockSort] = useState<LowStockSort>("product"),
+    [countSelection, setCountSelection] = useState(""),
+    [countedUnits, setCountedUnits] = useState("");
   const records = workspace.records,
     manage = ["owner", "admin"].includes(workspace.role),
     write = manage || workspace.role === "staff";
@@ -45,6 +47,12 @@ export function Inventory({
   const countRows = physicalCountRows(
     records, workspace.stockBalances, workspace.organizationId, location, query,
   );
+  const countRow = countRows.find(
+    (row) => row.productId + ":" + row.locationId === countSelection,
+  );
+  const countPreview = countRow
+    ? previewPhysicalCountVariance(countRow.recordedUnits, countedUnits)
+    : { status: "not-entered" as const };
   const movementIds = new Set(
     workspace.stockMovements
       .filter(
@@ -212,7 +220,11 @@ export function Inventory({
               id="stock-search"
               type="search"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setCountSelection("");
+                setCountedUnits("");
+              }}
             />
           </div>
           <div>
@@ -220,7 +232,11 @@ export function Inventory({
             <select
               id="stock-location"
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(e) => {
+                setLocation(e.target.value);
+                setCountSelection("");
+                setCountedUnits("");
+              }}
             >
               <option value="">All locations</option>
               {locations.map((r) => (
@@ -239,6 +255,85 @@ export function Inventory({
             />{" "}
             Show archived products
           </label>
+        </div>
+      </section>
+      <section className="panel" aria-labelledby="stock-count-preview-heading">
+        <h2 id="stock-count-preview-heading">Physical count variance preview</h2>
+        <p className="muted">
+          Select an active product and location, then enter the whole units
+          physically counted. This compares your count with the latest saved
+          ledger balance; it does not record a count or change stock.
+          Differences must be reviewed using the existing authorized stock
+          adjustment process.
+        </p>
+        <div className="record-toolbar">
+          <div>
+            <label htmlFor="stock-count-pair">Product and location to compare</label>
+            <select
+              id="stock-count-pair"
+              value={countRow ? countSelection : ""}
+              onChange={(event) => {
+                setCountSelection(event.target.value);
+                setCountedUnits("");
+              }}
+            >
+              <option value="">Choose a product and storage location</option>
+              {countRows.map((item) => (
+                <option
+                  value={item.productId + ":" + item.locationId}
+                  key={item.productId + ":" + item.locationId}
+                >
+                  {item.productName} — {item.locationName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="stock-count-units">Physically counted units</label>
+            <input
+              id="stock-count-units"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={12}
+              value={countRow ? countedUnits : ""}
+              disabled={!countRow}
+              onChange={(event) => setCountedUnits(event.target.value)}
+              aria-describedby="stock-count-guidance"
+            />
+          </div>
+        </div>
+        <p className="muted" id="stock-count-guidance">
+          Enter 0 to confirm an empty location. Whole numbers only, up to
+          999,999,999,999 units. This is a local preview, not a saved count.
+        </p>
+        <div role="status" aria-live="polite">
+          {!countRow && <p>Choose a product and storage location to compare counts.</p>}
+          {countRow && (
+            <>
+              <p>Recorded stock: <strong>{countRow.recordedUnits} {countRow.unit}</strong>
+                {" "}at {countRow.locationName}.</p>
+              {countPreview.status === "not-entered" && (
+                <p>Enter a physical count to see the difference.</p>
+              )}
+              {countPreview.status === "invalid" && (
+                <p>Enter a valid whole-unit count from 0 to 999,999,999,999.</p>
+              )}
+              {countPreview.status === "match" && (
+                <p><strong>Counts match: difference 0 {countRow.unit}.</strong>
+                  {" "}No adjustment indicated.</p>
+              )}
+              {(countPreview.status === "increase" ||
+                countPreview.status === "decrease") && (
+                <p>
+                  <strong>Difference: {countPreview.difference} {countRow.unit}.</strong>
+                  {" "}Review an Adjustment {countPreview.status} of{" "}
+                  {countPreview.magnitude} {countRow.unit} using the existing
+                  owner/admin approval and stock movement flow.
+                </p>
+              )}
+            </>
+          )}
         </div>
       </section>
       <section className="panel" aria-labelledby="stock-watchlist-heading">

@@ -3,6 +3,8 @@ import { stockSchema, type StockBalance } from "./inventory";
 import { csvSafeCell } from "./daily-operations-csv";
 
 export interface PhysicalCountRow {
+  productId: string;
+  locationId: string;
   productName: string;
   sku: string;
   barcode: string;
@@ -55,6 +57,8 @@ export function physicalCountRows(
     for (const product of products) {
       const caseSize = String(product.data.case_size ?? "1");
       rows.push({
+        productId: product.id,
+        locationId: location.id,
         productName: String(product.data.name ?? "Unnamed product"),
         sku: String(product.data.sku ?? ""),
         barcode: String(product.data.barcode ?? ""),
@@ -101,4 +105,48 @@ export function physicalCountSheetCsv(
   return [header, ...rows]
     .map((row) => row.map(csvSafeCell).join(","))
     .join("\r\n") + "\r\n";
+}
+
+
+export type PhysicalCountPreview =
+  | { status: "not-entered" }
+  | { status: "invalid" }
+  | { status: "match"; recorded: string; counted: string; difference: "0" }
+  | {
+      status: "increase" | "decrease";
+      recorded: string;
+      counted: string;
+      difference: string;
+      magnitude: string;
+    };
+
+/**
+ * Pure comparison only: a physical count is not a stock adjustment.
+ * Both numbers must be exact allowed whole-unit strings.
+ * Positive difference means counted exceeds the ledger.
+ */
+export function previewPhysicalCountVariance(
+  recordedUnits: string,
+  countedUnits: string,
+): PhysicalCountPreview {
+  if (countedUnits === "") return { status: "not-entered" };
+  if (!stockSchema.safeParse(recordedUnits).success ||
+      !stockSchema.safeParse(countedUnits).success) {
+    return { status: "invalid" };
+  }
+  const recorded = BigInt(recordedUnits), counted = BigInt(countedUnits);
+  if (counted === recorded) {
+    return {
+      status: "match", recorded: recordedUnits,
+      counted: countedUnits, difference: "0",
+    };
+  }
+  const difference = counted - recorded;
+  return {
+    status: difference > 0n ? "increase" : "decrease",
+    recorded: recordedUnits,
+    counted: countedUnits,
+    difference: (difference > 0n ? "+" : "") + difference.toString(),
+    magnitude: (difference > 0n ? difference : -difference).toString(),
+  };
 }
