@@ -236,3 +236,53 @@ export function lowStockAlerts(
     a.locationId.localeCompare(b.locationId)
   );
 }
+
+
+export type LowStockSort = "product" | "shortfall";
+export interface LowStockViewOptions {
+  query?: string;
+  locationId?: string;
+  outOfStockOnly?: boolean;
+  sort?: LowStockSort;
+}
+
+/**
+ * Shared, pure display/export filtering of the previously authorized low-stock
+ * alerts. Search has the same catalog fields as the product search toolbar.
+ * A zero-stock location has exactly zero ledger units, not merely a low level.
+ * Largest-shortfall sort uses BigInt to avoid rounding high whole-unit counts.
+ */
+export function filterLowStockAlerts(
+  alerts: readonly LowStockAlert[],
+  records: readonly WorkspaceRecord[],
+  options: LowStockViewOptions = {},
+): LowStockAlert[] {
+  const products = new Map(
+    records.filter((record) => record.entity === "items" && !record.archived)
+      .map((record) => [record.id, record]),
+  );
+  const needle = (options.query ?? "").trim().toLowerCase();
+  const filtered = alerts.filter((alert) => {
+    if (options.locationId && alert.locationId !== options.locationId) return false;
+    if (options.outOfStockOnly && BigInt(alert.units) !== 0n) return false;
+    const product = products.get(alert.productId);
+    if (!product) return false;
+    return !needle || [
+      product.data.name, product.data.sku,
+      product.data.barcode, product.data.category,
+    ].some((value) => String(value ?? "").toLowerCase().includes(needle));
+  });
+  const alphabetical = (a: LowStockAlert, b: LowStockAlert) =>
+    a.productName.localeCompare(b.productName) ||
+    a.locationName.localeCompare(b.locationName) ||
+    a.productId.localeCompare(b.productId) ||
+    a.locationId.localeCompare(b.locationId);
+  return filtered.sort((a, b) => {
+    if (options.sort === "shortfall") {
+      const left = BigInt(a.shortfall);
+      const right = BigInt(b.shortfall);
+      if (left !== right) return left > right ? -1 : 1;
+    }
+    return alphabetical(a, b);
+  });
+}

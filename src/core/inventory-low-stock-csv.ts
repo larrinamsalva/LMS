@@ -1,8 +1,10 @@
 import type { WorkspaceRecord } from "./engine";
 import {
   lowStockAlerts,
+  filterLowStockAlerts,
   stockSchema,
   type StockBalance,
+  type LowStockViewOptions,
 } from "./inventory";
 import { csvSafeCell } from "./daily-operations-csv";
 
@@ -16,6 +18,7 @@ export function lowStockPlanningCsv(
   balances: readonly StockBalance[],
   organizationId: string,
   selectedLocationId = "",
+  view: Pick<LowStockViewOptions, "query" | "outOfStockOnly" | "sort"> = {},
 ): string {
   const scopedRecords = records.filter((r) => r.organization_id === organizationId);
   const scopedBalances = balances.filter((b) => b.organization_id === organizationId);
@@ -28,8 +31,9 @@ export function lowStockPlanningCsv(
     "Shortfall units", "Unit", "Units per case",
     "Whole cases to cover shortfall (planning only)",
   ];
-  const alerts = lowStockAlerts(scopedRecords, scopedBalances).filter((a) =>
-    !selectedLocationId || a.locationId === selectedLocationId
+  const alerts = filterLowStockAlerts(
+    lowStockAlerts(scopedRecords, scopedBalances), scopedRecords,
+    { ...view, locationId: selectedLocationId },
   );
   const rows = alerts.map((alert) => {
     const product = products.get(alert.productId);

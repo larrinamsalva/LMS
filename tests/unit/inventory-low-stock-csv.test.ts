@@ -84,3 +84,47 @@ it("rounds suggested cases up using integers, handles zero balances and formula-
   expect(lowStockPlanningCsv(records, fullStock, org).trimEnd()
     .split("\r\n")).toHaveLength(1);
 });
+
+
+it("exports exactly the filtered and shortfall-sorted alerts, excluding other organizations", () => {
+  const records = [
+    record("gloves", "items", {
+      name: "Gloves", sku: "GLOVE-A", barcode: "BAR-13",
+      category: "PPE", case_size: "12", minimum: "25",
+    }),
+    record("soap", "items", {
+      name: "Soap", sku: "SOAP-S", category: "Cleaning",
+      case_size: "6", minimum: "10",
+    }),
+    record("shelf", "stock-locations", { name: "Shelf" }),
+    record("van", "stock-locations", { name: "Van" }),
+    record("outside", "items", {
+      name: "Private foreign", sku: "FOREIGN-1", minimum: "99",
+    }, false, foreign),
+    record("foreign-room", "stock-locations", { name: "Foreign room" }, false, foreign),
+  ];
+  const balances: StockBalance[] = [
+    { organization_id: org, product_id: "gloves", location_id: "shelf", units: "20" },
+    { organization_id: org, product_id: "soap", location_id: "shelf", units: "8" },
+    { organization_id: org, product_id: "soap", location_id: "van", units: "1" },
+    { organization_id: foreign, product_id: "outside",
+      location_id: "foreign-room", units: "0" },
+  ];
+  const sorted = lowStockPlanningCsv(records, balances, org, "", { sort: "shortfall" });
+  const rows = sorted.trimEnd().split("\r\n");
+  expect(rows).toHaveLength(5);
+  expect(rows[1]).toContain('"Gloves","GLOVE-A","Van","0","25","25"');
+  expect(rows[2]).toContain('"Soap","SOAP-S","Van","1","10","9"');
+  expect(rows[3]).toContain('"Gloves","GLOVE-A","Shelf","20","25","5"');
+  expect(rows[4]).toContain('"Soap","SOAP-S","Shelf","8","10","2"');
+  expect(sorted).not.toContain("Private foreign");
+  const filtered = lowStockPlanningCsv(records, balances, org, "", {
+    query: "bar-13", outOfStockOnly: true, sort: "shortfall",
+  });
+  expect(filtered.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(filtered).toContain('"Gloves","GLOVE-A","Van","0","25","25"');
+  expect(filtered).not.toContain('"Shelf"');
+  expect(lowStockPlanningCsv(records, balances, org, "shelf", {
+    outOfStockOnly: true,
+  }).trimEnd().split("\r\n")).toHaveLength(1);
+});

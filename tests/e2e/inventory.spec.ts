@@ -61,6 +61,15 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       name: "Low stock " + name + " at " + location, exact: true,
     });
     await expect(lowAlert).toContainText("Below minimum by 25 glove");
+    const zeroOnly = watchlist.getByLabel("Show out-of-stock only", {
+      exact: true,
+    });
+    const order = watchlist.getByLabel("Order low-stock alerts", {
+      exact: true,
+    });
+    await zeroOnly.check();
+    await order.selectOption("shortfall");
+    await expect(lowAlert).toBeVisible();
     const downloadPending = page.waitForEvent("download");
     await watchlist.getByRole("button", {
       name: "Download low-stock planning CSV", exact: true,
@@ -75,7 +84,16 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
     expect(csv).not.toContain("Fictional customer");
     await page
       .getByLabel("Search inventory products", { exact: true })
+      .fill("unmatched-stock-query");
+    await expect(lowAlert).toHaveCount(0);
+    await expect(watchlist.getByRole("button", {
+      name: "Download low-stock planning CSV", exact: true,
+    })).toBeDisabled();
+    await page
+      .getByLabel("Search inventory products", { exact: true })
       .fill("GLOVE-13");
+    await expect(lowAlert).toBeVisible();
+    await zeroOnly.uncheck();
     await expect(product).toBeVisible();
     await page
       .getByLabel("Scan or enter barcode / SKU", { exact: true })
@@ -132,7 +150,20 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       .click();
     await expect(product).toContainText(location + ": 24 glove");
     await expect(product).toContainText("Low stock");
+    // Other locations may still have zero units of this same product.
+    // Narrow to the location where the fictional receipt was recorded.
+    await page.getByLabel("Filter storage location", { exact: true })
+      .selectOption({ label: location });
+    await zeroOnly.check();
+    await expect(lowAlert).toHaveCount(0);
+    await expect(watchlist.getByRole("button", {
+      name: "Download low-stock planning CSV", exact: true,
+    })).toBeDisabled();
+    await zeroOnly.uncheck();
+    await expect(lowAlert).toBeVisible();
     await expect(lowAlert).toContainText("Below minimum by 1 glove");
+    await page.getByLabel("Filter storage location", { exact: true })
+      .selectOption("");
     const original = posted!;
     const retry = await page.evaluate(async (input) => {
       const r = await fetch("/api/demo", {

@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { stockUnits, stockSchema, lowStockAlerts } from "../../src/core/inventory";
+import { stockUnits, stockSchema, lowStockAlerts, filterLowStockAlerts } from "../../src/core/inventory";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import {
   validateConfig,
@@ -104,4 +104,69 @@ it("handles maximum whole-unit balances and ignores invalid or missing threshold
     record("unset", "items", { name: "No minimum" }),
     record("invalid", "items", { name: "Invalid minimum", minimum: "not-a-number" }),
   ], [])).toEqual([]);
+});
+
+
+it("filters active low-stock alerts by catalog search, location and zero balance", () => {
+  const org = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+  const record = (id: string, entity: string, data: WorkspaceRecord["data"]):
+    WorkspaceRecord => ({
+      id, entity, data, organization_id: org, archived: false, revision: 1,
+      config_revision: 1, created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+    });
+  const records = [
+    record("a", "items", {
+      name: "Gloves", sku: "GLOVE-13", barcode: "SCAN-77",
+      category: "PPE", minimum: "25",
+    }),
+    record("b", "items", {
+      name: "Soap", sku: "SOAP-1", category: "Cleaning", minimum: "12",
+    }),
+    record("shelf", "stock-locations", { name: "Shelf" }),
+    record("van", "stock-locations", { name: "Van" }),
+  ];
+  const balances = [
+    { organization_id: org, product_id: "a", location_id: "shelf", units: "20" },
+    { organization_id: org, product_id: "b", location_id: "shelf", units: "4" },
+    { organization_id: org, product_id: "b", location_id: "van", units: "12" },
+  ];
+  const alerts = lowStockAlerts(records, balances);
+  const before = structuredClone(alerts);
+  expect(filterLowStockAlerts(alerts, records, { query: "scAn-77" }).map(
+    (a) => a.productName,
+  )).toEqual(["Gloves", "Gloves"]);
+  expect(filterLowStockAlerts(alerts, records, { query: "cleaning" }).map(
+    (a) => a.productName,
+  )).toEqual(["Soap"]);
+  expect(filterLowStockAlerts(alerts, records, {
+    locationId: "van", outOfStockOnly: true,
+  }).map((a) => [a.productName, a.units])).toEqual([["Gloves", "0"]]);
+  expect(filterLowStockAlerts(alerts, records, {
+    outOfStockOnly: true, query: "nonmatching",
+  })).toEqual([]);
+  expect(filterLowStockAlerts(alerts, records, { sort: "shortfall" }).map(
+    (a) => a.shortfall,
+  )).toEqual(["25", "8", "5"]);
+  expect(alerts).toEqual(before);
+});
+
+it("sorts very large unit shortages exactly, not as floating-point numbers", () => {
+  const records = [{
+    id: "p", entity: "items", data: { name: "Bulk" },
+    organization_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    archived: false, revision: 1, config_revision: 1,
+    created_at: "2026-01-01T00:00:00Z", updated_at: "2026-01-01T00:00:00Z",
+  }] satisfies WorkspaceRecord[];
+  const base = {
+    productId: "p", productName: "Bulk", units: "0",
+    minimum: "999999999999", unit: "units",
+  };
+  const alerts = [
+    { ...base, locationId: "a", locationName: "Alpha", shortfall: "999999999998" },
+    { ...base, locationId: "b", locationName: "Beta", shortfall: "999999999999" },
+  ];
+  expect(filterLowStockAlerts(alerts, records, { sort: "shortfall" }).map(
+    (a) => a.locationId,
+  )).toEqual(["b", "a"]);
 });
