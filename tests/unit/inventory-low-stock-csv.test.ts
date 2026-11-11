@@ -65,7 +65,7 @@ it("exports current per-location shortages with exact whole-case planning counts
 it("rounds suggested cases up using integers, handles zero balances and formula-safe labels", () => {
   const records = [
     record("soap", "items", {
-  expect(rows[1]).toContain("\"\'+BAD\"");
+      name: "=TRICK()", sku: "+BAD",
       minimum: "25", case_size: "12",
     }),
     record("bucket", "items", { name: "Bucket", minimum: "0" }),
@@ -76,7 +76,7 @@ it("rounds suggested cases up using integers, handles zero balances and formula-
   expect(rows).toHaveLength(2);
   expect(rows[1]).toContain('"0","25","25","units","12","3"');
   expect(rows[1]).toContain('"\'=TRICK()"');
-  expect(rows[1]).toContain('"\' + "'+BAD"+'"');
+  expect(rows[1]).toContain("\"'+BAD\"");
   expect(rows[1]).toContain('"\'@Warehouse"');
   const fullStock: StockBalance[] = [
     { organization_id: org, product_id: "soap", location_id: "room", units: "25" },
