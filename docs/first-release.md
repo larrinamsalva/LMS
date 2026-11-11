@@ -720,3 +720,28 @@ Stock history, permissions, scanner selection, movements, pricing,
 purchase orders and customer records are unchanged. No automatic
 replenishment or stock movement occurs. The public no-login demo
 remains fictional, and MIT licensing is unchanged.
+
+
+### Download a low-stock planning CSV (PR #76)
+
+The **Low-stock watchlist** offers a read-only **Download low-stock
+planning CSV** action when at least one active product/location is
+below its configured minimum. The report contains product name, SKU,
+storage location, whole units on hand, configured minimum, exact
+shortfall, units per case, and the minimum number of full cases
+mathematically needed to cover the shortfall. Suggested whole cases
+round up with exact integer arithmetic, never floating-point estimates.
+The units-per-case value defaults to one when the catalog does not
+specify packaging, consistent with the existing product-card display.
+
+The report recomputes alerts from the currently authorized business's
+records and stock balances; it respects the storage-location filter,
+omits archived or sufficient stock and excludes foreign organizations.
+Formula-safe CSV escaping prevents catalog labels and SKUs from being
+interpreted as spreadsheet instructions. It contains no customer
+records, supplier prices, staff names or financial amounts.
+
+This is a *planning report*, not a purchase order, stock adjustment,
+transfer or promise of supplier availability. No items are purchased,
+received or posted by downloading it. The fictional no-login demo,
+audit/ledger protections, permissions and MIT license are unchanged.

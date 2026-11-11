@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { readFile } from "node:fs/promises";
 test("inventory catalog, keyboard scanning, exact movement retries and retained archive history work accessibly", async ({
   page,
 }, testInfo) => {
@@ -60,6 +61,18 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       name: "Low stock " + name + " at " + location, exact: true,
     });
     await expect(lowAlert).toContainText("Below minimum by 25 glove");
+    const downloadPending = page.waitForEvent("download");
+    await watchlist.getByRole("button", {
+      name: "Download low-stock planning CSV", exact: true,
+    }).click();
+    const download = await downloadPending;
+    expect(download.suggestedFilename()).toBe(
+      "lms-low-stock-planning-all-locations.csv",
+    );
+    const csv = (await readFile((await download.path())!)).toString("utf8");
+    expect(csv).toContain('"25","25","glove","12","3"');
+    expect(csv).toContain("GLOVE-13");
+    expect(csv).not.toContain("Fictional customer");
     await page
       .getByLabel("Search inventory products", { exact: true })
       .fill("GLOVE-13");
@@ -170,6 +183,14 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       .click();
     await expect(product).toContainText(location + ": 21 glove");
     await expect(lowAlert).toContainText("Below minimum by 4 glove");
+    const updatedPending = page.waitForEvent("download");
+    await watchlist.getByRole("button", {
+      name: "Download low-stock planning CSV", exact: true,
+    }).click();
+    const updatedDownload = await updatedPending;
+    const updatedCsv = (await readFile((await updatedDownload.path())!))
+      .toString("utf8");
+    expect(updatedCsv).toContain('"21","25","4","glove","12","1"');
     await product
       .getByRole("button", { name: "Archive " + name, exact: true })
       .click();

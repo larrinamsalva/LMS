@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { relatedLabel } from "./schedule";
 import { lowStockAlerts } from "../core/inventory";
+import { lowStockPlanningCsv } from "../core/inventory-low-stock-csv";
 export function Inventory({
   workspace,
   busy,
@@ -47,6 +48,20 @@ export function Inventory({
       )
       .map((m) => m.record_id),
   );
+  function downloadLowStockPlan() {
+    if (!lowStock.length) return;
+    const csv = lowStockPlanningCsv(
+      records, workspace.stockBalances, workspace.organizationId, location,
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-low-stock-planning-" +
+      (location ? "selected-location" : "all-locations") + ".csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   const actions = (r: WorkspaceRecord) => (
     <div className="actions">
       {!r.archived && (
@@ -191,12 +206,24 @@ export function Inventory({
         </div>
       </section>
       <section className="panel" aria-labelledby="stock-watchlist-heading">
-        <h2 id="stock-watchlist-heading">Low-stock watchlist</h2>
+        <div className="section-heading">
+          <h2 id="stock-watchlist-heading">Low-stock watchlist</h2>
+          <button
+            type="button"
+            className="secondary"
+            disabled={lowStock.length === 0}
+            onClick={downloadLowStockPlan}
+          >
+            Download low-stock planning CSV
+          </button>
+        </div>
         <p className="muted">
           Active products and storage locations below a configured minimum
           per location. Archived products and locations are excluded. Missing
           balances count as zero; minimum zero disables alerts.
           This is a review list, not an automatic purchase or stock movement.
+          The optional CSV rounds shortfalls up to whole cases for planning only;
+          it is not a purchase order.
         </p>
         <p role="status">
           {lowStock.length} product-location {lowStock.length === 1 ? "shortfall" : "shortfalls"}
