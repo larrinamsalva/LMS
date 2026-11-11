@@ -917,3 +917,27 @@ the button. The CSV is not a rate import or instruction to offer
 a service in an area. Nothing is saved or changed, no notifications
 are sent, and the existing demo session, permission limits, MIT
 license and historical records are preserved.
+
+
+### All active service-area rate coverage overview (PR #85)
+
+The **All-area rate coverage** section uses one explicitly selected
+date and the existing organization-scoped read-only audit to
+summarize every **active pricing area**, sorted by missing candidate
+count. Each entry displays the number of active catalog services
+that have a saved active rate and the number of missing-rate
+service/area pairs; counts do not represent distinct services or
+commercial opportunities. The overview excludes archived areas
+rather than implicitly reactivating them, and archived rates never
+count as coverage. One-click **Review this area** selects that
+existing area in the detailed audit above without any write.
+
+A formula-safe **Download all-area rate coverage CSV** exports only
+area names, date and aggregate coverage counts. It is disabled
+until a valid selected date and at least one active area exist.
+The full report is computed exclusively from the current
+organization's authorized workspace; no customer details, rate
+amounts, personnel data or internal record IDs are included.
+The page creates no automatic prices, estimates, invoices,
+communications or persistent business changes. It reuses the same
+fictional demo session and retains the MIT license.

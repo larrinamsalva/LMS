@@ -13,6 +13,7 @@ import { relatedLabel } from "./schedule";
 import { serviceRateCardCsv, serviceRateCardRows, rateCoversDate, rateMatchesArea } from "../core/service-rate-card-csv";
 import { rateCoverageAudit } from "../core/service-rate-coverage";
 import { serviceRateCoverageReviewCsv } from "../core/service-rate-coverage-csv";
+import { allAreaRateCoverage, allAreaRateCoverageCsv } from "../core/service-rate-coverage-overview";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -51,6 +52,18 @@ export function Catalog({
   const coverage = rateCoverageAudit(
     records, organizationId, selectedAreaId, asOfDate,
   );
+  const areaOverview = allAreaRateCoverage(records, organizationId, asOfDate);
+  function downloadAreaOverview() {
+    if (areaOverview.status !== "ready" || areaOverview.areas.length === 0) return;
+    const csv = allAreaRateCoverageCsv(records, organizationId, asOfDate);
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-all-area-rate-coverage.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   function downloadMissingRateReview() {
     if (coverage.status !== "ready" || coverage.gaps.length === 0) return;
     const csv = serviceRateCoverageReviewCsv(
@@ -323,6 +336,67 @@ export function Catalog({
                 ))}
               </div>
             )}
+          </>
+        )}
+      </section>
+      <section className="panel" aria-labelledby="all-area-rate-coverage-heading">
+        <div className="section-heading">
+          <h2 id="all-area-rate-coverage-heading">All-area rate coverage</h2>
+          <button
+            className="secondary"
+            type="button"
+            disabled={areaOverview.status !== "ready" || areaOverview.areas.length === 0}
+            onClick={downloadAreaOverview}
+          >
+            Download all-area rate coverage CSV
+          </button>
+        </div>
+        <p className="muted">
+          See missing saved-rate candidates across every active service area
+          for the selected date above. Each count is a service/area pair,
+          not a unique service or a requirement to offer that service.
+          Archived areas are excluded. This is a read-only planning view.
+        </p>
+        {areaOverview.status === "choose" && (
+          <p>Choose a rate date above to review all active service areas.</p>
+        )}
+        {areaOverview.status === "invalid-date" && (
+          <p>Choose a valid date to review all active service areas.</p>
+        )}
+        {areaOverview.status === "ready" && (
+          <>
+            <p role="status">
+              {areaOverview.missingCandidateTotal} missing-rate candidates
+              across {areaOverview.areas.length} active service areas on
+              {" "}{areaOverview.date}.
+            </p>
+            {areaOverview.areas.length === 0 && (
+              <p>No active service areas to review.</p>
+            )}
+            <div className="workforce-grid">
+              {areaOverview.areas.map((area) => (
+                <article
+                  className="workforce-card"
+                  key={area.areaId}
+                  aria-label={"Coverage for " + area.areaName}
+                >
+                  <h3>{area.areaName}</h3>
+                  <p>
+                    <strong>{area.missingCandidates} missing-rate candidates.</strong>
+                    {" "}{area.coveredServices} of {area.totalActiveServices}
+                    {" "}active catalog services have a saved rate.
+                  </p>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => setSelectedAreaId(area.areaId)}
+                    aria-label={"Review missing rates in " + area.areaName}
+                  >
+                    Review this area
+                  </button>
+                </article>
+              ))}
+            </div>
           </>
         )}
       </section>
