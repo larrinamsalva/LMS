@@ -11,6 +11,7 @@ import { invoiceLabel } from "../core/invoices";
 import type { RecordData } from "../core/config";
 import { relatedLabel } from "./schedule";
 import { serviceRateCardCsv, serviceRateCardRows, rateCoversDate, rateMatchesArea } from "../core/service-rate-card-csv";
+import { rateCoverageAudit } from "../core/service-rate-coverage";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -45,6 +46,9 @@ export function Catalog({
   ).sort((a, b) => String(a.data.name).localeCompare(String(b.data.name)));
   const exportRows = serviceRateCardRows(
     records, organizationId, archived, asOfDate, selectedAreaId,
+  );
+  const coverage = rateCoverageAudit(
+    records, organizationId, selectedAreaId, asOfDate,
   );
   function downloadRateCard() {
     if (!exportRows.length) return;
@@ -244,6 +248,56 @@ export function Catalog({
           <p className="empty-state">
             No saved rates match the selected status, date and service area.
           </p>
+        )}
+      </section>
+      <section className="panel" aria-labelledby="rate-coverage-heading">
+        <h2 id="rate-coverage-heading">Rate coverage audit</h2>
+        <p className="muted">
+          Check which active catalog services lack a live saved rate for
+          a chosen service area and date. This is an informational check,
+          not a promise that every service is offered in every area. A
+          matching rate is not a verified quote or price approval.
+          Nothing is saved or automatically priced.
+        </p>
+        {coverage.status === "choose" && (
+          <p>Choose a service area and a rate date above to audit coverage.</p>
+        )}
+        {coverage.status === "invalid-date" && (
+          <p>Choose a valid rate date to audit coverage.</p>
+        )}
+        {coverage.status === "unavailable-area" && (
+          <p>Choose an active service area for live rate coverage.
+            Archived areas remain available for historical rate review only.</p>
+        )}
+        {coverage.status === "ready" && (
+          <>
+            <p role="status">
+              {coverage.coveredServices} of {coverage.totalActiveServices} active
+              catalog services have a saved active rate covering {coverage.date}
+              in {coverage.areaName}.{" "}
+              <strong>{coverage.gaps.length} missing rate candidates.</strong>
+            </p>
+            {coverage.gaps.length === 0 ? (
+              <p>No missing active saved-rate coverage found for this selection.</p>
+            ) : (
+              <div className="workforce-grid">
+                {coverage.gaps.map((gap) => (
+                  <article
+                    className="workforce-card"
+                    key={gap.serviceId}
+                    aria-label={"Missing rate for " + gap.serviceName}
+                  >
+                    <h3>{gap.serviceName}</h3>
+                    <p>{gap.kind} · {gap.mode} · {gap.unit}</p>
+                    <p className="muted">
+                      No active rate for this area/date. Review whether this
+                      service should be offered here before adding a rate.
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </section>
       <section className="panel">
