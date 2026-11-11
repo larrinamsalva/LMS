@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { relatedLabel } from "./schedule";
-import { lowStockAlerts } from "../core/inventory";
+import { lowStockAlerts, filterLowStockAlerts, type LowStockSort } from "../core/inventory";
 import { lowStockPlanningCsv } from "../core/inventory-low-stock-csv";
 export function Inventory({
   workspace,
@@ -20,7 +20,9 @@ export function Inventory({
     [barcode, setBarcode] = useState(""),
     [message, setMessage] = useState(""),
     [archived, setArchived] = useState(false),
-    [location, setLocation] = useState("");
+    [location, setLocation] = useState(""),
+    [outOfStockOnly, setOutOfStockOnly] = useState(false),
+    [lowStockSort, setLowStockSort] = useState<LowStockSort>("product");
   const records = workspace.records,
     manage = ["owner", "admin"].includes(workspace.role),
     write = manage || workspace.role === "staff";
@@ -35,8 +37,9 @@ export function Inventory({
       ),
   );
   const locations = records.filter((r) => r.entity === "stock-locations");
-  const lowStock = lowStockAlerts(records, workspace.stockBalances).filter(
-    (item) => !location || item.locationId === location,
+  const lowStock = filterLowStockAlerts(
+    lowStockAlerts(records, workspace.stockBalances), records,
+    { query, locationId: location, outOfStockOnly, sort: lowStockSort },
   );
   const movementIds = new Set(
     workspace.stockMovements
@@ -52,6 +55,7 @@ export function Inventory({
     if (!lowStock.length) return;
     const csv = lowStockPlanningCsv(
       records, workspace.stockBalances, workspace.organizationId, location,
+      { query, outOfStockOnly, sort: lowStockSort },
     );
     const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(file);
@@ -223,8 +227,33 @@ export function Inventory({
           balances count as zero; minimum zero disables alerts.
           This is a review list, not an automatic purchase or stock movement.
           The optional CSV rounds shortfalls up to whole cases for planning only;
-          it is not a purchase order.
+          it is not a purchase order. Catalog search and storage-location
+          selection also apply here and to the downloaded report.
+          Largest shortfall sorts by individual product units, which may
+          represent different supplies; it does not determine purchase priority.
         </p>
+        <div className="record-toolbar">
+          <label className="check-label">
+            <input
+              type="checkbox"
+              checked={outOfStockOnly}
+              onChange={(event) => setOutOfStockOnly(event.target.checked)}
+            />
+            {" "}Show out-of-stock only
+          </label>
+          <div>
+            <label htmlFor="stock-shortfall-sort">Order low-stock alerts</label>
+            <select
+              id="stock-shortfall-sort"
+              value={lowStockSort}
+              onChange={(event) =>
+                setLowStockSort(event.target.value as LowStockSort)}
+            >
+              <option value="product">Product name</option>
+              <option value="shortfall">Largest unit shortfall first</option>
+            </select>
+          </div>
+        </div>
         <p role="status">
           {lowStock.length} product-location {lowStock.length === 1 ? "shortfall" : "shortfalls"}
           {location ? " at the selected storage location" : " across active storage locations"}.
@@ -257,7 +286,7 @@ export function Inventory({
           })}
         </div>
         {lowStock.length === 0 && (
-          <p>No active product locations are below a configured minimum.</p>
+          <p>No active product locations match the current shortage filters.</p>
         )}
       </section>
       <section className="panel" aria-labelledby="stock-products-heading">

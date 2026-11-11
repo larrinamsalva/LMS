@@ -745,3 +745,23 @@ This is a *planning report*, not a purchase order, stock adjustment,
 transfer or promise of supplier availability. No items are purchased,
 received or posted by downloading it. The fictional no-login demo,
 audit/ledger protections, permissions and MIT license are unchanged.
+
+
+### Prioritize inventory shortages and match the planning report (PR #77)
+
+The Inventory low-stock watchlist now shares the existing product
+search terms (product name, SKU, barcode, category) and selected
+storage-location filter. Owners can select **Show out-of-stock only**
+for locations with precisely zero whole units on hand, or sort by
+**Largest unit shortfall first**, using exact integer arithmetic.
+Because products use different units, sorting reflects numeric unit
+shortfalls, not normalized financial or operational urgency. The
+default order remains alphabetical by product and location.
+
+The read-only low-stock planning CSV recomputes the same filtered
+and sorted active alerts from current-business authorized records
+and balances. It never trusts displayed numbers or imports foreign
+organization stock. An empty filtered list disables the download
+button. It does not create orders, send supplier messages, alter
+inventory, grant extra permissions, or change the existing stock
+ledger. The public no-login demo remains fictional.
