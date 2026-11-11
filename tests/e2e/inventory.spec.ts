@@ -61,6 +61,23 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       name: "Low stock " + name + " at " + location, exact: true,
     });
     await expect(lowAlert).toContainText("Below minimum by 25 glove");
+    const countSheetButton = page.getByRole("button", {
+      name: "Download physical count sheet CSV", exact: true,
+    });
+    const countPending = page.waitForEvent("download");
+    await countSheetButton.click();
+    const countDownload = await countPending;
+    expect(countDownload.suggestedFilename()).toBe(
+      "lms-physical-stock-count-sheet-all-locations.csv",
+    );
+    const initialCountSheet = (await readFile((await countDownload.path())!))
+      .toString("utf8");
+    expect(initialCountSheet).toContain(
+      '"' + name + '","GLOVE-13","TEST-SCAN-13","' + location +
+        '","0","","","glove","12",""',
+    );
+    expect(initialCountSheet).toContain("Counted units (fill manually)");
+    expect(initialCountSheet).not.toContain("Fictional customer");
     const zeroOnly = watchlist.getByLabel("Show out-of-stock only", {
       exact: true,
     });
@@ -149,6 +166,15 @@ test("inventory catalog, keyboard scanning, exact movement retries and retained 
       .getByRole("button", { name: "Post stock movement", exact: true })
       .click();
     await expect(product).toContainText(location + ": 24 glove");
+    const updatedCountPending = page.waitForEvent("download");
+    await countSheetButton.click();
+    const updatedCount = await updatedCountPending;
+    const updatedCountCsv = (await readFile((await updatedCount.path())!))
+      .toString("utf8");
+    expect(updatedCountCsv).toContain(
+      '"' + name + '","GLOVE-13","TEST-SCAN-13","' + location +
+        '","24","","","glove","12",""',
+    );
     await expect(product).toContainText("Low stock");
     // Other locations may still have zero units of this same product.
     // Narrow to the location where the fictional receipt was recorded.

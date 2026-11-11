@@ -3,6 +3,7 @@ import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { relatedLabel } from "./schedule";
 import { lowStockAlerts, filterLowStockAlerts, type LowStockSort } from "../core/inventory";
 import { lowStockPlanningCsv } from "../core/inventory-low-stock-csv";
+import { physicalCountRows, physicalCountSheetCsv } from "../core/inventory-count-sheet-csv";
 export function Inventory({
   workspace,
   busy,
@@ -41,6 +42,9 @@ export function Inventory({
     lowStockAlerts(records, workspace.stockBalances), records,
     { query, locationId: location, outOfStockOnly, sort: lowStockSort },
   );
+  const countRows = physicalCountRows(
+    records, workspace.stockBalances, workspace.organizationId, location, query,
+  );
   const movementIds = new Set(
     workspace.stockMovements
       .filter(
@@ -51,6 +55,20 @@ export function Inventory({
       )
       .map((m) => m.record_id),
   );
+  function downloadPhysicalCountSheet() {
+    if (!countRows.length) return;
+    const csv = physicalCountSheetCsv(
+      records, workspace.stockBalances, workspace.organizationId, location, query,
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-physical-stock-count-sheet-" +
+      (location ? "selected-location" : "all-locations") + ".csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   function downloadLowStockPlan() {
     if (!lowStock.length) return;
     const csv = lowStockPlanningCsv(
@@ -123,7 +141,21 @@ export function Inventory({
           >
             + Add storage location
           </button>
+          <button
+            className="secondary"
+            type="button"
+            disabled={countRows.length === 0}
+            onClick={downloadPhysicalCountSheet}
+          >
+            Download physical count sheet CSV
+          </button>
         </div>
+        <p className="muted">
+          The manual count sheet lists all active products and storage locations,
+          including zero balances. Product search and location selection narrow
+          the sheet. Fill in counted quantities offline; downloading cannot
+          change inventory or post an adjustment.
+        </p>
         <form
           className="stock-scanner"
           onSubmit={(e) => {
