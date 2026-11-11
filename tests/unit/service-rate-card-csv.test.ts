@@ -142,3 +142,61 @@ it("filters saved rate cards by effective-from inclusive and until exclusive", (
     .split("\r\n")).toHaveLength(1);
   expect(records).toEqual(original);
 });
+
+
+it("filters authorized service areas together with date and archived state", () => {
+  const records = [
+    record("service", "services", {
+      name: "Window cleaning", kind: "Service", mode: "Hourly", unit: "hour",
+    }),
+    record("local", "pricing-zones", { name: "Local area" }),
+    record("outer", "pricing-zones", { name: "Outer area" }),
+    record("retired", "pricing-zones", { name: "Former area" }, true),
+    record("private-area", "pricing-zones", { name: "Private foreign area" }, false, foreign),
+    record("local-rate", "service-rates", {
+      title: "Local price", service: "service", zone: "local",
+      amount: "3500", effective_from: "2026-01-01", effective_until: "2027-01-01",
+    }),
+    record("outer-rate", "service-rates", {
+      title: "Outer price", service: "service", zone: "outer",
+      amount: "4500", effective_from: "2026-01-01", effective_until: "2027-01-01",
+    }),
+    record("old", "service-rates", {
+      title: "Old local", service: "service", zone: "local",
+      amount: "3000", effective_from: "2025-01-01", effective_until: "2026-01-01",
+    }, true),
+    record("retired-rate", "service-rates", {
+      title: "Archived area price", service: "service", zone: "retired",
+      amount: "1500", effective_from: "2026-01-01", effective_until: "2027-01-01",
+    }),
+    record("forged-zone", "service-rates", {
+      title: "Foreign linked area", service: "service", zone: "private-area",
+      amount: "9999", effective_from: "2026-01-01",
+    }),
+    record("foreign-rate", "service-rates", {
+      title: "Other org price", service: "service", zone: "local",
+      amount: "9900", effective_from: "2026-01-01",
+    }, false, foreign),
+  ];
+  const original = structuredClone(records);
+  const titles = (archived: boolean, date: string, area: string) =>
+    serviceRateCardRows(records, org, archived, date, area).map((row) => row[0]);
+  expect(titles(false, "2026-11-06", "local")).toEqual(["Local price"]);
+  expect(titles(false, "2026-11-06", "outer")).toEqual(["Outer price"]);
+  expect(titles(false, "2025-11-06", "local")).toEqual([]);
+  expect(titles(true, "2025-11-06", "local")).toEqual(["Old local"]);
+  expect(titles(true, "2026-11-06", "local")).toEqual([]);
+  expect(titles(false, "", "retired")).toEqual(["Archived area price"]);
+  expect(titles(false, "", "private-area")).toEqual([]);
+  expect(titles(false, "", "missing-area")).toEqual([]);
+  expect(titles(false, "", "")).toContain("Foreign linked area");
+  expect(serviceRateCardCsv(records, org, false, "2026-11-06", "local"))
+    .toContain('"Local price"');
+  expect(serviceRateCardCsv(records, org, false, "2026-11-06", "local"))
+    .not.toContain('"Outer price"');
+  expect(serviceRateCardCsv(records, org, false, "2026-11-06", "private-area"))
+    .not.toContain("Private foreign area");
+  expect(serviceRateCardCsv(records, org, false, "", "missing-area")
+    .trimEnd().split("\r\n")).toHaveLength(1);
+  expect(records).toEqual(original);
+});

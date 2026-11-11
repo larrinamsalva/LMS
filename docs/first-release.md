@@ -854,3 +854,24 @@ formula protection and historical source records remain unchanged.
 No rate is edited, revalidated, reopened, selected for an estimate,
 posted to a bill or sent to any customer. This uses the existing
 fictional session rather than creating another demo connection.
+
+
+### Review saved rates by service area (PR #82)
+
+Owners can now select **Filter service rates by area** on
+**Services & Rates**. The saved-rate cards and CSV include only
+rates explicitly attached to that area; selecting **All service
+areas** restores the full current status/date view. The existing
+date filter and active/archived view apply together. Archived
+areas remain selectable for historical rate review and are
+labeled as archived, not reactivated or made quotable.
+
+The export verifies the chosen service area belongs to the
+current organization, even if a caller supplies a foreign or
+unknown area ID; invalid selections yield header-only output.
+Cross-organization links remain generic retained-link labels
+and cannot expose foreign names. Empty results disable download
+and show an explicit message. No service-area geocoding, rate
+edits, estimate repricing, financial posting, notifications,
+new demo sessions or permission changes occur. All example
+records are fictional, and the MIT license is unchanged.
