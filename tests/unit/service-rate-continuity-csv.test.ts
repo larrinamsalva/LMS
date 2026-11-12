@@ -3,7 +3,10 @@ import type { WorkspaceRecord } from "../../src/core/engine";
 import {
   serviceRateContinuityReviewCsv,
   serviceRateContinuityFilteredCsv,
+  serviceRateContinuitySelectedCsv,
 } from "../../src/core/service-rate-continuity-csv";
+import { selectedContinuityReviewIssues } from "../../src/core/service-rate-continuity-selection";
+import { reviewServiceRateContinuity } from "../../src/core/service-rate-continuity";
 
 const org = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const foreign = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -178,4 +181,73 @@ it("preserves safe spreadsheet cells and denies invalid or foreign-area filtered
   );
   expect(invalid).toThrow("Choose an authorized area and valid date/window.");
   expect(foreignArea).toThrow("Choose an authorized area and valid date/window.");
+});
+
+
+it("exports only explicitly selected current warnings without trusting stale/foreign IDs", () => {
+  const records = [
+    rec("area-one", "pricing-zones", { name: "Local" }),
+    rec("area-two", "pricing-zones", { name: "Outer" }),
+    rec("svc", "services", { name: "Repair" }),
+    rate("current-local", "svc", "area-one", "2026-01-01", "2027-01-01"),
+    rate("current-outer", "svc", "area-two", "2026-01-01", "2027-01-01"),
+    rate("future-outer", "svc", "area-two", "2027-01-05"),
+    rate("private-rate", "svc", "area-one", "2026-01-01", "2027-01-02", false, foreign),
+    rate("archived-rate", "svc", "area-one", "2026-01-01", "2027-01-01", true),
+  ];
+  const before = structuredClone(records);
+  const review = reviewServiceRateContinuity(records, org, "2026-12-15", "", 30);
+  const chosen = selectedContinuityReviewIssues(review, [
+    "current-outer", "current-outer", "private-rate", "archived-rate", "missing",
+  ]);
+  expect(chosen.map((x) => x.rateId)).toEqual(["current-outer"]);
+  const csv = serviceRateContinuitySelectedCsv(
+    records, org, "2026-12-15", "", 30,
+    ["current-outer", "current-outer", "private-rate", "archived-rate", "missing"],
+    "latest",
+  );
+  expect(csv.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(csv).toContain('"current-outer","Repair","Outer","2027-01-01","Uncovered","2027-01-05","4"');
+  expect(csv).not.toContain('"current-local"');
+  expect(csv).not.toContain("private-rate");
+  expect(csv).not.toContain("archived-rate");
+  expect(csv).not.toContain('"missing"');
+  expect(csv).not.toContain('"area-two"');
+  expect(csv).toContain('"Operator decision (fill manually)"');
+  expect(records).toEqual(before);
+  const outsideArea = serviceRateContinuitySelectedCsv(
+    records, org, "2026-12-15", "area-one", 30, ["current-outer"],
+  );
+  expect(outsideArea.trimEnd().split("\r\n")).toHaveLength(1);
+  const invalidReview = reviewServiceRateContinuity(records, org, "", "", 30);
+  expect(selectedContinuityReviewIssues(invalidReview, ["current-outer"]))
+    .toEqual([]);
+});
+
+it("sorts a selected-only review, protects formulas and rejects invalid scope", () => {
+  const records = [
+    rec("area-one", "pricing-zones", { name: "=Local()" }),
+    rec("area-two", "pricing-zones", { name: "+Outer" }),
+    rec("svc", "services", { name: "=Repair()" }),
+    rec("foreign-zone", "pricing-zones", { name: "Competitor" }, false, foreign),
+    rate("=local", "svc", "area-one", "2026-01-01", "2027-01-02"),
+    rate("+outer", "svc", "area-two", "2026-01-01", "2027-01-01"),
+  ];
+  const csv = serviceRateContinuitySelectedCsv(
+    records, org, "2026-12-15", "", 30, ["=local", "+outer"], "latest",
+  );
+  const rows = csv.trimEnd().split("\r\n");
+  expect(rows).toHaveLength(3);
+  expect(rows[1]).toContain("\"'=local\"");
+  expect(rows[1]).toContain("\"'=Repair()\"");
+  expect(rows[1]).toContain("\"'=Local()\"");
+  expect(rows[2]).toContain("\"'+outer\"");
+  expect(rows[2]).toContain("\"'+Outer\"");
+  expect(csv).not.toContain("Competitor");
+  expect(() => serviceRateContinuitySelectedCsv(
+    records, org, "2026-02-30", "", 30, ["=local"],
+  )).toThrow("Choose an authorized area and valid date/window.");
+  expect(() => serviceRateContinuitySelectedCsv(
+    records, org, "2026-12-15", "foreign-zone", 30, ["=local"],
+  )).toThrow("Choose an authorized area and valid date/window.");
 });

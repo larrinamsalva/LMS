@@ -11,6 +11,7 @@ import {
   type ContinuityWarningSort,
 } from "./service-rate-continuity-filter";
 import type { RateDateWindow } from "./upcoming-service-rate-dates";
+import { selectedContinuityReviewIssues } from "./service-rate-continuity-selection";
 
 /**
  * A read-only, human-decision checklist for exactly the currently flagged
@@ -59,6 +60,31 @@ export function serviceRateContinuityFilteredCsv(
   }
   const visible = filterContinuityWarnings(report.issues, filter, search, sort);
   return renderContinuityReviewCsv(visible, asOfDate, report.through);
+}
+
+/**
+ * Export only explicitly selected warnings, after fully recomputing
+ * the authorized review. No incoming ID is trusted as a catalog lookup
+ * and no ID is included as a CSV field.
+ */
+export function serviceRateContinuitySelectedCsv(
+  records: readonly WorkspaceRecord[],
+  organizationId: string,
+  asOfDate: string,
+  selectedAreaId: string,
+  days: RateDateWindow,
+  selectedRateIds: readonly string[],
+  sort: ContinuityWarningSort = "soonest",
+): string {
+  const report = reviewServiceRateContinuity(
+    records, organizationId, asOfDate, selectedAreaId, days,
+  );
+  if (report.status !== "ready") {
+    throw new Error("Choose an authorized area and valid date/window.");
+  }
+  const selected = selectedContinuityReviewIssues(report, selectedRateIds);
+  const sorted = filterContinuityWarnings(selected, "all", "", sort);
+  return renderContinuityReviewCsv(sorted, asOfDate, report.through);
 }
 
 function renderContinuityReviewCsv(

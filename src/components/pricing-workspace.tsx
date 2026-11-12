@@ -37,7 +37,9 @@ import {
 import {
   serviceRateContinuityReviewCsv,
   serviceRateContinuityFilteredCsv,
+  serviceRateContinuitySelectedCsv,
 } from "../core/service-rate-continuity-csv";
+import { selectedContinuityReviewIssues } from "../core/service-rate-continuity-selection";
 import {
   filterContinuityWarnings,
   type ContinuityWarningFilter,
@@ -70,6 +72,9 @@ export function Catalog({
   const [continuityWarningSearch, setContinuityWarningSearch] = useState("");
   const [continuityWarningSort, setContinuityWarningSort] =
     useState<ContinuityWarningSort>("soonest");
+  const [continuitySelection, setContinuitySelection] = useState<{
+    scopeKey: string; rateIds: string[];
+  }>({ scopeKey: "", rateIds: [] });
   const [previousCoverageSelection, setPreviousCoverageSelection] = useState<{
     date: string;
     areaId: string;
@@ -100,6 +105,20 @@ export function Catalog({
     records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
   );
   const continuityActions = summarizeContinuityActions(continuity);
+  const continuityScopeKey = JSON.stringify([
+    organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
+  ]);
+  const selectedContinuityIds = continuitySelection.scopeKey === continuityScopeKey
+    ? continuitySelection.rateIds : [];
+  const selectedContinuityItems = selectedContinuityReviewIssues(
+    continuity, selectedContinuityIds,
+  );
+  const selectedContinuityIdSet = new Set(
+    selectedContinuityItems.map((issue) => issue.rateId),
+  );
+  useEffect(() => {
+    setContinuitySelection({ scopeKey: "", rateIds: [] });
+  }, [organizationId, asOfDate, selectedAreaId, upcomingWindowDays]);
   const continuityFilterActive =
     continuityWarningType !== "all" || continuityWarningSearch.trim().length > 0;
   const visibleContinuityIssues = continuity.status === "ready"
@@ -107,9 +126,31 @@ export function Catalog({
       continuity.issues, continuityWarningType, continuityWarningSearch,
       continuityWarningSort,
     ) : [];
+  const selectedVisibleCount = visibleContinuityIssues.filter((issue) =>
+    selectedContinuityIdSet.has(issue.rateId),
+  ).length;
   const expandedContinuityIssue = visibleContinuityIssues.find((issue) =>
     issue.rateId === expandedContinuityRateId && issue.status === "Uncovered",
   );
+  function chooseContinuityWarning(rateId: string, checked: boolean) {
+    if (continuity.status !== "ready" ||
+        !continuity.issues.some((issue) => issue.rateId === rateId)) return;
+    setContinuitySelection((previous) => {
+      const existing = previous.scopeKey === continuityScopeKey
+        ? previous.rateIds.filter((id) =>
+            continuity.issues.some((issue) => issue.rateId === id))
+        : [];
+      return {
+        scopeKey: continuityScopeKey,
+        rateIds: checked
+          ? [...new Set([...existing, rateId])]
+          : existing.filter((id) => id !== rateId),
+      };
+    });
+  }
+  function clearContinuitySelection() {
+    setContinuitySelection({ scopeKey: continuityScopeKey, rateIds: [] });
+  }
   function focusContinuityWarnings(filter: ContinuityWarningFilter) {
     setContinuityWarningType(filter);
     setContinuityWarningSearch("");
@@ -211,6 +252,22 @@ export function Catalog({
     const link = document.createElement("a");
     link.href = url;
     link.download = "lms-filtered-rate-continuity-review.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function downloadSelectedContinuityReview() {
+    if (continuity.status !== "ready" || selectedContinuityItems.length === 0)
+      return;
+    const csv = serviceRateContinuitySelectedCsv(
+      records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
+      selectedContinuityItems.map((issue) => issue.rateId),
+      continuityWarningSort,
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-selected-rate-continuity-review.csv";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -648,6 +705,15 @@ export function Catalog({
             >
               Download filtered continuity review CSV
             </button>
+            <button
+              type="button"
+              className="secondary"
+              disabled={continuity.status !== "ready" ||
+                selectedContinuityItems.length === 0}
+              onClick={downloadSelectedContinuityReview}
+            >
+              Download selected continuity review CSV
+            </button>
           </div>
         </div>
         <p className="muted">
@@ -672,6 +738,10 @@ export function Catalog({
           checklist includes only matching warning cards in their
           current sort order, with the same safe columns and blank
           operator notes; it is disabled when no filter or matches exist.
+          Select individual warning cards for a separate selected-only
+          follow-up checklist. Selections are temporary, tied to this
+          business/date/area/window, and may include hidden-by-filter
+          warnings until cleared.
         </p>
         <div className="actions">
           <div>
@@ -786,6 +856,22 @@ export function Catalog({
                 </div>
               </div>
             )}
+            <div className="actions" role="group"
+              aria-label="Selected continuity warnings">
+              <p>
+                Selected for follow-up: {selectedContinuityItems.length} of
+                {" "}{continuity.issues.length} continuity warnings.
+                {selectedContinuityItems.length > selectedVisibleCount && (
+                  <> {" "}{selectedContinuityItems.length - selectedVisibleCount}
+                    {" "}selected warnings are hidden by current filters.</>
+                )}
+              </p>
+              <button type="button" className="secondary"
+                disabled={selectedContinuityItems.length === 0}
+                onClick={clearContinuitySelection}>
+                Clear selected warnings
+              </button>
+            </div>
             {(continuityWarningType !== "all" || continuityWarningSearch.trim()) && (
               <p>
                 Showing {visibleContinuityIssues.length} of {continuity.issues.length}
@@ -799,6 +885,16 @@ export function Catalog({
                 {visibleContinuityIssues.map((item) => (
                   <article key={item.rateId} className="workforce-card"
                     aria-label={"Continuity review for " + item.rateTitle}>
+                    <label>
+                      <input type="checkbox"
+                        aria-label={"Select " + item.rateTitle + " in " +
+                          item.areaName + " for follow-up"}
+                        checked={selectedContinuityIdSet.has(item.rateId)}
+                        onChange={(event) =>
+                          chooseContinuityWarning(item.rateId, event.target.checked)}
+                      />
+                      Select for follow-up
+                    </label>
                     <span className="badge">{item.status}</span>
                     <h3>{item.rateTitle}</h3>
                     <p>{item.serviceName} · {item.areaName}</p>

@@ -1335,3 +1335,34 @@ No pricing, service records, permissions, data persistence,
 notifications, invoices, history or scheduling are modified.
 The public no-login fictional demo, MIT license and org
 isolation continue unchanged.
+
+
+### Individually selected continuity follow-up checklist (PR #103)
+
+Each warning card in **Rate continuity review** now has a
+**Select for follow-up** checkbox. Operators can choose specific
+warnings and download a third, explicitly named
+**Download selected continuity review CSV**, independently of the
+original full checklist and filtered checklist. A selected-count
+summary and **Clear selected warnings** control make selection
+visible and reversible. Selection can persist while switching
+on-screen warning type, search and sort; if selected warnings
+are hidden by those filters, their count is clearly disclosed.
+
+Selections are ephemeral browser UI state scoped to the current
+organization, rate-review date, service area and 7/30/90-day
+window; changing any of those clears them. The selection is
+never stored in records or used for automated actions.
+At export time, the full authorized continuity review is
+recomputed; only IDs matching current authorized warning
+items are included. Stale, archived, other-organization and
+arbitrary IDs are ignored. The selected list is ordered using
+the current card-sort choice and reuses the same formula-safe
+CSV columns and blank decision/notes cells. Raw record IDs
+never appear in the file.
+
+The full and filtered CSV behavior, original warning counts,
+action summary and underlying saved pricing remain unchanged.
+This does not update estimates, invoices, notifications,
+permissions, historical records, or customer details.
+The public fictional demo and MIT license are preserved.
