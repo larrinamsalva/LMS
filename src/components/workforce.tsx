@@ -20,6 +20,8 @@ import {
 import { summarizeAvailabilityPeriodTypes } from "../core/workforce-availability-summary";
 import {
   filterStaffAssignmentHistory,
+  filterStaffAssignmentHistoryByStartDate,
+  staffAssignmentStartDateRangeError,
   staffAssignmentHistoryCounts,
   visibleStaffAssignmentHistory,
   STAFF_HISTORY_PAGE_SIZE,
@@ -60,6 +62,8 @@ export function Workforce({
   const [history, setHistory] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [historySearch, setHistorySearch] = useState("");
+  const [historyFromDate, setHistoryFromDate] = useState("");
+  const [historyThroughDate, setHistoryThroughDate] = useState("");
   const [historyStatus, setHistoryStatus] =
     useState<StaffAssignmentHistoryStatus>("all");
   const [historyShown, setHistoryShown] = useState(STAFF_HISTORY_PAGE_SIZE);
@@ -121,12 +125,19 @@ export function Workforce({
   const availabilityFiltersActive = availabilityKind !== "all" ||
     availabilitySearch.trim().length > 0;
   const historyCounts = staffAssignmentHistoryCounts(assignments);
-  const matchingHistory = filterStaffAssignmentHistory(
+  const textStatusHistory = filterStaffAssignmentHistory(
     assignments, records, historyStatus, historySearch,
+  );
+  const historyDateError = staffAssignmentStartDateRangeError(
+    historyFromDate, historyThroughDate,
+  );
+  const matchingHistory = filterStaffAssignmentHistoryByStartDate(
+    textStatusHistory, zone, historyFromDate, historyThroughDate,
   );
   const shownHistory = visibleStaffAssignmentHistory(matchingHistory, historyShown);
   const historyFiltersActive = historyStatus !== "all" ||
-    historySearch.trim().length > 0;
+    historySearch.trim().length > 0 ||
+    historyFromDate !== "" || historyThroughDate !== "";
   const actions = (r: WorkspaceRecord) => (
     <div className="actions">
       {!r.archived && (
@@ -535,16 +546,50 @@ export function Workforce({
                 <option value="released">Released</option>
               </select>
             </div>
+            <div>
+              <label htmlFor="assignment-history-from-date">
+                Assignment start from
+              </label>
+              <input id="assignment-history-from-date" type="date"
+                value={historyFromDate}
+                onChange={(event) => {
+                  setHistoryFromDate(event.target.value);
+                  setHistoryShown(STAFF_HISTORY_PAGE_SIZE);
+                }}
+              />
+            </div>
+            <div>
+              <label htmlFor="assignment-history-through-date">
+                Assignment start through
+              </label>
+              <input id="assignment-history-through-date" type="date"
+                value={historyThroughDate}
+                onChange={(event) => {
+                  setHistoryThroughDate(event.target.value);
+                  setHistoryShown(STAFF_HISTORY_PAGE_SIZE);
+                }}
+              />
+            </div>
             {historyFiltersActive && (
               <button type="button" className="secondary" onClick={() => {
                 setHistorySearch("");
                 setHistoryStatus("all");
+                setHistoryFromDate("");
+                setHistoryThroughDate("");
                 setHistoryShown(STAFF_HISTORY_PAGE_SIZE);
               }}>
                 Clear assignment filters
               </button>
             )}
           </div>
+          <p className="muted">
+            Start-date bounds are inclusive, based on the scheduled appointment
+            start in {zone}, not the date a history revision was released.
+            They do not affect the Availability day above or stored assignments.
+          </p>
+          {historyDateError && (
+            <p role="alert">{historyDateError}</p>
+          )}
           <p role="status" aria-live="polite">
             Showing {shownHistory.length} of {matchingHistory.length} matching
             retained assignments ({historyCounts.total} total).
@@ -569,7 +614,9 @@ export function Workforce({
             <p className="empty-state">
               {historyCounts.total === 0
                 ? "No retained employee assignments yet."
-                : "No retained assignments match these filters."}
+                : historyDateError
+                  ? "Fix the assignment start date range to see history."
+                  : "No retained assignments match these filters."}
             </p>
           )}
           {matchingHistory.length > STAFF_HISTORY_PAGE_SIZE && (
