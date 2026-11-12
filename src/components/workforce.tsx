@@ -21,11 +21,13 @@ import { summarizeAvailabilityPeriodTypes } from "../core/workforce-availability
 import {
   filterStaffAssignmentHistory,
   filterStaffAssignmentHistoryByStartDate,
+  orderStaffAssignmentHistory,
   staffAssignmentStartDateRangeError,
   staffAssignmentHistoryCounts,
   visibleStaffAssignmentHistory,
   STAFF_HISTORY_PAGE_SIZE,
   type StaffAssignmentHistoryStatus,
+  type StaffAssignmentHistorySort,
 } from "../core/workforce-assignment-history";
 
 export function Workforce({
@@ -66,6 +68,8 @@ export function Workforce({
   const [historyThroughDate, setHistoryThroughDate] = useState("");
   const [historyStatus, setHistoryStatus] =
     useState<StaffAssignmentHistoryStatus>("all");
+  const [historySort, setHistorySort] =
+    useState<StaffAssignmentHistorySort>("retained");
   const [historyShown, setHistoryShown] = useState(STAFF_HISTORY_PAGE_SIZE);
   const [resourceSearch, setResourceSearch] = useState("");
   const [resourceType, setResourceType] =
@@ -131,12 +135,15 @@ export function Workforce({
   const historyDateError = staffAssignmentStartDateRangeError(
     historyFromDate, historyThroughDate,
   );
-  const matchingHistory = filterStaffAssignmentHistoryByStartDate(
+  const dateFilteredHistory = filterStaffAssignmentHistoryByStartDate(
     textStatusHistory, zone, historyFromDate, historyThroughDate,
+  );
+  const matchingHistory = orderStaffAssignmentHistory(
+    dateFilteredHistory, historySort,
   );
   const shownHistory = visibleStaffAssignmentHistory(matchingHistory, historyShown);
   const historyFiltersActive = historyStatus !== "all" ||
-    historySearch.trim().length > 0 ||
+    historySort !== "retained" || historySearch.trim().length > 0 ||
     historyFromDate !== "" || historyThroughDate !== "";
   const actions = (r: WorkspaceRecord) => (
     <div className="actions">
@@ -523,7 +530,7 @@ export function Workforce({
               <input
                 id="assignment-history-search"
                 type="search"
-                placeholder="Employee name, role or appointment title"
+                placeholder="Employee, appointment or crew/worker name"
                 value={historySearch}
                 onChange={(event) => {
                   setHistorySearch(event.target.value);
@@ -570,10 +577,28 @@ export function Workforce({
                 }}
               />
             </div>
+            <div>
+              <label htmlFor="assignment-history-sort">
+                Sort assignment history
+              </label>
+              <select
+                id="assignment-history-sort"
+                value={historySort}
+                onChange={(event) => {
+                  setHistorySort(event.target.value as StaffAssignmentHistorySort);
+                  setHistoryShown(STAFF_HISTORY_PAGE_SIZE);
+                }}
+              >
+                <option value="retained">Retained record order</option>
+                <option value="newest">Newest scheduled start first</option>
+                <option value="oldest">Oldest scheduled start first</option>
+              </select>
+            </div>
             {historyFiltersActive && (
               <button type="button" className="secondary" onClick={() => {
                 setHistorySearch("");
                 setHistoryStatus("all");
+                setHistorySort("retained");
                 setHistoryFromDate("");
                 setHistoryThroughDate("");
                 setHistoryShown(STAFF_HISTORY_PAGE_SIZE);
@@ -586,6 +611,9 @@ export function Workforce({
             Start-date bounds are inclusive, based on the scheduled appointment
             start in {zone}, not the date a history revision was released.
             They do not affect the Availability day above or stored assignments.
+            Search also matches the linked crew or worker name when it belongs
+            to this business. Newest/oldest sorts use the saved scheduled
+            start instant, not when a revision was created or released.
           </p>
           {historyDateError && (
             <p role="alert">{historyDateError}</p>
