@@ -91,6 +91,28 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const rateDate = page.getByLabel("Rates covering date (optional)", {
       exact: true,
     });
+    const useToday = page.getByRole("button", {
+      name: "Use today's date", exact: true,
+    });
+    const clearReviewDate = page.getByRole("button", {
+      name: "Clear review date", exact: true,
+    });
+    await expect(rateDate).toHaveValue("");
+    await expect(clearReviewDate).toBeDisabled();
+    const localToday = await page.evaluate(() => {
+      const today = new Date();
+      return [
+        today.getFullYear(),
+        String(today.getMonth() + 1).padStart(2, "0"),
+        String(today.getDate()).padStart(2, "0"),
+      ].join("-");
+    });
+    await useToday.click();
+    await expect(rateDate).toHaveValue(localToday);
+    await expect(clearReviewDate).toBeEnabled();
+    await clearReviewDate.click();
+    await expect(rateDate).toHaveValue("");
+    await expect(clearReviewDate).toBeDisabled();
     const upcoming = page.getByRole("region", {
       name: "Upcoming rate dates", exact: true,
     });

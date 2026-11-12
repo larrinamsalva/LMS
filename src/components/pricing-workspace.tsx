@@ -22,6 +22,7 @@ import { upcomingServiceRateDatesCsv } from "../core/upcoming-service-rate-dates
 import { reviewServiceRateContinuity } from "../core/service-rate-continuity";
 import { investigateRateContinuityGap } from "../core/service-rate-continuity-investigation";
 import { rateGapAuditTarget } from "../core/service-rate-gap-audit-target";
+import { localCalendarDate } from "../core/local-calendar-date";
 import { serviceRateContinuityReviewCsv } from "../core/service-rate-continuity-csv";
 import {
   filterContinuityWarnings,
@@ -107,6 +108,20 @@ export function Catalog({
     if (!previousCoverageSelection) return;
     setSelectedAreaId(previousCoverageSelection.areaId);
     setAsOfDate(previousCoverageSelection.date);
+    setPreviousCoverageSelection(null);
+  }
+  function useTodayForReview() {
+    const today = localCalendarDate(new Date());
+    if (today === null) return;
+    setAsOfDate(today);
+    setPreviousCoverageSelection(null);
+  }
+  function changeRateReviewDate(date: string) {
+    setAsOfDate(date);
+    setPreviousCoverageSelection(null);
+  }
+  function changeRateReviewArea(areaId: string) {
+    setSelectedAreaId(areaId);
     setPreviousCoverageSelection(null);
   }
   function downloadContinuityReview() {
@@ -275,15 +290,25 @@ export function Catalog({
               id="service-rate-date"
               type="date"
               value={asOfDate}
-              onChange={(event) => setAsOfDate(event.target.value)}
+              onChange={(event) => changeRateReviewDate(event.target.value)}
             />
+            <div className="actions">
+              <button type="button" className="secondary"
+                onClick={useTodayForReview}>
+                Use today's date
+              </button>
+              <button type="button" className="secondary"
+                disabled={!asOfDate} onClick={() => changeRateReviewDate("")}>
+                Clear review date
+              </button>
+            </div>
           </div>
           <div>
             <label htmlFor="service-rate-area">Filter service rates by area</label>
             <select
               id="service-rate-area"
               value={selectedAreaId}
-              onChange={(event) => setSelectedAreaId(event.target.value)}
+              onChange={(event) => changeRateReviewArea(event.target.value)}
             >
               <option value="">All service areas</option>
               {areaOptions.map((area) => (
@@ -303,6 +328,9 @@ export function Catalog({
           </button>
         </div>
         <p className="muted">
+          Use today's date selects the device's local calendar day only
+          when clicked; clearing the review date restores the undated
+          rate-card view. Neither action updates a saved business record.
           Search only narrows the catalog cards shown below and never changes
           the audit counts or any CSV export. Clear the search to return
           to the complete visible catalog. The read-only rate card lists
