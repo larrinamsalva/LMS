@@ -32,6 +32,44 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(
       page.getByRole("article", { name: "Service " + service, exact: true }),
     ).toContainText("Hourly");
+    const catalogSearch = page.getByLabel("Search catalog cards", {
+      exact: true,
+    });
+    await catalogSearch.fill("  OUTER  ");
+    await expect(page.getByRole("article", {
+      name: "Rate Outer-area hourly rate", exact: true,
+    })).toBeVisible();
+    await expect(page.getByRole("article", {
+      name: "Rate Local hourly rate", exact: true,
+    })).toHaveCount(0);
+    await expect(page.getByRole("article", {
+      name: "Pricing area Outer service area", exact: true,
+    })).toBeVisible();
+    await expect(page.getByRole("article", {
+      name: "Service " + service, exact: true,
+    })).toHaveCount(0);
+    await catalogSearch.fill(service.toUpperCase());
+    await expect(page.getByRole("article", {
+      name: "Service " + service, exact: true,
+    })).toBeVisible();
+    await expect(page.getByRole("article", {
+      name: "Rate Local hourly rate", exact: true,
+    })).toBeVisible();
+    await catalogSearch.fill("not a saved catalog item");
+    await expect(page.getByText(
+      "No saved rates match this search and the selected filters.",
+      { exact: true },
+    )).toBeVisible();
+    await expect(page.getByRole("button", {
+      name: "Download active service rates CSV", exact: true,
+    })).toBeEnabled();
+    await page.getByRole("button", {
+      name: "Clear catalog search", exact: true,
+    }).click();
+    await expect(catalogSearch).toHaveValue("");
+    await expect(page.getByRole("article", {
+      name: "Rate Local hourly rate", exact: true,
+    })).toBeVisible();
     const rateCardPending = page.waitForEvent("download");
     await page.getByRole("button", {
       name: "Download active service rates CSV", exact: true,

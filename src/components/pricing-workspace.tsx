@@ -10,12 +10,13 @@ import {
 import { invoiceLabel } from "../core/invoices";
 import type { RecordData } from "../core/config";
 import { relatedLabel } from "./schedule";
-import { serviceRateCardCsv, serviceRateCardRows, rateCoversDate, rateMatchesArea } from "../core/service-rate-card-csv";
+import { serviceRateCardCsv, serviceRateCardRows } from "../core/service-rate-card-csv";
 import { rateCoverageAudit } from "../core/service-rate-coverage";
 import { serviceRateCoverageReviewCsv } from "../core/service-rate-coverage-csv";
 import {
   allAreaRateCoverage, allAreaRateCoverageCsv, allAreaMissingRateReviewCsv,
 } from "../core/service-rate-coverage-overview";
+import { filterPricingCatalogCards } from "../core/pricing-catalog-search";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -35,16 +36,10 @@ export function Catalog({
   const [archived, setArchived] = useState(false);
   const [asOfDate, setAsOfDate] = useState("");
   const [selectedAreaId, setSelectedAreaId] = useState("");
-  const services = records.filter(
-      (r) => r.entity === "services" && r.archived === archived,
-    ),
-    rates = records.filter(
-      (r) => r.entity === "service-rates" && r.archived === archived &&
-        rateCoversDate(r, asOfDate) && rateMatchesArea(r, selectedAreaId),
-    ),
-    zones = records.filter(
-      (r) => r.entity === "pricing-zones" && r.archived === archived,
-    );
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const { services, rates, zones } = filterPricingCatalogCards(
+    records, organizationId, archived, asOfDate, selectedAreaId, catalogSearch,
+  );
   const areaOptions = records.filter((r) =>
     r.organization_id === organizationId && r.entity === "pricing-zones",
   ).sort((a, b) => String(a.data.name).localeCompare(String(b.data.name)));
@@ -173,6 +168,22 @@ export function Catalog({
             Show archived catalog records
           </label>
           <div>
+            <label htmlFor="catalog-card-search">Search catalog cards</label>
+            <input
+              id="catalog-card-search"
+              type="search"
+              placeholder="Service, rate or area"
+              value={catalogSearch}
+              onChange={(event) => setCatalogSearch(event.target.value)}
+            />
+          </div>
+          {catalogSearch !== "" && (
+            <button className="secondary" type="button"
+              onClick={() => setCatalogSearch("")}>
+              Clear catalog search
+            </button>
+          )}
+          <div>
             <label htmlFor="service-rate-date">Rates covering date (optional)</label>
             <input
               id="service-rate-date"
@@ -206,7 +217,10 @@ export function Catalog({
           </button>
         </div>
         <p className="muted">
-          The read-only rate card lists saved prices by service and area,
+          Search only narrows the catalog cards shown below and never changes
+          the audit counts or any CSV export. Clear the search to return
+          to the complete visible catalog. The read-only rate card lists
+          saved prices by service and area,
           with effective dates, USD amounts and archived-link status.
           It follows the active/archived catalog view and the optional
           date filter on saved rate ranges, plus the explicitly chosen
@@ -216,6 +230,12 @@ export function Catalog({
           quoting even when a date matches. Exporting does not create a quote,
           update prices or contact a customer.
         </p>
+        {catalogSearch.trim() && (
+          <p role="status">
+            Search results: {services.length} services, {rates.length} saved rates,
+            {" "}{zones.length} pricing areas.
+          </p>
+        )}
       </section>
       <section className="panel">
         <h2>Services</h2>
@@ -245,7 +265,9 @@ export function Catalog({
         </div>
         {!services.length && (
           <p className="empty-state">
-            Add a service to begin your fictional catalog.
+            {catalogSearch.trim()
+              ? "No services match your catalog search."
+              : "Add a service to begin your fictional catalog."}
           </p>
         )}
       </section>
@@ -287,7 +309,9 @@ export function Catalog({
         </div>
         {!rates.length && (
           <p className="empty-state">
-            No saved rates match the selected status, date and service area.
+            {catalogSearch.trim()
+              ? "No saved rates match this search and the selected filters."
+              : "No saved rates match the selected status, date and service area."}
           </p>
         )}
       </section>
@@ -443,6 +467,9 @@ export function Catalog({
             </article>
           ))}
         </div>
+        {catalogSearch.trim() && zones.length === 0 && (
+          <p className="empty-state">No pricing areas match your catalog search.</p>
+        )}
       </section>
     </div>
   );
