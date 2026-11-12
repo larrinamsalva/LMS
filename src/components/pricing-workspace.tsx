@@ -17,6 +17,7 @@ import {
   allAreaRateCoverage, allAreaRateCoverageCsv, allAreaMissingRateReviewCsv,
 } from "../core/service-rate-coverage-overview";
 import { filterPricingCatalogCards } from "../core/pricing-catalog-search";
+import { upcomingServiceRateDates, type RateDateWindow } from "../core/upcoming-service-rate-dates";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -37,6 +38,7 @@ export function Catalog({
   const [asOfDate, setAsOfDate] = useState("");
   const [selectedAreaId, setSelectedAreaId] = useState("");
   const [catalogSearch, setCatalogSearch] = useState("");
+  const [upcomingWindowDays, setUpcomingWindowDays] = useState<RateDateWindow>(30);
   const { services, rates, zones } = filterPricingCatalogCards(
     records, organizationId, archived, asOfDate, selectedAreaId, catalogSearch,
   );
@@ -50,6 +52,9 @@ export function Catalog({
     records, organizationId, selectedAreaId, asOfDate,
   );
   const areaOverview = allAreaRateCoverage(records, organizationId, asOfDate);
+  const upcomingDates = upcomingServiceRateDates(
+    records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
+  );
   function downloadAllAreaMissingRates() {
     if (areaOverview.status !== "ready" ||
         areaOverview.missingCandidateTotal === 0) return;
@@ -313,6 +318,73 @@ export function Catalog({
               ? "No saved rates match this search and the selected filters."
               : "No saved rates match the selected status, date and service area."}
           </p>
+        )}
+      </section>
+      <section className="panel" aria-labelledby="upcoming-rate-dates-heading">
+        <div className="section-heading">
+          <h2 id="upcoming-rate-dates-heading">Upcoming rate dates</h2>
+          <div>
+            <label htmlFor="rate-dates-window">Review upcoming period</label>
+            <select
+              id="rate-dates-window"
+              value={upcomingWindowDays}
+              onChange={(event) =>
+                setUpcomingWindowDays(Number(event.target.value) as RateDateWindow)}
+            >
+              <option value={7}>Next 7 days</option>
+              <option value={30}>Next 30 days</option>
+              <option value={90}>Next 90 days</option>
+            </select>
+          </div>
+        </div>
+        <p className="muted">
+          Review saved active-rate start dates and exclusive end dates
+          after the selected rate date above. The chosen area filter also
+          applies, but catalog search does not. Archived rate records
+          are excluded; archived or unavailable service/area links are
+          labeled for manual review. This does not change prices,
+          approve quotes, create reminders or notify anyone.
+        </p>
+        {upcomingDates.status === "choose" && (
+          <p>Choose a rate date above to review upcoming saved-rate dates.</p>
+        )}
+        {upcomingDates.status === "invalid-date" && (
+          <p>Choose a valid rate date to review upcoming saved-rate dates.</p>
+        )}
+        {upcomingDates.status === "invalid-area" && (
+          <p>Choose an available service area to review upcoming rate dates.</p>
+        )}
+        {upcomingDates.status === "ready" && (
+          <>
+            <p role="status">
+              {upcomingDates.events.length} upcoming rate date events through
+              {" "}{upcomingDates.through}.
+            </p>
+            {upcomingDates.events.length === 0 ? (
+              <p>No saved active-rate start or end dates in this period.</p>
+            ) : (
+              <div className="workforce-grid">
+                {upcomingDates.events.map((event) => (
+                  <article
+                    className="workforce-card"
+                    key={event.rateId + ":" + event.kind}
+                    aria-label={"Upcoming " + event.kind.toLowerCase() +
+                      " for " + event.rateTitle}
+                  >
+                    <span className="badge">
+                      {event.kind === "Starts" ? "Starts" : "Ends (exclusive)"}
+                    </span>
+                    <h3>{event.rateTitle}</h3>
+                    <p>{event.date}</p>
+                    <p>{event.serviceName} · {event.areaName}</p>
+                    {event.linkStatus !== "Active" && (
+                      <p className="muted">Linked catalog status: {event.linkStatus}</p>
+                    )}
+                  </article>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </section>
       <section className="panel" aria-labelledby="rate-coverage-heading">

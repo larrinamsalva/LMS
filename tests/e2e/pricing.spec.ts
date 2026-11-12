@@ -91,6 +91,15 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const rateDate = page.getByLabel("Rates covering date (optional)", {
       exact: true,
     });
+    const upcoming = page.getByRole("region", {
+      name: "Upcoming rate dates", exact: true,
+    });
+    const upcomingWindow = page.getByLabel("Review upcoming period", {
+      exact: true,
+    });
+    await expect(upcoming).toContainText(
+      "Choose a rate date above to review upcoming saved-rate dates.",
+    );
     const allAreas = page.getByRole("region", {
       name: "All-area rate coverage", exact: true,
     });
@@ -114,6 +123,18 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Download active service rates CSV", exact: true,
     })).toBeDisabled();
     await rateDate.fill("2026-11-06");
+    await expect(upcoming).toContainText(
+      "No saved active-rate start or end dates in this period.",
+    );
+    await upcomingWindow.selectOption("90");
+    await expect(upcoming).toContainText("5 upcoming rate date events");
+    await expect(upcoming.getByRole("article", {
+      name: "Upcoming ends for Local hourly rate", exact: true,
+    })).toContainText("2027-01-01");
+    await upcomingWindow.selectOption("30");
+    await expect(upcoming).toContainText(
+      "No saved active-rate start or end dates in this period.",
+    );
     await expect(allAreas).toContainText(
       "3 missing-rate candidates across 2 active service areas",
     );
@@ -187,6 +208,15 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     expect(outerOptionValue).toBeTruthy();
     await expect(areaFilter).toHaveValue(outerOptionValue!);
     await areaFilter.selectOption({ label: "Local service area" });
+    await rateDate.fill("2026-12-15");
+    await expect(upcoming).toContainText("4 upcoming rate date events");
+    await expect(upcoming.getByRole("article", {
+      name: "Upcoming ends for Local hourly rate", exact: true,
+    })).toBeVisible();
+    await expect(upcoming.getByRole("article", {
+      name: "Upcoming ends for Outer-area hourly rate", exact: true,
+    })).toHaveCount(0);
+    await rateDate.fill("2026-11-06");
     await expect(audit).toContainText("0 missing rate candidates.");
     await expect(missingRateDownload).toBeDisabled();
     await expect(audit.getByText(
