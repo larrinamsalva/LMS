@@ -17,6 +17,7 @@ import {
   type WorkforceResourceTypeFilter,
   type WorkforceResourceEnrollmentFilter,
 } from "../core/workforce-resource-directory";
+import { summarizeAvailabilityPeriodTypes } from "../core/workforce-availability-summary";
 
 export function Workforce({
   records,
@@ -95,6 +96,17 @@ export function Workforce({
   const displayedPeriods = filterAvailabilityPeriods(
     visible, records, availabilityKind, availabilitySearch,
   );
+  const availabilityCounts = summarizeAvailabilityPeriodTypes(visible);
+  const availabilityOverviewCards = [
+    { kind: "Working hours", countKey: "workingHours",
+      label: "Working hours", action: "View working hours periods" },
+    { kind: "Day off", countKey: "daysOff",
+      label: "Days off", action: "View days off periods" },
+    { kind: "Vacation", countKey: "vacations",
+      label: "Vacations", action: "View vacation periods" },
+    { kind: "Unavailable", countKey: "unavailable",
+      label: "Unavailable", action: "View unavailable periods" },
+  ] as const;
   const availabilityFiltersActive = availabilityKind !== "all" ||
     availabilitySearch.trim().length > 0;
   const actions = (r: WorkspaceRecord) => (
@@ -408,6 +420,31 @@ export function Workforce({
           {" "}{history ? "archived" : "current"} availability periods
           {" "}on {date || "the selected date"}.
         </p>
+        <p className="muted">
+          Daily period overview counts records overlapping this local day,
+          including those hidden by search or type filters. Multiple periods
+          for one person count separately. This is not a headcount, staffing
+          capacity or confirmation that someone can be booked.
+          {history && " Archived period records are historical only."}
+        </p>
+        <div className="workforce-grid" role="group"
+          aria-label="Availability period overview">
+          {availabilityOverviewCards.map((card) => (
+            <div className="workforce-card" key={card.kind}>
+              <h3>{card.label}</h3>
+              <p><strong>{availabilityCounts[card.countKey]}</strong>
+                {" "}recorded periods</p>
+              <button type="button" className="secondary"
+                disabled={availabilityCounts[card.countKey] === 0}
+                onClick={() => {
+                  setAvailabilityKind(card.kind);
+                  setAvailabilitySearch("");
+                }}>
+                {card.action}
+              </button>
+            </div>
+          ))}
+        </div>
         <div className="workforce-grid">
           {displayedPeriods.map((r) => (
             <article
