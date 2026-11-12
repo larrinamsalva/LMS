@@ -19,6 +19,7 @@ import {
 import { filterPricingCatalogCards } from "../core/pricing-catalog-search";
 import { upcomingServiceRateDates, type RateDateWindow } from "../core/upcoming-service-rate-dates";
 import { upcomingServiceRateDatesCsv } from "../core/upcoming-service-rate-dates-csv";
+import { reviewServiceRateContinuity } from "../core/service-rate-continuity";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -54,6 +55,9 @@ export function Catalog({
   );
   const areaOverview = allAreaRateCoverage(records, organizationId, asOfDate);
   const upcomingDates = upcomingServiceRateDates(
+    records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
+  );
+  const continuity = reviewServiceRateContinuity(
     records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
   );
   function downloadUpcomingRateDates() {
@@ -407,6 +411,65 @@ export function Catalog({
                     <p>{event.serviceName} · {event.areaName}</p>
                     {event.linkStatus !== "Active" && (
                       <p className="muted">Linked catalog status: {event.linkStatus}</p>
+                    )}
+                  </article>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </section>
+      <section className="panel" aria-labelledby="rate-continuity-heading">
+        <h2 id="rate-continuity-heading">Rate continuity review</h2>
+        <p className="muted">
+          When a saved active rate ends, check whether another saved active
+          rate for the same service and area covers the exclusive end date.
+          Reuses the selected rate date, upcoming period and service-area
+          filter. This is a planning review, not an automatic rate extension,
+          price approval or promise that every service must be offered.
+          Archived or unavailable catalog links require separate review.
+        </p>
+        {continuity.status === "choose" && (
+          <p>Choose a rate date above to review saved-rate continuity.</p>
+        )}
+        {continuity.status === "invalid-date" && (
+          <p>Choose a valid date to review saved-rate continuity.</p>
+        )}
+        {continuity.status === "invalid-area" && (
+          <p>Choose an available service area to review saved-rate continuity.</p>
+        )}
+        {continuity.status === "ready" && (
+          <>
+            <p role="status">
+              {continuity.reviewedEnds} upcoming saved-rate ends reviewed
+              through {" "}{continuity.through}:{" "}
+              <strong>{continuity.uncoveredCount} without next-day saved-rate coverage</strong>
+              {" "}and {continuity.linkedReviewCount} requiring linked-record review.
+            </p>
+            {continuity.issues.length === 0 ? (
+              <p>No continuity-review candidates found for this period.</p>
+            ) : (
+              <div className="workforce-grid">
+                {continuity.issues.map((item) => (
+                  <article key={item.rateId} className="workforce-card"
+                    aria-label={"Continuity review for " + item.rateTitle}>
+                    <span className="badge">{item.status}</span>
+                    <h3>{item.rateTitle}</h3>
+                    <p>{item.serviceName} · {item.areaName}</p>
+                    <p>Saved rate ends (exclusive): {item.endDate}</p>
+                    {item.status === "Uncovered" ? (
+                      <p className="muted">
+                        No other active saved rate covers this service/area
+                        on {item.endDate}.
+                        {item.nextStart
+                          ? " Next saved rate starts on " + item.nextStart + "."
+                          : " No later saved rate found."}
+                      </p>
+                    ) : (
+                      <p className="muted">
+                        Review archived or unavailable linked service/area records
+                        before deciding whether a replacement is needed.
+                      </p>
                     )}
                   </article>
                 ))}

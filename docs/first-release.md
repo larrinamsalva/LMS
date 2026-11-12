@@ -1025,3 +1025,26 @@ the UI disables the download. Downloading does not modify or
 reactivate rates, approve estimates, create billing records, schedule
 notifications, create new sessions or change the public fictional
 demo, MIT license or permission model.
+
+
+### Read-only saved rate continuity review (PR #90)
+
+The **Rate continuity review** section uses the selected pricing date,
+7/30/90-day lookahead period and explicit service area to identify
+*upcoming effective-until dates* of active saved rates where no
+other saved active rate for the **same service and area** covers the
+exclusive ending day. It distinguishes a successor that begins
+later (showing the first later saved start date) from no later
+saved successor. A successor beginning exactly on the end date
+is treated as continuous coverage, not a gap.
+
+Archived rate records and rates from another organization never
+count as successors. Rate records linked to archived or missing
+catalog services or areas are **marked for link review** instead
+of misleadingly labeled as confirmed missing replacements; foreign
+linked names/IDs remain hidden. The review is informational, not
+a guarantee that a service should be offered in an area or
+that any saved price is approved for quoting. No rates or estimates
+are modified, and no notifications, reminders, invoice/ledger
+entries, new sessions or database/schema changes are created.
+The fictional public demo and MIT license remain unchanged.
