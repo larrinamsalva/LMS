@@ -2,6 +2,7 @@ import { reviewAppointmentResources } from "../../src/core/coordinated-schedulin
 import { test, expect, type Page } from "@playwright/test";
 import { selectModules } from "../../src/core/buildplan";
 import AxeBuilder from "@axe-core/playwright";
+import { readFile } from "node:fs/promises";
 const directory = async (page: Page) => {
   await page
     .getByRole("button", { name: "Crews & availability", exact: true })
@@ -459,6 +460,23 @@ test("fictional crews and workers publish availability, schedule both industries
     await assignmentSearch.fill(resource.toLowerCase());
     await expect(assignmentHistory.locator("li")
       .filter({ hasText: people[0] }).first()).toBeVisible();
+    const filteredHistoryCsv = assignmentHistory.getByRole("button", {
+      name: "Download filtered assignment history CSV", exact: true,
+    });
+    await expect(filteredHistoryCsv).toBeEnabled();
+    const assignmentDownloadPending = page.waitForEvent("download");
+    await filteredHistoryCsv.click();
+    const assignmentDownload = await assignmentDownloadPending;
+    expect(assignmentDownload.suggestedFilename()).toBe(
+      "lms-filtered-assignment-history.csv",
+    );
+    const exportedHistory = (await readFile((await assignmentDownload.path())!))
+      .toString("utf8");
+    expect(exportedHistory).toContain(people[0]);
+    expect(exportedHistory).toContain(resource);
+    expect(exportedHistory).toContain('"Assignment status"');
+    expect(exportedHistory).not.toContain("private-person-id");
+    expect(exportedHistory).not.toContain("PRIVATE SKILLS");
     await assignmentSort.selectOption("newest");
     await expect(assignmentSort).toHaveValue("newest");
     await assignmentSort.selectOption("oldest");
@@ -474,6 +492,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(assignmentHistory.getByRole("alert")).toContainText(
       "From date must be on or before Through date.",
     );
+    await expect(filteredHistoryCsv).toBeDisabled();
     await expect(assignmentHistory.getByText(
       "Fix the assignment start date range to see history.", { exact: true },
     )).toBeVisible();
@@ -497,6 +516,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(assignmentHistory.getByText(
       "No retained assignments match these filters.", { exact: true },
     )).toBeVisible();
+    await expect(filteredHistoryCsv).toBeDisabled();
     await assignmentHistory.getByRole("button", {
       name: "Clear assignment filters", exact: true,
     }).click();
