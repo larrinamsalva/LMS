@@ -1004,3 +1004,24 @@ They remain review items, not automatically applicable prices.
 The panel is informational, with no changes to live rates, estimates,
 data schemas, invoicing, schedules, customer messages or automatic
 reminders. Existing public fictional demo and MIT license remain.
+
+
+### Export upcoming service-rate date reviews (PR #89)
+
+The **Upcoming rate dates** section adds **Download upcoming rate dates
+CSV**, enabled only for a valid selected rate date/authorized area
+and at least one visible upcoming event in the configured 7, 30 or
+90 day window. The export recomputes the same scoped start and
+exclusive-end boundaries as the visible panel and orders them
+chronologically. It contains the selected review start/end, each
+boundary date and type, saved rate title, service, area, safe linked
+catalog status, and blank manual decision/review notes fields.
+
+Archived rate records are excluded. Archived or inaccessible links
+remain labeled; foreign organization names and raw identifiers are
+never exposed. All cells are formula-safe for spreadsheets. Empty
+valid windows produce header-only data in the pure generator, while
+the UI disables the download. Downloading does not modify or
+reactivate rates, approve estimates, create billing records, schedule
+notifications, create new sessions or change the public fictional
+demo, MIT license or permission model.

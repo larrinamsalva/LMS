@@ -18,6 +18,7 @@ import {
 } from "../core/service-rate-coverage-overview";
 import { filterPricingCatalogCards } from "../core/pricing-catalog-search";
 import { upcomingServiceRateDates, type RateDateWindow } from "../core/upcoming-service-rate-dates";
+import { upcomingServiceRateDatesCsv } from "../core/upcoming-service-rate-dates-csv";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -55,6 +56,20 @@ export function Catalog({
   const upcomingDates = upcomingServiceRateDates(
     records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
   );
+  function downloadUpcomingRateDates() {
+    if (upcomingDates.status !== "ready" ||
+        upcomingDates.events.length === 0) return;
+    const csv = upcomingServiceRateDatesCsv(
+      records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-upcoming-service-rate-dates.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   function downloadAllAreaMissingRates() {
     if (areaOverview.status !== "ready" ||
         areaOverview.missingCandidateTotal === 0) return;
@@ -323,18 +338,29 @@ export function Catalog({
       <section className="panel" aria-labelledby="upcoming-rate-dates-heading">
         <div className="section-heading">
           <h2 id="upcoming-rate-dates-heading">Upcoming rate dates</h2>
-          <div>
-            <label htmlFor="rate-dates-window">Review upcoming period</label>
-            <select
-              id="rate-dates-window"
-              value={upcomingWindowDays}
-              onChange={(event) =>
-                setUpcomingWindowDays(Number(event.target.value) as RateDateWindow)}
+          <div className="actions">
+            <div>
+              <label htmlFor="rate-dates-window">Review upcoming period</label>
+              <select
+                id="rate-dates-window"
+                value={upcomingWindowDays}
+                onChange={(event) =>
+                  setUpcomingWindowDays(Number(event.target.value) as RateDateWindow)}
+              >
+                <option value={7}>Next 7 days</option>
+                <option value={30}>Next 30 days</option>
+                <option value={90}>Next 90 days</option>
+              </select>
+            </div>
+            <button
+              type="button"
+              className="secondary"
+              disabled={upcomingDates.status !== "ready" ||
+                upcomingDates.events.length === 0}
+              onClick={downloadUpcomingRateDates}
             >
-              <option value={7}>Next 7 days</option>
-              <option value={30}>Next 30 days</option>
-              <option value={90}>Next 90 days</option>
-            </select>
+              Download upcoming rate dates CSV
+            </button>
           </div>
         </div>
         <p className="muted">
@@ -344,6 +370,8 @@ export function Catalog({
           are excluded; archived or unavailable service/area links are
           labeled for manual review. This does not change prices,
           approve quotes, create reminders or notify anyone.
+          The optional CSV has blank decision and notes columns for
+          review, without private customer details or rate amounts.
         </p>
         {upcomingDates.status === "choose" && (
           <p>Choose a rate date above to review upcoming saved-rate dates.</p>
