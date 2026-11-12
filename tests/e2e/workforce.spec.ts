@@ -452,7 +452,19 @@ test("fictional crews and workers publish availability, schedule both industries
     const assignmentThroughDate = assignmentHistory.getByLabel(
       "Assignment start through", { exact: true },
     );
+    const assignmentSort = assignmentHistory.getByLabel(
+      "Sort assignment history", { exact: true },
+    );
     await expect(historyCount).toContainText("Showing");
+    await assignmentSearch.fill(resource.toLowerCase());
+    await expect(assignmentHistory.locator("li")
+      .filter({ hasText: people[0] }).first()).toBeVisible();
+    await assignmentSort.selectOption("newest");
+    await expect(assignmentSort).toHaveValue("newest");
+    await assignmentSort.selectOption("oldest");
+    await expect(assignmentSort).toHaveValue("oldest");
+    await assignmentSearch.fill("");
+    await assignmentSort.selectOption("retained");
     await assignmentFromDate.fill("2026-11-06");
     await assignmentThroughDate.fill("2026-11-06");
     await expect(historyCount).toContainText("Showing");
@@ -490,6 +502,7 @@ test("fictional crews and workers publish availability, schedule both industries
     }).click();
     await expect(assignmentSearch).toHaveValue("");
     await expect(assignmentStatus).toHaveValue("all");
+    await expect(assignmentSort).toHaveValue("retained");
     await expect(assignmentFromDate).toHaveValue("");
     await expect(assignmentThroughDate).toHaveValue("");
     await expect(assignmentHistory.locator("li")
