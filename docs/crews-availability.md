@@ -103,3 +103,28 @@ or foreign links cannot leak their names. Search never indexes
 contact email, phone, internal IDs or period notes. Filters are
 temporary view state only and provide no new permissions.
 MIT licensing and the fictional no-login public demo remain intact.
+
+## Resource directory search, kind and retained enrollment (PR #109)
+
+In **Crews & availability → Resource directory**, search current or
+archived resources by their displayed name, or filter the list to
+**Worker**, **Crew** or **Equipment**. A separate employee-enrollment
+filter distinguishes **Enrolled workers/crews** from **Resource-only
+workers/crews**. It uses retained membership history, including
+archived memberships: a crew with its last membership archived is
+still enrolled and cannot evade employee scheduling protections.
+Equipment does not have an employee roster, so it appears with
+**All enrollment types**, not either employee-enrollment subtype.
+Use **Clear resource filters** to restore the full list for the
+existing current/archived view.
+
+A displayed match count and specific no-results state make the list
+easier to scan. Name search ignores case and surrounding whitespace.
+The filtering helper never searches IDs, contacts, notes or foreign
+organization memberships. It does not change resource/employee
+records, rosters, appointment allocations, availability policies,
+eligibility, exports, permissions or database enforcement. Filtering
+for enrolled resources is a *historical enrollment indication*, not
+a claim that a crew can be scheduled on the selected date.
+
+The public fictional no-login demo and MIT license remain intact.
