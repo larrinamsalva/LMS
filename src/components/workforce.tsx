@@ -29,10 +29,12 @@ import {
   type StaffAssignmentHistoryStatus,
   type StaffAssignmentHistorySort,
 } from "../core/workforce-assignment-history";
+import { staffAssignmentHistoryCsv } from "../core/workforce-assignment-history-csv";
 
 export function Workforce({
   records,
   assignments,
+  organizationId,
   zone,
   canManage,
   busy,
@@ -42,6 +44,7 @@ export function Workforce({
 }: {
   records: WorkspaceRecord[];
   assignments: StaffAssignment[];
+  organizationId: string;
   zone: string;
   canManage: boolean;
   busy: boolean;
@@ -145,6 +148,25 @@ export function Workforce({
   const historyFiltersActive = historyStatus !== "all" ||
     historySort !== "retained" || historySearch.trim().length > 0 ||
     historyFromDate !== "" || historyThroughDate !== "";
+  function downloadFilteredAssignmentHistory() {
+    if (historyDateError || !matchingHistory.length) return;
+    // Recompute the complete filtered set from authorized organization data;
+    // never export only the current first-ten page or accept client-picked IDs.
+    const csv = staffAssignmentHistoryCsv(
+      assignments, records, organizationId, zone, {
+        status: historyStatus, search: historySearch,
+        fromDate: historyFromDate, throughDate: historyThroughDate,
+        sort: historySort,
+      },
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-filtered-assignment-history.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   const actions = (r: WorkspaceRecord) => (
     <div className="actions">
       {!r.archived && (
@@ -621,6 +643,17 @@ export function Workforce({
           <p role="status" aria-live="polite">
             Showing {shownHistory.length} of {matchingHistory.length} matching
             retained assignments ({historyCounts.total} total).
+          </p>
+          <button type="button" className="secondary"
+            disabled={!!historyDateError || matchingHistory.length === 0}
+            onClick={downloadFilteredAssignmentHistory}>
+            Download filtered assignment history CSV
+          </button>
+          <p className="muted">
+            Download includes every matching retained allocation (not only
+            the first ten shown here), using the current search, dates, status
+            and sort. This fictional employee history includes names and
+            work roles; handle the file as business records.
           </p>
           <ul className="workforce-members">
             {shownHistory.map((s) => (
