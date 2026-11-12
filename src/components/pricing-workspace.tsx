@@ -39,7 +39,11 @@ import {
   serviceRateContinuityFilteredCsv,
   serviceRateContinuitySelectedCsv,
 } from "../core/service-rate-continuity-csv";
-import { selectedContinuityReviewIssues } from "../core/service-rate-continuity-selection";
+import {
+  selectedContinuityReviewIssues,
+  updateVisibleContinuitySelection,
+  type VisibleContinuitySelectionAction,
+} from "../core/service-rate-continuity-selection";
 import {
   filterContinuityWarnings,
   type ContinuityWarningFilter,
@@ -150,6 +154,20 @@ export function Catalog({
   }
   function clearContinuitySelection() {
     setContinuitySelection({ scopeKey: continuityScopeKey, rateIds: [] });
+  }
+  function changeVisibleContinuitySelection(action: VisibleContinuitySelectionAction) {
+    if (continuity.status !== "ready" || visibleContinuityIssues.length === 0)
+      return;
+    const visibleIds = visibleContinuityIssues.map((issue) => issue.rateId);
+    setContinuitySelection((previous) => ({
+      scopeKey: continuityScopeKey,
+      rateIds: updateVisibleContinuitySelection(
+        continuity,
+        previous.scopeKey === continuityScopeKey ? previous.rateIds : [],
+        visibleIds,
+        action,
+      ),
+    }));
   }
   function focusContinuityWarnings(filter: ContinuityWarningFilter) {
     setContinuityWarningType(filter);
@@ -741,7 +759,9 @@ export function Catalog({
           Select individual warning cards for a separate selected-only
           follow-up checklist. Selections are temporary, tied to this
           business/date/area/window, and may include hidden-by-filter
-          warnings until cleared.
+          warnings until cleared. Use Select all visible warnings or
+          Deselect visible warnings to update only the current filtered
+          list; selections hidden by filters are left alone.
         </p>
         <div className="actions">
           <div>
@@ -866,6 +886,17 @@ export function Catalog({
                     {" "}selected warnings are hidden by current filters.</>
                 )}
               </p>
+              <button type="button" className="secondary"
+                disabled={visibleContinuityIssues.length === 0 ||
+                  selectedVisibleCount === visibleContinuityIssues.length}
+                onClick={() => changeVisibleContinuitySelection("select-visible")}>
+                Select all visible warnings
+              </button>
+              <button type="button" className="secondary"
+                disabled={selectedVisibleCount === 0}
+                onClick={() => changeVisibleContinuitySelection("deselect-visible")}>
+                Deselect visible warnings
+              </button>
               <button type="button" className="secondary"
                 disabled={selectedContinuityItems.length === 0}
                 onClick={clearContinuitySelection}>
