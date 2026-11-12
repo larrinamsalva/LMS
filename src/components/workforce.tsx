@@ -18,6 +18,13 @@ import {
   type WorkforceResourceEnrollmentFilter,
 } from "../core/workforce-resource-directory";
 import { summarizeAvailabilityPeriodTypes } from "../core/workforce-availability-summary";
+import {
+  filterStaffAssignmentHistory,
+  staffAssignmentHistoryCounts,
+  visibleStaffAssignmentHistory,
+  STAFF_HISTORY_PAGE_SIZE,
+  type StaffAssignmentHistoryStatus,
+} from "../core/workforce-assignment-history";
 
 export function Workforce({
   records,
@@ -52,6 +59,10 @@ export function Workforce({
   });
   const [history, setHistory] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
+  const [historyStatus, setHistoryStatus] =
+    useState<StaffAssignmentHistoryStatus>("all");
+  const [historyShown, setHistoryShown] = useState(STAFF_HISTORY_PAGE_SIZE);
   const [resourceSearch, setResourceSearch] = useState("");
   const [resourceType, setResourceType] =
     useState<WorkforceResourceTypeFilter>("all");
@@ -109,6 +120,13 @@ export function Workforce({
   ] as const;
   const availabilityFiltersActive = availabilityKind !== "all" ||
     availabilitySearch.trim().length > 0;
+  const historyCounts = staffAssignmentHistoryCounts(assignments);
+  const matchingHistory = filterStaffAssignmentHistory(
+    assignments, records, historyStatus, historySearch,
+  );
+  const shownHistory = visibleStaffAssignmentHistory(matchingHistory, historyShown);
+  const historyFiltersActive = historyStatus !== "all" ||
+    historySearch.trim().length > 0;
   const actions = (r: WorkspaceRecord) => (
     <div className="actions">
       {!r.archived && (
@@ -475,16 +493,64 @@ export function Workforce({
       <section className="panel">
         <details>
           <summary>
-            Assignment history · {assignments.length} retained employee
+            Assignment history · {historyCounts.total} retained employee
             allocations
           </summary>
           <p className="muted">
             Snapshots preserve names, descriptive roles and effective membership
             revisions at assignment time. Released rows remain in the database
-            and workspace export.
+            and workspace export. Each revision is one entry, not a unique
+            employee or an available staff member.
+          </p>
+          <p>
+            Reserved: <strong>{historyCounts.reserved}</strong> · Released:{" "}
+            <strong>{historyCounts.released}</strong>
+          </p>
+          <div className="schedule-toolbar">
+            <div>
+              <label htmlFor="assignment-history-search">Search assignment history</label>
+              <input
+                id="assignment-history-search"
+                type="search"
+                placeholder="Employee name, role or appointment title"
+                value={historySearch}
+                onChange={(event) => {
+                  setHistorySearch(event.target.value);
+                  setHistoryShown(STAFF_HISTORY_PAGE_SIZE);
+                }}
+              />
+            </div>
+            <div>
+              <label htmlFor="assignment-history-status">Filter assignment status</label>
+              <select
+                id="assignment-history-status"
+                value={historyStatus}
+                onChange={(event) => {
+                  setHistoryStatus(event.target.value as StaffAssignmentHistoryStatus);
+                  setHistoryShown(STAFF_HISTORY_PAGE_SIZE);
+                }}
+              >
+                <option value="all">All retained assignments</option>
+                <option value="reserved">Reserved</option>
+                <option value="released">Released</option>
+              </select>
+            </div>
+            {historyFiltersActive && (
+              <button type="button" className="secondary" onClick={() => {
+                setHistorySearch("");
+                setHistoryStatus("all");
+                setHistoryShown(STAFF_HISTORY_PAGE_SIZE);
+              }}>
+                Clear assignment filters
+              </button>
+            )}
+          </div>
+          <p role="status" aria-live="polite">
+            Showing {shownHistory.length} of {matchingHistory.length} matching
+            retained assignments ({historyCounts.total} total).
           </p>
           <ul className="workforce-members">
-            {assignments.map((s) => (
+            {shownHistory.map((s) => (
               <li
                 key={`${s.appointment_id}-${s.appointment_revision}-${s.employee_id}`}
               >
@@ -499,6 +565,31 @@ export function Workforce({
               </li>
             ))}
           </ul>
+          {matchingHistory.length === 0 && (
+            <p className="empty-state">
+              {historyCounts.total === 0
+                ? "No retained employee assignments yet."
+                : "No retained assignments match these filters."}
+            </p>
+          )}
+          {matchingHistory.length > STAFF_HISTORY_PAGE_SIZE && (
+            <div className="actions">
+              {historyShown < matchingHistory.length && (
+                <button type="button" className="secondary" onClick={() =>
+                  setHistoryShown((n) => Math.min(
+                    matchingHistory.length, n + STAFF_HISTORY_PAGE_SIZE,
+                  ))}>
+                  Show more assignment history
+                </button>
+              )}
+              {historyShown > STAFF_HISTORY_PAGE_SIZE && (
+                <button type="button" className="secondary"
+                  onClick={() => setHistoryShown(STAFF_HISTORY_PAGE_SIZE)}>
+                  Show fewer assignment history
+                </button>
+              )}
+            </div>
+          )}
         </details>
       </section>
     </div>
