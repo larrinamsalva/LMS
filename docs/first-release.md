@@ -1094,3 +1094,29 @@ unavailable linked records cannot produce a jump target.
 No prices, estimates, invoices, customers, permissions,
 saved records, sessions or messages are changed. The
 public fictional demo and MIT license are preserved.
+
+
+### Download a service-rate continuity decision checklist (PR #93)
+
+The **Rate continuity review** panel now provides an optional
+**Download rate continuity review CSV** action whenever the selected
+date, authorized area and 7/30/90-day window produce an uncovered
+rate or a linked-record review item. The exported spreadsheet uses
+the exact existing, organization-scoped read-only continuity review
+and includes the review start/end, saved rate title, service/area
+names, exclusive end date, warning category, next known active
+saved-rate start, and known uncovered calendar days. Blank
+operator-decision and review-notes columns support manual follow-up.
+
+The checklist is header-only at the pure function level when there
+are no findings; the UI disables its download button for zero
+findings or invalid selections. A missing future saved rate is
+shown as an *unknown* total duration, not as a zero-day gap.
+Archived or inaccessible catalog links remain in the separate
+**Review links** category rather than being misclassified as
+confirmed gaps. Archived rates do not count as successors.
+Spreadsheet formula-looking fields are neutralized. No raw record
+IDs, rate amounts, customer/employee details or foreign linked names
+are exported. No writes, reminders, invoices, estimates, new
+sessions, deployment or release are triggered; MIT licensing
+and the public fictional demo are unchanged.

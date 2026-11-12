@@ -22,6 +22,7 @@ import { upcomingServiceRateDatesCsv } from "../core/upcoming-service-rate-dates
 import { reviewServiceRateContinuity } from "../core/service-rate-continuity";
 import { investigateRateContinuityGap } from "../core/service-rate-continuity-investigation";
 import { rateGapAuditTarget } from "../core/service-rate-gap-audit-target";
+import { serviceRateContinuityReviewCsv } from "../core/service-rate-continuity-csv";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -93,6 +94,19 @@ export function Catalog({
     setSelectedAreaId(previousCoverageSelection.areaId);
     setAsOfDate(previousCoverageSelection.date);
     setPreviousCoverageSelection(null);
+  }
+  function downloadContinuityReview() {
+    if (continuity.status !== "ready" || continuity.issues.length === 0) return;
+    const csv = serviceRateContinuityReviewCsv(
+      records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-service-rate-continuity-review.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   function downloadUpcomingRateDates() {
     if (upcomingDates.status !== "ready" ||
@@ -454,7 +468,17 @@ export function Catalog({
         )}
       </section>
       <section className="panel" aria-labelledby="rate-continuity-heading">
-        <h2 id="rate-continuity-heading">Rate continuity review</h2>
+        <div className="section-heading">
+          <h2 id="rate-continuity-heading">Rate continuity review</h2>
+          <button
+            type="button"
+            className="secondary"
+            disabled={continuity.status !== "ready" || continuity.issues.length === 0}
+            onClick={downloadContinuityReview}
+          >
+            Download rate continuity review CSV
+          </button>
+        </div>
         <p className="muted">
           When a saved active rate ends, check whether another saved active
           rate for the same service and area covers the exclusive end date.
@@ -464,6 +488,8 @@ export function Catalog({
           Archived or unavailable catalog links require separate review.
           Inspect a flagged gap to see saved history for that service
           and area without editing any record.
+          Download a formula-safe checklist with blank decision and notes
+          columns; exports contain no prices, customers or record IDs.
         </p>
         {continuity.status === "choose" && (
           <p>Choose a rate date above to review saved-rate continuity.</p>

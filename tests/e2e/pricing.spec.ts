@@ -97,6 +97,10 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const continuity = page.getByRole("region", {
       name: "Rate continuity review", exact: true,
     });
+    const continuityCsvButton = continuity.getByRole("button", {
+      name: "Download rate continuity review CSV", exact: true,
+    });
+    await expect(continuityCsvButton).toBeDisabled();
     await expect(continuity).toContainText(
       "Choose a rate date above to review saved-rate continuity.",
     );
@@ -142,6 +146,21 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(continuity).toContainText(
       "5 without next-day saved-rate coverage",
     );
+    await expect(continuityCsvButton).toBeEnabled();
+    const continuityPending = page.waitForEvent("download");
+    await continuityCsvButton.click();
+    const continuityExport = await continuityPending;
+    expect(continuityExport.suggestedFilename()).toBe(
+      "lms-service-rate-continuity-review.csv",
+    );
+    const continuityText = (await readFile((await continuityExport.path())!))
+      .toString("utf8");
+    expect(continuityText.trimEnd().split("\r\n")).toHaveLength(6);
+    expect(continuityText).toContain('"Local hourly rate"');
+    expect(continuityText).toContain('"Outer-area hourly rate"');
+    expect(continuityText).toContain('"Review notes (fill manually)"');
+    expect(continuityText).not.toContain(customer);
+    expect(continuityText).not.toContain(work);
     const localContinuityCard = continuity.getByRole("article", {
       name: "Continuity review for Local hourly rate", exact: true,
     });
@@ -216,6 +235,7 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(continuity).toContainText(
       "0 without next-day saved-rate coverage",
     );
+    await expect(continuityCsvButton).toBeDisabled();
     await expect(upcomingCsvButton).toBeDisabled();
     await expect(allAreas).toContainText(
       "3 missing-rate candidates across 2 active service areas",
@@ -258,15 +278,6 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(page.getByRole("article", {
       name: "Rate Local hourly rate", exact: true,
     })).toBeVisible();
-    const filteredPending = page.waitForEvent("download");
-    await page.getByRole("button", {
-      name: "Download active service rates CSV", exact: true,
-    }).click();
-    const filteredDownload = await filteredPending;
-    const filteredCsv = (await readFile((await filteredDownload.path())!))
-      .toString("utf8");
-    expect(filteredCsv).toContain('"Local hourly rate"');
-    expect(filteredCsv).not.toContain(customer);
     const areaFilter = page.getByLabel("Filter service rates by area", {
       exact: true,
     });
@@ -295,6 +306,15 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(continuity).toContainText(
       "4 without next-day saved-rate coverage",
     );
+    await expect(continuityCsvButton).toBeEnabled();
+    const localContinuityPending = page.waitForEvent("download");
+    await continuityCsvButton.click();
+    const localContinuityExport = await localContinuityPending;
+    const localContinuityCsv = (await readFile((await localContinuityExport.path())!))
+      .toString("utf8");
+    expect(localContinuityCsv.trimEnd().split("\r\n")).toHaveLength(5);
+    expect(localContinuityCsv).toContain('"Local hourly rate"');
+    expect(localContinuityCsv).not.toContain('"Outer-area hourly rate"');
     await expect(continuity.getByRole("article", {
       name: "Continuity review for Outer-area hourly rate", exact: true,
     })).toHaveCount(0);
@@ -307,14 +327,6 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Continuity review for Local hourly rate", exact: true,
     })).toContainText("2026-01-01 to 2027-01-01");
     await expect(upcomingCsvButton).toBeEnabled();
-    const localUpcomingPending = page.waitForEvent("download");
-    await upcomingCsvButton.click();
-    const localUpcomingExport = await localUpcomingPending;
-    const localUpcomingCsv = (await readFile((await localUpcomingExport.path())!))
-      .toString("utf8");
-    expect(localUpcomingCsv.trimEnd().split("\r\n")).toHaveLength(5);
-    expect(localUpcomingCsv).toContain('"Local hourly rate"');
-    expect(localUpcomingCsv).not.toContain('"Outer-area hourly rate"');
     await expect(upcoming.getByRole("article", {
       name: "Upcoming ends for Local hourly rate", exact: true,
     })).toBeVisible();
@@ -386,6 +398,7 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Download active service rates CSV", exact: true,
     })).toBeDisabled();
     await rateDate.fill("");
+    await expect(continuityCsvButton).toBeDisabled();
     await expect(continuity).toContainText(
       "Choose a rate date above to review saved-rate continuity.",
     );
