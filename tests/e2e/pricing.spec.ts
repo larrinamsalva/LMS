@@ -94,6 +94,12 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const upcoming = page.getByRole("region", {
       name: "Upcoming rate dates", exact: true,
     });
+    const continuity = page.getByRole("region", {
+      name: "Rate continuity review", exact: true,
+    });
+    await expect(continuity).toContainText(
+      "Choose a rate date above to review saved-rate continuity.",
+    );
     const upcomingWindow = page.getByLabel("Review upcoming period", {
       exact: true,
     });
@@ -133,6 +139,12 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(upcomingCsvButton).toBeDisabled();
     await upcomingWindow.selectOption("90");
     await expect(upcoming).toContainText("5 upcoming rate date events");
+    await expect(continuity).toContainText(
+      "5 without next-day saved-rate coverage",
+    );
+    await expect(continuity.getByRole("article", {
+      name: "Continuity review for Local hourly rate", exact: true,
+    })).toContainText("No later saved rate found.");
     await expect(upcomingCsvButton).toBeEnabled();
     const upcomingPending = page.waitForEvent("download");
     await upcomingCsvButton.click();
@@ -155,6 +167,9 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await upcomingWindow.selectOption("30");
     await expect(upcoming).toContainText(
       "No saved active-rate start or end dates in this period.",
+    );
+    await expect(continuity).toContainText(
+      "0 without next-day saved-rate coverage",
     );
     await expect(upcomingCsvButton).toBeDisabled();
     await expect(allAreas).toContainText(
@@ -232,6 +247,12 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await areaFilter.selectOption({ label: "Local service area" });
     await rateDate.fill("2026-12-15");
     await expect(upcoming).toContainText("4 upcoming rate date events");
+    await expect(continuity).toContainText(
+      "4 without next-day saved-rate coverage",
+    );
+    await expect(continuity.getByRole("article", {
+      name: "Continuity review for Outer-area hourly rate", exact: true,
+    })).toHaveCount(0);
     await expect(upcomingCsvButton).toBeEnabled();
     const localUpcomingPending = page.waitForEvent("download");
     await upcomingCsvButton.click();
@@ -312,6 +333,9 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Download active service rates CSV", exact: true,
     })).toBeDisabled();
     await rateDate.fill("");
+    await expect(continuity).toContainText(
+      "Choose a rate date above to review saved-rate continuity.",
+    );
     await expect(upcomingCsvButton).toBeDisabled();
     await expect(allAreaCsvButton).toBeDisabled();
     await expect(allAreaMissingButton).toBeDisabled();
