@@ -40,9 +40,9 @@ it("exports uncovered rate ends, delayed successors and manually reviewed links"
   const lines = csv.trimEnd().split("\r\n");
   expect(lines).toHaveLength(4);
   expect(lines[0]).toContain('"Operator decision (fill manually)"');
-  expect(lines[1]).toContain('"delayed","Window washing","Local area","2027-01-01","Uncovered","2027-01-05","4"');
-  expect(lines[2]).toContain('"never","Cleaning","Outer area","2027-01-01","Uncovered","",""');
-  expect(lines[3]).toContain('"retired-link","Cleaning","Former area","2027-01-01","Review links","",""');
+  expect(lines[1]).toContain('"retired-link","Cleaning","Former area","2027-01-01","Review links","",""');
+  expect(lines[2]).toContain('"delayed","Window washing","Local area","2027-01-01","Uncovered","2027-01-05","4"');
+  expect(lines[3]).toContain('"never","Cleaning","Outer area","2027-01-01","Uncovered","",""');
   expect(csv).not.toContain('"covered"');
   expect(csv).not.toContain('"immediate"');
   expect(csv).not.toContain('"foreign-successor"');
