@@ -1366,3 +1366,27 @@ action summary and underlying saved pricing remain unchanged.
 This does not update estimates, invoices, notifications,
 permissions, historical records, or customer details.
 The public fictional demo and MIT license are preserved.
+
+### Bulk actions on visible continuity warnings (PR #104)
+
+The selected-warning checklist now offers **Select all visible warnings**
+and **Deselect visible warnings**, beside the original **Clear selected
+warnings** action. "Visible" means the warnings matching the CURRENT
+warning-type and text-search filters, regardless of sort order. These
+bulk actions are disabled when there are no visible warnings or nothing
+would change. Hidden selections are preserved when adding/removing only
+visible results; Clear selected warnings still clears all selections,
+including those hidden by filters.
+
+Every bulk action intersects both the incoming visible IDs and the
+previous selected IDs with the current authorized review, returning
+only its original, duplicate-free warning order. A change to
+organization, review date, service area or 7/30/90-day window still
+clears all ephemeral selections. CSV export continues to recompute
+the authorized review and apply its independent selected-only,
+formula-safe rendering: bulk selection grants no new data permissions.
+
+No service rates, estimates, invoices, customer records, permissions,
+notification systems, storage or schema are modified. The fictional
+public demo and MIT licensing are unchanged; no deployment or
+production finance workflow is authorized.
