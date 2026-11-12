@@ -53,6 +53,13 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const rateDate = page.getByLabel("Rates covering date (optional)", {
       exact: true,
     });
+    const allAreas = page.getByRole("region", {
+      name: "All-area rate coverage", exact: true,
+    });
+    const allAreaCsvButton = allAreas.getByRole("button", {
+      name: "Download all-area rate coverage CSV", exact: true,
+    });
+    await expect(allAreaCsvButton).toBeDisabled();
     await rateDate.fill("2025-11-06");
     await expect(page.getByRole("article", {
       name: "Rate Local hourly rate", exact: true,
@@ -65,6 +72,29 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Download active service rates CSV", exact: true,
     })).toBeDisabled();
     await rateDate.fill("2026-11-06");
+    await expect(allAreas).toContainText(
+      "3 missing-rate candidates across 2 active service areas",
+    );
+    await expect(allAreas.getByRole("article", {
+      name: "Coverage for Outer service area", exact: true,
+    })).toContainText("3 missing-rate candidates");
+    await expect(allAreas.getByRole("article", {
+      name: "Coverage for Local service area", exact: true,
+    })).toContainText("0 missing-rate candidates");
+    await expect(allAreaCsvButton).toBeEnabled();
+    const overviewPending = page.waitForEvent("download");
+    await allAreaCsvButton.click();
+    const overviewDownload = await overviewPending;
+    expect(overviewDownload.suggestedFilename()).toBe(
+      "lms-all-area-rate-coverage.csv",
+    );
+    const overviewCsv = (await readFile((await overviewDownload.path())!))
+      .toString("utf8");
+    expect(overviewCsv.trimEnd().split("\r\n")).toHaveLength(3);
+    expect(overviewCsv).toContain('"Outer service area","2026-11-06","4","1","3"');
+    expect(overviewCsv).toContain('"Local service area","2026-11-06","4","4","0"');
+    expect(overviewCsv).not.toContain(customer);
+    expect(overviewCsv).not.toContain(work);
     await expect(page.getByRole("article", {
       name: "Rate Local hourly rate", exact: true,
     })).toBeVisible();
@@ -90,6 +120,15 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(audit).toContainText(
       "Choose a service area and a rate date above to audit coverage.",
     );
+    await allAreas.getByRole("button", {
+      name: "Review missing rates in Outer service area", exact: true,
+    }).click();
+    await expect(audit).toContainText("3 missing rate candidates.");
+    const outerOptionValue = await areaFilter
+      .locator("option", { hasText: "Outer service area" })
+      .getAttribute("value");
+    expect(outerOptionValue).toBeTruthy();
+    await expect(areaFilter).toHaveValue(outerOptionValue!);
     await areaFilter.selectOption({ label: "Local service area" });
     await expect(audit).toContainText("0 missing rate candidates.");
     await expect(missingRateDownload).toBeDisabled();
@@ -155,6 +194,7 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Download active service rates CSV", exact: true,
     })).toBeDisabled();
     await rateDate.fill("");
+    await expect(allAreaCsvButton).toBeDisabled();
     await expect(missingRateDownload).toBeDisabled();
     await expect(audit).toContainText(
       "Choose a service area and a rate date above to audit coverage.",
