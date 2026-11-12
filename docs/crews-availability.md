@@ -56,3 +56,25 @@ Fresh fictional demo: `npm ci`, `npm run dev`. Native local setup uses the exist
 Run `npm run check`, `npm run test:e2e`, and the documented disposable native `npm run test:postgres` setup. Native prerequisites are required; tests never silently skip. [Verification evidence](crews-availability-verification.md) distinguishes actual local and CI results.
 
 One appointment still selects **one resource**. Multi-person crews reserve their entire stable roster; multiple independent resources, split shifts, recurring work-hour templates, staffing subsets, travel/buffers, skill certification and capacity planning are later phases. Limits remain 250 records/workspace and 40 configuration revisions. Employee profiles are not real-user accounts. Payroll, timesheets, recurring schedules, external calendars, notifications and AI optimization are deferred. Service rates/estimates, inventory movements and BuildPlan Studio follow this foundation; production access and recovery acceptance remain separate security gates.
+
+## Employee directory search and status (PR #107)
+
+The **Crews & availability** employee directory has a read-only
+**Search employee directory** box for name, descriptive work role and
+skills, plus an **Active / Inactive** status filter. Search ignores case
+and surrounding whitespace. The result count makes empty/matching
+views clear; **Clear employee filters** restores the full employee list
+for the current archived/current view. Existing **Show archived workforce
+records** still controls whether current or archived employee cards
+are presented; search and status filters apply within that choice.
+Resource memberships, booking eligibility, availability periods and
+retained assignment history are never filtered or modified by this UI.
+
+Only already-authorized workspace records are searched. Contact email,
+phone, internal IDs and other private fields cannot be searched by
+these controls. The filters are ephemeral presentation state: they
+do not affect record exports, auth, permissions, employee statuses,
+crews, bookings, persistence or organization scope. Work roles and
+skills remain descriptive, not certifications or authorization roles.
+The fictional public no-login demo, MIT license and production
+acceptance boundaries are unchanged.
