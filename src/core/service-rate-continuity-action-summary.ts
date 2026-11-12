@@ -1,4 +1,8 @@
-import type { RateContinuityReview } from "./service-rate-continuity";
+import type {
+  RateContinuityReview,
+  RateContinuityReviewItem,
+} from "./service-rate-continuity";
+import { selectedContinuityReviewIssues } from "./service-rate-continuity-selection";
 
 export type ContinuityActionSummary =
   | { status: "unavailable" }
@@ -23,6 +27,28 @@ export function summarizeContinuityActions(
   review: RateContinuityReview,
 ): ContinuityActionSummary {
   if (review.status !== "ready") return { status: "unavailable" };
+  return summarizeContinuityIssues(review.issues);
+}
+
+/**
+ * Preview the follow-up categories for ONLY explicit, CURRENT authorized
+ * selected warnings, including selected cards hidden by presentation filters.
+ * Reuses the same classifications as the full summary and never leaks IDs,
+ * titles, saved amounts or other-organization records.
+ */
+export function summarizeSelectedContinuityActions(
+  review: RateContinuityReview,
+  selectedRateIds: readonly string[],
+): ContinuityActionSummary {
+  if (review.status !== "ready") return { status: "unavailable" };
+  return summarizeContinuityIssues(
+    selectedContinuityReviewIssues(review, selectedRateIds),
+  );
+}
+
+function summarizeContinuityIssues(
+  issues: readonly RateContinuityReviewItem[],
+): ContinuityActionSummary {
   let withoutLaterRate = 0;
   let delayedReplacement = 0;
   let reviewLinks = 0;
@@ -30,7 +56,7 @@ export function summarizeContinuityActions(
   let firstDelayedEnd: string | null = null;
   let firstReviewLinksEnd: string | null = null;
 
-  for (const issue of review.issues) {
+  for (const issue of issues) {
     if (issue.status === "Review links") {
       reviewLinks += 1;
       if (firstReviewLinksEnd === null || issue.endDate < firstReviewLinksEnd)
