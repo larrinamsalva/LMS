@@ -12,6 +12,11 @@ import {
   filterAvailabilityPeriods,
   type AvailabilityPeriodTypeFilter,
 } from "../core/workforce-availability-filter";
+import {
+  filterWorkforceResourceDirectory,
+  type WorkforceResourceTypeFilter,
+  type WorkforceResourceEnrollmentFilter,
+} from "../core/workforce-resource-directory";
 
 export function Workforce({
   records,
@@ -46,6 +51,11 @@ export function Workforce({
   });
   const [history, setHistory] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const [resourceSearch, setResourceSearch] = useState("");
+  const [resourceType, setResourceType] =
+    useState<WorkforceResourceTypeFilter>("all");
+  const [resourceEnrollment, setResourceEnrollment] =
+    useState<WorkforceResourceEnrollmentFilter>("all");
   const [availabilitySearch, setAvailabilitySearch] = useState("");
   const [availabilityKind, setAvailabilityKind] =
     useState<AvailabilityPeriodTypeFilter>("all");
@@ -57,6 +67,15 @@ export function Workforce({
   );
   const employeeFiltersActive = employeeSearch.trim().length > 0 ||
     employeeStatus !== "all";
+  const currentResources = filterWorkforceResourceDirectory(
+    resources, memberships, history, "", "all", "all",
+  );
+  const displayedResources = filterWorkforceResourceDirectory(
+    resources, memberships, history, resourceSearch, resourceType,
+    resourceEnrollment,
+  );
+  const resourceFiltersActive = resourceSearch.trim().length > 0 ||
+    resourceType !== "all" || resourceEnrollment !== "all";
   const range = (r: WorkspaceRecord) =>
     `${displayTime(String(r.data.start), String(r.data.time_zone ?? zone))} → ${displayTime(String(r.data.end), String(r.data.time_zone ?? zone))}`;
   let visible: WorkspaceRecord[] = [];
@@ -215,10 +234,64 @@ export function Workforce({
           appointment. Enrollment persists after membership archive. Cancel or
           archive reserved work before changing its roster.
         </p>
+        <div className="schedule-toolbar">
+          <div>
+            <label htmlFor="resource-directory-search">Search resource directory</label>
+            <input
+              id="resource-directory-search"
+              type="search"
+              placeholder="Crew, worker or equipment name"
+              value={resourceSearch}
+              onChange={(event) => setResourceSearch(event.target.value)}
+            />
+          </div>
+          <div>
+            <label htmlFor="resource-directory-type">Filter resource type</label>
+            <select id="resource-directory-type" value={resourceType}
+              onChange={(event) =>
+                setResourceType(event.target.value as WorkforceResourceTypeFilter)}>
+              <option value="all">All resource types</option>
+              <option value="Crew">Crew</option>
+              <option value="Worker">Worker</option>
+              <option value="Equipment">Equipment</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="resource-directory-enrollment">
+              Filter employee enrollment
+            </label>
+            <select id="resource-directory-enrollment" value={resourceEnrollment}
+              onChange={(event) =>
+                setResourceEnrollment(
+                  event.target.value as WorkforceResourceEnrollmentFilter,
+                )}>
+              <option value="all">All enrollment types</option>
+              <option value="enrolled">Enrolled workers/crews</option>
+              <option value="resource-only">Resource-only workers/crews</option>
+            </select>
+          </div>
+          {resourceFiltersActive && (
+            <button type="button" className="secondary" onClick={() => {
+              setResourceSearch("");
+              setResourceType("all");
+              setResourceEnrollment("all");
+            }}>
+              Clear resource filters
+            </button>
+          )}
+        </div>
+        <p role="status" aria-live="polite">
+          Showing {displayedResources.length} of {currentResources.length}
+          {" "}{history ? "archived" : "current"} resources.
+        </p>
+        <p className="muted">
+          Enrollment means a Worker or Crew has retained membership history,
+          even when its last membership is archived. Equipment has no employee
+          enrollment and appears only with All enrollment types.
+          These filters do not determine booking eligibility.
+        </p>
         <div className="workforce-grid">
-          {resources
-            .filter((r) => r.archived === history)
-            .map((r) => {
+          {displayedResources.map((r) => {
               const rows = memberships.filter((m) => m.data.resource === r.id);
               return (
                 <article
@@ -254,6 +327,13 @@ export function Workforce({
               );
             })}
         </div>
+        {displayedResources.length === 0 && (
+          <p className="empty-state">
+            {currentResources.length === 0
+              ? "No resources in this view."
+              : "No resources match these filters."}
+          </p>
+        )}
       </section>
       <section className="panel" aria-labelledby="availability-heading">
         <div className="section-heading">

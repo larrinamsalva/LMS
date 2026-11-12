@@ -210,6 +210,40 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(
       page.getByRole("heading", { name: resource, exact: true }),
     ).toBeVisible();
+    await directory(page);
+    const resourceSearch = page.getByLabel(
+      "Search resource directory", { exact: true },
+    );
+    const resourceType = page.getByLabel(
+      "Filter resource type", { exact: true },
+    );
+    const resourceEnrollment = page.getByLabel(
+      "Filter employee enrollment", { exact: true },
+    );
+    const resourceCard = page.getByRole("article", {
+      name: "Resource " + resource, exact: true,
+    });
+    await resourceSearch.fill(resource.toUpperCase());
+    await expect(resourceCard).toBeVisible();
+    await resourceType.selectOption(industry === "cleaning" ? "Worker" : "Crew");
+    await expect(resourceCard).toHaveCount(0);
+    await resourceType.selectOption(industry === "cleaning" ? "Crew" : "Worker");
+    await expect(resourceCard).toBeVisible();
+    await resourceEnrollment.selectOption("enrolled");
+    await expect(resourceCard).toHaveCount(0);
+    await resourceEnrollment.selectOption("resource-only");
+    await expect(resourceCard).toBeVisible();
+    await resourceSearch.fill("no-such-resource");
+    await expect(page.getByText(
+      "No resources match these filters.", { exact: true },
+    )).toBeVisible();
+    await page.getByRole("button", {
+      name: "Clear resource filters", exact: true,
+    }).click();
+    await expect(resourceSearch).toHaveValue("");
+    await expect(resourceType).toHaveValue("all");
+    await expect(resourceEnrollment).toHaveValue("all");
+    await expect(resourceCard).toBeVisible();
     for (const name of people) {
       await directory(page);
       await page
@@ -235,6 +269,18 @@ test("fictional crews and workers publish availability, schedule both industries
       ).toBeVisible();
     }
     await directory(page);
+    await resourceSearch.fill(resource);
+    await resourceEnrollment.selectOption("enrolled");
+    await expect(resourceCard).toBeVisible();
+    await expect(resourceCard).toContainText(
+      "Enrolled — employee reservations required",
+    );
+    await resourceEnrollment.selectOption("resource-only");
+    await expect(resourceCard).toHaveCount(0);
+    await page.getByRole("button", {
+      name: "Clear resource filters", exact: true,
+    }).click();
+    await expect(resourceCard).toBeVisible();
     await page
       .getByLabel("Availability date", { exact: true })
       .fill("2026-11-06");
