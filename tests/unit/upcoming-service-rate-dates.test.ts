@@ -1,6 +1,9 @@
 import { expect, it } from "vitest";
 import type { WorkspaceRecord } from "../../src/core/engine";
-import { upcomingServiceRateDates } from "../../src/core/upcoming-service-rate-dates";
+import {
+  nextUpcomingRateChangeDate,
+  upcomingServiceRateDates,
+} from "../../src/core/upcoming-service-rate-dates";
 
 const org = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const foreign = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -124,5 +127,67 @@ it("marks archived or unavailable links without exposing foreign linked names", 
     expect(unavailable.serviceName).toBe("Retained service link");
     expect(JSON.stringify(result)).not.toContain("Private competitor");
     expect(JSON.stringify(result)).not.toContain("Private customer");
+  }
+});
+
+
+it("chooses only the earliest upcoming boundary from an authorized area/window review", () => {
+  const records = [
+    rec("local", "pricing-zones", { name: "Local" }),
+    rec("outer", "pricing-zones", { name: "Outer" }),
+    rec("service", "services", { name: "Cleaning" }),
+    rec("local-now", "service-rates", {
+      title: "Current local", service: "service", zone: "local",
+      effective_from: "2026-01-01", effective_until: "2027-01-01",
+    }),
+    rec("local-next", "service-rates", {
+      title: "Next local", service: "service", zone: "local",
+      effective_from: "2027-01-01",
+    }),
+    rec("outer-first", "service-rates", {
+      title: "Next outer", service: "service", zone: "outer",
+      effective_from: "2026-12-20",
+    }),
+    rec("other-org", "service-rates", {
+      title: "Private", service: "service", zone: "local",
+      effective_from: "2026-12-16",
+    }, false, foreign),
+    rec("archived", "service-rates", {
+      title: "Archived", service: "service", zone: "local",
+      effective_from: "2026-12-17",
+    }, true),
+  ];
+  const before = structuredClone(records);
+  const all = upcomingServiceRateDates(records, org, "2026-12-15", "", 30);
+  expect(nextUpcomingRateChangeDate(all)).toBe("2026-12-20");
+  const local = upcomingServiceRateDates(records, org, "2026-12-15", "local", 30);
+  expect(nextUpcomingRateChangeDate(local)).toBe("2027-01-01");
+  const seven = upcomingServiceRateDates(records, org, "2026-12-15", "local", 7);
+  expect(nextUpcomingRateChangeDate(seven)).toBeNull();
+  expect(nextUpcomingRateChangeDate(
+    upcomingServiceRateDates(records, org, "", "local", 30),
+  )).toBeNull();
+  expect(nextUpcomingRateChangeDate(
+    upcomingServiceRateDates(records, org, "2026-02-30", "local", 30),
+  )).toBeNull();
+  expect(nextUpcomingRateChangeDate(
+    upcomingServiceRateDates(records, org, "2026-12-15", "foreign-area", 30),
+  )).toBeNull();
+  expect(records).toEqual(before);
+});
+
+it("allows manual review of an archived linked rate without treating it as live pricing", () => {
+  const records = [
+    rec("former-area", "pricing-zones", { name: "Former area" }, true),
+    rec("service", "services", { name: "Service" }),
+    rec("linked", "service-rates", {
+      title: "Linked archived area", service: "service", zone: "former-area",
+      effective_from: "2027-01-01",
+    }),
+  ];
+  const audit = upcomingServiceRateDates(records, org, "2026-12-15", "", 30);
+  expect(nextUpcomingRateChangeDate(audit)).toBe("2027-01-01");
+  if (audit.status === "ready") {
+    expect(audit.events[0].linkStatus).toBe("Archived link");
   }
 });

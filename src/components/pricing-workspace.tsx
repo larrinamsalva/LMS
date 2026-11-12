@@ -17,7 +17,11 @@ import {
   allAreaRateCoverage, allAreaRateCoverageCsv, allAreaMissingRateReviewCsv,
 } from "../core/service-rate-coverage-overview";
 import { filterPricingCatalogCards } from "../core/pricing-catalog-search";
-import { upcomingServiceRateDates, type RateDateWindow } from "../core/upcoming-service-rate-dates";
+import {
+  upcomingServiceRateDates,
+  nextUpcomingRateChangeDate,
+  type RateDateWindow,
+} from "../core/upcoming-service-rate-dates";
 import { upcomingServiceRateDatesCsv } from "../core/upcoming-service-rate-dates-csv";
 import { reviewServiceRateContinuity } from "../core/service-rate-continuity";
 import { investigateRateContinuityGap } from "../core/service-rate-continuity-investigation";
@@ -76,6 +80,7 @@ export function Catalog({
   const upcomingDates = upcomingServiceRateDates(
     records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
   );
+  const nextRateReviewDate = nextUpcomingRateChangeDate(upcomingDates);
   const continuity = reviewServiceRateContinuity(
     records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
   );
@@ -449,6 +454,16 @@ export function Catalog({
             <button
               type="button"
               className="secondary"
+              disabled={!nextRateReviewDate}
+              onClick={() => {
+                if (nextRateReviewDate) changeRateReviewDate(nextRateReviewDate);
+              }}
+            >
+              Review next saved-rate date
+            </button>
+            <button
+              type="button"
+              className="secondary"
               disabled={upcomingDates.status !== "ready" ||
                 upcomingDates.events.length === 0}
               onClick={downloadUpcomingRateDates}
@@ -466,7 +481,14 @@ export function Catalog({
           approve quotes, create reminders or notify anyone.
           The optional CSV has blank decision and notes columns for
           review, without private customer details or rate amounts.
+          Review next saved-rate date moves the selected review date
+          to the earliest saved start or exclusive end boundary within
+          the chosen area and lookahead period. This is a manual
+          date selection, not approval or application of a rate.
         </p>
+        {nextRateReviewDate && (
+          <p>Next saved-rate review date: <strong>{nextRateReviewDate}</strong>.</p>
+        )}
         {upcomingDates.status === "choose" && (
           <p>Choose a rate date above to review upcoming saved-rate dates.</p>
         )}
