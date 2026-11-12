@@ -96,3 +96,29 @@ it("exports empty active-area summaries with header only and guards formula-like
   expect(allAreaRateCoverageCsv(injected, org, "2026-11-06"))
     .toContain("\"'=FAKE()\"");
 });
+
+it("keeps an empty active service catalog at zero gaps in every authorized area", () => {
+  const records = [
+    rec("b", "pricing-zones", { name: "B area" }),
+    rec("a", "pricing-zones", { name: "A area" }),
+    rec("private", "pricing-zones", { name: "Confidential area" }, false, foreign),
+    rec("archived-service", "services", { name: "Retired service" }, true),
+    rec("foreign-service", "services", { name: "Other business service" }, false, foreign),
+  ];
+  const report = allAreaRateCoverage(records, org, "2026-11-06");
+  expect(report).toEqual({
+    status: "ready",
+    date: "2026-11-06",
+    missingCandidateTotal: 0,
+    areas: [
+      { areaId: "a", areaName: "A area", totalActiveServices: 0,
+        coveredServices: 0, missingCandidates: 0 },
+      { areaId: "b", areaName: "B area", totalActiveServices: 0,
+        coveredServices: 0, missingCandidates: 0 },
+    ],
+  });
+  const csv = allAreaRateCoverageCsv(records, org, "2026-11-06");
+  expect(csv).not.toContain("Confidential");
+  expect(csv).not.toContain("Other business service");
+  expect(csv.trimEnd().split("\r\n")).toHaveLength(3);
+});
