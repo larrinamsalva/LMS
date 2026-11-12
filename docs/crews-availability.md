@@ -189,3 +189,34 @@ already-authorized snapshots, not employee availability, schedule
 eligibility, roster definitions, permissions, session scope,
 recovery, hosting or financial records. The fictional no-login
 demo and MIT license remain unchanged.
+
+## Filter retained assignments by local scheduled start date (PR #112)
+
+**Assignment history → Assignment start from / Assignment start
+through** add optional, inclusive date bounds. A single endpoint is
+open-ended; entering both limits selects only retained allocations
+whose **saved appointment start instant** falls on a business-local
+calendar day inside that range. For example, a job starting late in
+the evening Pacific time remains on its Pacific calendar date even
+if UTC has already moved to the following day. DST transitions and
+leap days use the existing timezone-aware calendar conversion.
+
+These dates are **not** the date a booking was created, an employee
+was assigned, a reservation was released, or a record was audited.
+They are independent of the **Availability date** shown above the
+history section and do not affect booking eligibility or recorded
+availability windows. The range combines with PR #111's Reserved /
+Released status and employee/appointment search, then shows the
+first 10 matches with existing incremental paging. Changing either
+bound resets paging to the first 10. **Clear assignment filters**
+clears both dates as well as text and status filters.
+
+If an entered bound is not a real, complete ISO calendar date, or
+From is after Through, the UI reports an explicit error and shows no
+filtered matches until corrected. The total retained-history counts
+remain independent of date, text, status and paging. Missing or
+unparseable saved start instants are never assigned guessed dates.
+This is a presentation-only view on the already-authorized history;
+it never changes assignment records, scheduling decisions, exports,
+access roles, organizational scope or release/recovery state.
+MIT licensing and the fictional no-login demo are unchanged.
