@@ -59,7 +59,11 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const allAreaCsvButton = allAreas.getByRole("button", {
       name: "Download all-area rate coverage CSV", exact: true,
     });
+    const allAreaMissingButton = allAreas.getByRole("button", {
+      name: "Download all-area missing-rate review CSV", exact: true,
+    });
     await expect(allAreaCsvButton).toBeDisabled();
+    await expect(allAreaMissingButton).toBeDisabled();
     await rateDate.fill("2025-11-06");
     await expect(page.getByRole("article", {
       name: "Rate Local hourly rate", exact: true,
@@ -82,6 +86,21 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Coverage for Local service area", exact: true,
     })).toContainText("0 missing-rate candidates");
     await expect(allAreaCsvButton).toBeEnabled();
+    await expect(allAreaMissingButton).toBeEnabled();
+    const allMissingPending = page.waitForEvent("download");
+    await allAreaMissingButton.click();
+    const allMissingDownload = await allMissingPending;
+    expect(allMissingDownload.suggestedFilename()).toBe(
+      "lms-all-area-missing-rates-review.csv",
+    );
+    const allMissingCsv = (await readFile((await allMissingDownload.path())!))
+      .toString("utf8");
+    expect(allMissingCsv.trimEnd().split("\r\n")).toHaveLength(4);
+    expect(allMissingCsv).toContain('"Outer service area"');
+    expect(allMissingCsv).toContain('"Operator decision (fill manually)"');
+    expect(allMissingCsv).not.toContain('"Local service area","2026-11-06"');
+    expect(allMissingCsv).not.toContain(customer);
+    expect(allMissingCsv).not.toContain(work);
     const overviewPending = page.waitForEvent("download");
     await allAreaCsvButton.click();
     const overviewDownload = await overviewPending;
@@ -195,6 +214,7 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     })).toBeDisabled();
     await rateDate.fill("");
     await expect(allAreaCsvButton).toBeDisabled();
+    await expect(allAreaMissingButton).toBeDisabled();
     await expect(missingRateDownload).toBeDisabled();
     await expect(audit).toContainText(
       "Choose a service area and a rate date above to audit coverage.",

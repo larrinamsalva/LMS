@@ -13,7 +13,9 @@ import { relatedLabel } from "./schedule";
 import { serviceRateCardCsv, serviceRateCardRows, rateCoversDate, rateMatchesArea } from "../core/service-rate-card-csv";
 import { rateCoverageAudit } from "../core/service-rate-coverage";
 import { serviceRateCoverageReviewCsv } from "../core/service-rate-coverage-csv";
-import { allAreaRateCoverage, allAreaRateCoverageCsv } from "../core/service-rate-coverage-overview";
+import {
+  allAreaRateCoverage, allAreaRateCoverageCsv, allAreaMissingRateReviewCsv,
+} from "../core/service-rate-coverage-overview";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -53,6 +55,18 @@ export function Catalog({
     records, organizationId, selectedAreaId, asOfDate,
   );
   const areaOverview = allAreaRateCoverage(records, organizationId, asOfDate);
+  function downloadAllAreaMissingRates() {
+    if (areaOverview.status !== "ready" ||
+        areaOverview.missingCandidateTotal === 0) return;
+    const csv = allAreaMissingRateReviewCsv(records, organizationId, asOfDate);
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-all-area-missing-rates-review.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
   function downloadAreaOverview() {
     if (areaOverview.status !== "ready" || areaOverview.areas.length === 0) return;
     const csv = allAreaRateCoverageCsv(records, organizationId, asOfDate);
@@ -342,20 +356,34 @@ export function Catalog({
       <section className="panel" aria-labelledby="all-area-rate-coverage-heading">
         <div className="section-heading">
           <h2 id="all-area-rate-coverage-heading">All-area rate coverage</h2>
-          <button
-            className="secondary"
-            type="button"
-            disabled={areaOverview.status !== "ready" || areaOverview.areas.length === 0}
-            onClick={downloadAreaOverview}
-          >
-            Download all-area rate coverage CSV
-          </button>
+          <div className="actions">
+            <button
+              className="secondary"
+              type="button"
+              disabled={areaOverview.status !== "ready" || areaOverview.areas.length === 0}
+              onClick={downloadAreaOverview}
+            >
+              Download all-area rate coverage CSV
+            </button>
+            <button
+              className="secondary"
+              type="button"
+              disabled={areaOverview.status !== "ready" ||
+                areaOverview.missingCandidateTotal === 0}
+              onClick={downloadAllAreaMissingRates}
+            >
+              Download all-area missing-rate review CSV
+            </button>
+          </div>
         </div>
         <p className="muted">
           See missing saved-rate candidates across every active service area
           for the selected date above. Each count is a service/area pair,
           not a unique service or a requirement to offer that service.
-          Archived areas are excluded. This is a read-only planning view.
+          Archived areas are excluded. The missing-rate review CSV
+          lists each uncovered area/service pair with blank decision
+          and notes columns. Neither download creates rates or offers
+          services automatically. This is a read-only planning view.
         </p>
         {areaOverview.status === "choose" && (
           <p>Choose a rate date above to review all active service areas.</p>
