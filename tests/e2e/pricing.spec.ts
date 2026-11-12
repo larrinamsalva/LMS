@@ -122,6 +122,10 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const continuityCsvButton = continuity.getByRole("button", {
       name: "Download rate continuity review CSV", exact: true,
     });
+    const actionSummary = continuity.getByRole("group", {
+      name: "Rate continuity action summary", exact: true,
+    });
+    await expect(actionSummary).toHaveCount(0);
     const warningType = continuity.getByLabel(
       "Filter continuity warning type", { exact: true },
     );
@@ -215,6 +219,10 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(continuity).toContainText(
       "5 without next-day saved-rate coverage",
     );
+    await expect(actionSummary).toBeVisible();
+    await expect(actionSummary).toContainText("No later saved rate");
+    await expect(actionSummary).toContainText("Later saved rate starts after end");
+    await expect(actionSummary).toContainText("Linked catalog records to review");
     await warningSort.selectOption("area-desc");
     await expect(continuity.getByRole("article", {
       name: /^Continuity review for /,
@@ -224,6 +232,7 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await warningSort.selectOption("soonest");
     await expect(warningSort).toHaveValue("soonest");
     await warningType.selectOption("review-links");
+    await expect(actionSummary).toContainText("No later saved rate");
     await expect(continuity).toContainText("Showing 0 of 5 continuity warnings.");
     await expect(continuity).toContainText(
       "No continuity warnings match these review filters.",
@@ -498,6 +507,7 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Download active service rates CSV", exact: true,
     })).toBeDisabled();
     await rateDate.fill("");
+    await expect(actionSummary).toHaveCount(0);
     await expect(continuityCsvButton).toBeDisabled();
     await expect(continuity).toContainText(
       "Choose a rate date above to review saved-rate continuity.",
