@@ -1250,3 +1250,33 @@ a quote, an invoice, a calendar booking, a notification
 or an automatic pricing approval. Existing audit counts,
 history, CSV exports, no-login fictional demo, MIT license
 and organization isolation are preserved.
+
+
+### Continuity action summary for quicker pricing follow-up (PR #100)
+
+The **Rate continuity review** panel now shows a read-only
+three-part action summary for the current authorized organization,
+date, area and 7/30/90-day period. It distinguishes:
+(1) uncovered rates with **no later active saved rate** recorded,
+(2) uncovered rates whose next saved rate **starts after** the
+exclusive end date (a known uncovered period), and
+(3) endings with archived or unavailable service/area links that
+must be checked manually before considering rate replacement.
+Each group shows its issue count and, when present, earliest
+exclusive end date. An empty group displays zero without
+fabricating an event date.
+
+The action summary is derived only from the same live
+organization-scoped continuity warning review used for the existing
+warning counts and CSV checklist. Display-only search, warning-type
+filters and sorting do not distort it. Invalid or unselected
+review dates or areas produce no summary. A missing later start
+does not imply zero uncovered days, and a future start is not
+approved next-day coverage. The summary contains no raw record
+IDs, customer details, amounts or foreign catalog names.
+
+This is a navigation/planning aid only and never creates or
+applies saved prices, reminders, estimates, invoices, notifications,
+sessions or rate extensions. The existing downloadable checklist,
+public no-login fictional demo, MIT license and organization
+isolation are preserved.

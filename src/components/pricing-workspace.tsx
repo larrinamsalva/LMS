@@ -25,6 +25,7 @@ import {
 } from "../core/upcoming-service-rate-dates";
 import { upcomingServiceRateDatesCsv } from "../core/upcoming-service-rate-dates-csv";
 import { reviewServiceRateContinuity } from "../core/service-rate-continuity";
+import { summarizeContinuityActions } from "../core/service-rate-continuity-action-summary";
 import { investigateRateContinuityGap } from "../core/service-rate-continuity-investigation";
 import { rateGapAuditTarget } from "../core/service-rate-gap-audit-target";
 import { localCalendarDate } from "../core/local-calendar-date";
@@ -95,6 +96,7 @@ export function Catalog({
   const continuity = reviewServiceRateContinuity(
     records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
   );
+  const continuityActions = summarizeContinuityActions(continuity);
   const visibleContinuityIssues = continuity.status === "ready"
     ? filterContinuityWarnings(
       continuity.issues, continuityWarningType, continuityWarningSearch,
@@ -622,8 +624,11 @@ export function Catalog({
           and area without editing any record.
           Download a formula-safe checklist with blank decision and notes
           columns; exports contain no prices, customers or record IDs.
-          Search, warning-type filters and sorting only change the cards
-          shown below; counts and downloaded checklists cover the complete
+          The action summary separates missing later rates, known
+          delayed starts and catalog links needing review, without
+          suggesting any rate is automatically approved. Search, warning-
+          type filters and sorting only change the warning cards;
+          counts and downloaded checklists cover the complete
           selected date, area and review period.
         </p>
         <div className="actions">
@@ -687,6 +692,41 @@ export function Catalog({
               <strong>{continuity.uncoveredCount} without next-day saved-rate coverage</strong>
               {" "}and {continuity.linkedReviewCount} requiring linked-record review.
             </p>
+            {continuityActions.status === "ready" && (
+              <div role="group" aria-label="Rate continuity action summary"
+                className="workforce-grid">
+                <div className="workforce-card">
+                  <h3>No later saved rate</h3>
+                  <p><strong>{continuityActions.withoutLaterRate}</strong>
+                    {" "}ending rates with no later active saved rate recorded.
+                  </p>
+                  {continuityActions.firstWithoutLaterEnd && (
+                    <p>Earliest exclusive end:{" "}
+                      {continuityActions.firstWithoutLaterEnd}</p>
+                  )}
+                </div>
+                <div className="workforce-card">
+                  <h3>Later saved rate starts after end</h3>
+                  <p><strong>{continuityActions.delayedReplacement}</strong>
+                    {" "}ending rates with a known uncovered period before
+                    a later saved rate starts.
+                  </p>
+                  {continuityActions.firstDelayedEnd && (
+                    <p>Earliest exclusive end: {continuityActions.firstDelayedEnd}</p>
+                  )}
+                </div>
+                <div className="workforce-card">
+                  <h3>Linked catalog records to review</h3>
+                  <p><strong>{continuityActions.reviewLinks}</strong>
+                    {" "}ending rates whose service or area links need
+                    manual confirmation.
+                  </p>
+                  {continuityActions.firstReviewLinksEnd && (
+                    <p>Earliest exclusive end: {continuityActions.firstReviewLinksEnd}</p>
+                  )}
+                </div>
+              </div>
+            )}
             {(continuityWarningType !== "all" || continuityWarningSearch.trim()) && (
               <p>
                 Showing {visibleContinuityIssues.length} of {continuity.issues.length}
