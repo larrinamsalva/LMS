@@ -1072,3 +1072,25 @@ details from displaying if the issue is no longer in the review.
 Nothing is automatically priced, extended, archived, quoted,
 invoiced, notified or persisted. The fictional public demo,
 other modules and MIT licensing remain unchanged.
+
+
+### Open detailed coverage audit from a continuity gap (PR #92)
+
+Each currently **Uncovered** continuity-review item offers
+**Review coverage on end date**. The action revalidates the
+flagged saved rate against the current organization's continuity
+review and checks that the same service is genuinely missing
+saved active-rate coverage on its exclusive end date, before
+changing the *local view only*. It then selects that authorized
+service area and exact end date in the existing Rate coverage
+audit, where the owner can inspect related missing candidates.
+
+A **Return to previous date and area** control restores the
+date and service-area selection from immediately before the
+jump, including an initially unselected area. This is only
+temporary component state, not navigation history or a stored
+business record. Already-covered, stale, archived, foreign or
+unavailable linked records cannot produce a jump target.
+No prices, estimates, invoices, customers, permissions,
+saved records, sessions or messages are changed. The
+public fictional demo and MIT license are preserved.

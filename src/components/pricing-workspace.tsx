@@ -21,6 +21,7 @@ import { upcomingServiceRateDates, type RateDateWindow } from "../core/upcoming-
 import { upcomingServiceRateDatesCsv } from "../core/upcoming-service-rate-dates-csv";
 import { reviewServiceRateContinuity } from "../core/service-rate-continuity";
 import { investigateRateContinuityGap } from "../core/service-rate-continuity-investigation";
+import { rateGapAuditTarget } from "../core/service-rate-gap-audit-target";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -43,6 +44,10 @@ export function Catalog({
   const [catalogSearch, setCatalogSearch] = useState("");
   const [upcomingWindowDays, setUpcomingWindowDays] = useState<RateDateWindow>(30);
   const [expandedContinuityRateId, setExpandedContinuityRateId] = useState("");
+  const [previousCoverageSelection, setPreviousCoverageSelection] = useState<{
+    date: string;
+    areaId: string;
+  } | null>(null);
   const { services, rates, zones } = filterPricingCatalogCards(
     records, organizationId, archived, asOfDate, selectedAreaId, catalogSearch,
   );
@@ -72,6 +77,23 @@ export function Catalog({
       upcomingWindowDays, expandedContinuityIssue.rateId,
     )
     : { status: "unavailable" as const };
+  function reviewGapOnEndDate(rateId: string) {
+    const target = rateGapAuditTarget(
+      records, organizationId, asOfDate, selectedAreaId,
+      upcomingWindowDays, rateId,
+    );
+    if (target.status !== "ready") return;
+    setPreviousCoverageSelection({ date: asOfDate, areaId: selectedAreaId });
+    setSelectedAreaId(target.areaId);
+    setAsOfDate(target.date);
+    setExpandedContinuityRateId("");
+  }
+  function restoreCoverageSelection() {
+    if (!previousCoverageSelection) return;
+    setSelectedAreaId(previousCoverageSelection.areaId);
+    setAsOfDate(previousCoverageSelection.date);
+    setPreviousCoverageSelection(null);
+  }
   function downloadUpcomingRateDates() {
     if (upcomingDates.status !== "ready" ||
         upcomingDates.events.length === 0) return;
@@ -487,6 +509,10 @@ export function Catalog({
                     )}
                     {item.status === "Uncovered" && (
                       <>
+                        <button type="button" className="secondary"
+                          onClick={() => reviewGapOnEndDate(item.rateId)}>
+                          Review coverage on end date
+                        </button>
                         <button
                           type="button"
                           className="secondary"
@@ -540,15 +566,32 @@ export function Catalog({
       <section className="panel" aria-labelledby="rate-coverage-heading">
         <div className="section-heading">
           <h2 id="rate-coverage-heading">Rate coverage audit</h2>
-          <button
-            type="button"
-            className="secondary"
-            disabled={coverage.status !== "ready" || coverage.gaps.length === 0}
-            onClick={downloadMissingRateReview}
-          >
-            Download missing-rate review CSV
-          </button>
+          <div className="actions">
+            {previousCoverageSelection && (
+              <button
+                type="button"
+                className="secondary"
+                onClick={restoreCoverageSelection}
+              >
+                Return to previous date and area
+              </button>
+            )}
+            <button
+              type="button"
+              className="secondary"
+              disabled={coverage.status !== "ready" || coverage.gaps.length === 0}
+              onClick={downloadMissingRateReview}
+            >
+              Download missing-rate review CSV
+            </button>
+          </div>
         </div>
+        {previousCoverageSelection && coverage.status === "ready" && (
+          <p role="status">
+            Reviewing saved-rate coverage for {coverage.areaName} on
+            {" "}{coverage.date}. No prices were changed.
+          </p>
+        )}
         <p className="muted">
           Check which active catalog services lack a live saved rate for
           a chosen service area and date. This is an informational check,
