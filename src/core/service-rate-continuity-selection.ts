@@ -48,3 +48,33 @@ export function updateVisibleContinuitySelection(
     .filter((issue) => selected.has(issue.rateId))
     .map((issue) => issue.rateId);
 }
+
+/**
+ * A presentation-only focus view. Always return current authorized review
+ * objects (not untrusted incoming card data), preserving the current card
+ * filter/sort order. Unknown, duplicate or stale filtered IDs are ignored.
+ * Selection focus never changes saved records or any CSV export scope.
+ */
+export function focusedContinuityReviewIssues(
+  review: RateContinuityReview,
+  filteredIssues: readonly RateContinuityReviewItem[],
+  selectedRateIds: readonly string[],
+  selectedOnly: boolean,
+): RateContinuityReviewItem[] {
+  if (review.status !== "ready") return [];
+  const currentById = new Map(review.issues.map((issue) => [issue.rateId, issue]));
+  const selected = selectedOnly
+    ? new Set(selectedContinuityReviewIssues(review, selectedRateIds)
+      .map((issue) => issue.rateId))
+    : null;
+  const seen = new Set<string>();
+  const result: RateContinuityReviewItem[] = [];
+  for (const issue of filteredIssues) {
+    const current = currentById.get(issue.rateId);
+    if (!current || seen.has(current.rateId) ||
+        (selected && !selected.has(current.rateId))) continue;
+    seen.add(current.rateId);
+    result.push(current);
+  }
+  return result;
+}
