@@ -941,3 +941,26 @@ amounts, personnel data or internal record IDs are included.
 The page creates no automatic prices, estimates, invoices,
 communications or persistent business changes. It reuses the same
 fictional demo session and retains the MIT license.
+
+
+### Combined all-area missing-rate review checklist (PR #86)
+
+The existing **All-area rate coverage** section offers a second download:
+**Download all-area missing-rate review CSV**. After selecting a valid
+date, this compiles every currently missing active service/active pricing-area
+pair in the authorized organization into one spreadsheet, ranked by the
+overview's area order and then service name. It uses exactly the same
+effective-date logic and human-review columns as the individual-area
+missing-rate checklist, with blank manual decision/notes cells.
+
+The button is disabled when no valid date is selected or when the
+all-area audit has zero missing candidates. Valid zero-gap or
+zero-active-area exports yield header-only output at the pure
+function level. Archived areas and services are excluded, and archived
+rates never count as live coverage. Missing candidates do not imply
+that every service should be offered in every area or that a price
+should automatically be created. CSV values are formula-safe and
+contain no private customer/employee details, internal record IDs,
+rate amounts, billing or payment data. No catalog change, invoice,
+estimate, notification, session creation, license change, deployment
+or release is caused by the review.

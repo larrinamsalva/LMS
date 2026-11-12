@@ -2,6 +2,10 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "./engine";
 import { csvSafeCell } from "./daily-operations-csv";
 import { rateCoverageAudit } from "./service-rate-coverage";
+import {
+  missingRateReviewHeader,
+  missingRateReviewRow,
+} from "./service-rate-coverage-csv";
 
 export interface AreaRateCoverageRow {
   areaId: string;
@@ -88,6 +92,40 @@ export function allAreaRateCoverageCsv(
     area.areaName, summary.date, String(area.totalActiveServices),
     String(area.coveredServices), String(area.missingCandidates),
   ])];
+  return rows.map((row) => row.map(csvSafeCell).join(","))
+    .join("\r\n") + "\r\n";
+}
+
+
+/**
+ * One row per missing service/area pair across ACTIVE authorized areas.
+ * Reuses the exact same scoped audit and review-only columns as the
+ * one-area checklist. Sorting follows the all-area overview (most gaps
+ * first) then each area's deterministic service-name ordering.
+ *
+ * A valid no-gap report is header-only; callers should disable the
+ * download control rather than imply every service must be offered.
+ */
+export function allAreaMissingRateReviewCsv(
+  records: readonly WorkspaceRecord[],
+  organizationId: string,
+  asOfDate: string,
+): string {
+  const overview = allAreaRateCoverage(records, organizationId, asOfDate);
+  if (overview.status !== "ready") {
+    throw new Error("Choose a valid rate date for all-area coverage.");
+  }
+  const rows: string[][] = [missingRateReviewHeader];
+  for (const area of overview.areas) {
+    if (area.missingCandidates === 0) continue;
+    const audit = rateCoverageAudit(records, organizationId, area.areaId, asOfDate);
+    if (audit.status !== "ready") {
+      throw new Error("Cannot audit a selected active service area.");
+    }
+    for (const gap of audit.gaps) {
+      rows.push(missingRateReviewRow(audit.areaName, audit.date, gap));
+    }
+  }
   return rows.map((row) => row.map(csvSafeCell).join(","))
     .join("\r\n") + "\r\n";
 }

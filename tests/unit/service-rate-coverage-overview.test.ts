@@ -3,7 +3,9 @@ import type { WorkspaceRecord } from "../../src/core/engine";
 import {
   allAreaRateCoverage,
   allAreaRateCoverageCsv,
+  allAreaMissingRateReviewCsv,
 } from "../../src/core/service-rate-coverage-overview";
+import { serviceRateCoverageReviewCsv } from "../../src/core/service-rate-coverage-csv";
 const org = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const foreign = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const rec = (
@@ -121,4 +123,74 @@ it("keeps an empty active service catalog at zero gaps in every authorized area"
   expect(csv).not.toContain("Confidential");
   expect(csv).not.toContain("Other business service");
   expect(csv.trimEnd().split("\r\n")).toHaveLength(3);
+});
+
+
+it("downloads one combined review row for each missing area/service pair", () => {
+  const records = [
+    rec("local", "pricing-zones", { name: "Local" }),
+    rec("outer", "pricing-zones", { name: "Outer" }),
+    rec("old-zone", "pricing-zones", { name: "Old zone" }, true),
+    rec("foreign-zone", "pricing-zones", { name: "Private area" }, false, foreign),
+    rec("base", "services", { name: "Base", kind: "Service", mode: "Hourly", unit: "hour" }),
+    rec("extra", "services", { name: "Oven", kind: "Extra", mode: "Fixed", unit: "oven" }),
+    rec("retired", "services", { name: "Retired" }, true),
+    rec("private", "services", { name: "Secret service" }, false, foreign),
+    rec("local-base", "service-rates", {
+      service: "base", zone: "local", effective_from: "2026-01-01",
+      effective_until: "2027-01-01",
+    }),
+    rec("outer-base-future", "service-rates", {
+      service: "base", zone: "outer", effective_from: "2027-01-01",
+    }),
+    rec("outer-extra-archived", "service-rates", {
+      service: "extra", zone: "outer", effective_from: "2026-01-01",
+    }, true),
+    rec("foreign-rate", "service-rates", {
+      service: "extra", zone: "outer", effective_from: "2026-01-01",
+    }, false, foreign),
+  ];
+  const before = structuredClone(records);
+  const csv = allAreaMissingRateReviewCsv(records, org, "2026-11-06");
+  const lines = csv.trimEnd().split("\r\n");
+  expect(lines).toHaveLength(4);
+  expect(lines[0]).toContain('"Operator decision (fill manually)"');
+  expect(lines[1]).toContain('"Outer","2026-11-06","Base"');
+  expect(lines[2]).toContain('"Outer","2026-11-06","Oven"');
+  expect(lines[3]).toContain('"Local","2026-11-06","Oven"');
+  expect(csv).not.toContain("Private area");
+  expect(csv).not.toContain("Secret service");
+  expect(csv).not.toContain('"Retired"');
+  expect(csv).not.toContain('"Old zone"');
+  const local = serviceRateCoverageReviewCsv(records, org, "local", "2026-11-06");
+  expect(lines[0]).toBe(local.trimEnd().split("\r\n")[0]);
+  expect(lines[3]).toBe(local.trimEnd().split("\r\n")[1]);
+  expect(records).toEqual(before);
+});
+
+it("rejects invalid dates, honors exclusive end dates and sanitizes CSV values", () => {
+  const records = [
+    rec("area", "pricing-zones", { name: "+AREA" }),
+    rec("service", "services", { name: "=SERVICE()" }),
+    rec("rate", "service-rates", {
+      service: "service", zone: "area",
+      effective_from: "2026-01-01", effective_until: "2027-01-01",
+    }),
+  ];
+  expect(() => allAreaMissingRateReviewCsv(records, org, "")).toThrow(
+    "Choose a valid rate date for all-area coverage.",
+  );
+  expect(() => allAreaMissingRateReviewCsv(records, org, "2026-02-30")).toThrow(
+    "Choose a valid rate date for all-area coverage.",
+  );
+  expect(allAreaMissingRateReviewCsv(records, org, "2026-11-06")
+    .trimEnd().split("\r\n")).toHaveLength(1);
+  const oldCsv = allAreaMissingRateReviewCsv(records, org, "2025-12-31");
+  expect(oldCsv).toContain("\"'+AREA\"");
+  expect(oldCsv).toContain("\"'=SERVICE()\"");
+  const exclusive = allAreaMissingRateReviewCsv(records, org, "2027-01-01");
+  expect(exclusive).toContain("\"'=SERVICE()\"");
+  const noActiveAreas = [rec("area", "pricing-zones", { name: "Retired" }, true)];
+  expect(allAreaMissingRateReviewCsv(noActiveAreas, org, "2026-11-06")
+    .trimEnd().split("\r\n")).toHaveLength(1);
 });
