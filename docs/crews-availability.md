@@ -249,3 +249,30 @@ export, permissions or payroll rules. Historical employee names
 remain frozen in the retained snapshot and are not overwritten
 with current employee profiles. The fictional demo and MIT
 license remain unchanged.
+
+## Download filtered assignment history as a CSV (PR #114)
+
+In expanded **Assignment history**, **Download filtered assignment history CSV**
+exports **all matching retained allocation revisions**, not just the first
+ten currently rendered. The report recomputes from the authorized business
+snapshot and applies the same Reserved/Released status filter, employee /
+appointment / worker-resource search, inclusive business-local scheduled-start
+date range, and Retained/Newest/Oldest order. The export button is disabled
+when a date range is invalid or when the current filters have no matches.
+No server report endpoint, external service, release workflow or record
+mutation is involved.
+
+The CSV contains the **retained employee name and descriptive work role**,
+Reserved/Released state, the authorized linked appointment title and worker
+or crew name (if retained in the same organization), scheduled start/end
+in the configured business time zone, historical appointment/membership
+revision numbers and time-zone label. It never includes employee emails,
+phones, skill lists, contact records, notes, raw record IDs or names linked
+from another organization. Original snapshot names and roles stay frozen;
+no staffing or booking eligibility is inferred from the file.
+
+Because exports contain fictional employee names and job history, store
+them with the same care as business paperwork. Every CSV cell is quoted
+and spreadsheet-formula prefixes are neutralized. Existing workspace
+JSON exports, saved history, audit records and scheduled appointments
+are unchanged. MIT and the fictional no-login demo remain intact.
