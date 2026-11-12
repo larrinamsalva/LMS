@@ -105,6 +105,11 @@ export function Catalog({
   const expandedContinuityIssue = visibleContinuityIssues.find((issue) =>
     issue.rateId === expandedContinuityRateId && issue.status === "Uncovered",
   );
+  function focusContinuityWarnings(filter: ContinuityWarningFilter) {
+    setContinuityWarningType(filter);
+    setContinuityWarningSearch("");
+    setExpandedContinuityRateId("");
+  }
   const investigation = expandedContinuityIssue
     ? investigateRateContinuityGap(
       records, organizationId, asOfDate, selectedAreaId,
@@ -626,8 +631,10 @@ export function Catalog({
           columns; exports contain no prices, customers or record IDs.
           The action summary separates missing later rates, known
           delayed starts and catalog links needing review, without
-          suggesting any rate is automatically approved. Search, warning-
-          type filters and sorting only change the warning cards;
+          suggesting any rate is automatically approved. Use a Focus
+          button to see a category's warnings and clear any old text
+          search. Search, warning-type filters and sorting only change
+          the warning cards;
           counts and downloaded checklists cover the complete
           selected date, area and review period.
         </p>
@@ -642,6 +649,8 @@ export function Catalog({
               )}>
               <option value="all">All warnings</option>
               <option value="uncovered">Uncovered rate gaps</option>
+              <option value="no-later">No later saved rate</option>
+              <option value="delayed">Delayed replacement</option>
               <option value="review-links">Linked-record review</option>
             </select>
           </div>
@@ -704,6 +713,11 @@ export function Catalog({
                     <p>Earliest exclusive end:{" "}
                       {continuityActions.firstWithoutLaterEnd}</p>
                   )}
+                  <button type="button" className="secondary"
+                    disabled={continuityActions.withoutLaterRate === 0}
+                    onClick={() => focusContinuityWarnings("no-later")}>
+                    Focus no later saved rates
+                  </button>
                 </div>
                 <div className="workforce-card">
                   <h3>Later saved rate starts after end</h3>
@@ -714,6 +728,11 @@ export function Catalog({
                   {continuityActions.firstDelayedEnd && (
                     <p>Earliest exclusive end: {continuityActions.firstDelayedEnd}</p>
                   )}
+                  <button type="button" className="secondary"
+                    disabled={continuityActions.delayedReplacement === 0}
+                    onClick={() => focusContinuityWarnings("delayed")}>
+                    Focus delayed replacement gaps
+                  </button>
                 </div>
                 <div className="workforce-card">
                   <h3>Linked catalog records to review</h3>
@@ -724,6 +743,11 @@ export function Catalog({
                   {continuityActions.firstReviewLinksEnd && (
                     <p>Earliest exclusive end: {continuityActions.firstReviewLinksEnd}</p>
                   )}
+                  <button type="button" className="secondary"
+                    disabled={continuityActions.reviewLinks === 0}
+                    onClick={() => focusContinuityWarnings("review-links")}>
+                    Focus linked-record reviews
+                  </button>
                 </div>
               </div>
             )}

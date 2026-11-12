@@ -1,6 +1,7 @@
 import type { RateContinuityReviewItem } from "./service-rate-continuity";
 
-export type ContinuityWarningFilter = "all" | "uncovered" | "review-links";
+export type ContinuityWarningFilter =
+  | "all" | "uncovered" | "review-links" | "no-later" | "delayed";
 export type ContinuityWarningSort =
   | "soonest" | "latest" | "service" | "area" | "area-desc";
 
@@ -9,6 +10,8 @@ export type ContinuityWarningSort =
  * on-screen triage only. Sort a new array, never the input review.
  * Do not change the underlying review, totals,
  * linked-record classifications or the full downloadable checklist.
+ * A missing later saved rate differs from a delayed replacement;
+ * archived/unavailable links never qualify as either confirmed gap.
  * Never match raw IDs or pricing/customer data.
  */
 export function filterContinuityWarnings(
@@ -21,6 +24,10 @@ export function filterContinuityWarnings(
   const visible = issues.filter((issue) => {
     if (status === "uncovered" && issue.status !== "Uncovered") return false;
     if (status === "review-links" && issue.status !== "Review links") return false;
+    if (status === "no-later" &&
+        (issue.status !== "Uncovered" || issue.nextStart !== null)) return false;
+    if (status === "delayed" &&
+        (issue.status !== "Uncovered" || issue.nextStart === null)) return false;
     if (!query) return true;
     return [
       issue.rateTitle, issue.serviceName, issue.areaName, issue.endDate,

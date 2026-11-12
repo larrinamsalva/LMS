@@ -39,6 +39,10 @@ it("filters by warning type while retaining source ordering", () => {
     .toEqual(["private-id-one", "private-id-two"]);
   expect(filterContinuityWarnings(issues, "review-links", "").map((x) => x.rateId))
     .toEqual(["private-id-three"]);
+  expect(filterContinuityWarnings(issues, "no-later", "").map((x) => x.rateId))
+    .toEqual(["private-id-two"]);
+  expect(filterContinuityWarnings(issues, "delayed", "").map((x) => x.rateId))
+    .toEqual(["private-id-one"]);
 });
 
 it("searches only displayed names and end dates, ignoring case and spaces", () => {
@@ -49,6 +53,11 @@ it("searches only displayed names and end dates, ignoring case and spaces", () =
   expect(filterContinuityWarnings(issues, "all", "2027-01-03")
     .map((x) => x.rateTitle)).toEqual(["Old area rate"]);
   expect(filterContinuityWarnings(issues, "uncovered", "Former")).toEqual([]);
+  expect(filterContinuityWarnings(issues, "no-later", "outer").map((x) => x.rateId))
+    .toEqual(["private-id-two"]);
+  expect(filterContinuityWarnings(issues, "delayed", "outer")).toEqual([]);
+  expect(filterContinuityWarnings(issues, "no-later", "2027-01-05")).toEqual([]);
+  expect(filterContinuityWarnings(issues, "no-later", "former")).toEqual([]);
   expect(filterContinuityWarnings(issues, "all", "private-id-one")).toEqual([]);
   expect(filterContinuityWarnings(issues, "all", "2027-01-05")).toEqual([]);
 });
@@ -77,6 +86,10 @@ it("sorts warning cards by end date, service or area while preserving audits", (
   ]);
   expect(filterContinuityWarnings(source, "uncovered", "outer", "latest")
     .map((item) => item.rateId)).toEqual(["private-id-two"]);
+  expect(filterContinuityWarnings(source, "no-later", "", "area-desc")
+    .map((item) => item.rateId)).toEqual(["private-id-two"]);
+  expect(filterContinuityWarnings(source, "delayed", "", "latest")
+    .map((item) => item.rateId)).toEqual(["private-id-one"]);
   expect(source).toEqual(before);
 });
 
