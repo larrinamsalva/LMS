@@ -1048,3 +1048,27 @@ that any saved price is approved for quoting. No rates or estimates
 are modified, and no notifications, reminders, invoice/ledger
 entries, new sessions or database/schema changes are created.
 The fictional public demo and MIT license remain unchanged.
+
+
+### Investigate rate-continuity gaps in context (PR #91)
+
+For each **Uncovered** item in Rate continuity review, an
+**Inspect saved-rate history** toggle shows the relevant saved
+rate timeline without navigating away or modifying any selection.
+The timeline is recomputed from the current organization's records
+only after revalidating that the clicked saved rate is an actual
+gap candidate in the active date/area/window review. It lists
+same-service/same-area saved rate periods in chronological order,
+clearly labels archived records as not counting toward continuity,
+and distinguishes a known number of uncovered calendar days
+from a gap with no later saved active rate.
+
+Inaccessible or archived linked catalog items have no such
+history toggle; they still require manual linked-record review.
+The display includes no prices, customers, employees, foreign
+linked names or raw database identifiers. Toggle state is
+client-only; switching dates, windows or areas prevents stale
+details from displaying if the issue is no longer in the review.
+Nothing is automatically priced, extended, archived, quoted,
+invoiced, notified or persisted. The fictional public demo,
+other modules and MIT licensing remain unchanged.
