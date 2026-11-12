@@ -4,6 +4,10 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, instant } from "../core/time";
 import { relatedLabel } from "./schedule";
+import {
+  filterEmployeeDirectory,
+  type EmployeeDirectoryStatus,
+} from "../core/workforce-directory";
 
 export function Workforce({
   records,
@@ -37,6 +41,15 @@ export function Workforce({
       : Temporal.Now.zonedDateTimeISO(zone).toPlainDate().toString();
   });
   const [history, setHistory] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [employeeStatus, setEmployeeStatus] =
+    useState<EmployeeDirectoryStatus>("all");
+  const currentEmployees = filterEmployeeDirectory(employees, history, "", "all");
+  const displayedEmployees = filterEmployeeDirectory(
+    employees, history, employeeSearch, employeeStatus,
+  );
+  const employeeFiltersActive = employeeSearch.trim().length > 0 ||
+    employeeStatus !== "all";
   const range = (r: WorkspaceRecord) =>
     `${displayTime(String(r.data.start), String(r.data.time_zone ?? zone))} → ${displayTime(String(r.data.end), String(r.data.time_zone ?? zone))}`;
   let visible: WorkspaceRecord[] = [];
@@ -96,10 +109,45 @@ export function Workforce({
           work windows before assigning people; days off and vacation take
           priority. Skills are descriptive, not certification checks.
         </p>
+        <div className="schedule-toolbar">
+          <div>
+            <label htmlFor="employee-directory-search">Search employee directory</label>
+            <input
+              id="employee-directory-search"
+              type="search"
+              placeholder="Name, work role or skill"
+              value={employeeSearch}
+              onChange={(event) => setEmployeeSearch(event.target.value)}
+            />
+          </div>
+          <div>
+            <label htmlFor="employee-directory-status">Filter employee status</label>
+            <select
+              id="employee-directory-status"
+              value={employeeStatus}
+              onChange={(event) =>
+                setEmployeeStatus(event.target.value as EmployeeDirectoryStatus)}
+            >
+              <option value="all">All statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          {employeeFiltersActive && (
+            <button type="button" className="secondary" onClick={() => {
+              setEmployeeSearch("");
+              setEmployeeStatus("all");
+            }}>
+              Clear employee filters
+            </button>
+          )}
+        </div>
+        <p role="status" aria-live="polite">
+          Showing {displayedEmployees.length} of {currentEmployees.length}
+          {" "}{history ? "archived" : "current"} employee profiles.
+        </p>
         <div className="workforce-grid">
-          {employees
-            .filter((r) => r.archived === history)
-            .map((r) => (
+          {displayedEmployees.map((r) => (
               <article
                 className="workforce-card"
                 key={r.id}
@@ -131,6 +179,13 @@ export function Workforce({
               </article>
             ))}
         </div>
+        {displayedEmployees.length === 0 && (
+          <p className="empty-state">
+            {currentEmployees.length === 0
+              ? "No employee profiles in this view."
+              : "No employee profiles match these filters."}
+          </p>
+        )}
       </section>
       <section className="panel" aria-labelledby="crew-heading">
         <div className="section-heading">
