@@ -434,37 +434,38 @@ test("fictional crews and workers publish availability, schedule both industries
     await page
       .getByLabel("Availability date", { exact: true })
       .fill("2026-11-06");
-    await page.getByText(/Assignment history ·/).click();
-    await expect(
-      page.getByText("Reserved", { exact: false }).first(),
-    ).toBeVisible();
-    const assignmentSearch = page.getByLabel(
+    const assignmentHistory = page.getByText(/Assignment history ·/)
+      .locator("..");
+    await assignmentHistory.locator("summary").click();
+    await expect(assignmentHistory.getByText("Reserved", { exact: false }).first())
+      .toBeVisible();
+    const assignmentSearch = assignmentHistory.getByLabel(
       "Search assignment history", { exact: true },
     );
-    const assignmentStatus = page.getByLabel(
+    const assignmentStatus = assignmentHistory.getByLabel(
       "Filter assignment status", { exact: true },
     );
-    const historyCount = page.getByText(/matching retained assignments/);
+    const historyCount = assignmentHistory.getByText(/matching retained assignments/);
     await expect(historyCount).toContainText("Showing");
     await assignmentSearch.fill(people[0].toLowerCase());
-    await expect(page.getByText(people[0], { exact: false }).first())
-      .toBeVisible();
+    await expect(assignmentHistory.locator("li")
+      .filter({ hasText: people[0] }).first()).toBeVisible();
     await assignmentStatus.selectOption("reserved");
-    await expect(page.getByText(people[0], { exact: false }).first())
-      .toBeVisible();
+    await expect(assignmentHistory.locator("li")
+      .filter({ hasText: people[0] }).first()).toBeVisible();
     await assignmentStatus.selectOption("released");
     await expect(assignmentStatus).toHaveValue("released");
     await assignmentSearch.fill("no-matching-employee-or-appointment");
-    await expect(page.getByText(
+    await expect(assignmentHistory.getByText(
       "No retained assignments match these filters.", { exact: true },
     )).toBeVisible();
-    await page.getByRole("button", {
+    await assignmentHistory.getByRole("button", {
       name: "Clear assignment filters", exact: true,
     }).click();
     await expect(assignmentSearch).toHaveValue("");
     await expect(assignmentStatus).toHaveValue("all");
-    await expect(page.getByText(people[0], { exact: false }).first())
-      .toBeVisible();
+    await expect(assignmentHistory.locator("li")
+      .filter({ hasText: people[0] }).first()).toBeVisible();
     await fits(page);
     expect(
       (
