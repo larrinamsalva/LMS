@@ -1120,3 +1120,23 @@ IDs, rate amounts, customer/employee details or foreign linked names
 are exported. No writes, reminders, invoices, estimates, new
 sessions, deployment or release are triggered; MIT licensing
 and the public fictional demo are unchanged.
+
+
+### Continuity warning triage filters (PR #94)
+
+On **Rate continuity review**, owners can filter displayed warnings
+to All warnings, Uncovered rate gaps or Linked-record review, and
+search rate title, service name, service-area name or the exclusive
+end date. The optional free-text search is trimmed and
+case-insensitive. A visible matching count and explicit no-match
+message distinguish filtered warnings from no actual review findings.
+A Clear continuity filters control restores the full list.
+
+Filters operate on the already organization-authorized continuity
+issues only; the existing 7/30/90-day audit and service-area
+selection still set the underlying scope. Neither screen filters
+nor the free-text search alter full review totals, downloaded
+decision checklists, or saved pricing data. Link-review warnings
+remain separate from genuine uncovered gaps, and user-only
+search filters do not introduce new export fields. The fictional
+public demo and MIT license are unchanged.
