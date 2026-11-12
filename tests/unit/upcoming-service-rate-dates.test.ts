@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import {
   nextUpcomingRateChangeDate,
+  upcomingRateEventReviewDate,
   upcomingServiceRateDates,
 } from "../../src/core/upcoming-service-rate-dates";
 
@@ -190,4 +191,63 @@ it("allows manual review of an archived linked rate without treating it as live 
   if (audit.status === "ready") {
     expect(audit.events[0].linkStatus).toBe("Archived link");
   }
+});
+
+
+it("resolves a specifically chosen saved-rate boundary, not just the earliest event", () => {
+  const records = [
+    rec("local", "pricing-zones", { name: "Local" }),
+    rec("outer", "pricing-zones", { name: "Outer" }),
+    rec("svc", "services", { name: "Cleaning" }),
+    rec("local-rate", "service-rates", {
+      title: "Local end", service: "svc", zone: "local",
+      effective_from: "2026-01-01", effective_until: "2027-01-01",
+    }),
+    rec("outer-rate", "service-rates", {
+      title: "Outer end", service: "svc", zone: "outer",
+      effective_from: "2026-01-01", effective_until: "2027-01-05",
+    }),
+    rec("foreign-rate", "service-rates", {
+      title: "Private", service: "svc", zone: "local",
+      effective_from: "2026-01-01", effective_until: "2027-01-03",
+    }, false, foreign),
+    rec("archived-rate", "service-rates", {
+      title: "Archived", service: "svc", zone: "local",
+      effective_from: "2026-01-01", effective_until: "2027-01-04",
+    }, true),
+  ];
+  const snapshot = structuredClone(records);
+  const review = upcomingServiceRateDates(records, org, "2026-12-15", "", 30);
+  expect(nextUpcomingRateChangeDate(review)).toBe("2027-01-01");
+  expect(upcomingRateEventReviewDate(review, {
+    rateId: "outer-rate", date: "2027-01-05", kind: "Ends",
+  })).toBe("2027-01-05");
+  expect(upcomingRateEventReviewDate(review, {
+    rateId: "local-rate", date: "2027-01-01", kind: "Ends",
+  })).toBe("2027-01-01");
+  expect(upcomingRateEventReviewDate(review, {
+    rateId: "outer-rate", date: "2027-01-01", kind: "Ends",
+  })).toBeNull();
+  expect(upcomingRateEventReviewDate(review, {
+    rateId: "outer-rate", date: "2027-01-05", kind: "Starts",
+  })).toBeNull();
+  expect(upcomingRateEventReviewDate(review, {
+    rateId: "foreign-rate", date: "2027-01-03", kind: "Ends",
+  })).toBeNull();
+  expect(upcomingRateEventReviewDate(review, {
+    rateId: "archived-rate", date: "2027-01-04", kind: "Ends",
+  })).toBeNull();
+  const local = upcomingServiceRateDates(records, org, "2026-12-15", "local", 30);
+  expect(upcomingRateEventReviewDate(local, {
+    rateId: "outer-rate", date: "2027-01-05", kind: "Ends",
+  })).toBeNull();
+  const short = upcomingServiceRateDates(records, org, "2026-12-15", "", 7);
+  expect(upcomingRateEventReviewDate(short, {
+    rateId: "outer-rate", date: "2027-01-05", kind: "Ends",
+  })).toBeNull();
+  const invalid = upcomingServiceRateDates(records, org, "2026-02-30", "", 30);
+  expect(upcomingRateEventReviewDate(invalid, {
+    rateId: "local-rate", date: "2027-01-01", kind: "Ends",
+  })).toBeNull();
+  expect(records).toEqual(snapshot);
 });

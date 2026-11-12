@@ -20,6 +20,7 @@ import { filterPricingCatalogCards } from "../core/pricing-catalog-search";
 import {
   upcomingServiceRateDates,
   nextUpcomingRateChangeDate,
+  upcomingRateEventReviewDate,
   type RateDateWindow,
 } from "../core/upcoming-service-rate-dates";
 import { upcomingServiceRateDatesCsv } from "../core/upcoming-service-rate-dates-csv";
@@ -127,15 +128,28 @@ export function Catalog({
     setPreviousCoverageSelection(null);
     setPreviousNextRateReview(null);
   }
-  function reviewNextRateChange() {
-    if (!nextRateReviewDate) return;
+  function jumpToRateReviewDate(date: string) {
     const jump = rememberRateReviewJump(
-      organizationId, asOfDate, selectedAreaId, nextRateReviewDate,
+      organizationId, asOfDate, selectedAreaId, date,
     );
     if (!jump) return;
-    setAsOfDate(nextRateReviewDate);
+    setAsOfDate(date);
     setPreviousCoverageSelection(null);
     setPreviousNextRateReview(jump);
+  }
+  function reviewNextRateChange() {
+    if (nextRateReviewDate) jumpToRateReviewDate(nextRateReviewDate);
+  }
+  function reviewSpecificRateChange(
+    rateId: string, kind: "Starts" | "Ends", date: string,
+  ) {
+    const currentReview = upcomingServiceRateDates(
+      records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
+    );
+    const verifiedDate = upcomingRateEventReviewDate(
+      currentReview, { rateId, kind, date },
+    );
+    if (verifiedDate) jumpToRateReviewDate(verifiedDate);
   }
   function restoreNextRateReviewDate() {
     if (!returnRateReviewDate) return;
@@ -523,8 +537,10 @@ export function Catalog({
           to the earliest saved start or exclusive end boundary within
           the chosen area and lookahead period. This is a manual
           date selection, not approval or application of a rate.
-          After a next-date jump, the temporary return button restores
-          the previous date; manual date/area changes dismiss it.
+          Each saved-rate event also offers Review this date to
+          inspect a specific listed start or exclusive end, even if it
+          is not the first upcoming event. The temporary return button
+          restores the previous date; manual date/area changes dismiss it.
         </p>
         {returnRateReviewDate && (
           <p>Previous review date: <strong>{returnRateReviewDate}</strong>.</p>
@@ -567,6 +583,15 @@ export function Catalog({
                     {event.linkStatus !== "Active" && (
                       <p className="muted">Linked catalog status: {event.linkStatus}</p>
                     )}
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => reviewSpecificRateChange(
+                        event.rateId, event.kind, event.date,
+                      )}
+                    >
+                      Review this date
+                    </button>
                   </article>
                 ))}
               </div>
