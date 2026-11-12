@@ -161,6 +161,35 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(localContinuityCard.getByText(
       "Saved rate history", { exact: true },
     )).toHaveCount(0);
+    await localContinuityCard.getByRole("button", {
+      name: "Review coverage on end date", exact: true,
+    }).click();
+    const gapAudit = page.getByRole("region", {
+      name: "Rate coverage audit", exact: true,
+    });
+    await expect(rateDate).toHaveValue("2027-01-01");
+    await expect(page.getByLabel("Filter service rates by area", {
+      exact: true,
+    })).toHaveValue(await page.getByLabel(
+      "Filter service rates by area", { exact: true },
+    ).locator("option", { hasText: "Local service area" }).getAttribute("value") ?? "");
+    await expect(gapAudit).toContainText("4 missing rate candidates.");
+    await expect(gapAudit).toContainText(
+      "Reviewing saved-rate coverage for Local service area on 2027-01-01.",
+    );
+    await gapAudit.getByRole("button", {
+      name: "Return to previous date and area", exact: true,
+    }).click();
+    await expect(rateDate).toHaveValue("2026-11-06");
+    await expect(page.getByLabel("Filter service rates by area", {
+      exact: true,
+    })).toHaveValue("");
+    await expect(gapAudit.getByRole("button", {
+      name: "Return to previous date and area", exact: true,
+    })).toHaveCount(0);
+    await expect(continuity).toContainText(
+      "5 without next-day saved-rate coverage",
+    );
     await expect(upcomingCsvButton).toBeEnabled();
     const upcomingPending = page.waitForEvent("download");
     await upcomingCsvButton.click();
