@@ -5,7 +5,10 @@ import {
   serviceRateContinuityFilteredCsv,
   serviceRateContinuitySelectedCsv,
 } from "../../src/core/service-rate-continuity-csv";
-import { selectedContinuityReviewIssues } from "../../src/core/service-rate-continuity-selection";
+import {
+  selectedContinuityReviewIssues,
+  updateVisibleContinuitySelection,
+} from "../../src/core/service-rate-continuity-selection";
 import { reviewServiceRateContinuity } from "../../src/core/service-rate-continuity";
 
 const org = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -250,4 +253,78 @@ it("sorts a selected-only review, protects formulas and rejects invalid scope", 
   expect(() => serviceRateContinuitySelectedCsv(
     records, org, "2026-12-15", "foreign-zone", 30, ["=local"],
   )).toThrow("Choose an authorized area and valid date/window.");
+});
+
+it("bulk-selects visible continuity warnings while preserving hidden authorized picks", () => {
+  const records = [
+    rec("local", "pricing-zones", { name: "Local" }),
+    rec("outer", "pricing-zones", { name: "Outer" }),
+    rec("service", "services", { name: "Repair" }),
+    rate("local-rate", "service", "local", "2026-01-01", "2027-01-01"),
+    rate("outer-rate", "service", "outer", "2026-01-01", "2027-01-01"),
+    rate("foreign-rate", "service", "outer", "2026-01-01", "2027-01-01", false, foreign),
+    rate("archived-rate", "service", "local", "2026-01-01", "2027-01-01", true),
+  ];
+  const review = reviewServiceRateContinuity(records, org, "2026-12-15", "", 30);
+  expect(review.status).toBe("ready");
+  const originalReview = structuredClone(review);
+  const chosen = ["local-rate", "local-rate", "foreign-rate", "stale-rate"];
+  const visible = ["outer-rate", "outer-rate", "archived-rate", "foreign-rate", "not-real"];
+  const chosenBefore = [...chosen];
+  const visibleBefore = [...visible];
+
+  const afterSelect = updateVisibleContinuitySelection(
+    review, chosen, visible, "select-visible",
+  );
+  expect(afterSelect).toEqual(["local-rate", "outer-rate"]);
+  expect(updateVisibleContinuitySelection(
+    review, afterSelect, ["outer-rate"], "deselect-visible",
+  )).toEqual(["local-rate"]);
+  expect(updateVisibleContinuitySelection(
+    review, afterSelect, ["local-rate"], "deselect-visible",
+  )).toEqual(["outer-rate"]);
+  expect(updateVisibleContinuitySelection(
+    review, afterSelect, [], "select-visible",
+  )).toEqual(afterSelect);
+  expect(updateVisibleContinuitySelection(
+    review, afterSelect, ["outer-rate", "local-rate"], "deselect-visible",
+  )).toEqual([]);
+
+  expect(chosen).toEqual(chosenBefore);
+  expect(visible).toEqual(visibleBefore);
+  expect(review).toEqual(originalReview);
+  expect(records).toHaveLength(7);
+});
+
+it("bulk selection refuses stale, foreign-area and invalid review scope", () => {
+  const records = [
+    rec("local", "pricing-zones", { name: "Local" }),
+    rec("outer", "pricing-zones", { name: "Outer" }),
+    rec("foreign-area", "pricing-zones", { name: "Secret" }, false, foreign),
+    rec("service", "services", { name: "Repair" }),
+    rate("local-rate", "service", "local", "2026-01-01", "2027-01-01"),
+    rate("outer-rate", "service", "outer", "2026-01-01", "2027-01-01"),
+  ];
+  const localOnly = reviewServiceRateContinuity(
+    records, org, "2026-12-15", "local", 30,
+  );
+  expect(updateVisibleContinuitySelection(
+    localOnly, ["outer-rate"], ["outer-rate", "local-rate"], "select-visible",
+  )).toEqual(["local-rate"]);
+  expect(updateVisibleContinuitySelection(
+    localOnly, ["local-rate"], ["outer-rate"], "deselect-visible",
+  )).toEqual(["local-rate"]);
+
+  const invalidDate = reviewServiceRateContinuity(
+    records, org, "2026-02-30", "", 30,
+  );
+  const foreignArea = reviewServiceRateContinuity(
+    records, org, "2026-12-15", "foreign-area", 30,
+  );
+  expect(updateVisibleContinuitySelection(
+    invalidDate, ["local-rate"], ["local-rate"], "select-visible",
+  )).toEqual([]);
+  expect(updateVisibleContinuitySelection(
+    foreignArea, ["local-rate"], ["local-rate"], "deselect-visible",
+  )).toEqual([]);
 });
