@@ -122,7 +122,7 @@ it("quotes unsafe spreadsheet formulas in retained names and linked titles", () 
     record("crew-poisoned", "resources", "@cmd"),
   ];
   const csv = staffAssignmentHistoryCsv(malicious, links, ORG, "UTC", baseView);
-  expect(csv).toContain('"'=HYPERLINK(""unsafe"")"');
-  expect(csv).toContain('"' +SUM(1,2)"');
-  expect(csv).toContain('"'@cmd"');
+  expect(csv).toContain("\"'=HYPERLINK(\"\"unsafe\"\")\"");
+  expect(csv).toContain("\"' +SUM(1,2)\"");
+  expect(csv).toContain("\"'@cmd\"");
 });
