@@ -141,6 +141,10 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const upcomingCsvButton = upcoming.getByRole("button", {
       name: "Download upcoming rate dates CSV", exact: true,
     });
+    const nextRateDateButton = upcoming.getByRole("button", {
+      name: "Review next saved-rate date", exact: true,
+    });
+    await expect(nextRateDateButton).toBeDisabled();
     await expect(upcomingCsvButton).toBeDisabled();
     await expect(upcoming).toContainText(
       "Choose a rate date above to review upcoming saved-rate dates.",
@@ -173,6 +177,16 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     );
     await expect(upcomingCsvButton).toBeDisabled();
     await upcomingWindow.selectOption("90");
+    await expect(upcoming).toContainText("5 upcoming rate date events");
+    await expect(upcoming).toContainText("Next saved-rate review date: 2027-01-01.");
+    await expect(nextRateDateButton).toBeEnabled();
+    await nextRateDateButton.click();
+    await expect(rateDate).toHaveValue("2027-01-01");
+    await expect(nextRateDateButton).toBeDisabled();
+    await expect(upcoming).toContainText(
+      "No saved active-rate start or end dates in this period.",
+    );
+    await rateDate.fill("2026-11-06");
     await expect(upcoming).toContainText("5 upcoming rate date events");
     await expect(continuity).toContainText(
       "5 without next-day saved-rate coverage",

@@ -94,3 +94,13 @@ export function upcomingServiceRateDates(
   );
   return { status: "ready", events, through };
 }
+
+/**
+ * The first actual saved rate boundary after the explicitly selected
+ * review day. Reuse the already validated, organization-scoped and
+ * chronologically sorted upcoming review. Archived/unavailable linked
+ * catalog rows remain review-only rather than silently applying prices.
+ */
+export function nextUpcomingRateChangeDate(review: UpcomingRateDates): string | null {
+  return review.status === "ready" ? review.events[0]?.date ?? null : null;
+}

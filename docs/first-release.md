@@ -1180,3 +1180,27 @@ selection was made. All changes are UI review selections only:
 no business pricing, estimates, invoices, dates in saved records,
 customer notifications, new sessions, deployments or releases.
 MIT licensing and the public fictional demo are preserved.
+
+
+### Jump directly to the next upcoming saved-rate review date (PR #97)
+
+The existing **Upcoming rate dates** panel adds an explicit
+**Review next saved-rate date** button, enabled only when a valid
+chosen rate date, authorized service-area filter and 7/30/90-day
+lookahead contain at least one saved active-rate start or exclusive
+end boundary. The UI shows the exact next calendar date before
+the operator clicks. The next date comes from the chronologically
+sorted, organization-scoped upcoming review; changes in other
+organizations, archived rate records or dates outside the selected
+window never influence it.
+
+Clicking the button selects the earliest upcoming boundary date
+as the *review date* in Services & Rates, so the existing rate-card
+filters, coverage audit and continuity review can inspect that day.
+The earliest boundary may have archived or unavailable linked
+catalog entities: those remain clearly labeled as review-only,
+not live approved rates. The shortcut is disabled if the review
+date is blank/invalid or there are no boundaries in the window.
+It creates no stored history, approvals, prices, quotes, invoices,
+automatic notifications or scheduling, and preserves the public
+fictional demo and MIT license.
