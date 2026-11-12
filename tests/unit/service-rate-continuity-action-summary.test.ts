@@ -1,6 +1,9 @@
 import { expect, it } from "vitest";
 import type { RateContinuityReview } from "../../src/core/service-rate-continuity";
-import { summarizeContinuityActions } from "../../src/core/service-rate-continuity-action-summary";
+import {
+  summarizeContinuityActions,
+  summarizeSelectedContinuityActions,
+} from "../../src/core/service-rate-continuity-action-summary";
 
 const readyReview: RateContinuityReview = {
   status: "ready",
@@ -100,4 +103,67 @@ it("does not reveal titles, raw IDs, prices, or other private details", () => {
   expect(serialized).not.toContain("Repairs");
   expect(serialized).not.toContain("Foreign linked record");
   expect(serialized).not.toContain("Retained area link");
+});
+
+it("summarizes only explicitly selected current continuity warnings", () => {
+  const original = structuredClone(readyReview);
+  const selection = [
+    "ending-later", "ending-none", "old-link", "ending-none",
+    "foreign-rate", "archived-rate", "stale-rate",
+  ];
+  const originalSelection = [...selection];
+  expect(summarizeSelectedContinuityActions(readyReview, selection)).toEqual({
+    status: "ready",
+    withoutLaterRate: 1,
+    delayedReplacement: 1,
+    reviewLinks: 1,
+    firstWithoutLaterEnd: "2027-01-03",
+    firstDelayedEnd: "2027-01-04",
+    firstReviewLinksEnd: "2027-01-02",
+  });
+  expect(summarizeSelectedContinuityActions(readyReview, [
+    "ending-earlier", "ending-later",
+  ])).toMatchObject({
+    withoutLaterRate: 0,
+    delayedReplacement: 2,
+    reviewLinks: 0,
+    firstDelayedEnd: "2027-01-01",
+    firstWithoutLaterEnd: null,
+    firstReviewLinksEnd: null,
+  });
+  expect(summarizeSelectedContinuityActions(
+    readyReview, readyReview.issues.map((x) => x.rateId),
+  )).toEqual(summarizeContinuityActions(readyReview));
+  expect(readyReview).toEqual(original);
+  expect(selection).toEqual(originalSelection);
+});
+
+it("selected summary is empty for unknown IDs and unavailable on invalid review scope", () => {
+  expect(summarizeSelectedContinuityActions(readyReview, [
+    "unknown", "foreign-rate", "archived-rate",
+  ])).toEqual({
+    status: "ready",
+    withoutLaterRate: 0, delayedReplacement: 0, reviewLinks: 0,
+    firstWithoutLaterEnd: null, firstDelayedEnd: null,
+    firstReviewLinksEnd: null,
+  });
+  for (const status of ["choose", "invalid-date", "invalid-area"] as const) {
+    const review: RateContinuityReview = {
+      status, reviewedEnds: 0, uncoveredCount: 0,
+      linkedReviewCount: 0, issues: [], through: "",
+    };
+    expect(summarizeSelectedContinuityActions(review, ["ending-later"]))
+      .toEqual({ status: "unavailable" });
+  }
+});
+
+it("selected summary does not reveal any rate, service or area names or IDs", () => {
+  const result = summarizeSelectedContinuityActions(
+    readyReview, ["ending-later", "missing-link"],
+  );
+  const serialized = JSON.stringify(result);
+  for (const secret of [
+    "ending-later", "missing-link", "Cleaning", "Retained area link",
+    "Foreign linked record", "Later successor",
+  ]) expect(serialized).not.toContain(secret);
 });

@@ -1390,3 +1390,24 @@ No service rates, estimates, invoices, customer records, permissions,
 notification systems, storage or schema are modified. The fictional
 public demo and MIT licensing are unchanged; no deployment or
 production finance workflow is authorized.
+
+### Selected-warning follow-up breakdown (PR #105)
+
+After choosing at least one warning in **Rate continuity review**,
+the **Selected follow-up breakdown** shows three read-only category
+counts: no later saved rate, delayed replacement, and linked catalog
+records requiring review. Each non-empty category shows the earliest
+exclusive saved-rate end date among the selected warnings. The counts
+describe only the current explicitly selected authorized warnings,
+not every warning in the business; any selected card hidden by the
+on-screen filters still contributes. The original full action summary
+continues to describe the entire authorized review, unchanged.
+
+The same organization/date/area/7-, 30- or 90-day review scope and
+ephemeral selection lifecycle apply. Invalid or unauthorized review
+states refuse summaries. Stale or other-organization IDs never appear
+as a selected item; the breakdown contains counts and safe local
+dates only, never rate IDs, names, prices, customers or contacts.
+Clearing the selection removes the breakdown. Export and saved-rate
+data remain unchanged. This is an operator planning aid, not a
+permission to apply rates, send messages, issue invoices or deploy.

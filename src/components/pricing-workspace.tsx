@@ -25,7 +25,10 @@ import {
 } from "../core/upcoming-service-rate-dates";
 import { upcomingServiceRateDatesCsv } from "../core/upcoming-service-rate-dates-csv";
 import { reviewServiceRateContinuity } from "../core/service-rate-continuity";
-import { summarizeContinuityActions } from "../core/service-rate-continuity-action-summary";
+import {
+  summarizeContinuityActions,
+  summarizeSelectedContinuityActions,
+} from "../core/service-rate-continuity-action-summary";
 import { investigateRateContinuityGap } from "../core/service-rate-continuity-investigation";
 import { rateGapAuditTarget } from "../core/service-rate-gap-audit-target";
 import { localCalendarDate } from "../core/local-calendar-date";
@@ -115,6 +118,9 @@ export function Catalog({
   const selectedContinuityIds = continuitySelection.scopeKey === continuityScopeKey
     ? continuitySelection.rateIds : [];
   const selectedContinuityItems = selectedContinuityReviewIssues(
+    continuity, selectedContinuityIds,
+  );
+  const selectedContinuityActions = summarizeSelectedContinuityActions(
     continuity, selectedContinuityIds,
   );
   const selectedContinuityIdSet = new Set(
@@ -903,6 +909,45 @@ export function Catalog({
                 Clear selected warnings
               </button>
             </div>
+            {selectedContinuityItems.length > 0 &&
+              selectedContinuityActions.status === "ready" && (
+              <div role="group" aria-label="Selected continuity follow-up breakdown"
+                className="panel">
+                <h3>Selected follow-up breakdown</h3>
+                <p className="muted">
+                  Counts below include selected warnings hidden by search or
+                  type filters. They are planning information, not rate
+                  approvals or automatic changes.
+                </p>
+                <p>
+                  No later saved rate: <strong>
+                    {selectedContinuityActions.withoutLaterRate}
+                  </strong>
+                  {selectedContinuityActions.firstWithoutLaterEnd && (
+                    <> · Earliest exclusive end:{" "}
+                      {selectedContinuityActions.firstWithoutLaterEnd}</>
+                  )}
+                </p>
+                <p>
+                  Delayed replacement: <strong>
+                    {selectedContinuityActions.delayedReplacement}
+                  </strong>
+                  {selectedContinuityActions.firstDelayedEnd && (
+                    <> · Earliest exclusive end:{" "}
+                      {selectedContinuityActions.firstDelayedEnd}</>
+                  )}
+                </p>
+                <p>
+                  Linked records to review: <strong>
+                    {selectedContinuityActions.reviewLinks}
+                  </strong>
+                  {selectedContinuityActions.firstReviewLinksEnd && (
+                    <> · Earliest exclusive end:{" "}
+                      {selectedContinuityActions.firstReviewLinksEnd}</>
+                  )}
+                </p>
+              </div>
+            )}
             {(continuityWarningType !== "all" || continuityWarningSearch.trim()) && (
               <p>
                 Showing {visibleContinuityIssues.length} of {continuity.issues.length}
