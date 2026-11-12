@@ -156,3 +156,36 @@ the database's booking authority, access controls, organization
 scope, time-zone/DST behavior, the demo and license all remain
 unchanged. The summary contains only category totals, never
 employee names, contact details, record IDs, notes or customer data.
+
+## Search and page retained assignment history (PR #111)
+
+Expand **Assignment history** in **Crews & availability** to review
+historical employee allocation snapshots. A **Reserved / Released**
+filter narrows the displayed list without changing any reservation:
+Reserved means the retained allocation is currently marked active;
+Released means its allocation has been released but its revision
+remains available for audit. Separate totals show both states before
+filtering. Each item is an *allocation revision*, not a distinct
+employee, appointment, available worker, timecard or capacity claim.
+
+Search matches the employee name and descriptive role frozen in the
+allocation snapshot, plus the linked appointment title only when its
+record is present and belongs to the **same organization**. Archived
+appointments may still be named when retained; absent/foreign
+appointment links cannot leak titles. Contact data, internal IDs,
+employee skills, appointment notes and customer data are never search
+fields. Search ignores case and outer whitespace, and combines with
+the state filter. **Clear assignment filters** restores all current
+authorized history rows.
+
+The browser initially displays at most **10** retained revisions,
+with **Show more assignment history** / **Show fewer assignment
+history** controls for larger lists. Narrowing filters returns to
+the first ten; paging never edits or discards records or changes the
+underlying database/export. The original retained revision order is
+preserved. A no-match message distinguishes an empty history from
+filtered results. These controls affect only the presentation of
+already-authorized snapshots, not employee availability, schedule
+eligibility, roster definitions, permissions, session scope,
+recovery, hosting or financial records. The fictional no-login
+demo and MIT license remain unchanged.
