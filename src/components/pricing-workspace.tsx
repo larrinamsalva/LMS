@@ -26,6 +26,7 @@ import { serviceRateContinuityReviewCsv } from "../core/service-rate-continuity-
 import {
   filterContinuityWarnings,
   type ContinuityWarningFilter,
+  type ContinuityWarningSort,
 } from "../core/service-rate-continuity-filter";
 interface Actions {
   canManage: boolean;
@@ -52,6 +53,8 @@ export function Catalog({
   const [continuityWarningType, setContinuityWarningType] =
     useState<ContinuityWarningFilter>("all");
   const [continuityWarningSearch, setContinuityWarningSearch] = useState("");
+  const [continuityWarningSort, setContinuityWarningSort] =
+    useState<ContinuityWarningSort>("soonest");
   const [previousCoverageSelection, setPreviousCoverageSelection] = useState<{
     date: string;
     areaId: string;
@@ -78,6 +81,7 @@ export function Catalog({
   const visibleContinuityIssues = continuity.status === "ready"
     ? filterContinuityWarnings(
       continuity.issues, continuityWarningType, continuityWarningSearch,
+      continuityWarningSort,
     ) : [];
   const expandedContinuityIssue = visibleContinuityIssues.find((issue) =>
     issue.rateId === expandedContinuityRateId && issue.status === "Uncovered",
@@ -500,8 +504,8 @@ export function Catalog({
           and area without editing any record.
           Download a formula-safe checklist with blank decision and notes
           columns; exports contain no prices, customers or record IDs.
-          Search and warning-type filters only narrow the cards shown below:
-          counts and downloaded checklists always cover the complete
+          Search, warning-type filters and sorting only change the cards
+          shown below; counts and downloaded checklists cover the complete
           selected date, area and review period.
         </p>
         <div className="actions">
@@ -525,6 +529,19 @@ export function Catalog({
               value={continuityWarningSearch}
               onChange={(event) => setContinuityWarningSearch(event.target.value)}
             />
+          </div>
+          <div>
+            <label htmlFor="continuity-warning-sort">Sort continuity warnings</label>
+            <select id="continuity-warning-sort" value={continuityWarningSort}
+              onChange={(event) => setContinuityWarningSort(
+                event.target.value as ContinuityWarningSort,
+              )}>
+              <option value="soonest">Soonest end date first</option>
+              <option value="latest">Latest end date first</option>
+              <option value="service">Service name A to Z</option>
+              <option value="area">Area name A to Z</option>
+              <option value="area-desc">Area name Z to A</option>
+            </select>
           </div>
           {(continuityWarningType !== "all" || continuityWarningSearch !== "") && (
             <button className="secondary" type="button" onClick={() => {

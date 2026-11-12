@@ -53,6 +53,43 @@ it("searches only displayed names and end dates, ignoring case and spaces", () =
   expect(filterContinuityWarnings(issues, "all", "2027-01-05")).toEqual([]);
 });
 
+it("sorts warning cards by end date, service or area while preserving audits", () => {
+  const source = [
+    issues[2], issues[0], issues[1],
+  ];
+  const before = structuredClone(source);
+  const ids = (sort: Parameters<typeof filterContinuityWarnings>[3]) =>
+    filterContinuityWarnings(source, "all", "", sort).map((item) => item.rateId);
+  expect(ids("soonest")).toEqual([
+    "private-id-one", "private-id-two", "private-id-three",
+  ]);
+  expect(ids("latest")).toEqual([
+    "private-id-three", "private-id-two", "private-id-one",
+  ]);
+  expect(ids("service")).toEqual([
+    "private-id-one", "private-id-two", "private-id-three",
+  ]);
+  expect(ids("area")).toEqual([
+    "private-id-three", "private-id-one", "private-id-two",
+  ]);
+  expect(ids("area-desc")).toEqual([
+    "private-id-two", "private-id-one", "private-id-three",
+  ]);
+  expect(filterContinuityWarnings(source, "uncovered", "outer", "latest")
+    .map((item) => item.rateId)).toEqual(["private-id-two"]);
+  expect(source).toEqual(before);
+});
+
+it("sorts equal dates deterministically without changing warning priority", () => {
+  const equal = issues.map((item) => ({
+    ...item, endDate: "2027-01-01",
+  }));
+  expect(filterContinuityWarnings(equal, "all", "", "latest")
+    .map((item) => item.rateId)).toEqual([
+      "private-id-one", "private-id-two", "private-id-three",
+    ]);
+});
+
 it("does not mutate the existing audit warnings or leak hidden fields", () => {
   const before = structuredClone(issues);
   const filtered = filterContinuityWarnings(issues, "review-links", "retained");

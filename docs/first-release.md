@@ -1140,3 +1140,21 @@ decision checklists, or saved pricing data. Link-review warnings
 remain separate from genuine uncovered gaps, and user-only
 search filters do not introduce new export fields. The fictional
 public demo and MIT license are unchanged.
+
+
+### Sort continuity warnings on-screen (PR #95)
+
+The **Rate continuity review** warning list can now be arranged by
+soonest or latest exclusive end date, service name A–Z, or service
+area A–Z/Z–A. Sorting happens only after the existing organization-
+scoped warning type and text filters. Ties use dates and safe
+visible names with deterministic fallbacks, while the original
+continuity review remains untouched. The default is soonest
+expiry first.
+
+Sort choices change only the order of displayed review cards;
+they never change the underlying status classification, warning
+counts, archived-link policy, service-area/date/window selection,
+saved rate history, pricing changes or full CSV checklist order.
+The fictional public demo, privacy boundaries and MIT license
+remain unchanged.

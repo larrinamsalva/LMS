@@ -106,6 +106,9 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const warningSearch = continuity.getByLabel(
       "Search continuity warnings", { exact: true },
     );
+    const warningSort = continuity.getByLabel(
+      "Sort continuity warnings", { exact: true },
+    );
     await expect(continuityCsvButton).toBeDisabled();
     await expect(continuity).toContainText(
       "Choose a rate date above to review saved-rate continuity.",
@@ -152,6 +155,14 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(continuity).toContainText(
       "5 without next-day saved-rate coverage",
     );
+    await warningSort.selectOption("area-desc");
+    await expect(continuity.getByRole("article", {
+      name: /^Continuity review for /,
+    }).first()).toHaveAttribute(
+      "aria-label", "Continuity review for Outer-area hourly rate",
+    );
+    await warningSort.selectOption("soonest");
+    await expect(warningSort).toHaveValue("soonest");
     await warningType.selectOption("review-links");
     await expect(continuity).toContainText("Showing 0 of 5 continuity warnings.");
     await expect(continuity).toContainText(
