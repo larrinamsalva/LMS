@@ -1158,3 +1158,25 @@ counts, archived-link policy, service-area/date/window selection,
 saved rate history, pricing changes or full CSV checklist order.
 The fictional public demo, privacy boundaries and MIT license
 remain unchanged.
+
+
+### Explicit local-today review shortcut (PR #96)
+
+The Services & Rates screen now provides **Use today's date** and
+**Clear review date** beside the optional rate review date.
+The date remains blank by default and is filled only when the
+operator clicks the shortcut; it uses the device's *local*
+calendar date, not UTC, to avoid an unexpected day shift near
+midnight. Clearing the date restores the undated saved-rate
+view. The existing explicit area filter, lookahead period,
+continuity warnings, coverage audits and exports use the
+chosen day just as if it were entered manually.
+
+Manually changing the review date or service area, or choosing
+today, also clears a stale one-time **Return to previous date
+and area** shortcut created by the continuity-gap audit jump.
+That return control remains valid if no subsequent independent
+selection was made. All changes are UI review selections only:
+no business pricing, estimates, invoices, dates in saved records,
+customer notifications, new sessions, deployments or releases.
+MIT licensing and the public fictional demo are preserved.
