@@ -143,6 +143,44 @@ test("fictional crews and workers publish availability, schedule both industries
         page.getByRole("heading", { name: title, exact: true }),
       ).toBeVisible();
     }
+
+    // The same read-only directory controls serve property and cleaning staff.
+    await directory(page);
+    const employeeSearch = page.getByLabel(
+      "Search employee directory", { exact: true },
+    );
+    const employeeStatus = page.getByLabel(
+      "Filter employee status", { exact: true },
+    );
+    await employeeSearch.fill(people[0].split(" ")[0].toLowerCase());
+    const firstEmployee = page.getByRole("article", {
+      name: "Employee " + people[0], exact: true,
+    });
+    await expect(firstEmployee).toBeVisible();
+    for (const other of people.slice(1)) {
+      await expect(page.getByRole("article", {
+        name: "Employee " + other, exact: true,
+      })).toHaveCount(0);
+    }
+    await employeeStatus.selectOption("inactive");
+    await expect(firstEmployee).toHaveCount(0);
+    await employeeStatus.selectOption("active");
+    await expect(firstEmployee).toBeVisible();
+    await employeeSearch.fill("not-a-real-profile");
+    await expect(page.getByText(
+      "No employee profiles match these filters.", { exact: true },
+    )).toBeVisible();
+    await page.getByRole("button", {
+      name: "Clear employee filters", exact: true,
+    }).click();
+    await expect(employeeSearch).toHaveValue("");
+    await expect(employeeStatus).toHaveValue("all");
+    for (const name of people) {
+      await expect(page.getByRole("article", {
+        name: "Employee " + name, exact: true,
+      })).toBeVisible();
+    }
+    await fits(page);
     const resource =
       industry === "cleaning"
         ? "Friday cleaning crew"
