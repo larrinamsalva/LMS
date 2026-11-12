@@ -20,6 +20,7 @@ import { filterPricingCatalogCards } from "../core/pricing-catalog-search";
 import { upcomingServiceRateDates, type RateDateWindow } from "../core/upcoming-service-rate-dates";
 import { upcomingServiceRateDatesCsv } from "../core/upcoming-service-rate-dates-csv";
 import { reviewServiceRateContinuity } from "../core/service-rate-continuity";
+import { investigateRateContinuityGap } from "../core/service-rate-continuity-investigation";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -41,6 +42,7 @@ export function Catalog({
   const [selectedAreaId, setSelectedAreaId] = useState("");
   const [catalogSearch, setCatalogSearch] = useState("");
   const [upcomingWindowDays, setUpcomingWindowDays] = useState<RateDateWindow>(30);
+  const [expandedContinuityRateId, setExpandedContinuityRateId] = useState("");
   const { services, rates, zones } = filterPricingCatalogCards(
     records, organizationId, archived, asOfDate, selectedAreaId, catalogSearch,
   );
@@ -60,6 +62,16 @@ export function Catalog({
   const continuity = reviewServiceRateContinuity(
     records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
   );
+  const expandedContinuityIssue = continuity.status === "ready"
+    ? continuity.issues.find((issue) =>
+      issue.rateId === expandedContinuityRateId && issue.status === "Uncovered")
+    : undefined;
+  const investigation = expandedContinuityIssue
+    ? investigateRateContinuityGap(
+      records, organizationId, asOfDate, selectedAreaId,
+      upcomingWindowDays, expandedContinuityIssue.rateId,
+    )
+    : { status: "unavailable" as const };
   function downloadUpcomingRateDates() {
     if (upcomingDates.status !== "ready" ||
         upcomingDates.events.length === 0) return;
@@ -428,6 +440,8 @@ export function Catalog({
           filter. This is a planning review, not an automatic rate extension,
           price approval or promise that every service must be offered.
           Archived or unavailable catalog links require separate review.
+          Inspect a flagged gap to see saved history for that service
+          and area without editing any record.
         </p>
         {continuity.status === "choose" && (
           <p>Choose a rate date above to review saved-rate continuity.</p>
@@ -470,6 +484,51 @@ export function Catalog({
                         Review archived or unavailable linked service/area records
                         before deciding whether a replacement is needed.
                       </p>
+                    )}
+                    {item.status === "Uncovered" && (
+                      <>
+                        <button
+                          type="button"
+                          className="secondary"
+                          aria-expanded={expandedContinuityRateId === item.rateId &&
+                            investigation.status === "ready"}
+                          onClick={() => setExpandedContinuityRateId(
+                            expandedContinuityRateId === item.rateId
+                              ? "" : item.rateId,
+                          )}
+                        >
+                          {expandedContinuityRateId === item.rateId
+                            ? "Close saved-rate history"
+                            : "Inspect saved-rate history"}
+                        </button>
+                        {expandedContinuityRateId === item.rateId &&
+                          investigation.status === "ready" && (
+                          <div aria-label={"Saved rate history for " + item.rateTitle}>
+                            <h4>Saved rate history</h4>
+                            <p>
+                              {investigation.gapDays === null
+                                ? "No later active saved rate; the duration is unknown."
+                                : investigation.gapDays +
+                                  " calendar days without active saved-rate coverage."}
+                            </p>
+                            <ul>
+                              {investigation.entries.map((entry) => (
+                                <li key={entry.rateId}>
+                                  <strong>{entry.title}</strong> —{" "}
+                                  {entry.from} to {entry.until}
+                                  {" "}{entry.archived ? "(Archived; not coverage)"
+                                    : "(Active saved rate)"}
+                                  {entry.isEnding ? " · Ending rate" : ""}
+                                </li>
+                              ))}
+                            </ul>
+                            <p className="muted">
+                              Historical dates and archived rates are for review
+                              only; no saved rate is automatically quotable.
+                            </p>
+                          </div>
+                        )}
+                      </>
                     )}
                   </article>
                 ))}

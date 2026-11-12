@@ -142,9 +142,25 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(continuity).toContainText(
       "5 without next-day saved-rate coverage",
     );
-    await expect(continuity.getByRole("article", {
+    const localContinuityCard = continuity.getByRole("article", {
       name: "Continuity review for Local hourly rate", exact: true,
-    })).toContainText("No later saved rate found.");
+    });
+    await expect(localContinuityCard).toContainText("No later saved rate found.");
+    await localContinuityCard.getByRole("button", {
+      name: "Inspect saved-rate history", exact: true,
+    }).click();
+    await expect(localContinuityCard).toContainText(
+      "No later active saved rate; the duration is unknown.",
+    );
+    await expect(localContinuityCard).toContainText(
+      "2026-01-01 to 2027-01-01",
+    );
+    await localContinuityCard.getByRole("button", {
+      name: "Close saved-rate history", exact: true,
+    }).click();
+    await expect(localContinuityCard.getByText(
+      "Saved rate history", { exact: true },
+    )).toHaveCount(0);
     await expect(upcomingCsvButton).toBeEnabled();
     const upcomingPending = page.waitForEvent("download");
     await upcomingCsvButton.click();
@@ -253,6 +269,14 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(continuity.getByRole("article", {
       name: "Continuity review for Outer-area hourly rate", exact: true,
     })).toHaveCount(0);
+    await continuity.getByRole("article", {
+      name: "Continuity review for Local hourly rate", exact: true,
+    }).getByRole("button", {
+      name: "Inspect saved-rate history", exact: true,
+    }).click();
+    await expect(continuity.getByRole("article", {
+      name: "Continuity review for Local hourly rate", exact: true,
+    })).toContainText("2026-01-01 to 2027-01-01");
     await expect(upcomingCsvButton).toBeEnabled();
     const localUpcomingPending = page.waitForEvent("download");
     await upcomingCsvButton.click();
