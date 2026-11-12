@@ -983,3 +983,24 @@ Search does *not* alter the authorized data, add/edit/archive actions,
 service-area dropdown choices, rate-card CSV, missing-rate audit,
 all-area coverage, exports, estimates, prices, sessions, permissions
 or other organizations. The fictional demo and MIT license remain.
+
+
+### Upcoming saved-rate start and exclusive end dates (PR #88)
+
+The **Upcoming rate dates** panel on Services & Rates allows an owner
+to review already saved active-rate **start** and **exclusive end**
+dates after the explicitly chosen rate date, within the next 7,
+30 or 90 calendar days. The start date is excluded from the lookahead
+and the final day is included; the date comes from the existing
+user-selected rate date and is not silently set to the device clock.
+The explicit service-area selector narrows results while free-text
+catalog search does not affect them.
+
+Events are sorted by date, with end boundaries before starts on the
+same day. Archived rate records are excluded, but saved rates linked
+to archived or missing catalog entries are displayed with a warning
+and retained, generic link labels (never raw foreign references).
+They remain review items, not automatically applicable prices.
+The panel is informational, with no changes to live rates, estimates,
+data schemas, invoicing, schedules, customer messages or automatic
+reminders. Existing public fictional demo and MIT license remain.
