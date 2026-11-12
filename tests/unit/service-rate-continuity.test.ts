@@ -85,7 +85,7 @@ it("separates archived/unavailable linked catalog records from confirmed gaps", 
     expect(result.linkedReviewCount).toBe(2);
     expect(result.uncoveredCount).toBe(1);
     expect(result.issues.map((v) => v.status))
-      .toEqual(["Review links", "Uncovered", "Review links"]);
+      .toEqual(["Uncovered", "Review links", "Review links"]);
     expect(JSON.stringify(result)).not.toContain("Private service");
     expect(JSON.stringify(result)).not.toContain("Secret area");
   }
