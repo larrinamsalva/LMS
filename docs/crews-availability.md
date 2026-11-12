@@ -220,3 +220,32 @@ This is a presentation-only view on the already-authorized history;
 it never changes assignment records, scheduling decisions, exports,
 access roles, organizational scope or release/recovery state.
 MIT licensing and the fictional no-login demo are unchanged.
+
+## Find retained assignments by resource and scheduled-start order (PR #113)
+
+**Assignment history** search now also matches the **name of the
+linked Worker/Crew resource**, when that resource record exists in
+the same organization as the retained assignment snapshot. This is
+in addition to the frozen employee name/role and authorized
+appointment title. Foreign or missing resource links never reveal
+their names; IDs, contacts, notes and staff skills remain excluded
+from search.
+
+A **Sort assignment history** selector now offers **Retained record
+order** (the existing default), **Newest scheduled start first**,
+and **Oldest scheduled start first**. Sorting compares the saved
+appointment start instants, rather than snapshot revision, audit,
+release or employee-availability dates. Equal start instants
+preserve the original relative order; malformed start instants
+appear last in either date sort. The sort is applied after the
+existing status, text and optional business-local start-date
+filters but before the first-ten/show-more display limit.
+Changing sort resets pagination to ten; **Clear assignment
+filters** also restores Retained record order.
+
+These are read-only ways to navigate already-authorized retained
+allocations, not changes to assignment, roster, booking, audit,
+export, permissions or payroll rules. Historical employee names
+remain frozen in the retained snapshot and are not overwritten
+with current employee profiles. The fictional demo and MIT
+license remain unchanged.
