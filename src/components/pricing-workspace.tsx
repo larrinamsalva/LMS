@@ -27,6 +27,11 @@ import { reviewServiceRateContinuity } from "../core/service-rate-continuity";
 import { investigateRateContinuityGap } from "../core/service-rate-continuity-investigation";
 import { rateGapAuditTarget } from "../core/service-rate-gap-audit-target";
 import { localCalendarDate } from "../core/local-calendar-date";
+import {
+  rememberRateReviewJump,
+  returnableRateReviewDate,
+  type RateReviewJump,
+} from "../core/rate-review-navigation";
 import { serviceRateContinuityReviewCsv } from "../core/service-rate-continuity-csv";
 import {
   filterContinuityWarnings,
@@ -64,6 +69,8 @@ export function Catalog({
     date: string;
     areaId: string;
   } | null>(null);
+  const [previousNextRateReview, setPreviousNextRateReview] =
+    useState<RateReviewJump | null>(null);
   const { services, rates, zones } = filterPricingCatalogCards(
     records, organizationId, archived, asOfDate, selectedAreaId, catalogSearch,
   );
@@ -81,6 +88,9 @@ export function Catalog({
     records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
   );
   const nextRateReviewDate = nextUpcomingRateChangeDate(upcomingDates);
+  const returnRateReviewDate = returnableRateReviewDate(
+    previousNextRateReview, organizationId, asOfDate, selectedAreaId,
+  );
   const continuity = reviewServiceRateContinuity(
     records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
   );
@@ -108,11 +118,29 @@ export function Catalog({
     setSelectedAreaId(target.areaId);
     setAsOfDate(target.date);
     setExpandedContinuityRateId("");
+    setPreviousNextRateReview(null);
   }
   function restoreCoverageSelection() {
     if (!previousCoverageSelection) return;
     setSelectedAreaId(previousCoverageSelection.areaId);
     setAsOfDate(previousCoverageSelection.date);
+    setPreviousCoverageSelection(null);
+    setPreviousNextRateReview(null);
+  }
+  function reviewNextRateChange() {
+    if (!nextRateReviewDate) return;
+    const jump = rememberRateReviewJump(
+      organizationId, asOfDate, selectedAreaId, nextRateReviewDate,
+    );
+    if (!jump) return;
+    setAsOfDate(nextRateReviewDate);
+    setPreviousCoverageSelection(null);
+    setPreviousNextRateReview(jump);
+  }
+  function restoreNextRateReviewDate() {
+    if (!returnRateReviewDate) return;
+    setAsOfDate(returnRateReviewDate);
+    setPreviousNextRateReview(null);
     setPreviousCoverageSelection(null);
   }
   function useTodayForReview() {
@@ -120,14 +148,17 @@ export function Catalog({
     if (today === null) return;
     setAsOfDate(today);
     setPreviousCoverageSelection(null);
+    setPreviousNextRateReview(null);
   }
   function changeRateReviewDate(date: string) {
     setAsOfDate(date);
     setPreviousCoverageSelection(null);
+    setPreviousNextRateReview(null);
   }
   function changeRateReviewArea(areaId: string) {
     setSelectedAreaId(areaId);
     setPreviousCoverageSelection(null);
+    setPreviousNextRateReview(null);
   }
   function downloadContinuityReview() {
     if (continuity.status !== "ready" || continuity.issues.length === 0) return;
@@ -455,12 +486,19 @@ export function Catalog({
               type="button"
               className="secondary"
               disabled={!nextRateReviewDate}
-              onClick={() => {
-                if (nextRateReviewDate) changeRateReviewDate(nextRateReviewDate);
-              }}
+              onClick={reviewNextRateChange}
             >
               Review next saved-rate date
             </button>
+            {returnRateReviewDate && (
+              <button
+                type="button"
+                className="secondary"
+                onClick={restoreNextRateReviewDate}
+              >
+                Return to previous rate review date
+              </button>
+            )}
             <button
               type="button"
               className="secondary"
@@ -485,7 +523,12 @@ export function Catalog({
           to the earliest saved start or exclusive end boundary within
           the chosen area and lookahead period. This is a manual
           date selection, not approval or application of a rate.
+          After a next-date jump, the temporary return button restores
+          the previous date; manual date/area changes dismiss it.
         </p>
+        {returnRateReviewDate && (
+          <p>Previous review date: <strong>{returnRateReviewDate}</strong>.</p>
+        )}
         {nextRateReviewDate && (
           <p>Next saved-rate review date: <strong>{nextRateReviewDate}</strong>.</p>
         )}
