@@ -223,6 +223,28 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(actionSummary).toContainText("No later saved rate");
     await expect(actionSummary).toContainText("Later saved rate starts after end");
     await expect(actionSummary).toContainText("Linked catalog records to review");
+    const focusNoLater = actionSummary.getByRole("button", {
+      name: "Focus no later saved rates", exact: true,
+    });
+    const focusDelayed = actionSummary.getByRole("button", {
+      name: "Focus delayed replacement gaps", exact: true,
+    });
+    const focusLinks = actionSummary.getByRole("button", {
+      name: "Focus linked-record reviews", exact: true,
+    });
+    await expect(focusNoLater).toBeEnabled();
+    await expect(focusDelayed).toBeDisabled();
+    await expect(focusLinks).toBeDisabled();
+    await warningSearch.fill("OUTER");
+    await focusNoLater.click();
+    await expect(warningType).toHaveValue("no-later");
+    await expect(warningSearch).toHaveValue("");
+    await expect(continuity).toContainText("Showing 5 of 5 continuity warnings.");
+    await expect(continuityCsvButton).toBeEnabled();
+    await warningType.selectOption("delayed");
+    await expect(continuity).toContainText("Showing 0 of 5 continuity warnings.");
+    await expect(actionSummary).toContainText("No later saved rate");
+    await warningType.selectOption("all");
     await warningSort.selectOption("area-desc");
     await expect(continuity.getByRole("article", {
       name: /^Continuity review for /,

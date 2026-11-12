@@ -1280,3 +1280,30 @@ applies saved prices, reminders, estimates, invoices, notifications,
 sessions or rate extensions. The existing downloadable checklist,
 public no-login fictional demo, MIT license and organization
 isolation are preserved.
+
+
+### Focus on an action-summary category (PR #101)
+
+Each **Rate continuity action summary** category offers an explicit
+Focus button whenever its count is greater than zero: No later
+saved rates, Delayed replacement gaps, or Linked-record reviews.
+Clicking a button selects the corresponding warning-type filter
+and clears any stale text search, so operators can see the full
+set of findings in that category. The existing warning-type
+dropdown also includes No later saved rate and Delayed replacement
+for direct selection. The standard Clear continuity filters
+control restores the full list.
+
+These controls filter only visible warning cards already
+authorized for the current organization, review date, area and
+7/30/90-day period. They do not remove a finding from the
+underlying review or change the three-part summary, original
+counts, existing full CSV download, or any saved record.
+No-later and delayed are disjoint subclasses of true
+**Uncovered** warnings; archived/unavailable linked records
+remain separate and are never falsely labeled as genuine gaps.
+
+This feature does not update or approve prices, quotes, invoices,
+notifications, workflow permissions, audit histories or schedules.
+The fictional no-login demo, MIT license and strict organization
+isolation remain unchanged.
