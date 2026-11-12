@@ -8,8 +8,8 @@ export const STAFF_HISTORY_PAGE_SIZE = 10;
 
 /**
  * Filter only already-authorized, retained assignment snapshots. Appointment
- * titles may be searched only if the linked record belongs to the assignment's
- * own organization; absent/foreign records never expose their names.
+ * titles and resource names may be searched only if the linked record belongs
+ * to the assignment's own organization; absent/foreign records never expose names.
  *
  * Use the snapshot employee name/role rather than mutable current profiles.
  * Do not index identifiers, skills, contacts or unrelated private records.
@@ -32,10 +32,17 @@ export function filterStaffAssignmentHistory(
       record.organization_id === assignment.organization_id,
     );
     const appointmentLabel = appointment?.data.title;
+    const resource = records.find((record) =>
+      record.entity === "resources" &&
+      record.id === assignment.resource_id &&
+      record.organization_id === assignment.organization_id,
+    );
+    const resourceName = resource?.data.name;
     const searchable = [
       assignment.employee_name,
       assignment.employee_role,
       typeof appointmentLabel === "string" ? appointmentLabel : "",
+      typeof resourceName === "string" ? resourceName : "",
     ];
     return searchable.some((value) =>
       value.toLocaleLowerCase().includes(query),
@@ -120,4 +127,31 @@ export function filterStaffAssignmentHistoryByStartDate(
       return false;
     }
   });
+}
+
+export type StaffAssignmentHistorySort = "retained" | "newest" | "oldest";
+
+/**
+ * Reorder a copy of already-filtered assignment snapshots by their saved
+ * scheduled start instant. Invalid dates go last in either direction; ties
+ * keep original order. This is NOT revision creation/release chronology and
+ * never changes audit history, resource bookings, or persisted records.
+ */
+export function orderStaffAssignmentHistory(
+  entries: readonly StaffAssignment[],
+  sort: StaffAssignmentHistorySort,
+): StaffAssignment[] {
+  if (sort === "retained") return [...entries];
+  const millis = (value: string | Date) => {
+    const time = new Date(value).getTime();
+    return Number.isFinite(time) ? time : null;
+  };
+  return entries.map((entry, index) => ({
+    entry, index, time: millis(entry.starts_at),
+  })).sort((a, b) =>
+    (a.time === null ? (b.time === null ? 0 : 1)
+      : b.time === null ? -1
+        : sort === "newest" ? b.time - a.time : a.time - b.time) ||
+    a.index - b.index,
+  ).map(({ entry }) => entry);
 }
