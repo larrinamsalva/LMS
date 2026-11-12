@@ -195,6 +195,18 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(rateDate).toHaveValue("2026-11-06");
     await expect(returnRateDateButton).toHaveCount(0);
     await expect(upcoming).toContainText("5 upcoming rate date events");
+    const localRateEnd = upcoming.getByRole("article", {
+      name: "Upcoming ends for Local hourly rate", exact: true,
+    });
+    await expect(localRateEnd).toContainText("2027-01-01");
+    await localRateEnd.getByRole("button", {
+      name: "Review this date", exact: true,
+    }).click();
+    await expect(rateDate).toHaveValue("2027-01-01");
+    await expect(returnRateDateButton).toBeVisible();
+    await returnRateDateButton.click();
+    await expect(rateDate).toHaveValue("2026-11-06");
+    await expect(returnRateDateButton).toHaveCount(0);
     await nextRateDateButton.click();
     await expect(returnRateDateButton).toBeVisible();
     await rateDate.fill("2026-11-06");

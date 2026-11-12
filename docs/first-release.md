@@ -1225,3 +1225,28 @@ navigation, automatic pricing, changes to audit or CSV output,
 notifications, invoices, new sessions, releases or deployments.
 The public fictional demo, data isolation and MIT license remain
 unchanged.
+
+
+### Review an individual upcoming saved-rate date (PR #99)
+
+Every saved active-rate start or exclusive-end event in
+**Upcoming rate dates** now has its own **Review this date**
+button. Clicking it selects that listed event's date in
+Services & Rates for the current authorized organization,
+area filter and 7/30/90-day window; it need not be the
+earliest event. The prior-date return shortcut introduced in
+PR #98 works identically for this explicit jump.
+
+The action revalidates that the clicked rate ID, boundary kind
+and date still occur together in a freshly recomputed,
+organization-scoped upcoming-rate review. Stale, foreign,
+archived saved-rate, filtered-out or out-of-window events
+cannot trigger navigation. Retained archived or unavailable
+catalog *links* continue to display their review-only
+status and never become approved prices.
+
+This is an ephemeral UI filter change, not a saved-rate edit,
+a quote, an invoice, a calendar booking, a notification
+or an automatic pricing approval. Existing audit counts,
+history, CSV exports, no-login fictional demo, MIT license
+and organization isolation are preserved.

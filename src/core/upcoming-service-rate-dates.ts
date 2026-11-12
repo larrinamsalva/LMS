@@ -104,3 +104,23 @@ export function upcomingServiceRateDates(
 export function nextUpcomingRateChangeDate(review: UpcomingRateDates): string | null {
   return review.status === "ready" ? review.events[0]?.date ?? null : null;
 }
+
+
+/**
+ * Resolve an explicitly clicked event only if it still exists in the
+ * CURRENT organization/area/window-scoped upcoming review. Caller must
+ * freshly compute that review from authorized saved records; never use
+ * a record id or date supplied by a stale UI without revalidation.
+ */
+export function upcomingRateEventReviewDate(
+  review: UpcomingRateDates,
+  selection: Pick<UpcomingRateBoundary, "rateId" | "date" | "kind">,
+): string | null {
+  if (review.status !== "ready") return null;
+  const event = review.events.find((candidate) =>
+    candidate.rateId === selection.rateId &&
+    candidate.kind === selection.kind &&
+    candidate.date === selection.date,
+  );
+  return event?.date ?? null;
+}
