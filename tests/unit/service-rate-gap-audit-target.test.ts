@@ -79,7 +79,7 @@ it("never navigates to another organization's service or archived linked areas",
     rec("service", "services", { name: "Cleaning" }),
     rec("archived-service", "services", { name: "Old" }, true),
     rec("private-service", "services", { name: "SECRET service" }, false, foreign),
-    rate("local", "service", "local", "2026-01-01", "2027-01-01"),
+    rate("local-rate", "service", "local", "2026-01-01", "2027-01-01"),
     rate("private-rate", "private-service", "private-zone",
       "2026-01-01", "2027-01-01", false, foreign),
     rate("retired-zone", "service", "retired", "2026-01-01", "2027-01-01"),
@@ -90,7 +90,7 @@ it("never navigates to another organization's service or archived linked areas",
   ];
   const find = (id: string, area = "") =>
     rateGapAuditTarget(records, org, "2026-12-15", area, 30, id);
-  expect(find("local")).toEqual({
+  expect(find("local-rate")).toEqual({
     status: "ready", areaId: "local", date: "2027-01-01",
     areaName: "Local", serviceName: "Cleaning",
   });
@@ -98,5 +98,5 @@ it("never navigates to another organization's service or archived linked areas",
   expect(find("retired-zone")).toEqual({ status: "unavailable" });
   expect(find("retired-service")).toEqual({ status: "unavailable" });
   expect(find("foreign-link")).toEqual({ status: "unavailable" });
-  expect(find("local", "private-zone")).toEqual({ status: "unavailable" });
+  expect(find("local-rate", "private-zone")).toEqual({ status: "unavailable" });
 });
