@@ -293,7 +293,31 @@ test("fictional crews and workers publish availability, schedule both industries
     const firstPeriod = page.getByRole("article", {
       name: people[0] + " Friday work", exact: true,
     });
+    const availabilityOverview = page.getByRole("group", {
+      name: "Availability period overview", exact: true,
+    });
+    const workingHoursOverview = availabilityOverview.locator(
+      ".workforce-card",
+    ).filter({
+      has: availabilityOverview.getByRole("heading", {
+        name: "Working hours", exact: true,
+      }),
+    });
+    const recordedCount = await workingHoursOverview.locator("p").innerText();
+    expect(recordedCount).toMatch(/^[1-9]\d* recorded periods$/);
+    await expect(availabilityOverview.getByRole("button", {
+      name: "View working hours periods", exact: true,
+    })).toBeEnabled();
     await expect(firstPeriod).toBeVisible();
+    await periodSearch.fill(people[0].toLowerCase());
+    await expect(workingHoursOverview.locator("p")).toHaveText(recordedCount);
+    await expect(firstPeriod).toBeVisible();
+    await availabilityOverview.getByRole("button", {
+      name: "View working hours periods", exact: true,
+    }).click();
+    await expect(periodKind).toHaveValue("Working hours");
+    await expect(periodSearch).toHaveValue("");
+    await expect(workingHoursOverview.locator("p")).toHaveText(recordedCount);
     await periodSearch.fill(people[0].toLowerCase());
     await expect(firstPeriod).toBeVisible();
     for (const other of people.slice(1)) {
