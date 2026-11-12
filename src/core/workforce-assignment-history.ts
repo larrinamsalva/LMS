@@ -1,5 +1,7 @@
 import type { WorkspaceRecord } from "./engine";
 import type { StaffAssignment } from "./workforce";
+import { Temporal } from "@js-temporal/polyfill";
+import { localDate } from "./time";
 
 export type StaffAssignmentHistoryStatus = "all" | "reserved" | "released";
 export const STAFF_HISTORY_PAGE_SIZE = 10;
@@ -63,4 +65,59 @@ export function visibleStaffAssignmentHistory(
     ? Math.max(STAFF_HISTORY_PAGE_SIZE, Math.floor(requested))
     : STAFF_HISTORY_PAGE_SIZE;
   return entries.slice(0, safe);
+}
+
+/**
+ * Date-range bounds refer to the assignment's saved appointment START day in
+ * the workspace's display time zone, not when a revision was released.
+ * Empty endpoints are unbounded; inputs must be complete, real ISO dates.
+ */
+export function staffAssignmentStartDateRangeError(
+  fromDate: string,
+  throughDate: string,
+): string | null {
+  for (const [label, date] of [
+    ["From", fromDate], ["Through", throughDate],
+  ] as const) {
+    if (!date) continue;
+    try {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+          Temporal.PlainDate.from(date, { overflow: "reject" }).toString() !== date) {
+        return label + " date must be a valid YYYY-MM-DD calendar date.";
+      }
+    } catch {
+      return label + " date must be a valid YYYY-MM-DD calendar date.";
+    }
+  }
+  return fromDate && throughDate && fromDate > throughDate
+    ? "From date must be on or before Through date."
+    : null;
+}
+
+/**
+ * Inclusive local start-day focus over already-authorized snapshot history.
+ * The full unfiltered history and status counts remain unchanged.
+ * This is independent of the selected Availability day and does not make a
+ * current-availability, booking or release-date claim.
+ */
+export function filterStaffAssignmentHistoryByStartDate(
+  assignments: readonly StaffAssignment[],
+  zone: string,
+  fromDate: string,
+  throughDate: string,
+): StaffAssignment[] {
+  if (staffAssignmentStartDateRangeError(fromDate, throughDate)) return [];
+  if (!fromDate && !throughDate) return [...assignments];
+  return assignments.filter((assignment) => {
+    try {
+      const startDay = localDate(
+        new Date(assignment.starts_at).toISOString(), zone,
+      );
+      return (!fromDate || startDay >= fromDate) &&
+        (!throughDate || startDay <= throughDate);
+    } catch {
+      // Malformed retained start dates cannot be assigned a guessed day.
+      return false;
+    }
+  });
 }
