@@ -438,6 +438,33 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(
       page.getByText("Reserved", { exact: false }).first(),
     ).toBeVisible();
+    const assignmentSearch = page.getByLabel(
+      "Search assignment history", { exact: true },
+    );
+    const assignmentStatus = page.getByLabel(
+      "Filter assignment status", { exact: true },
+    );
+    const historyCount = page.getByText(/matching retained assignments/);
+    await expect(historyCount).toContainText("Showing");
+    await assignmentSearch.fill(people[0].toLowerCase());
+    await expect(page.getByText(people[0], { exact: false }).first())
+      .toBeVisible();
+    await assignmentStatus.selectOption("reserved");
+    await expect(page.getByText(people[0], { exact: false }).first())
+      .toBeVisible();
+    await assignmentStatus.selectOption("released");
+    await expect(assignmentStatus).toHaveValue("released");
+    await assignmentSearch.fill("no-matching-employee-or-appointment");
+    await expect(page.getByText(
+      "No retained assignments match these filters.", { exact: true },
+    )).toBeVisible();
+    await page.getByRole("button", {
+      name: "Clear assignment filters", exact: true,
+    }).click();
+    await expect(assignmentSearch).toHaveValue("");
+    await expect(assignmentStatus).toHaveValue("all");
+    await expect(page.getByText(people[0], { exact: false }).first())
+      .toBeVisible();
     await fits(page);
     expect(
       (
