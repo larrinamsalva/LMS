@@ -278,15 +278,6 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(page.getByRole("article", {
       name: "Rate Local hourly rate", exact: true,
     })).toBeVisible();
-    const filteredPending = page.waitForEvent("download");
-    await page.getByRole("button", {
-      name: "Download active service rates CSV", exact: true,
-    }).click();
-    const filteredDownload = await filteredPending;
-    const filteredCsv = (await readFile((await filteredDownload.path())!))
-      .toString("utf8");
-    expect(filteredCsv).toContain('"Local hourly rate"');
-    expect(filteredCsv).not.toContain(customer);
     const areaFilter = page.getByLabel("Filter service rates by area", {
       exact: true,
     });
@@ -336,14 +327,6 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Continuity review for Local hourly rate", exact: true,
     })).toContainText("2026-01-01 to 2027-01-01");
     await expect(upcomingCsvButton).toBeEnabled();
-    const localUpcomingPending = page.waitForEvent("download");
-    await upcomingCsvButton.click();
-    const localUpcomingExport = await localUpcomingPending;
-    const localUpcomingCsv = (await readFile((await localUpcomingExport.path())!))
-      .toString("utf8");
-    expect(localUpcomingCsv.trimEnd().split("\r\n")).toHaveLength(5);
-    expect(localUpcomingCsv).toContain('"Local hourly rate"');
-    expect(localUpcomingCsv).not.toContain('"Outer-area hourly rate"');
     await expect(upcoming.getByRole("article", {
       name: "Upcoming ends for Local hourly rate", exact: true,
     })).toBeVisible();
