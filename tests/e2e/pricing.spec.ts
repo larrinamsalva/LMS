@@ -97,6 +97,10 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const upcomingWindow = page.getByLabel("Review upcoming period", {
       exact: true,
     });
+    const upcomingCsvButton = upcoming.getByRole("button", {
+      name: "Download upcoming rate dates CSV", exact: true,
+    });
+    await expect(upcomingCsvButton).toBeDisabled();
     await expect(upcoming).toContainText(
       "Choose a rate date above to review upcoming saved-rate dates.",
     );
@@ -126,8 +130,25 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(upcoming).toContainText(
       "No saved active-rate start or end dates in this period.",
     );
+    await expect(upcomingCsvButton).toBeDisabled();
     await upcomingWindow.selectOption("90");
     await expect(upcoming).toContainText("5 upcoming rate date events");
+    await expect(upcomingCsvButton).toBeEnabled();
+    const upcomingPending = page.waitForEvent("download");
+    await upcomingCsvButton.click();
+    const upcomingExport = await upcomingPending;
+    expect(upcomingExport.suggestedFilename()).toBe(
+      "lms-upcoming-service-rate-dates.csv",
+    );
+    const upcomingCsv = (await readFile((await upcomingExport.path())!))
+      .toString("utf8");
+    expect(upcomingCsv.trimEnd().split("\r\n")).toHaveLength(6);
+    expect(upcomingCsv).toContain('"Ends (exclusive)"');
+    expect(upcomingCsv).toContain('"Local hourly rate"');
+    expect(upcomingCsv).toContain('"Outer-area hourly rate"');
+    expect(upcomingCsv).toContain('"Operator decision (fill manually)"');
+    expect(upcomingCsv).not.toContain(customer);
+    expect(upcomingCsv).not.toContain(work);
     await expect(upcoming.getByRole("article", {
       name: "Upcoming ends for Local hourly rate", exact: true,
     })).toContainText("2027-01-01");
@@ -135,6 +156,7 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(upcoming).toContainText(
       "No saved active-rate start or end dates in this period.",
     );
+    await expect(upcomingCsvButton).toBeDisabled();
     await expect(allAreas).toContainText(
       "3 missing-rate candidates across 2 active service areas",
     );
@@ -210,6 +232,15 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await areaFilter.selectOption({ label: "Local service area" });
     await rateDate.fill("2026-12-15");
     await expect(upcoming).toContainText("4 upcoming rate date events");
+    await expect(upcomingCsvButton).toBeEnabled();
+    const localUpcomingPending = page.waitForEvent("download");
+    await upcomingCsvButton.click();
+    const localUpcomingExport = await localUpcomingPending;
+    const localUpcomingCsv = (await readFile((await localUpcomingExport.path())!))
+      .toString("utf8");
+    expect(localUpcomingCsv.trimEnd().split("\r\n")).toHaveLength(5);
+    expect(localUpcomingCsv).toContain('"Local hourly rate"');
+    expect(localUpcomingCsv).not.toContain('"Outer-area hourly rate"');
     await expect(upcoming.getByRole("article", {
       name: "Upcoming ends for Local hourly rate", exact: true,
     })).toBeVisible();
@@ -281,6 +312,7 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Download active service rates CSV", exact: true,
     })).toBeDisabled();
     await rateDate.fill("");
+    await expect(upcomingCsvButton).toBeDisabled();
     await expect(allAreaCsvButton).toBeDisabled();
     await expect(allAreaMissingButton).toBeDisabled();
     await expect(missingRateDownload).toBeDisabled();
