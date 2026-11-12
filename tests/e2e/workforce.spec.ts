@@ -446,7 +446,33 @@ test("fictional crews and workers publish availability, schedule both industries
       "Filter assignment status", { exact: true },
     );
     const historyCount = assignmentHistory.getByText(/matching retained assignments/);
+    const assignmentFromDate = assignmentHistory.getByLabel(
+      "Assignment start from", { exact: true },
+    );
+    const assignmentThroughDate = assignmentHistory.getByLabel(
+      "Assignment start through", { exact: true },
+    );
     await expect(historyCount).toContainText("Showing");
+    await assignmentFromDate.fill("2026-11-06");
+    await assignmentThroughDate.fill("2026-11-06");
+    await expect(historyCount).toContainText("Showing");
+    await expect(assignmentHistory.locator("li")
+      .filter({ hasText: people[0] }).first()).toBeVisible();
+    await assignmentThroughDate.fill("2026-11-05");
+    await expect(assignmentHistory.getByRole("alert")).toContainText(
+      "From date must be on or before Through date.",
+    );
+    await expect(assignmentHistory.getByText(
+      "Fix the assignment start date range to see history.", { exact: true },
+    )).toBeVisible();
+    await assignmentFromDate.fill("2026-11-07");
+    await assignmentThroughDate.fill("");
+    await expect(assignmentHistory.getByText(
+      "No retained assignments match these filters.", { exact: true },
+    )).toBeVisible();
+    await assignmentFromDate.fill("2026-11-06");
+    await expect(assignmentHistory.locator("li")
+      .filter({ hasText: people[0] }).first()).toBeVisible();
     await assignmentSearch.fill(people[0].toLowerCase());
     await expect(assignmentHistory.locator("li")
       .filter({ hasText: people[0] }).first()).toBeVisible();
@@ -464,6 +490,8 @@ test("fictional crews and workers publish availability, schedule both industries
     }).click();
     await expect(assignmentSearch).toHaveValue("");
     await expect(assignmentStatus).toHaveValue("all");
+    await expect(assignmentFromDate).toHaveValue("");
+    await expect(assignmentThroughDate).toHaveValue("");
     await expect(assignmentHistory.locator("li")
       .filter({ hasText: people[0] }).first()).toBeVisible();
     await fits(page);
