@@ -23,6 +23,10 @@ import { reviewServiceRateContinuity } from "../core/service-rate-continuity";
 import { investigateRateContinuityGap } from "../core/service-rate-continuity-investigation";
 import { rateGapAuditTarget } from "../core/service-rate-gap-audit-target";
 import { serviceRateContinuityReviewCsv } from "../core/service-rate-continuity-csv";
+import {
+  filterContinuityWarnings,
+  type ContinuityWarningFilter,
+} from "../core/service-rate-continuity-filter";
 interface Actions {
   canManage: boolean;
   busy: boolean;
@@ -45,6 +49,9 @@ export function Catalog({
   const [catalogSearch, setCatalogSearch] = useState("");
   const [upcomingWindowDays, setUpcomingWindowDays] = useState<RateDateWindow>(30);
   const [expandedContinuityRateId, setExpandedContinuityRateId] = useState("");
+  const [continuityWarningType, setContinuityWarningType] =
+    useState<ContinuityWarningFilter>("all");
+  const [continuityWarningSearch, setContinuityWarningSearch] = useState("");
   const [previousCoverageSelection, setPreviousCoverageSelection] = useState<{
     date: string;
     areaId: string;
@@ -68,10 +75,13 @@ export function Catalog({
   const continuity = reviewServiceRateContinuity(
     records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
   );
-  const expandedContinuityIssue = continuity.status === "ready"
-    ? continuity.issues.find((issue) =>
-      issue.rateId === expandedContinuityRateId && issue.status === "Uncovered")
-    : undefined;
+  const visibleContinuityIssues = continuity.status === "ready"
+    ? filterContinuityWarnings(
+      continuity.issues, continuityWarningType, continuityWarningSearch,
+    ) : [];
+  const expandedContinuityIssue = visibleContinuityIssues.find((issue) =>
+    issue.rateId === expandedContinuityRateId && issue.status === "Uncovered",
+  );
   const investigation = expandedContinuityIssue
     ? investigateRateContinuityGap(
       records, organizationId, asOfDate, selectedAreaId,
@@ -490,7 +500,41 @@ export function Catalog({
           and area without editing any record.
           Download a formula-safe checklist with blank decision and notes
           columns; exports contain no prices, customers or record IDs.
+          Search and warning-type filters only narrow the cards shown below:
+          counts and downloaded checklists always cover the complete
+          selected date, area and review period.
         </p>
+        <div className="actions">
+          <div>
+            <label htmlFor="continuity-warning-type">
+              Filter continuity warning type
+            </label>
+            <select id="continuity-warning-type" value={continuityWarningType}
+              onChange={(event) => setContinuityWarningType(
+                event.target.value as ContinuityWarningFilter,
+              )}>
+              <option value="all">All warnings</option>
+              <option value="uncovered">Uncovered rate gaps</option>
+              <option value="review-links">Linked-record review</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="continuity-warning-search">Search continuity warnings</label>
+            <input id="continuity-warning-search" type="search"
+              placeholder="Rate, service, area or end date"
+              value={continuityWarningSearch}
+              onChange={(event) => setContinuityWarningSearch(event.target.value)}
+            />
+          </div>
+          {(continuityWarningType !== "all" || continuityWarningSearch !== "") && (
+            <button className="secondary" type="button" onClick={() => {
+              setContinuityWarningType("all");
+              setContinuityWarningSearch("");
+            }}>
+              Clear continuity filters
+            </button>
+          )}
+        </div>
         {continuity.status === "choose" && (
           <p>Choose a rate date above to review saved-rate continuity.</p>
         )}
@@ -508,11 +552,17 @@ export function Catalog({
               <strong>{continuity.uncoveredCount} without next-day saved-rate coverage</strong>
               {" "}and {continuity.linkedReviewCount} requiring linked-record review.
             </p>
+            {(continuityWarningType !== "all" || continuityWarningSearch.trim()) && (
+              <p>
+                Showing {visibleContinuityIssues.length} of {continuity.issues.length}
+                {" "}continuity warnings.
+              </p>
+            )}
             {continuity.issues.length === 0 ? (
               <p>No continuity-review candidates found for this period.</p>
             ) : (
               <div className="workforce-grid">
-                {continuity.issues.map((item) => (
+                {visibleContinuityIssues.map((item) => (
                   <article key={item.rateId} className="workforce-card"
                     aria-label={"Continuity review for " + item.rateTitle}>
                     <span className="badge">{item.status}</span>
@@ -585,6 +635,12 @@ export function Catalog({
                   </article>
                 ))}
               </div>
+            )}
+            {continuity.issues.length > 0 &&
+              visibleContinuityIssues.length === 0 && (
+              <p className="empty-state">
+                No continuity warnings match these review filters.
+              </p>
             )}
           </>
         )}

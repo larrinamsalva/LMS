@@ -100,6 +100,12 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const continuityCsvButton = continuity.getByRole("button", {
       name: "Download rate continuity review CSV", exact: true,
     });
+    const warningType = continuity.getByLabel(
+      "Filter continuity warning type", { exact: true },
+    );
+    const warningSearch = continuity.getByLabel(
+      "Search continuity warnings", { exact: true },
+    );
     await expect(continuityCsvButton).toBeDisabled();
     await expect(continuity).toContainText(
       "Choose a rate date above to review saved-rate continuity.",
@@ -146,6 +152,29 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(continuity).toContainText(
       "5 without next-day saved-rate coverage",
     );
+    await warningType.selectOption("review-links");
+    await expect(continuity).toContainText("Showing 0 of 5 continuity warnings.");
+    await expect(continuity).toContainText(
+      "No continuity warnings match these review filters.",
+    );
+    await expect(continuityCsvButton).toBeEnabled();
+    await warningType.selectOption("uncovered");
+    await warningSearch.fill("OUTER");
+    await expect(continuity).toContainText("Showing 1 of 5 continuity warnings.");
+    await expect(continuity.getByRole("article", {
+      name: "Continuity review for Outer-area hourly rate", exact: true,
+    })).toBeVisible();
+    await expect(continuity.getByRole("article", {
+      name: "Continuity review for Local hourly rate", exact: true,
+    })).toHaveCount(0);
+    await continuity.getByRole("button", {
+      name: "Clear continuity filters", exact: true,
+    }).click();
+    await expect(warningType).toHaveValue("all");
+    await expect(warningSearch).toHaveValue("");
+    await expect(continuity.getByRole("article", {
+      name: "Continuity review for Local hourly rate", exact: true,
+    })).toBeVisible();
     await expect(continuityCsvButton).toBeEnabled();
     const continuityPending = page.waitForEvent("download");
     await continuityCsvButton.click();
