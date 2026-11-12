@@ -1,7 +1,15 @@
 import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "./engine";
 import { csvSafeCell } from "./daily-operations-csv";
-import { reviewServiceRateContinuity } from "./service-rate-continuity";
+import {
+  reviewServiceRateContinuity,
+  type RateContinuityReviewItem,
+} from "./service-rate-continuity";
+import {
+  filterContinuityWarnings,
+  type ContinuityWarningFilter,
+  type ContinuityWarningSort,
+} from "./service-rate-continuity-filter";
 import type { RateDateWindow } from "./upcoming-service-rate-dates";
 
 /**
@@ -27,6 +35,37 @@ export function serviceRateContinuityReviewCsv(
     throw new Error("Choose an authorized area and valid date/window.");
   }
 
+  return renderContinuityReviewCsv(report.issues, asOfDate, report.through);
+}
+
+/** Download only visible warning categories/search results after revalidating
+ * the full organization-scoped review. The original full CSV is unchanged.
+ */
+export function serviceRateContinuityFilteredCsv(
+  records: readonly WorkspaceRecord[],
+  organizationId: string,
+  asOfDate: string,
+  selectedAreaId: string,
+  days: RateDateWindow,
+  filter: ContinuityWarningFilter,
+  search: string,
+  sort: ContinuityWarningSort = "soonest",
+): string {
+  const report = reviewServiceRateContinuity(
+    records, organizationId, asOfDate, selectedAreaId, days,
+  );
+  if (report.status !== "ready") {
+    throw new Error("Choose an authorized area and valid date/window.");
+  }
+  const visible = filterContinuityWarnings(report.issues, filter, search, sort);
+  return renderContinuityReviewCsv(visible, asOfDate, report.through);
+}
+
+function renderContinuityReviewCsv(
+  issues: readonly RateContinuityReviewItem[],
+  from: string,
+  through: string,
+): string {
   const header = [
     "Review from (exclusive)",
     "Review through (inclusive)",
@@ -40,15 +79,15 @@ export function serviceRateContinuityReviewCsv(
     "Operator decision (fill manually)",
     "Review notes (fill manually)",
   ];
-  const rows = report.issues.map((issue) => {
+  const rows = issues.map((issue) => {
     const gapDays = issue.status === "Uncovered" && issue.nextStart
       ? String(Temporal.PlainDate.from(issue.endDate).until(
           Temporal.PlainDate.from(issue.nextStart),
         ).days)
       : "";
     return [
-      asOfDate,
-      report.through,
+      from,
+      through,
       issue.rateTitle,
       issue.serviceName,
       issue.areaName,

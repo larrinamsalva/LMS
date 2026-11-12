@@ -1,6 +1,9 @@
 import { expect, it } from "vitest";
 import type { WorkspaceRecord } from "../../src/core/engine";
-import { serviceRateContinuityReviewCsv } from "../../src/core/service-rate-continuity-csv";
+import {
+  serviceRateContinuityReviewCsv,
+  serviceRateContinuityFilteredCsv,
+} from "../../src/core/service-rate-continuity-csv";
 
 const org = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const foreign = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -100,4 +103,79 @@ it("neutralizes spreadsheet formulas and never reveals foreign linked names", ()
   expect(csv).toContain('"Review links"');
   expect(csv).not.toContain("Competitor secret");
   expect(csv).not.toContain("Confidential service");
+});
+
+
+it("exports only matching follow-up category without affecting the full checklist", () => {
+  const records = [
+    rec("local", "pricing-zones", { name: "Local" }),
+    rec("outer", "pricing-zones", { name: "Outer" }),
+    rec("former", "pricing-zones", { name: "Former" }, true),
+    rec("svc", "services", { name: "Cleaning" }),
+    rate("delayed", "svc", "local", "2026-01-01", "2027-01-01"),
+    rate("future", "svc", "local", "2027-01-05"),
+    rate("no-later", "svc", "outer", "2026-01-01", "2027-01-01"),
+    rate("bad-link", "svc", "former", "2026-01-01", "2027-01-01"),
+    rate("secret", "svc", "outer", "2027-01-01", "", false, foreign),
+  ];
+  const original = structuredClone(records);
+  const full = serviceRateContinuityReviewCsv(records, org, "2026-12-15", "", 30);
+  expect(full.trimEnd().split("\r\n")).toHaveLength(4);
+  const delayed = serviceRateContinuityFilteredCsv(
+    records, org, "2026-12-15", "", 30, "delayed", "", "soonest",
+  );
+  expect(delayed.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(delayed).toContain('"delayed","Cleaning","Local","2027-01-01","Uncovered","2027-01-05","4"');
+  expect(delayed).not.toContain('"no-later"');
+  const noLater = serviceRateContinuityFilteredCsv(
+    records, org, "2026-12-15", "", 30, "no-later", "", "soonest",
+  );
+  expect(noLater).toContain('"no-later"');
+  expect(noLater).not.toContain('"delayed"');
+  const linked = serviceRateContinuityFilteredCsv(
+    records, org, "2026-12-15", "", 30, "review-links", "", "soonest",
+  );
+  expect(linked).toContain('"bad-link"');
+  expect(linked).not.toContain('"no-later"');
+  expect(linked).not.toContain('"delayed"');
+  expect(linked).not.toContain('"secret"');
+  const searched = serviceRateContinuityFilteredCsv(
+    records, org, "2026-12-15", "", 30, "uncovered", "  outER ", "soonest",
+  );
+  expect(searched.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(searched).toContain('"no-later"');
+  expect(searched).not.toContain('"delayed"');
+  const noMatches = serviceRateContinuityFilteredCsv(
+    records, org, "2026-12-15", "", 30, "delayed", "outer", "soonest",
+  );
+  expect(noMatches.trimEnd().split("\r\n")).toHaveLength(1);
+  expect(serviceRateContinuityReviewCsv(records, org, "2026-12-15", "", 30)).toBe(full);
+  expect(records).toEqual(original);
+});
+
+it("preserves safe spreadsheet cells and denies invalid or foreign-area filtered exports", () => {
+  const records = [
+    rec("area", "pricing-zones", { name: "+Area" }),
+    rec("svc", "services", { name: "=Service()" }),
+    rec("foreign-area", "pricing-zones", { name: "Private" }, false, foreign),
+    rate("=FORMULA()", "svc", "area", "2026-01-01", "2027-01-01"),
+    rate("=secret", "svc", "foreign-area", "2026-01-01", "2027-01-01", false, foreign),
+  ];
+  const filtered = serviceRateContinuityFilteredCsv(
+    records, org, "2026-12-15", "", 30, "no-later", "", "latest",
+  );
+  expect(filtered).toContain("\"'=FORMULA()\"");
+  expect(filtered).toContain("\"'=Service()\"");
+  expect(filtered).toContain("\"'+Area\"");
+  expect(filtered).not.toContain("=secret");
+  expect(filtered).not.toContain("Private");
+  expect(filtered).not.toContain("foreign-area");
+  const invalid = () => serviceRateContinuityFilteredCsv(
+    records, org, "2026-02-30", "", 30, "all", "", "soonest",
+  );
+  const foreignArea = () => serviceRateContinuityFilteredCsv(
+    records, org, "2026-12-15", "foreign-area", 30, "all", "", "soonest",
+  );
+  expect(invalid).toThrow("Choose an authorized area and valid date/window.");
+  expect(foreignArea).toThrow("Choose an authorized area and valid date/window.");
 });
