@@ -296,13 +296,12 @@ test("fictional crews and workers publish availability, schedule both industries
     const availabilityOverview = page.getByRole("group", {
       name: "Availability period overview", exact: true,
     });
-    const workingHoursOverview = availabilityOverview.locator(
-      ".workforce-card",
-    ).filter({
-      has: availabilityOverview.getByRole("heading", {
-        name: "Working hours", exact: true,
-      }),
-    });
+    // Start at the heading within the group, then select its direct card.
+    // A group-scoped locator in filter({ has }) is re-rooted per card
+    // and never matches, causing all three viewport runs to time out.
+    const workingHoursOverview = availabilityOverview.getByRole("heading", {
+      name: "Working hours", exact: true,
+    }).locator("..");
     const recordedCount = await workingHoursOverview.locator("p").innerText();
     expect(recordedCount).toMatch(/^[1-9]\d* recorded periods$/);
     await expect(availabilityOverview.getByRole("button", {
