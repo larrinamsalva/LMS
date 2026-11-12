@@ -128,3 +128,31 @@ for enrolled resources is a *historical enrollment indication*, not
 a claim that a crew can be scheduled on the selected date.
 
 The public fictional no-login demo and MIT license remain intact.
+
+## Daily availability period overview (PR #110)
+
+The Availability section now shows an explicitly **read-only period
+overview** for the selected business-local date: counts of overlapping
+recorded **Working hours**, **Day off**, **Vacation**, and **Unavailable**
+periods. Totals use the complete authorized current or archived list
+for that chosen day, **before** the presentation-only period-type or
+text-search filters. This avoids hiding recorded leave simply because
+a user searched a different worker or type. Each nonempty category has
+a **View ... periods** action that selects its type and clears the old
+text search, so the matching period cards become visible without
+changing any stored data. Zero-count category buttons are disabled.
+
+A count means **number of recorded periods**, not unique employees,
+scheduled hours, complete-day coverage, staffing capacity, or
+availability for an appointment. Multiple overlapping periods
+belonging to one person are counted separately. Records from
+**Show archived workforce records** are historical, not current
+eligibility. Incomplete/invalid selected dates continue to show no
+overlapping periods rather than fabricating work windows.
+
+No period is created, approved, extended, deleted or combined.
+Availability conflicts, crew enrollment, reservation constraints,
+the database's booking authority, access controls, organization
+scope, time-zone/DST behavior, the demo and license all remain
+unchanged. The summary contains only category totals, never
+employee names, contact details, record IDs, notes or customer data.
