@@ -964,3 +964,22 @@ contain no private customer/employee details, internal record IDs,
 rate amounts, billing or payment data. No catalog change, invoice,
 estimate, notification, session creation, license change, deployment
 or release is caused by the review.
+
+
+### Search existing pricing catalog cards (PR #87)
+
+The Services & Rates screen has a client-only **Search catalog cards**
+field for locating displayed services, saved rates and service-area
+cards quickly. Matching is trimmed, case-insensitive and uses saved
+service names/descriptions/categories/kinds/modes/units, rate titles,
+and existing service/area names linked to those rates. Lookups are
+scoped to the current organization; private linked names and foreign
+records never become search hits. Active/archived filters continue
+to apply, as do existing date and area filters on saved rate cards.
+
+A live count and explicit no-results messages distinguish a search
+from an empty business catalog. Clear search restores visible cards.
+Search does *not* alter the authorized data, add/edit/archive actions,
+service-area dropdown choices, rate-card CSV, missing-rate audit,
+all-area coverage, exports, estimates, prices, sessions, permissions
+or other organizations. The fictional demo and MIT license remain.
