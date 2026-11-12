@@ -44,6 +44,7 @@ import {
 } from "../core/service-rate-continuity-csv";
 import {
   selectedContinuityReviewIssues,
+  focusedContinuityReviewIssues,
   updateVisibleContinuitySelection,
   type VisibleContinuitySelectionAction,
 } from "../core/service-rate-continuity-selection";
@@ -82,6 +83,7 @@ export function Catalog({
   const [continuitySelection, setContinuitySelection] = useState<{
     scopeKey: string; rateIds: string[];
   }>({ scopeKey: "", rateIds: [] });
+  const [selectedContinuityFocus, setSelectedContinuityFocus] = useState(false);
   const [previousCoverageSelection, setPreviousCoverageSelection] = useState<{
     date: string;
     areaId: string;
@@ -128,14 +130,26 @@ export function Catalog({
   );
   useEffect(() => {
     setContinuitySelection({ scopeKey: "", rateIds: [] });
+    setSelectedContinuityFocus(false);
   }, [organizationId, asOfDate, selectedAreaId, upcomingWindowDays]);
+  useEffect(() => {
+    if (selectedContinuityItems.length === 0) {
+      setSelectedContinuityFocus(false);
+    }
+  }, [selectedContinuityItems.length]);
+  const selectedContinuityFocusActive =
+    selectedContinuityFocus && selectedContinuityItems.length > 0;
   const continuityFilterActive =
     continuityWarningType !== "all" || continuityWarningSearch.trim().length > 0;
-  const visibleContinuityIssues = continuity.status === "ready"
+  const filteredContinuityIssues = continuity.status === "ready"
     ? filterContinuityWarnings(
       continuity.issues, continuityWarningType, continuityWarningSearch,
       continuityWarningSort,
     ) : [];
+  const visibleContinuityIssues = focusedContinuityReviewIssues(
+    continuity, filteredContinuityIssues, selectedContinuityIds,
+    selectedContinuityFocusActive,
+  );
   const selectedVisibleCount = visibleContinuityIssues.filter((issue) =>
     selectedContinuityIdSet.has(issue.rateId),
   ).length;
@@ -266,7 +280,7 @@ export function Catalog({
   }
   function downloadFilteredContinuityReview() {
     if (continuity.status !== "ready" || !continuityFilterActive ||
-        visibleContinuityIssues.length === 0) return;
+        filteredContinuityIssues.length === 0) return;
     const csv = serviceRateContinuityFilteredCsv(
       records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
       continuityWarningType, continuityWarningSearch, continuityWarningSort,
@@ -724,7 +738,7 @@ export function Catalog({
               type="button"
               className="secondary"
               disabled={continuity.status !== "ready" ||
-                !continuityFilterActive || visibleContinuityIssues.length === 0}
+                !continuityFilterActive || filteredContinuityIssues.length === 0}
               onClick={downloadFilteredContinuityReview}
             >
               Download filtered continuity review CSV
@@ -766,8 +780,12 @@ export function Catalog({
           follow-up checklist. Selections are temporary, tied to this
           business/date/area/window, and may include hidden-by-filter
           warnings until cleared. Use Select all visible warnings or
-          Deselect visible warnings to update only the current filtered
-          list; selections hidden by filters are left alone.
+          Deselect visible warnings to update only the cards on screen;
+          selections hidden by filters are left alone. Show selected
+          warnings only to focus the card list on selected follow-ups.
+          This view does not change the full, filtered or selected CSV
+          exports: the filtered download still follows warning type
+          and text search, not the selected-only display toggle.
         </p>
         <div className="actions">
           <div>
@@ -892,6 +910,15 @@ export function Catalog({
                     {" "}selected warnings are hidden by current filters.</>
                 )}
               </p>
+              <label>
+                <input type="checkbox"
+                  checked={selectedContinuityFocusActive}
+                  disabled={selectedContinuityItems.length === 0}
+                  onChange={(event) =>
+                    setSelectedContinuityFocus(event.target.checked)}
+                />
+                Show selected warnings only
+              </label>
               <button type="button" className="secondary"
                 disabled={visibleContinuityIssues.length === 0 ||
                   selectedVisibleCount === visibleContinuityIssues.length}
@@ -948,10 +975,14 @@ export function Catalog({
                 </p>
               </div>
             )}
-            {(continuityWarningType !== "all" || continuityWarningSearch.trim()) && (
+            {(continuityWarningType !== "all" ||
+              continuityWarningSearch.trim() || selectedContinuityFocusActive) && (
               <p>
                 Showing {visibleContinuityIssues.length} of {continuity.issues.length}
                 {" "}continuity warnings.
+                {selectedContinuityFocusActive && (
+                  <> Selected-only view is on; full and filtered exports remain unchanged.</>
+                )}
               </p>
             )}
             {continuity.issues.length === 0 ? (
@@ -1045,7 +1076,9 @@ export function Catalog({
             {continuity.issues.length > 0 &&
               visibleContinuityIssues.length === 0 && (
               <p className="empty-state">
-                No continuity warnings match these review filters.
+                {selectedContinuityFocusActive
+                    ? "No selected continuity warnings match these review filters."
+                    : "No continuity warnings match these review filters."}
               </p>
             )}
           </>

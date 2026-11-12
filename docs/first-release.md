@@ -1411,3 +1411,32 @@ dates only, never rate IDs, names, prices, customers or contacts.
 Clearing the selection removes the breakdown. Export and saved-rate
 data remain unchanged. This is an operator planning aid, not a
 permission to apply rates, send messages, issue invoices or deploy.
+
+### Focus on selected continuity warnings (PR #106)
+
+After selecting at least one rate-continuity warning, check
+**Show selected warnings only** in the selection controls to display
+just the selected cards that also match the current warning-type and
+text-search filters, in the existing sort order. Unchecking shows all
+cards matching those filters again without losing selections.
+The control is disabled when there are no selected current warnings.
+Clearing the selection automatically turns the focus off; changing
+organization, review date, area or 7/30/90-day period still clears
+the ephemeral selected IDs and the focus state.
+
+A focused card list is purely visual: the **full continuity CSV** still
+includes every authorized warning; the **filtered continuity CSV**
+still honors only warning type and text search (never selected-only
+focus); the **selected continuity CSV** still includes all current
+authorized selected IDs including selected cards hidden by filters.
+The complete and selected action summaries remain unchanged.
+Bulk selection operates on cards currently visible on screen.
+A zero-match selected focus reports that no selected warnings
+match these review filters, without silently clearing selections.
+
+The focus helper projects cards from the *current authorized review*
+rather than accepting incoming card objects, drops duplicate or
+foreign/stale IDs, and refuses invalid review states. No records,
+rates, estimates, customer data, persistence, permissions, exports,
+schemata, notifications or production systems are modified.
+The fictional no-login demo and MIT license stay unchanged.
