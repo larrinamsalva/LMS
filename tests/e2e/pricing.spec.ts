@@ -125,6 +125,14 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     const filteredCsvButton = continuity.getByRole("button", {
       name: "Download filtered continuity review CSV", exact: true,
     });
+    const selectedCsvButton = continuity.getByRole("button", {
+      name: "Download selected continuity review CSV", exact: true,
+    });
+    const selectionGroup = continuity.getByRole("group", {
+      name: "Selected continuity warnings", exact: true,
+    });
+    await expect(selectedCsvButton).toBeDisabled();
+    await expect(selectionGroup).toHaveCount(0);
     await expect(filteredCsvButton).toBeDisabled();
     const actionSummary = continuity.getByRole("group", {
       name: "Rate continuity action summary", exact: true,
@@ -224,6 +232,17 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       "5 without next-day saved-rate coverage",
     );
     await expect(actionSummary).toBeVisible();
+    await expect(selectedCsvButton).toBeDisabled();
+    await expect(selectionGroup).toContainText("Selected for follow-up: 0 of 5");
+    const selectedLocalRate = continuity.getByRole("article", {
+      name: "Continuity review for Local hourly rate", exact: true,
+    }).getByRole("checkbox", {
+      name: "Select Local hourly rate in Local service area for follow-up",
+      exact: true,
+    });
+    await selectedLocalRate.check();
+    await expect(selectedCsvButton).toBeEnabled();
+    await expect(selectionGroup).toContainText("Selected for follow-up: 1 of 5");
     await expect(actionSummary).toContainText("No later saved rate");
     await expect(actionSummary).toContainText("Later saved rate starts after end");
     await expect(actionSummary).toContainText("Linked catalog records to review");
@@ -248,10 +267,18 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
     await expect(continuity).toContainText("Showing 5 of 5 continuity warnings.");
     await expect(continuityCsvButton).toBeEnabled();
     await warningType.selectOption("delayed");
+    await expect(selectionGroup).toContainText("1 selected warnings are hidden");
+    await expect(selectedCsvButton).toBeEnabled();
     await expect(filteredCsvButton).toBeDisabled();
     await expect(continuity).toContainText("Showing 0 of 5 continuity warnings.");
     await expect(actionSummary).toContainText("No later saved rate");
     await warningType.selectOption("all");
+    await expect(selectedLocalRate).toBeChecked();
+    await selectionGroup.getByRole("button", {
+      name: "Clear selected warnings", exact: true,
+    }).click();
+    await expect(selectedCsvButton).toBeDisabled();
+    await expect(selectedLocalRate).not.toBeChecked();
     await expect(filteredCsvButton).toBeDisabled();
     await warningSort.selectOption("area-desc");
     await expect(continuity.getByRole("article", {
@@ -540,6 +567,8 @@ test("saved rates populate fictional cleaning and maintenance drafts, retain sna
       name: "Download active service rates CSV", exact: true,
     })).toBeDisabled();
     await rateDate.fill("");
+    await expect(selectionGroup).toHaveCount(0);
+    await expect(selectedCsvButton).toBeDisabled();
     await expect(actionSummary).toHaveCount(0);
     await expect(continuityCsvButton).toBeDisabled();
     await expect(continuity).toContainText(
