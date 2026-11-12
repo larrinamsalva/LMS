@@ -734,6 +734,7 @@ export function Workspace({
               <Workforce
                 records={workspace!.records}
                 assignments={workspace!.staffAssignments}
+                organizationId={workspace!.organizationId}
                 zone={config!.timeZone ?? "UTC"}
                 canManage={canAdmin}
                 busy={busy}
