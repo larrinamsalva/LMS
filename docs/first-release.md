@@ -1204,3 +1204,24 @@ date is blank/invalid or there are no boundaries in the window.
 It creates no stored history, approvals, prices, quotes, invoices,
 automatic notifications or scheduling, and preserves the public
 fictional demo and MIT license.
+
+
+### Return from a one-click next saved-rate review jump (PR #98)
+
+The **Upcoming rate dates** panel now offers **Return to previous
+rate review date** immediately after an explicit **Review next
+saved-rate date** jump. It remembers one prior explicit review day
+for the current organization and service-area selection, and
+restores that date with one click. A new next-date jump creates a
+new one-step return token, rather than accumulating hidden history.
+
+The return is shown only when the current organization, review
+date and area still match the jump target. An independent date
+edit, Clear review date, Use today's date, area change, or
+continuity gap coverage-audit jump invalidates the temporary
+return. Returning from an audit jump also invalidates a stale
+next-date return. This is ephemeral UI state only: no persisted
+navigation, automatic pricing, changes to audit or CSV output,
+notifications, invoices, new sessions, releases or deployments.
+The public fictional demo, data isolation and MIT license remain
+unchanged.
