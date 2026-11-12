@@ -8,6 +8,10 @@ import {
   filterEmployeeDirectory,
   type EmployeeDirectoryStatus,
 } from "../core/workforce-directory";
+import {
+  filterAvailabilityPeriods,
+  type AvailabilityPeriodTypeFilter,
+} from "../core/workforce-availability-filter";
 
 export function Workforce({
   records,
@@ -42,6 +46,9 @@ export function Workforce({
   });
   const [history, setHistory] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const [availabilitySearch, setAvailabilitySearch] = useState("");
+  const [availabilityKind, setAvailabilityKind] =
+    useState<AvailabilityPeriodTypeFilter>("all");
   const [employeeStatus, setEmployeeStatus] =
     useState<EmployeeDirectoryStatus>("all");
   const currentEmployees = filterEmployeeDirectory(employees, history, "", "all");
@@ -66,6 +73,11 @@ export function Workforce({
   } catch {
     /* Incomplete date input. */
   }
+  const displayedPeriods = filterAvailabilityPeriods(
+    visible, records, availabilityKind, availabilitySearch,
+  );
+  const availabilityFiltersActive = availabilityKind !== "all" ||
+    availabilitySearch.trim().length > 0;
   const actions = (r: WorkspaceRecord) => (
     <div className="actions">
       {!r.archived && (
@@ -269,6 +281,31 @@ export function Workforce({
               onChange={(e) => setDate(e.target.value)}
             />
           </div>
+          <div>
+            <label htmlFor="availability-period-kind">Filter availability period type</label>
+            <select
+              id="availability-period-kind"
+              value={availabilityKind}
+              onChange={(event) =>
+                setAvailabilityKind(event.target.value as AvailabilityPeriodTypeFilter)}
+            >
+              <option value="all">All period types</option>
+              <option value="Working hours">Working hours</option>
+              <option value="Day off">Day off</option>
+              <option value="Vacation">Vacation</option>
+              <option value="Unavailable">Unavailable</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="availability-period-search">Search availability periods</label>
+            <input
+              id="availability-period-search"
+              type="search"
+              placeholder="Period title or employee/crew name"
+              value={availabilitySearch}
+              onChange={(event) => setAvailabilitySearch(event.target.value)}
+            />
+          </div>
           <label className="check-label">
             <input
               type="checkbox"
@@ -277,12 +314,22 @@ export function Workforce({
             />
             Show archived workforce records
           </label>
+          {availabilityFiltersActive && (
+            <button type="button" className="secondary" onClick={() => {
+              setAvailabilityKind("all");
+              setAvailabilitySearch("");
+            }}>
+              Clear availability filters
+            </button>
+          )}
         </div>
-        <p role="status">
-          {visible.length} availability periods on {date || "the selected date"}
+        <p role="status" aria-live="polite">
+          Showing {displayedPeriods.length} of {visible.length}
+          {" "}{history ? "archived" : "current"} availability periods
+          {" "}on {date || "the selected date"}.
         </p>
         <div className="workforce-grid">
-          {visible.map((r) => (
+          {displayedPeriods.map((r) => (
             <article
               className="workforce-card"
               key={r.id}
@@ -300,10 +347,11 @@ export function Workforce({
             </article>
           ))}
         </div>
-        {!visible.length && (
+        {displayedPeriods.length === 0 && (
           <p className="empty-state">
-            No periods for this day. Employees without a covering work window
-            cannot be booked.
+            {visible.length === 0
+              ? "No periods for this day. Employees without a covering work window cannot be booked."
+              : "No availability periods match these filters."}
           </p>
         )}
       </section>

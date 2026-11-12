@@ -238,6 +238,44 @@ test("fictional crews and workers publish availability, schedule both industries
     await page
       .getByLabel("Availability date", { exact: true })
       .fill("2026-11-06");
+    const periodKind = page.getByLabel(
+      "Filter availability period type", { exact: true },
+    );
+    const periodSearch = page.getByLabel(
+      "Search availability periods", { exact: true },
+    );
+    const firstPeriod = page.getByRole("article", {
+      name: people[0] + " Friday work", exact: true,
+    });
+    await expect(firstPeriod).toBeVisible();
+    await periodSearch.fill(people[0].toLowerCase());
+    await expect(firstPeriod).toBeVisible();
+    for (const other of people.slice(1)) {
+      await expect(page.getByRole("article", {
+        name: other + " Friday work", exact: true,
+      })).toHaveCount(0);
+    }
+    await periodKind.selectOption("Vacation");
+    await expect(firstPeriod).toHaveCount(0);
+    await expect(page.getByText(
+      "No availability periods match these filters.", { exact: true },
+    )).toBeVisible();
+    await periodKind.selectOption("Working hours");
+    await expect(firstPeriod).toBeVisible();
+    await periodSearch.fill("no-such-period-title");
+    await expect(firstPeriod).toHaveCount(0);
+    await page.getByRole("button", {
+      name: "Clear availability filters", exact: true,
+    }).click();
+    await expect(periodKind).toHaveValue("all");
+    await expect(periodSearch).toHaveValue("");
+    await expect(firstPeriod).toBeVisible();
+    for (const other of people.slice(1)) {
+      await expect(page.getByRole("article", {
+        name: other + " Friday work", exact: true,
+      })).toBeVisible();
+    }
+    await fits(page);
     const crew = page.getByRole("article", {
       name: "Resource " + resource,
       exact: true,

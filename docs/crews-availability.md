@@ -78,3 +78,28 @@ crews, bookings, persistence or organization scope. Work roles and
 skills remain descriptive, not certifications or authorization roles.
 The fictional public no-login demo, MIT license and production
 acceptance boundaries are unchanged.
+
+## Availability period search and kind filters (PR #108)
+
+In **Crews & availability → Availability**, choose an availability
+date and optionally filter the displayed periods by **Working hours**,
+**Day off**, **Vacation** or **Unavailable**. A separate search matches
+the period title and the name of the linked employee or resource,
+ignoring case and outer whitespace. Matching/total counts distinguish
+the chosen day/archived-current view from a narrower search, and
+**Clear availability filters** restores all periods in that same view.
+
+These controls act **after** the existing business-local date,
+overlapping-period and archived/current selection. They do not change
+which records are saved, who is available to book, whether a crew is
+eligible or how vacations and time off override working hours.
+Saved appointments, employee assignments and the retained workforce
+history are unchanged. No timezone conversion or recurrence is added.
+
+The filter reads only the already-authorized business workspace
+snapshot. Linked-name matching requires the linked employee or
+resource to belong to the same organization as the period; absent
+or foreign links cannot leak their names. Search never indexes
+contact email, phone, internal IDs or period notes. Filters are
+temporary view state only and provide no new permissions.
+MIT licensing and the fictional no-login public demo remain intact.
