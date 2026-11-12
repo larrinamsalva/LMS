@@ -1307,3 +1307,31 @@ This feature does not update or approve prices, quotes, invoices,
 notifications, workflow permissions, audit histories or schedules.
 The fictional no-login demo, MIT license and strict organization
 isolation remain unchanged.
+
+
+### Optional filtered continuity checklist (PR #102)
+
+The existing full **Download rate continuity review CSV** remains
+unchanged and includes every currently authorized continuity issue
+for the selected date, service-area and 7/30/90-day review window.
+A separate **Download filtered continuity review CSV** action exports
+only the warning cards matching the active warning-type and/or
+text-search filters, in the displayed sorting order. It is
+disabled unless a type or search filter is active *and* at least
+one matching warning is shown. Sorting alone does not activate
+a filtered download.
+
+The filtered export recomputes the full, organization-scoped
+continuity review from saved records before applying the
+same pure display filter. It never trusts previously rendered
+cards or client-provided record IDs. It reuses the full export's
+formula-safe columns, exclusive-end-date semantics, blank operator
+decision/notes fields and missing-successor conventions; no
+raw IDs, amounts, contacts, customers or foreign catalog names
+are included. The original full CSV, counts and action summary
+remain unchanged and available with any active UI filter.
+
+No pricing, service records, permissions, data persistence,
+notifications, invoices, history or scheduling are modified.
+The public no-login fictional demo, MIT license and org
+isolation continue unchanged.

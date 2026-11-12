@@ -34,7 +34,10 @@ import {
   returnableRateReviewDate,
   type RateReviewJump,
 } from "../core/rate-review-navigation";
-import { serviceRateContinuityReviewCsv } from "../core/service-rate-continuity-csv";
+import {
+  serviceRateContinuityReviewCsv,
+  serviceRateContinuityFilteredCsv,
+} from "../core/service-rate-continuity-csv";
 import {
   filterContinuityWarnings,
   type ContinuityWarningFilter,
@@ -97,6 +100,8 @@ export function Catalog({
     records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
   );
   const continuityActions = summarizeContinuityActions(continuity);
+  const continuityFilterActive =
+    continuityWarningType !== "all" || continuityWarningSearch.trim().length > 0;
   const visibleContinuityIssues = continuity.status === "ready"
     ? filterContinuityWarnings(
       continuity.issues, continuityWarningType, continuityWarningSearch,
@@ -191,6 +196,21 @@ export function Catalog({
     const link = document.createElement("a");
     link.href = url;
     link.download = "lms-service-rate-continuity-review.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function downloadFilteredContinuityReview() {
+    if (continuity.status !== "ready" || !continuityFilterActive ||
+        visibleContinuityIssues.length === 0) return;
+    const csv = serviceRateContinuityFilteredCsv(
+      records, organizationId, asOfDate, selectedAreaId, upcomingWindowDays,
+      continuityWarningType, continuityWarningSearch, continuityWarningSort,
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-filtered-rate-continuity-review.csv";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -609,14 +629,26 @@ export function Catalog({
       <section className="panel" aria-labelledby="rate-continuity-heading">
         <div className="section-heading">
           <h2 id="rate-continuity-heading">Rate continuity review</h2>
-          <button
-            type="button"
-            className="secondary"
-            disabled={continuity.status !== "ready" || continuity.issues.length === 0}
-            onClick={downloadContinuityReview}
-          >
-            Download rate continuity review CSV
-          </button>
+          <div className="actions">
+            <button
+              type="button"
+              className="secondary"
+              disabled={continuity.status !== "ready" ||
+                continuity.issues.length === 0}
+              onClick={downloadContinuityReview}
+            >
+              Download rate continuity review CSV
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              disabled={continuity.status !== "ready" ||
+                !continuityFilterActive || visibleContinuityIssues.length === 0}
+              onClick={downloadFilteredContinuityReview}
+            >
+              Download filtered continuity review CSV
+            </button>
+          </div>
         </div>
         <p className="muted">
           When a saved active rate ends, check whether another saved active
@@ -635,8 +667,11 @@ export function Catalog({
           button to see a category's warnings and clear any old text
           search. Search, warning-type filters and sorting only change
           the warning cards;
-          counts and downloaded checklists cover the complete
-          selected date, area and review period.
+          counts and the original full checklist cover the complete
+          selected date, area and review period. A separate filtered
+          checklist includes only matching warning cards in their
+          current sort order, with the same safe columns and blank
+          operator notes; it is disabled when no filter or matches exist.
         </p>
         <div className="actions">
           <div>
