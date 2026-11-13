@@ -19,7 +19,8 @@ function record(
 const view: ResourceMembershipCsvView = {
   archivedResources: false, resourceSearch: "", resourceKind: "all",
   enrollment: "all", mode: "all", membershipStatus: "all",
-  memberSearch: "", onlyMatchingResources: false, resourceSort: "directory",
+  memberSearch: "", onlyMatchingResources: false,
+  onlyWithoutMatchingResources: false, resourceSort: "directory",
   sort: "retained", date: "",
 };
 const records: WorkspaceRecord[] = [
