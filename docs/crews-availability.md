@@ -709,3 +709,35 @@ CSV exports (which always include their full selected data).
 No backend, database, migrations, JSON backups, deployment, or
 other repository is changed. MIT and the fictional no-login
 demo remain unchanged.
+
+## Bulk expand/collapse of currently shown resource membership entries (PR #127)
+
+Just above the **Resource directory** cards, **Collapse all shown
+membership entries** and **Expand all shown membership entries**
+offer a fast way to switch between a compact overview and a
+detailed roster list. The two controls apply **only to resource
+cards presently visible** after directory search, resource type,
+enrollment and optional match-only filters. Cards hidden by a
+filter retain their individual expand/collapse choices, so
+changing or clearing a filter does not unexpectedly change
+those cards. Both buttons are disabled when no resource cards
+are visible; each button is also disabled when all shown
+cards already have the requested state.
+
+Individual **Show/Hide membership entries** buttons still work
+after a bulk action. A card's resource type, enrollment label,
+total retained records and matching Current/Archived breakdown
+remain visible even with its list collapsed; expanding restores
+the same filtered and sorted rows, including permitted record
+actions. The current organization is checked inside the
+bulk selection helper, and presentation state remains scoped
+to organization plus resource ID.
+
+This is **view state only**. Bulk controls never archive,
+remove or otherwise change a membership record or employee,
+alter roster selection, disable scheduling validation or
+remove rows from either detailed or summary CSV download.
+A historical membership is not evidence of staff availability
+or booking eligibility. No database, role permission, API,
+migration, JSON backup, deployment or other repository is
+changed. MIT licensing and the fictional no-login demo remain.
