@@ -305,6 +305,15 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "Show only resources with matching memberships", exact: true,
     });
     await expect(onlyMatchingResources).not.toBeChecked();
+    const rosterOverview = page.getByRole("group", {
+      name: "Roster membership overview", exact: true,
+    });
+    await expect(rosterOverview).toContainText(
+      "Matching resources: 1 of 1 directory resources.",
+    );
+    await expect(rosterOverview).toContainText(
+      "Matching membership records: " + people.length + ".",
+    );
     const rosterRows = resourceCard.locator(".workforce-members li");
     await expect(rosterRows).toHaveCount(people.length);
     await rosterMode.selectOption("overlapping-day");
@@ -320,6 +329,9 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "Download filtered roster memberships CSV", exact: true,
     });
     await rosterStatus.selectOption("archived");
+    await expect(rosterOverview).toContainText(
+      "Matching membership records: 0. Current records: 0. Archived records: 0.",
+    );
     await expect(rosterRows).toHaveCount(0);
     await expect(resourceCard.getByText(
       "No retained memberships match this status filter.", { exact: true },
@@ -329,8 +341,18 @@ test("fictional crews and workers publish availability, schedule both industries
     );
     await expect(rosterCsvButton).toBeDisabled();
     await rosterStatus.selectOption("current");
+    await expect(rosterOverview).toContainText(
+      "Matching membership records: " + people.length +
+      ". Current records: " + people.length + ". Archived records: 0.",
+    );
     await expect(rosterRows).toHaveCount(people.length);
     await rosterSearch.fill(people[0].toLowerCase());
+    await expect(rosterOverview).toContainText(
+      "Matching resources: 1 of 1 directory resources.",
+    );
+    await expect(rosterOverview).toContainText(
+      "Matching membership records: 1. Current records: 1. Archived records: 0.",
+    );
     await expect(rosterRows).toHaveCount(1);
     await onlyMatchingResources.check();
     await expect(resourceCard).toBeVisible();
@@ -348,6 +370,12 @@ test("fictional crews and workers publish availability, schedule both industries
       expect(searchedCsv).not.toContain(other + " membership");
     }
     await rosterSearch.fill("no-such-member-name");
+    await expect(rosterOverview).toContainText(
+      "Matching resources: 0 of 1 directory resources.",
+    );
+    await expect(rosterOverview).toContainText(
+      "Matching membership records: 0. Current records: 0. Archived records: 0.",
+    );
     await expect(resourceCard).toHaveCount(0);
     await expect(page.getByText(
       "No resources have memberships matching these roster filters.",
