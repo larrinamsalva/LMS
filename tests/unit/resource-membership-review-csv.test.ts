@@ -20,7 +20,7 @@ function record(
 const view: ResourceMembershipCsvView = {
   archivedResources: false, resourceSearch: "", resourceKind: "all",
   enrollment: "all", mode: "all", membershipStatus: "all",
-  sort: "retained", memberSearch: "", date: "",
+  sort: "retained", memberSearch: "", onlyMatchingResources: false, date: "",
 };
 const records: WorkspaceRecord[] = [
   record("resources", "crew-a", {
@@ -314,4 +314,36 @@ it("applies title and employee-name search after roster date/status filters with
     );
     expect(csv.trimEnd().split("\r\n")).toHaveLength(1);
   }
+});
+
+
+it("match-only resources option recomputes scoped roster search and preserves exported membership rows", () => {
+  const all = filteredResourceMembershipsCsv(records, ORG, "UTC", view);
+  const matching = filteredResourceMembershipsCsv(
+    records, ORG, "UTC", { ...view, onlyMatchingResources: true },
+  );
+  // Resource cards without any matching membership have no CSV detail rows,
+  // regardless of whether the UI shows them as empty cards.
+  expect(matching).toBe(all);
+  const selected = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, onlyMatchingResources: true, memberSearch: "Morgan",
+      membershipStatus: "archived", mode: "overlapping-day",
+      date: "2026-11-03",
+    },
+  );
+  expect(selected.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(selected).toContain('"Archived past membership","Morgan Example"');
+  expect(selected).not.toContain("Morning roster");
+  const empty = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, onlyMatchingResources: true,
+      memberSearch: "not found anywhere",
+    },
+  );
+  expect(empty.trimEnd().split("\r\n")).toHaveLength(1);
+  for (const hidden of [
+    "PRIVATE@EXAMPLE.COM", "PRIVATE MEMBERSHIP NOTE",
+    "FOREIGN PRIVATE PERSON", "crew-a", "employee-a",
+  ]) expect(selected).not.toContain(hidden);
 });
