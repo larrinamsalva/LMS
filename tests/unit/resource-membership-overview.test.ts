@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import {
   summarizeMatchingRosterMemberships,
+  orderRosterResourcesByMatchingCount,
   type MatchingRosterResourceView,
 } from "../../src/core/resource-membership-review";
 
@@ -139,4 +140,65 @@ it("counts only the caller-selected directory resources, without changing any st
     archivedMemberships: 1,
   });
   expect(selection).toHaveLength(2);
+});
+
+
+it("stably orders resource cards by matching roster record count, never headcount", () => {
+  const extra = record("resources", "crew-empty", {
+    kind: "Crew", name: "Empty Crew",
+  });
+  const source = [resources[1], extra, resources[0], resources[2]];
+  const original = structuredClone({ source, memberships, linked });
+  const ids = (sort: "directory" | "most" | "fewest", v = day) =>
+    orderRosterResourcesByMatchingCount(
+      source, memberships, linked, ORG, v, sort,
+    ).map((r) => r.id);
+  expect(ids("directory")).toEqual(["worker-b", "crew-empty", "crew-a"]);
+  expect(ids("most")).toEqual(["crew-a", "worker-b", "crew-empty"]);
+  expect(ids("fewest")).toEqual(["worker-b", "crew-empty", "crew-a"]);
+  // Same matching count preserves the directory's previous order.
+  expect(ids("most", { ...day, status: "current" })).toEqual([
+    "crew-a", "worker-b", "crew-empty",
+  ]);
+  expect(ids("fewest", { ...day, mode: "all" })).toEqual([
+    "crew-empty", "worker-b", "crew-a",
+  ]);
+  expect(ids("most", { ...day, mode: "all" })).toEqual([
+    "crew-a", "worker-b", "crew-empty",
+  ]);
+  expect(ids("most", { ...day, search: "Morgan" })).toEqual([
+    "crew-a", "worker-b", "crew-empty",
+  ]);
+  expect(ids("fewest", { ...day, search: "Morgan" })).toEqual([
+    "worker-b", "crew-empty", "crew-a",
+  ]);
+  // An invalid selected date yields all zero counts and stable order.
+  expect(ids("most", { ...day, date: "2026-02-30" })).toEqual([
+    "worker-b", "crew-empty", "crew-a",
+  ]);
+  expect({ source, memberships, linked }).toEqual(original);
+});
+
+it("keeps stable ties and ignores foreign matches or private linked search terms", () => {
+  const rows = [
+    resources[1],
+    resources[0],
+    resources[2],
+  ];
+  const order = (sort: "most" | "fewest", v: MatchingRosterResourceView) =>
+    orderRosterResourcesByMatchingCount(
+      rows, memberships, linked, ORG, v, sort,
+    ).map((r) => r.id);
+  // On all-history current status each local resource has one record.
+  expect(order("most", {
+    ...day, mode: "all", status: "current",
+  })).toEqual(["worker-b", "crew-a"]);
+  expect(order("fewest", {
+    ...day, mode: "all", status: "current",
+  })).toEqual(["worker-b", "crew-a"]);
+  for (const query of ["FOREIGN PRIVATE", "secret@example.test", "555-1234"]) {
+    expect(order("most", {
+      ...day, search: query,
+    })).toEqual(["worker-b", "crew-a"]);
+  }
 });
