@@ -5,6 +5,7 @@ import {
   resourceMembershipReviewDateError,
   filterResourceMembershipRecordStatus,
   filterResourceMembershipsByName,
+  resourcesWithMatchingRosterMemberships,
   orderResourceMembershipsByStart,
 } from "../../src/core/resource-membership-review";
 
@@ -246,4 +247,57 @@ it("searches only retained titles and same-business employee display names", () 
     [source[2]], people, "FOREIGN NAME",
   )).toEqual([]);
   expect(source).toEqual(before);
+});
+
+
+it("shows only resources with roster rows matching status, day and title/name without changing enrollment", () => {
+  const resources = [
+    crew,
+    record("crew-b", "resources", { name: "Red Crew", kind: "Crew" }),
+    record("crew-empty", "resources", { name: "Empty Crew", kind: "Crew" }),
+    record("foreign-crew", "resources", { name: "Foreign Crew", kind: "Crew" },
+      false, OTHER),
+  ];
+  const source = [
+    member("archived-avery", "2026-11-06T16:00:00Z",
+      "2026-11-06T18:00:00Z", true),
+    record("active-morgan", "resource-memberships", {
+      title: "Late setup", resource: "crew-b", employee: "employee-b",
+      start: "2026-11-06T18:00:00Z", end: "2026-11-06T20:00:00Z",
+    }),
+    record("foreign-row", "resource-memberships", {
+      title: "Foreign private", resource: "foreign-crew",
+      employee: "foreign-person", start: "2026-11-06T16:00:00Z",
+      end: "2026-11-06T18:00:00Z",
+    }, false, OTHER),
+  ];
+  const linked = [
+    record("employee-b", "employees", { name: "Morgan Example" }),
+    record("foreign-person", "employees", { name: "FOREIGN PERSON" },
+      false, OTHER),
+  ];
+  const view = {
+    mode: "overlapping-day" as const,
+    date: "2026-11-06", zone: "America/Los_Angeles",
+    status: "all" as const, search: "",
+  };
+  const original = structuredClone(source);
+  const match = (v: typeof view) =>
+    resourcesWithMatchingRosterMemberships(resources, source, linked, v)
+      .map((r) => r.id);
+  expect(match(view)).toEqual(["crew-a", "crew-b", "foreign-crew"]);
+  expect(match({ ...view, status: "current" })).toEqual([
+    "crew-b", "foreign-crew",
+  ]);
+  expect(match({ ...view, status: "archived" })).toEqual(["crew-a"]);
+  expect(match({ ...view, search: "Morgan" })).toEqual(["crew-b"]);
+  expect(match({ ...view, search: "late SETUP" })).toEqual(["crew-b"]);
+  expect(match({ ...view, search: "FOREIGN PERSON" })).toEqual([]);
+  expect(match({ ...view, search: "Foreign private" })).toEqual([
+    "foreign-crew",
+  ]);
+  expect(match({ ...view, date: "2026-11-08" })).toEqual([]);
+  expect(match({ ...view, date: "2026-02-30" })).toEqual([]);
+  expect(source).toEqual(original);
+  expect(resources).toHaveLength(4);
 });
