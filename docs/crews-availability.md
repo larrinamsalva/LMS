@@ -353,3 +353,41 @@ restore or delete memberships. The original source order and
 retained history are unchanged, as are existing scheduling
 constraints, exports, access controls, MIT licensing, and the
 fictional no-login demo.
+
+## Download filtered roster membership review (PR #117)
+
+In **Crews & availability → Resource directory**, choose a resource
+name/type/enrollment filter and optionally **Overlapping selected day**
+with its own membership review date. **Download filtered roster
+memberships CSV** saves **all matching retained membership rows** for
+the displayed resources, including archived membership history where
+applicable. In the default **All retained membership history** view,
+the report includes the entire retained membership list of those
+matching resources. The selected business's **Show archived workforce
+records** setting also determines whether the resources themselves are
+current or archived. The CSV button is disabled when there are no
+matching membership rows, or when the selected review date is invalid.
+
+The report applies the same resource selection and date-overlap rules
+again against the explicitly scoped organization data. It never accepts
+a caller-provided list of unverified member IDs as its export
+authority. Each row provides the review scope/day, resource
+name/type/archived state, **retained** enrollment label, membership
+title, same-organization employee name (or blank for absent/foreign
+links), membership archived state, effective start/end in business-local
+time and unambiguous UTC instants, and the business time-zone name.
+All displayed time ranges are original recorded membership periods,
+**not** proof of availability at every instant of the selected day.
+Archived periods remain marked historical; enrollment remains based
+on **all** retained membership history regardless of the date filter.
+
+The export intentionally excludes raw identifiers, emails, phone
+numbers, skills, notes, customer/job details, and other organizations'
+linked names or membership rows. It uses the same quoted,
+spreadsheet-formula-safe CSV encoding as other LMS reports. Downloading
+takes place locally in the browser without a new API, data mutation,
+database migration or modification of the existing workspace JSON
+backup/export. Retained employee names are business history and should
+be handled accordingly. This feature preserves scheduling safeguards,
+organization permissions, MIT licensing and the fictional no-login
+demo.
