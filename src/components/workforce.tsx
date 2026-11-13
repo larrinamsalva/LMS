@@ -227,6 +227,18 @@ export function Workforce({
     setOnlyMatchingRosterResources(false);
     setOnlyWithoutMatchingRosterResources(true);
   }
+  function showAllRosterResourceCategories() {
+    // Undo category/card-only narrowing without losing the chosen review.
+    // Keep resource-name search, date, record status, member search, sort
+    // and independently controlled resource-card collapse state intact.
+    setResourceType("all");
+    setResourceEnrollment("all");
+    setOnlyMatchingRosterResources(false);
+    setOnlyWithoutMatchingRosterResources(false);
+  }
+  const rosterCategoryNarrowed =
+    resourceType !== "all" || resourceEnrollment !== "all" ||
+    onlyMatchingRosterResources || onlyWithoutMatchingRosterResources;
   const resourceFiltersActive = resourceSearch.trim().length > 0 ||
     resourceType !== "all" || resourceEnrollment !== "all" ||
     rosterMode !== "all" || rosterStatus !== "all" ||
@@ -674,6 +686,11 @@ export function Workforce({
                 onClick={() => reviewRosterGapCategory("equipment")}>
                 Review equipment gaps
               </button>
+              <button type="button" className="secondary"
+                disabled={!rosterCategoryNarrowed}
+                onClick={showAllRosterResourceCategories}>
+                Show all resource categories (keep roster filters)
+              </button>
             </div>
           </div>
           <p className="muted">
@@ -683,7 +700,9 @@ export function Workforce({
             The no-match breakdown groups resources by retained enrollment,
             not worker availability or booking eligibility. Review buttons
             narrow the directory to the selected historic no-match category
-            without changing the roster date or saved records.
+            without changing the roster date or saved records. Show all
+            resource categories clears only resource kind, enrollment and
+            card-only narrowing while retaining roster date and searches.
           </p>
           <button type="button" className="secondary"
             disabled={!exportableRosterSummary}

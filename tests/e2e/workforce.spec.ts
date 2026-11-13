@@ -257,6 +257,10 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "Review resources without matching memberships by category",
       exact: true,
     });
+    const showAllCategories = gapQuickBefore.getByRole("button", {
+      name: "Show all resource categories (keep roster filters)", exact: true,
+    });
+    await expect(showAllCategories).toBeDisabled();
     await expect(gapQuickBefore.getByRole("button", {
       name: "Review enrolled worker/crew gaps",
     })).toBeDisabled();
@@ -271,10 +275,17 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "Show only resources without matching memberships", exact: true,
     })).toBeChecked();
     await expect(resourceCard).toBeVisible();
-    await page.getByRole("button", {
-      name: "Clear resource filters", exact: true,
-    }).click();
+    await expect(showAllCategories).toBeEnabled();
+    await showAllCategories.click();
+    await expect(resourceType).toHaveValue("all");
     await expect(resourceEnrollment).toHaveValue("all");
+    await expect(showAllCategories).toBeDisabled();
+    await expect(resourceSearch).toHaveValue(resource);
+    await expect(page.getByRole("checkbox", {
+      name: "Show only resources without matching memberships", exact: true,
+    })).not.toBeChecked();
+    await expect(resourceCard).toBeVisible();
+    // The unrelated search is preserved; clear it explicitly for new records.
     await resourceSearch.fill("");
     for (const name of people) {
       await directory(page);
@@ -475,8 +486,16 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(rosterStatus).toHaveValue("archived");
     await expect(rosterMode).toHaveValue("overlapping-day");
     await expect(resourceCard).toBeVisible();
-    await onlyWithoutResources.uncheck();
-    await resourceEnrollment.selectOption("all");
+    await showAllCategories.click();
+    await expect(resourceType).toHaveValue("all");
+    await expect(resourceEnrollment).toHaveValue("all");
+    await expect(onlyWithoutResources).not.toBeChecked();
+    await expect(onlyMatchingResources).not.toBeChecked();
+    await expect(rosterStatus).toHaveValue("archived");
+    await expect(rosterMode).toHaveValue("overlapping-day");
+    await expect(rosterDate).toHaveValue("2026-11-06");
+    await expect(resourceSearch).toHaveValue(resource);
+    await expect(resourceCard).toBeVisible();
     await expect(cardBreakdown).toContainText(
       "Matching records: 0. Current: 0. Archived: 0.",
     );
