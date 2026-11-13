@@ -782,3 +782,44 @@ input arrays are mixed. No personal contacts, notes, raw IDs,
 skills, record edits, scheduling eligibility, API, database
 migration, JSON backup, other repository or deployment is
 affected. MIT licensing and fictional no-login demo remain.
+
+## Unmatched roster resource breakdown in the overview (PR #129)
+
+The **Crews & availability → Resource directory → Roster membership
+overview** now also summarizes **Resources without matches** for
+the currently selected Resource Directory name/type/enrollment and
+roster date, membership-status, and employee-name/title filters.
+The number is divided into three mutually exclusive categories:
+
+- **Enrolled workers/crews:** Workers or Crews with any retained
+  membership record, including archived history, but **none**
+  matching the current review filters
+- **Resource-only workers/crews:** Workers or Crews with no
+  retained membership record at all
+- **Equipment:** Equipment resources with no matching membership
+  records; equipment has no employee-enrollment requirement
+
+The three categories sum to the **Resources without matches** total.
+These numbers are calculated from the **directory-selected**
+resources, independent of whether **Show only resources with
+matching memberships**, **Show only resources without matching
+memberships**, or no card-only filter is selected. Consequently
+the summary stays useful when a view hides either matching or
+nonmatching resource cards. Changing the membership review date,
+record status, name/title search, resource type, or enrollment
+filter recalculates the breakdown. Card ordering, member-history
+sorting, and expand/collapse state do not change it.
+
+These are counts of **resources without matching retained
+membership records**, not counts of people who are off duty,
+available for work, unassigned, or eligible for booking. An
+enrolled resource with no selected-day match still retains its
+historical enrollment; archived history remains history. Both
+the historical roster CSV and the per-resource summary CSV
+retain their existing authorized content and filters.
+
+The calculation rechecks resource, membership and linked-employee
+organization access even for mixed input arrays. No private
+employee data, database, record edit, staffing rules, API,
+permission, migration, deployment or other repository is changed.
+MIT licensing and the fictional no-login demo remain intact.
