@@ -6,6 +6,7 @@ import {
   filterResourceMembershipRecordStatus,
   filterResourceMembershipsByName,
   resourcesWithMatchingRosterMemberships,
+  type MatchingRosterResourceView,
   orderResourceMembershipsByStart,
 } from "../../src/core/resource-membership-review";
 
@@ -276,13 +277,13 @@ it("shows only resources with roster rows matching status, day and title/name wi
     record("foreign-person", "employees", { name: "FOREIGN PERSON" },
       false, OTHER),
   ];
-  const view = {
-    mode: "overlapping-day" as const,
+  const view: MatchingRosterResourceView = {
+    mode: "overlapping-day",
     date: "2026-11-06", zone: "America/Los_Angeles",
-    status: "all" as const, search: "",
+    status: "all", search: "",
   };
   const original = structuredClone(source);
-  const match = (v: typeof view) =>
+  const match = (v: MatchingRosterResourceView) =>
     resourcesWithMatchingRosterMemberships(resources, source, linked, v)
       .map((r) => r.id);
   expect(match(view)).toEqual(["crew-a", "crew-b", "foreign-crew"]);
