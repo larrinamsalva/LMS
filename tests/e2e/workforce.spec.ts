@@ -291,8 +291,12 @@ test("fictional crews and workers publish availability, schedule both industries
     const rosterStatus = page.getByLabel(
       "Filter membership record status", { exact: true },
     );
+    const rosterSort = page.getByLabel(
+      "Sort membership history", { exact: true },
+    );
     await expect(rosterMode).toHaveValue("all");
     await expect(rosterStatus).toHaveValue("all");
+    await expect(rosterSort).toHaveValue("retained");
     const rosterRows = resourceCard.locator(".workforce-members li");
     await expect(rosterRows).toHaveCount(people.length);
     await rosterMode.selectOption("overlapping-day");
@@ -317,6 +321,12 @@ test("fictional crews and workers publish availability, schedule both industries
     );
     await expect(rosterCsvButton).toBeDisabled();
     await rosterStatus.selectOption("current");
+    await expect(rosterRows).toHaveCount(people.length);
+    await rosterSort.selectOption("newest");
+    await expect(rosterSort).toHaveValue("newest");
+    await expect(rosterRows).toHaveCount(people.length);
+    await rosterSort.selectOption("oldest");
+    await expect(rosterSort).toHaveValue("oldest");
     await expect(rosterRows).toHaveCount(people.length);
     await expect(rosterCsvButton).toBeEnabled();
     const rosterDownloadPending = page.waitForEvent("download");
@@ -347,6 +357,7 @@ test("fictional crews and workers publish availability, schedule both industries
     }).click();
     await expect(rosterMode).toHaveValue("all");
     await expect(rosterStatus).toHaveValue("all");
+    await expect(rosterSort).toHaveValue("retained");
     await expect(rosterRows).toHaveCount(people.length);
     await expect(rosterCsvButton).toBeEnabled();
     await expect(page.getByLabel(

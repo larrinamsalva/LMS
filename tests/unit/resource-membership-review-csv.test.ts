@@ -19,7 +19,8 @@ function record(
 }
 const view: ResourceMembershipCsvView = {
   archivedResources: false, resourceSearch: "", resourceKind: "all",
-  enrollment: "all", mode: "all", membershipStatus: "all", date: "",
+  enrollment: "all", mode: "all", membershipStatus: "all",
+  sort: "retained", date: "",
 };
 const records: WorkspaceRecord[] = [
   record("resources", "crew-a", {
@@ -222,4 +223,46 @@ it("combines membership archive status with resource filters, date review and CS
       ...view, resourceSearch: "Blue Crew", membershipStatus: "all",
     },
   )).toBe(all);
+});
+
+
+it("exports each resource's retained rows in effective-start order after status/date filters", () => {
+  const original = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "Blue Crew",
+    },
+  );
+  expect(original.indexOf("Morning roster")).toBeLessThan(
+    original.indexOf("Archived past membership"),
+  );
+  const oldest = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "Blue Crew", sort: "oldest",
+    },
+  );
+  expect(oldest.indexOf("Archived past membership")).toBeLessThan(
+    oldest.indexOf("Morning roster"),
+  );
+  const newest = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "Blue Crew", sort: "newest",
+    },
+  );
+  expect(newest.indexOf("Morning roster")).toBeLessThan(
+    newest.indexOf("Archived past membership"),
+  );
+  const statusFiltered = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "Blue Crew", sort: "oldest",
+      membershipStatus: "current",
+      mode: "overlapping-day", date: "2026-11-06",
+    },
+  );
+  expect(statusFiltered.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(statusFiltered).toContain('"Morning roster"');
+  expect(statusFiltered).not.toContain("Archived past membership");
+  expect(original).not.toBe(oldest);
+  for (const secret of ["FOREIGN", "PRIVATE", "crew-a", "employee-a"]) {
+    expect(oldest).not.toContain(secret);
+  }
 });

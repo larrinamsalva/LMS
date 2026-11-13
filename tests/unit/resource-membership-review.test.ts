@@ -4,6 +4,7 @@ import {
   resourceMembershipRowsForReview,
   resourceMembershipReviewDateError,
   filterResourceMembershipRecordStatus,
+  orderResourceMembershipsByStart,
 } from "../../src/core/resource-membership-review";
 
 const ORG = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -154,4 +155,42 @@ it("filters retained membership records by their own archive status without chan
     [record("wrong", "availability", { title: "Not membership" })],
     "all",
   )).toEqual([]);
+});
+
+
+it("sorts retained memberships by effective start without mutating, with stable ties and invalid starts last", () => {
+  const memberWithStart = (id: string, start: string) =>
+    member(id, start, "2026-12-01T00:00:00Z");
+  const input = [
+    memberWithStart("later-a", "2026-11-07T08:00:00Z"),
+    memberWithStart("invalid-a", "invalid"),
+    memberWithStart("earliest", "2026-11-06T08:00:00Z"),
+    memberWithStart("later-b", "2026-11-07T08:00:00Z"),
+    memberWithStart("invalid-b", ""),
+  ];
+  const snapshot = structuredClone(input);
+  expect(orderResourceMembershipsByStart(input, "retained")
+    .map((r) => r.id)).toEqual([
+    "later-a", "invalid-a", "earliest", "later-b", "invalid-b",
+  ]);
+  expect(orderResourceMembershipsByStart(input, "oldest")
+    .map((r) => r.id)).toEqual([
+    "earliest", "later-a", "later-b", "invalid-a", "invalid-b",
+  ]);
+  expect(orderResourceMembershipsByStart(input, "newest")
+    .map((r) => r.id)).toEqual([
+    "later-a", "later-b", "earliest", "invalid-a", "invalid-b",
+  ]);
+  expect(input).toEqual(snapshot);
+});
+
+it("sorts by recorded UTC instant across an autumn DST fold, not ambiguous local clock text", () => {
+  const input = [
+    member("second-130", "2026-11-01T09:30:00Z", "2026-11-01T09:45:00Z"),
+    member("first-130", "2026-11-01T08:30:00Z", "2026-11-01T08:45:00Z"),
+  ];
+  expect(orderResourceMembershipsByStart(input, "oldest")
+    .map((r) => r.id)).toEqual(["first-130", "second-130"]);
+  expect(orderResourceMembershipsByStart(input, "newest")
+    .map((r) => r.id)).toEqual(["second-130", "first-130"]);
 });

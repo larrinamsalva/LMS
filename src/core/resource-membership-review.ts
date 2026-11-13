@@ -4,6 +4,39 @@ import { instant, isTimeZone } from "./time";
 
 export type ResourceMembershipReviewMode = "all" | "overlapping-day";
 export type ResourceMembershipRecordStatus = "all" | "current" | "archived";
+export type ResourceMembershipStartSort = "retained" | "newest" | "oldest";
+
+/**
+ * Stable presentation-only ordering of retained membership records by their
+ * original effective-start instant (not the record's creation/archive time).
+ * Preserve source order for equal instants; place malformed timestamps last
+ * in either direction, without changing the underlying retained history.
+ */
+export function orderResourceMembershipsByStart(
+  memberships: readonly WorkspaceRecord[],
+  order: ResourceMembershipStartSort,
+): WorkspaceRecord[] {
+  const indexed = memberships.map((record, index) => {
+    let start: bigint | null = null;
+    try {
+      start = instant(String(record.data.start)).epochNanoseconds;
+    } catch {
+      // Historical malformed timestamps remain visible, but never guessed.
+    }
+    return { record, index, start };
+  });
+  if (order === "retained") return indexed.map(({ record }) => record);
+  indexed.sort((a, b) => {
+    if (a.start === null || b.start === null) {
+      if (a.start === null && b.start === null) return a.index - b.index;
+      return a.start === null ? 1 : -1;
+    }
+    if (a.start === b.start) return a.index - b.index;
+    const compared = a.start < b.start ? -1 : 1;
+    return order === "oldest" ? compared : -compared;
+  });
+  return indexed.map(({ record }) => record);
+}
 
 /**
  * Status is a presentation filter over already-authorized retained membership
