@@ -11,6 +11,7 @@ import {
   resourceMembershipReviewDateError,
   filterResourceMembershipRecordStatus,
   filterResourceMembershipsByName,
+  resourcesWithMatchingRosterMemberships,
   orderResourceMembershipsByStart,
   type ResourceMembershipStartSort,
   type ResourceMembershipRecordStatus,
@@ -25,6 +26,7 @@ export interface ResourceMembershipCsvView {
   mode: ResourceMembershipReviewMode;
   membershipStatus: ResourceMembershipRecordStatus;
   memberSearch: string;
+  onlyMatchingResources: boolean;
   sort: ResourceMembershipStartSort;
   date: string;
 }
@@ -55,10 +57,18 @@ export function filteredResourceMembershipsCsv(
   const resources = scoped.filter((r) => r.entity === "resources");
   const memberships = scoped.filter((r) => r.entity === "resource-memberships");
   const employees = scoped.filter((r) => r.entity === "employees");
-  const visibleResources = filterWorkforceResourceDirectory(
+  const directoryResources = filterWorkforceResourceDirectory(
     resources, memberships, view.archivedResources, view.resourceSearch,
     view.resourceKind, view.enrollment,
   );
+  const visibleResources = view.onlyMatchingResources
+    ? resourcesWithMatchingRosterMemberships(
+      directoryResources, memberships, scoped, {
+        mode: view.mode, date: view.date, zone,
+        status: view.membershipStatus, search: view.memberSearch,
+      },
+    )
+    : directoryResources;
   const employeeName = (id: unknown): string => {
     const employee = employees.find((e) => e.id === id);
     return typeof employee?.data.name === "string" ? employee.data.name : "";
