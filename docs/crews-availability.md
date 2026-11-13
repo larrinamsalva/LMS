@@ -868,3 +868,35 @@ or server requests, and cannot override organization access
 or enrollment/booking safeguards. Existing CSV/JSON formats,
 database schema, permissions, scheduling, MIT license and the
 fictional no-login demo are unchanged.
+
+## Return from a category drill-down without clearing roster review (PR #131)
+
+Beside the three **Review ... gaps** shortcuts in **Roster membership
+overview**, **Show all resource categories (keep roster filters)**
+restores the full set of resource **types** and **employee enrollment**
+categories, and unchecks both match-only and without-match-only
+resource-card views. It is disabled when there is no such narrowing
+to undo. The control is useful after reviewing a specific
+enrolled, resource-only, or equipment no-match category because
+the previous **Clear resource filters** action also reset the
+selected roster review date and other search criteria.
+
+This smaller reset **preserves** the current Resource Directory
+**name search**, historical roster **date**, **all/current/archived**
+membership status, membership-title/employee-name search, member
+and resource-card sorting, and the expand/collapse state of
+individual cards. It also preserves the selected **current or
+archived resources** tab; it does not broaden the organization or
+change anyone's access. Consequently, a name-specific resource
+search can still narrow the displayed cards after clicking it.
+For a complete reset of all resource and roster filters, use
+the existing **Clear resource filters** action instead.
+
+No membership, crew, equipment or employee records are changed.
+The helper simply updates local presentation controls; overview
+counts and existing CSV downloads then recompute using their
+usual organization scoping. A missing historic roster match is
+not worker availability or permission to book. Database,
+permissions, exports, migrations, scheduling, deployments, MIT
+licensing, the fictional no-login demo and other repositories
+remain unchanged.
