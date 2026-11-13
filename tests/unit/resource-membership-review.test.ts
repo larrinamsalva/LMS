@@ -4,6 +4,7 @@ import {
   resourceMembershipRowsForReview,
   resourceMembershipReviewDateError,
   filterResourceMembershipRecordStatus,
+  filterResourceMembershipsByName,
   orderResourceMembershipsByStart,
 } from "../../src/core/resource-membership-review";
 
@@ -193,4 +194,56 @@ it("sorts by recorded UTC instant across an autumn DST fold, not ambiguous local
     .map((r) => r.id)).toEqual(["first-130", "second-130"]);
   expect(orderResourceMembershipsByStart(input, "newest")
     .map((r) => r.id)).toEqual(["second-130", "first-130"]);
+});
+
+
+it("searches only retained titles and same-business employee display names", () => {
+  const source = [
+    record("a", "resource-memberships", {
+      resource: "crew-a", employee: "employee-a",
+      title: "Morning roster", notes: "PRIVATE NOTE",
+    }),
+    record("b", "resource-memberships", {
+      resource: "crew-a", employee: "employee-b", title: "Weekend coverage",
+    }, true),
+    record("c", "resource-memberships", {
+      resource: "crew-a", employee: "foreign-person", title: "Unlinked history",
+    }),
+    record("d", "resource-memberships", {
+      resource: "crew-a", employee: "missing-person", title: "Anonymous shift",
+    }),
+    record("not-member", "availability", { title: "Morning shift" }),
+  ];
+  const people = [
+    record("employee-a", "employees", {
+      name: "Avery Example", email: "private@example.test",
+      skills: "secret ladder", phone: "555-0130",
+    }),
+    record("employee-b", "employees", { name: "Morgan Example" }),
+    record("foreign-person", "employees", {
+      name: "FOREIGN NAME", email: "external@example.test",
+    }, false, OTHER),
+  ];
+  const before = structuredClone(source);
+  const ids = (query: string) =>
+    filterResourceMembershipsByName(source, people, query)
+      .map((r) => r.id);
+  expect(ids("")).toEqual(["a", "b", "c", "d"]);
+  expect(ids("  AVErY  ")).toEqual(["a"]);
+  expect(ids("weekEND")).toEqual(["b"]);
+  expect(ids("Morgan")).toEqual(["b"]);
+  expect(ids("anonymous")).toEqual(["d"]);
+  for (const query of [
+    "private@example.test", "secret ladder", "555-0130",
+    "PRIVATE NOTE", "employee-a", "foreign-person", "FOREIGN NAME",
+    "external@example.test",
+  ]) {
+    expect(ids(query)).toEqual([]);
+  }
+  // A record in another organization with a matching employee ID cannot be
+  // used to search or reveal a foreign employee's identity.
+  expect(filterResourceMembershipsByName(
+    [source[2]], people, "FOREIGN NAME",
+  )).toEqual([]);
+  expect(source).toEqual(before);
 });

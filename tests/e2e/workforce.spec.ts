@@ -294,9 +294,13 @@ test("fictional crews and workers publish availability, schedule both industries
     const rosterSort = page.getByLabel(
       "Sort membership history", { exact: true },
     );
+    const rosterSearch = page.getByLabel(
+      "Search roster memberships", { exact: true },
+    );
     await expect(rosterMode).toHaveValue("all");
     await expect(rosterStatus).toHaveValue("all");
     await expect(rosterSort).toHaveValue("retained");
+    await expect(rosterSearch).toHaveValue("");
     const rosterRows = resourceCard.locator(".workforce-members li");
     await expect(rosterRows).toHaveCount(people.length);
     await rosterMode.selectOption("overlapping-day");
@@ -321,6 +325,31 @@ test("fictional crews and workers publish availability, schedule both industries
     );
     await expect(rosterCsvButton).toBeDisabled();
     await rosterStatus.selectOption("current");
+    await expect(rosterRows).toHaveCount(people.length);
+    await rosterSearch.fill(people[0].toLowerCase());
+    await expect(rosterRows).toHaveCount(1);
+    await expect(resourceCard).toContainText(
+      "Enrolled — employee reservations required",
+    );
+    await expect(rosterCsvButton).toBeEnabled();
+    const searchedDownloadPending = page.waitForEvent("download");
+    await rosterCsvButton.click();
+    const searchedDownload = await searchedDownloadPending;
+    const searchedCsv = (await readFile((await searchedDownload.path())!))
+      .toString("utf8");
+    expect(searchedCsv).toContain(people[0] + " membership");
+    for (const other of people.slice(1)) {
+      expect(searchedCsv).not.toContain(other + " membership");
+    }
+    await rosterSearch.fill("no-such-member-name");
+    await expect(rosterRows).toHaveCount(0);
+    await expect(resourceCard.getByText(
+      "No retained memberships match this roster search.", { exact: true },
+    )).toBeVisible();
+    await expect(rosterCsvButton).toBeDisabled();
+    await rosterSearch.fill(people[0] + " membership");
+    await expect(rosterRows).toHaveCount(1);
+    await rosterSearch.fill("");
     await expect(rosterRows).toHaveCount(people.length);
     await rosterSort.selectOption("newest");
     await expect(rosterSort).toHaveValue("newest");
@@ -358,6 +387,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(rosterMode).toHaveValue("all");
     await expect(rosterStatus).toHaveValue("all");
     await expect(rosterSort).toHaveValue("retained");
+    await expect(rosterSearch).toHaveValue("");
     await expect(rosterRows).toHaveCount(people.length);
     await expect(rosterCsvButton).toBeEnabled();
     await expect(page.getByLabel(

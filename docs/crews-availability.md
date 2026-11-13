@@ -459,3 +459,38 @@ stored history, roster membership, eligibility, permissions,
 enrollment, appointments, backups or exports other than the new
 presentation order of this CSV. MIT and the fictional no-login
 demo remain unchanged.
+
+## Find roster membership history by employee name or title (PR #120)
+
+In **Crews & availability → Resource directory**, the new
+**Search roster memberships** field filters the **membership rows
+inside the visible resource cards**, by saved membership title or
+the name of a linked employee in the same authorized organization.
+It ignores case and surrounding spaces, and combines with the
+resource name/type/enrollment filters, membership record archive
+state, optional selected business-local day, and effective-start
+sorting. It does **not** search resource cards by employee name:
+use the existing **Search resource directory** control to select
+resource cards by resource name. Cards stay visible when their
+member search has zero matches, with a distinct
+**No retained memberships match this roster search** message.
+
+Only names and titles already displayed in the authorized workspace
+are searchable. Raw identifiers, emails, phone numbers, skills and
+private notes are **not** search terms. Foreign or missing linked
+employee identities are neither searchable nor revealed by the
+membership row. Memberships still have retained historical meaning:
+the search can show archived periods, but never treats an archived
+record as current scheduling authority. Search does not change crew
+membership, scheduling, employee activity, or the permanently
+retained **Enrolled** designation.
+
+**Download filtered roster memberships CSV** now applies the same
+member-name/title query to the complete authorized roster history
+before sorting; it is disabled if there are no matching rows.
+All existing organization scoping, CSV formula protection, local
+day/DST semantics, private-field exclusions, and archive-state
+columns remain intact. **Clear resource filters** also clears the
+member search, restoring the original retained-history view. No
+database, permissions, scheduling, JSON backup, production release,
+or other app is changed. MIT and the fictional no-login demo remain.
