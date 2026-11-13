@@ -37,6 +37,10 @@ import {
 } from "../core/resource-membership-review-csv";
 import { filteredRosterResourceSummaryCsv } from "../core/resource-roster-summary-csv";
 import {
+  rosterGapCategoryFilters,
+  type RosterGapCategory,
+} from "../core/roster-gap-quick-view";
+import {
   rosterCardCollapseKey,
   setShownRosterCardsCollapsed,
 } from "../core/roster-card-visibility";
@@ -216,6 +220,13 @@ export function Workforce({
     sort: rosterSort,
     date: rosterDate,
   };
+  function reviewRosterGapCategory(category: RosterGapCategory) {
+    const filters = rosterGapCategoryFilters(category, resourceType);
+    setResourceType(filters.resourceKind);
+    setResourceEnrollment(filters.enrollment);
+    setOnlyMatchingRosterResources(false);
+    setOnlyWithoutMatchingRosterResources(true);
+  }
   const resourceFiltersActive = resourceSearch.trim().length > 0 ||
     resourceType !== "all" || resourceEnrollment !== "all" ||
     rosterMode !== "all" || rosterStatus !== "all" ||
@@ -646,13 +657,33 @@ export function Workforce({
               {" "}Resource-only workers/crews: {rosterUnmatchedOverview.resourceOnlyWithoutMatching}.
               {" "}Equipment: {rosterUnmatchedOverview.equipmentWithoutMatching}.
             </p>
+            <div className="schedule-toolbar" role="group"
+              aria-label="Review resources without matching memberships by category">
+              <button type="button" className="secondary"
+                disabled={rosterUnmatchedOverview.enrolledWithoutMatching === 0}
+                onClick={() => reviewRosterGapCategory("enrolled")}>
+                Review enrolled worker/crew gaps
+              </button>
+              <button type="button" className="secondary"
+                disabled={rosterUnmatchedOverview.resourceOnlyWithoutMatching === 0}
+                onClick={() => reviewRosterGapCategory("resource-only")}>
+                Review resource-only worker/crew gaps
+              </button>
+              <button type="button" className="secondary"
+                disabled={rosterUnmatchedOverview.equipmentWithoutMatching === 0}
+                onClick={() => reviewRosterGapCategory("equipment")}>
+                Review equipment gaps
+              </button>
+            </div>
           </div>
           <p className="muted">
             Counts are retained membership records matching the selected
             resource, date, status and name/title filters, not unique
             employees, available workers or staffing capacity.
             The no-match breakdown groups resources by retained enrollment,
-            not worker availability or booking eligibility.
+            not worker availability or booking eligibility. Review buttons
+            narrow the directory to the selected historic no-match category
+            without changing the roster date or saved records.
           </p>
           <button type="button" className="secondary"
             disabled={!exportableRosterSummary}

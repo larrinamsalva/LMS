@@ -823,3 +823,48 @@ organization access even for mixed input arrays. No private
 employee data, database, record edit, staffing rules, API,
 permission, migration, deployment or other repository is changed.
 MIT licensing and the fictional no-login demo remain intact.
+
+## Review a missing-roster category in one click (PR #130)
+
+In **Crews & availability → Resource directory → Roster membership
+overview → Resources without matching roster records**, the three
+new review buttons jump directly to the existing resource-card view
+for a specific kind of missing membership match:
+
+- **Review enrolled worker/crew gaps** selects Workers/Crews with
+  any retained enrollment history but no membership matching the
+  current roster review filters
+- **Review resource-only worker/crew gaps** selects Workers/Crews
+  with no retained enrollment history at all
+- **Review equipment gaps** selects Equipment resources without
+  a matching retained roster record; equipment is not governed
+  by employee enrollment
+
+Buttons are disabled when the corresponding category's count is
+zero. Clicking a button applies the appropriate existing
+Resource Directory **employee enrollment** and **resource type**
+filters, turns **Show only resources without matching
+memberships** on, and turns the opposite match-only filter off.
+For Worker/Crew categories, an existing Worker-only or Crew-only
+resource selection is preserved rather than unexpectedly
+broadening that category; the Equipment category uses the
+Equipment type with the enrollment filter set to All.
+
+The quick views **preserve** the chosen business-local roster
+date, membership current/archived filter, membership-title /
+employee-name search, resource name search and sorting settings.
+The overview is recalculated from the newly selected directory
+scope. **Clear resource filters** restores the original
+all-resources view; the checkboxes and dropdowns can also be
+adjusted individually after using a quick view. The detailed
+membership CSV remains disabled while the no-match-only view
+has no matching member detail rows; the one-row-per-resource
+overview CSV follows the authorized displayed selection.
+
+A missing *historical record match* never means a worker,
+crew or equipment item is free to schedule, has no active job
+or is eligible for booking. These buttons make no record edits
+or server requests, and cannot override organization access
+or enrollment/booking safeguards. Existing CSV/JSON formats,
+database schema, permissions, scheduling, MIT license and the
+fictional no-login demo are unchanged.
