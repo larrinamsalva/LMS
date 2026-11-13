@@ -20,7 +20,7 @@ function record(
 const view: ResourceMembershipCsvView = {
   archivedResources: false, resourceSearch: "", resourceKind: "all",
   enrollment: "all", mode: "all", membershipStatus: "all",
-  sort: "retained", date: "",
+  sort: "retained", memberSearch: "", date: "",
 };
 const records: WorkspaceRecord[] = [
   record("resources", "crew-a", {
@@ -264,5 +264,54 @@ it("exports each resource's retained rows in effective-start order after status/
   expect(original).not.toBe(oldest);
   for (const secret of ["FOREIGN", "PRIVATE", "crew-a", "employee-a"]) {
     expect(oldest).not.toContain(secret);
+  }
+});
+
+
+it("applies title and employee-name search after roster date/status filters without leaking contact or foreign data", () => {
+  const byEmployee = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "blue", memberSearch: "  AVEry  ",
+    },
+  );
+  expect(byEmployee.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(byEmployee).toContain('"Morning roster","Avery Example"');
+  expect(byEmployee).not.toContain("Archived past membership");
+
+  const byTitle = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "blue", memberSearch: "past membership",
+      membershipStatus: "archived", sort: "newest",
+    },
+  );
+  expect(byTitle.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(byTitle).toContain('"Archived past membership","Morgan Example"');
+  expect(byTitle).not.toContain("Morning roster");
+
+  const onDay = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "blue", memberSearch: "morgan",
+      mode: "overlapping-day", date: "2026-11-06",
+    },
+  );
+  expect(onDay.trimEnd().split("\r\n")).toHaveLength(1);
+  for (const secret of [
+    "PRIVATE@EXAMPLE.COM", "PRIVATE MEMBERSHIP NOTE", "employee-a",
+    "employee-b", "FOREIGN PRIVATE PERSON", "foreign-person",
+  ]) {
+    expect(byEmployee).not.toContain(secret);
+    expect(byTitle).not.toContain(secret);
+  }
+  const notSearchable = [
+    "PRIVATE@EXAMPLE.COM", "PRIVATE MEMBERSHIP NOTE", "employee-a",
+    "foreign-person", "FOREIGN PRIVATE PERSON",
+  ];
+  for (const memberSearch of notSearchable) {
+    const csv = filteredResourceMembershipsCsv(
+      records, ORG, "America/Los_Angeles", {
+        ...view, resourceSearch: "Blue Crew", memberSearch,
+      },
+    );
+    expect(csv.trimEnd().split("\r\n")).toHaveLength(1);
   }
 });
