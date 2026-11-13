@@ -63,7 +63,7 @@ export function filteredResourceMembershipsCsv(
   );
   const visibleResources = view.onlyMatchingResources
     ? resourcesWithMatchingRosterMemberships(
-      directoryResources, memberships, scoped, {
+      directoryResources, memberships, scoped, organizationId, {
         mode: view.mode, date: view.date, zone,
         status: view.membershipStatus, search: view.memberSearch,
       },
