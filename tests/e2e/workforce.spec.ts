@@ -245,6 +245,13 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceType).toHaveValue("all");
     await expect(resourceEnrollment).toHaveValue("all");
     await expect(resourceCard).toBeVisible();
+    const preEnrollmentUnmatched = page.getByRole("group", {
+      name: "Resources without matching roster records", exact: true,
+    });
+    await expect(preEnrollmentUnmatched).toContainText(
+      "Resources without matches: 1. Enrolled workers/crews: 0. " +
+      "Resource-only workers/crews: 1. Equipment: 0.",
+    );
     for (const name of people) {
       await directory(page);
       await page
@@ -316,6 +323,13 @@ test("fictional crews and workers publish availability, schedule both industries
     const rosterOverview = page.getByRole("group", {
       name: "Roster membership overview", exact: true,
     });
+    const unmatchedBreakdown = rosterOverview.getByRole("group", {
+      name: "Resources without matching roster records", exact: true,
+    });
+    await expect(unmatchedBreakdown).toContainText(
+      "Resources without matches: 0. Enrolled workers/crews: 0. " +
+      "Resource-only workers/crews: 0. Equipment: 0.",
+    );
     await expect(rosterOverview).toContainText(
       "Matching resources: 1 of 1 directory resources.",
     );
@@ -414,6 +428,10 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "Download filtered roster memberships CSV", exact: true,
     });
     await rosterStatus.selectOption("archived");
+    await expect(unmatchedBreakdown).toContainText(
+      "Resources without matches: 1. Enrolled workers/crews: 1. " +
+      "Resource-only workers/crews: 0. Equipment: 0.",
+    );
     await expect(cardBreakdown).toContainText(
       "Matching records: 0. Current: 0. Archived: 0.",
     );
@@ -441,6 +459,10 @@ test("fictional crews and workers publish availability, schedule both industries
     await onlyMatchingResources.uncheck();
     await expect(resourceCard).toBeVisible();
     await rosterStatus.selectOption("current");
+    await expect(unmatchedBreakdown).toContainText(
+      "Resources without matches: 0. Enrolled workers/crews: 0. " +
+      "Resource-only workers/crews: 0. Equipment: 0.",
+    );
     await expect(cardBreakdown).toContainText(
       "Matching records: " + people.length + ". Current: " +
       people.length + ". Archived: 0.",
@@ -487,6 +509,10 @@ test("fictional crews and workers publish availability, schedule both industries
       expect(searchedCsv).not.toContain(other + " membership");
     }
     await rosterSearch.fill("no-such-member-name");
+    await expect(unmatchedBreakdown).toContainText(
+      "Resources without matches: 1. Enrolled workers/crews: 1. " +
+      "Resource-only workers/crews: 0. Equipment: 0.",
+    );
     await expect(summaryCsvButton).toBeDisabled();
     await expect(rosterOverview).toContainText(
       "Matching resources: 0 of 1 directory resources.",
