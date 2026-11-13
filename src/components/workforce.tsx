@@ -31,6 +31,11 @@ import {
 } from "../core/workforce-assignment-history";
 import { staffAssignmentHistoryCsv } from "../core/workforce-assignment-history-csv";
 import { filteredAvailabilityPeriodsCsv } from "../core/workforce-availability-csv";
+import {
+  resourceMembershipRowsForReview,
+  resourceMembershipReviewDateError,
+  type ResourceMembershipReviewMode,
+} from "../core/resource-membership-review";
 
 export function Workforce({
   records,
@@ -80,6 +85,9 @@ export function Workforce({
     useState<WorkforceResourceTypeFilter>("all");
   const [resourceEnrollment, setResourceEnrollment] =
     useState<WorkforceResourceEnrollmentFilter>("all");
+  const [rosterMode, setRosterMode] =
+    useState<ResourceMembershipReviewMode>("all");
+  const [rosterDate, setRosterDate] = useState(date);
   const [availabilitySearch, setAvailabilitySearch] = useState("");
   const [availabilityKind, setAvailabilityKind] =
     useState<AvailabilityPeriodTypeFilter>("all");
@@ -91,15 +99,25 @@ export function Workforce({
   );
   const employeeFiltersActive = employeeSearch.trim().length > 0 ||
     employeeStatus !== "all";
+  const scopedResources = resources.filter((r) =>
+    r.organization_id === organizationId,
+  );
+  const scopedMemberships = memberships.filter((m) =>
+    m.organization_id === organizationId,
+  );
   const currentResources = filterWorkforceResourceDirectory(
-    resources, memberships, history, "", "all", "all",
+    scopedResources, scopedMemberships, history, "", "all", "all",
   );
   const displayedResources = filterWorkforceResourceDirectory(
-    resources, memberships, history, resourceSearch, resourceType,
+    scopedResources, scopedMemberships, history, resourceSearch, resourceType,
     resourceEnrollment,
   );
+  const rosterDateError = rosterMode === "overlapping-day"
+    ? resourceMembershipReviewDateError(rosterDate, zone)
+    : null;
   const resourceFiltersActive = resourceSearch.trim().length > 0 ||
-    resourceType !== "all" || resourceEnrollment !== "all";
+    resourceType !== "all" || resourceEnrollment !== "all" ||
+    rosterMode !== "all";
   const range = (r: WorkspaceRecord) =>
     `${displayTime(String(r.data.start), String(r.data.time_zone ?? zone))} → ${displayTime(String(r.data.end), String(r.data.time_zone ?? zone))}`;
   let visible: WorkspaceRecord[] = [];
@@ -360,11 +378,36 @@ export function Workforce({
               <option value="resource-only">Resource-only workers/crews</option>
             </select>
           </div>
+          <div>
+            <label htmlFor="resource-membership-view">
+              Show resource memberships
+            </label>
+            <select id="resource-membership-view" value={rosterMode}
+              onChange={(event) => setRosterMode(
+                event.target.value as ResourceMembershipReviewMode,
+              )}>
+              <option value="all">All retained membership history</option>
+              <option value="overlapping-day">Overlapping selected day</option>
+            </select>
+          </div>
+          {rosterMode === "overlapping-day" && (
+            <div>
+              <label htmlFor="resource-membership-date">
+                Membership review date
+              </label>
+              <input id="resource-membership-date" type="date"
+                value={rosterDate}
+                onChange={(event) => setRosterDate(event.target.value)}
+              />
+            </div>
+          )}
           {resourceFiltersActive && (
             <button type="button" className="secondary" onClick={() => {
               setResourceSearch("");
               setResourceType("all");
               setResourceEnrollment("all");
+              setRosterMode("all");
+              setRosterDate(date);
             }}>
               Clear resource filters
             </button>
@@ -378,11 +421,20 @@ export function Workforce({
           Enrollment means a Worker or Crew has retained membership history,
           even when its last membership is archived. Equipment has no employee
           enrollment and appears only with All enrollment types.
-          These filters do not determine booking eligibility.
+          Membership review shows periods overlapping any part of the selected
+          local day, including archived history; it does not prove a complete
+          day roster or booking eligibility. Its date is independent of the
+          Availability date below.
         </p>
+        {rosterDateError && <p role="alert">{rosterDateError}</p>}
         <div className="workforce-grid">
           {displayedResources.map((r) => {
-              const rows = memberships.filter((m) => m.data.resource === r.id);
+              const allRows = resourceMembershipRowsForReview(
+                scopedMemberships, r, "all", rosterDate, zone,
+              );
+              const rows = resourceMembershipRowsForReview(
+                scopedMemberships, r, rosterMode, rosterDate, zone,
+              );
               return (
                 <article
                   className="workforce-card"
@@ -398,6 +450,13 @@ export function Workforce({
                         ? "Enrolled — employee reservations required"
                         : "Resource-only — no employee reservations"}
                   </p>
+                  <p className="muted">
+                    Showing {rows.length} of {allRows.length}
+                    {" "}retained dated memberships
+                    {rosterMode === "overlapping-day"
+                      ? " overlapping " + (rosterDate || "the selected day")
+                      : ""}.
+                  </p>
                   <ul className="workforce-members">
                     {rows.map((m) => (
                       <li key={m.id}>
@@ -412,7 +471,17 @@ export function Workforce({
                       </li>
                     ))}
                   </ul>
-                  {!rows.length && <p>No dated memberships.</p>}
+                  {!rows.length && (
+                    <p className="empty-state">
+                      {rosterDateError
+                        ? "Choose a valid membership review date."
+                        : allRows.length === 0
+                          ? "No dated memberships."
+                          : rosterMode === "overlapping-day"
+                            ? "No retained memberships overlap the selected day."
+                            : "No dated memberships."}
+                    </p>
+                  )}
                 </article>
               );
             })}
