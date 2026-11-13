@@ -3,6 +3,7 @@ import type { WorkspaceRecord } from "../../src/core/engine";
 import {
   resourceMembershipRowsForReview,
   resourceMembershipReviewDateError,
+  filterResourceMembershipRecordStatus,
 } from "../../src/core/resource-membership-review";
 
 const ORG = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -110,5 +111,47 @@ it("refuses impossible days, wrong zones, missing instants and unrelated entitie
   expect(resourceMembershipRowsForReview(
     invalid, record("not-resource", "employees", { name: "Example" }),
     "all", "", "UTC",
+  )).toEqual([]);
+});
+
+
+it("filters retained membership records by their own archive status without changing enrollment", () => {
+  const source = [
+    member("active-before", "2026-11-01T00:00:00Z", "2026-11-02T00:00:00Z"),
+    member("archived", "2026-11-06T17:00:00Z", "2026-11-06T20:00:00Z", true),
+    member("active-after", "2026-11-06T17:00:00Z", "2026-11-06T20:00:00Z"),
+    member("foreign", "2026-11-06T17:00:00Z", "2026-11-06T20:00:00Z",
+      false, OTHER),
+    record("not-membership", "availability", { resource: "crew-a" }),
+  ];
+  const all = resourceMembershipRowsForReview(
+    source, crew, "all", "", "UTC",
+  );
+  const before = structuredClone(all);
+  expect(filterResourceMembershipRecordStatus(all, "all")
+    .map((r) => r.id)).toEqual([
+    "active-before", "archived", "active-after",
+  ]);
+  expect(filterResourceMembershipRecordStatus(all, "current")
+    .map((r) => r.id)).toEqual(["active-before", "active-after"]);
+  expect(filterResourceMembershipRecordStatus(all, "archived")
+    .map((r) => r.id)).toEqual(["archived"]);
+  const day = resourceMembershipRowsForReview(
+    source, crew, "overlapping-day", "2026-11-06", "UTC",
+  );
+  expect(filterResourceMembershipRecordStatus(day, "archived")
+    .map((r) => r.id)).toEqual(["archived"]);
+  expect(filterResourceMembershipRecordStatus(day, "current")
+    .map((r) => r.id)).toEqual(["active-after"]);
+  // Even a status filter with no matches does not edit retained history.
+  expect(filterResourceMembershipRecordStatus(
+    resourceMembershipRowsForReview(source, crew, "overlapping-day",
+      "2026-11-03", "UTC"), "current",
+  )).toEqual([]);
+  expect(all).toEqual(before);
+  expect(source).toHaveLength(5);
+  expect(filterResourceMembershipRecordStatus(
+    [record("wrong", "availability", { title: "Not membership" })],
+    "all",
   )).toEqual([]);
 });

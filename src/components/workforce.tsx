@@ -35,7 +35,9 @@ import { filteredResourceMembershipsCsv } from "../core/resource-membership-revi
 import {
   resourceMembershipRowsForReview,
   resourceMembershipReviewDateError,
+  filterResourceMembershipRecordStatus,
   type ResourceMembershipReviewMode,
+  type ResourceMembershipRecordStatus,
 } from "../core/resource-membership-review";
 
 export function Workforce({
@@ -88,6 +90,8 @@ export function Workforce({
     useState<WorkforceResourceEnrollmentFilter>("all");
   const [rosterMode, setRosterMode] =
     useState<ResourceMembershipReviewMode>("all");
+  const [rosterStatus, setRosterStatus] =
+    useState<ResourceMembershipRecordStatus>("all");
   const [rosterDate, setRosterDate] = useState(date);
   const [availabilitySearch, setAvailabilitySearch] = useState("");
   const [availabilityKind, setAvailabilityKind] =
@@ -117,13 +121,16 @@ export function Workforce({
     ? resourceMembershipReviewDateError(rosterDate, zone)
     : null;
   const exportableRosterRows = !rosterDateError && displayedResources.some(
-    (resource) => resourceMembershipRowsForReview(
-      scopedMemberships, resource, rosterMode, rosterDate, zone,
+    (resource) => filterResourceMembershipRecordStatus(
+      resourceMembershipRowsForReview(
+        scopedMemberships, resource, rosterMode, rosterDate, zone,
+      ),
+      rosterStatus,
     ).length > 0,
   );
   const resourceFiltersActive = resourceSearch.trim().length > 0 ||
     resourceType !== "all" || resourceEnrollment !== "all" ||
-    rosterMode !== "all";
+    rosterMode !== "all" || rosterStatus !== "all";
   const range = (r: WorkspaceRecord) =>
     `${displayTime(String(r.data.start), String(r.data.time_zone ?? zone))} → ${displayTime(String(r.data.end), String(r.data.time_zone ?? zone))}`;
   let visible: WorkspaceRecord[] = [];
@@ -203,6 +210,7 @@ export function Workforce({
         resourceKind: resourceType,
         enrollment: resourceEnrollment,
         mode: rosterMode,
+        membershipStatus: rosterStatus,
         date: rosterDate,
       },
     );
@@ -420,6 +428,19 @@ export function Workforce({
               <option value="overlapping-day">Overlapping selected day</option>
             </select>
           </div>
+          <div>
+            <label htmlFor="resource-membership-status">
+              Filter membership record status
+            </label>
+            <select id="resource-membership-status" value={rosterStatus}
+              onChange={(event) => setRosterStatus(
+                event.target.value as ResourceMembershipRecordStatus,
+              )}>
+              <option value="all">All retained memberships</option>
+              <option value="current">Current membership records</option>
+              <option value="archived">Archived membership records</option>
+            </select>
+          </div>
           {rosterMode === "overlapping-day" && (
             <div>
               <label htmlFor="resource-membership-date">
@@ -437,6 +458,7 @@ export function Workforce({
               setResourceType("all");
               setResourceEnrollment("all");
               setRosterMode("all");
+              setRosterStatus("all");
               setRosterDate(date);
             }}>
               Clear resource filters
@@ -452,9 +474,10 @@ export function Workforce({
           even when its last membership is archived. Equipment has no employee
           enrollment and appears only with All enrollment types.
           Membership review shows periods overlapping any part of the selected
-          local day, including archived history; it does not prove a complete
-          day roster or booking eligibility. Its date is independent of the
-          Availability date below.
+          local day. Status filters describe the membership record's archive
+          state, not the resource's enrollment or employee activity.
+          These records do not prove a complete day roster or booking
+          eligibility. The review date is independent of Availability below.
         </p>
         {rosterDateError && <p role="alert">{rosterDateError}</p>}
         <button type="button" className="secondary"
@@ -463,9 +486,9 @@ export function Workforce({
           Download filtered roster memberships CSV
         </button>
         <p className="muted">
-          Export includes all membership rows shown by the resource search,
-          type, enrollment and selected-day controls, including archived
-          membership history. No contact details or internal IDs are included.
+          Export includes all membership rows shown by resource search,
+          type, enrollment, record status and selected-day controls.
+          No contact details or internal IDs are included.
           This is a dated roster record, not booking eligibility.
         </p>
         <div className="workforce-grid">
@@ -473,8 +496,11 @@ export function Workforce({
               const allRows = resourceMembershipRowsForReview(
                 scopedMemberships, r, "all", rosterDate, zone,
               );
-              const rows = resourceMembershipRowsForReview(
+              const dateRows = resourceMembershipRowsForReview(
                 scopedMemberships, r, rosterMode, rosterDate, zone,
+              );
+              const rows = filterResourceMembershipRecordStatus(
+                dateRows, rosterStatus,
               );
               return (
                 <article
@@ -518,9 +544,12 @@ export function Workforce({
                         ? "Choose a valid membership review date."
                         : allRows.length === 0
                           ? "No dated memberships."
-                          : rosterMode === "overlapping-day"
+                          : rosterMode === "overlapping-day" &&
+                            dateRows.length === 0
                             ? "No retained memberships overlap the selected day."
-                            : "No dated memberships."}
+                            : rosterStatus !== "all"
+                              ? "No retained memberships match this status filter."
+                              : "No dated memberships."}
                     </p>
                   )}
                 </article>

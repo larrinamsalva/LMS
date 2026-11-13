@@ -391,3 +391,40 @@ backup/export. Retained employee names are business history and should
 be handled accordingly. This feature preserves scheduling safeguards,
 organization permissions, MIT licensing and the fictional no-login
 demo.
+
+## Filter retained roster memberships by record status (PR #118)
+
+In **Crews & availability → Resource directory**, **Filter membership
+record status** offers **All retained memberships** (the default),
+**Current membership records**, and **Archived membership records**.
+This filter operates on the individual membership record's
+archived/current flag. It combines with the existing resource-name,
+resource-kind and enrollment filters and, when selected, the
+**Overlapping selected day** membership-date view. A current record
+means **not archived**, *not* that it overlaps the present date or
+proves the worker is on duty. An archived record is retained history,
+not permission to schedule.
+
+Each resource card continues showing matched versus **all retained**
+membership counts. When the status filter excludes all the
+membership rows for an otherwise visible resource, the card says
+**No retained memberships match this status filter.** When the date
+matches no records at all, the existing local-day no-overlap message
+takes precedence. **Clear resource filters** also restores the
+membership status selector to All retained memberships.
+
+The **Download filtered roster memberships CSV** action now uses this
+same status filter alongside all the existing resource and local-day
+filters, recomputing every report row from organization-scoped
+records. It is disabled if no matching memberships exist. The
+export still includes only authorized historical names, roster
+labels and original dates, applies CSV formula protection and
+excludes contacts, private notes, raw IDs and foreign-linked names.
+
+Crucially, the resource's **Enrolled** vs **Resource-only** label
+continues to depend on **any retained dated membership**, including
+records excluded by the current status or date selection. Selecting
+Archived or Current is a read-only history view; it never archives,
+restores, changes enrollment or weakens booking eligibility checks.
+No new database schema, permissions, API or deployment is involved.
+The MIT-licensed fictional no-login demo remains unchanged.
