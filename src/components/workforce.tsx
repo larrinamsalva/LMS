@@ -133,7 +133,8 @@ export function Workforce({
     ? resourceMembershipReviewDateError(rosterDate, zone)
     : null;
   const matchingRosterResources = resourcesWithMatchingRosterMemberships(
-    displayedResources, scopedMemberships, scopedRosterRecords, {
+    displayedResources, scopedMemberships, scopedRosterRecords,
+    organizationId, {
       mode: rosterMode, date: rosterDate, zone,
       status: rosterStatus, search: rosterSearch,
     },
