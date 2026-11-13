@@ -9,6 +9,8 @@ import {
 import {
   resourceMembershipRowsForReview,
   resourceMembershipReviewDateError,
+  filterResourceMembershipRecordStatus,
+  type ResourceMembershipRecordStatus,
   type ResourceMembershipReviewMode,
 } from "./resource-membership-review";
 
@@ -18,6 +20,7 @@ export interface ResourceMembershipCsvView {
   resourceKind: WorkforceResourceTypeFilter;
   enrollment: WorkforceResourceEnrollmentFilter;
   mode: ResourceMembershipReviewMode;
+  membershipStatus: ResourceMembershipRecordStatus;
   date: string;
 }
 
@@ -78,8 +81,11 @@ export function filteredResourceMembershipsCsv(
     const all = resourceMembershipRowsForReview(
       memberships, resource, "all", view.date, zone,
     );
-    const shown = resourceMembershipRowsForReview(
+    const dateRows = resourceMembershipRowsForReview(
       memberships, resource, view.mode, view.date, zone,
+    );
+    const shown = filterResourceMembershipRecordStatus(
+      dateRows, view.membershipStatus,
     );
     for (const membership of shown) {
       const start = dateValue(membership.data.start);
