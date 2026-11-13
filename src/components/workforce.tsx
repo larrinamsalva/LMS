@@ -37,6 +37,10 @@ import {
 } from "../core/resource-membership-review-csv";
 import { filteredRosterResourceSummaryCsv } from "../core/resource-roster-summary-csv";
 import {
+  rosterCardCollapseKey,
+  setShownRosterCardsCollapsed,
+} from "../core/roster-card-visibility";
+import {
   resourceMembershipRowsForReview,
   resourceMembershipReviewDateError,
   filterResourceMembershipRecordStatus,
@@ -159,6 +163,11 @@ export function Workforce({
       status: rosterStatus, search: rosterSearch,
     }, resourceCountSort,
   );
+  const collapsedShownRosterCount = shownRosterResources.filter((resource) =>
+    collapsedRosterCards.includes(
+      rosterCardCollapseKey(organizationId, resource.id),
+    ),
+  ).length;
   const rosterOverview = summarizeMatchingRosterMemberships(
     displayedResources, scopedMemberships, scopedRosterRecords,
     organizationId, {
@@ -625,7 +634,9 @@ export function Workforce({
           orders recorded membership counts, not distinct staff or capacity.
           Each resource card shows a matching Current/Archived record
           breakdown. Membership entries can be collapsed without hiding
-          counts, changing the filters, enrollment or either CSV report.
+          counts, changing filters, enrollment or either CSV report.
+          Expand all / Collapse all affect only the currently shown
+          resource cards, preserving hidden cards' individual choices.
           The review date is independent of Availability below.
         </p>
         {rosterDateError && <p role="alert">{rosterDateError}</p>}
@@ -641,6 +652,26 @@ export function Workforce({
           No contact details or internal IDs are included.
           This is a dated roster record, not booking eligibility.
         </p>
+        <div className="schedule-toolbar" role="group"
+          aria-label="Shown resource membership entry visibility">
+          <button type="button" className="secondary"
+            disabled={shownRosterResources.length === 0 ||
+              collapsedShownRosterCount === shownRosterResources.length}
+            onClick={() => setCollapsedRosterCards((previous) =>
+              setShownRosterCardsCollapsed(
+                previous, shownRosterResources, organizationId, true,
+              ))}>
+            Collapse all shown membership entries
+          </button>
+          <button type="button" className="secondary"
+            disabled={collapsedShownRosterCount === 0}
+            onClick={() => setCollapsedRosterCards((previous) =>
+              setShownRosterCardsCollapsed(
+                previous, shownRosterResources, organizationId, false,
+              ))}>
+            Expand all shown membership entries
+          </button>
+        </div>
         <div className="workforce-grid">
           {shownRosterResources.map((r) => {
               const allRows = resourceMembershipRowsForReview(
@@ -662,7 +693,7 @@ export function Workforce({
                 (membership) => membership.archived,
               ).length;
               const currentMatching = searchedRows.length - archivedMatching;
-              const cardKey = organizationId + ":" + r.id;
+              const cardKey = rosterCardCollapseKey(organizationId, r.id);
               const membershipListId = "resource-membership-entries-" + r.id;
               const collapsed = collapsedRosterCards.includes(cardKey);
               return (
