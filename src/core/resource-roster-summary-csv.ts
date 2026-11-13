@@ -9,6 +9,7 @@ import {
   resourceMembershipReviewDateError,
   resourceMembershipRowsForReview,
   resourcesWithMatchingRosterMemberships,
+  resourcesWithoutMatchingRosterMemberships,
 } from "./resource-membership-review";
 import type { ResourceMembershipCsvView } from "./resource-membership-review-csv";
 
@@ -52,7 +53,11 @@ export function filteredRosterResourceSummaryCsv(
     ? resourcesWithMatchingRosterMemberships(
       directory, memberships, scoped, organizationId, matchingView,
     )
-    : directory;
+    : view.onlyWithoutMatchingResources
+      ? resourcesWithoutMatchingRosterMemberships(
+        directory, memberships, scoped, organizationId, matchingView,
+      )
+      : directory;
   const ordered = orderRosterResourcesByMatchingCount(
     selected, memberships, scoped, organizationId, matchingView,
     view.resourceSort,
