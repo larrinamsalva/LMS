@@ -3,6 +3,7 @@ import type { WorkspaceRecord } from "../../src/core/engine";
 import {
   summarizeMatchingRosterMemberships,
   orderRosterResourcesByMatchingCount,
+  resourcesWithoutMatchingRosterMemberships,
   type MatchingRosterResourceView,
 } from "../../src/core/resource-membership-review";
 
@@ -242,4 +243,28 @@ it("per-resource matching current/archived breakdown agrees with overview totals
       .toBe(blue.archivedMemberships + worker.archivedMemberships);
   }
   expect({ selections, memberships, linked }).toEqual(inputSnapshot);
+});
+
+
+it("selects only current-organization resources with zero matching retained roster rows", () => {
+  const mixed = [resources[1], resources[2], resources[0]];
+  const before = structuredClone({ mixed, memberships, linked });
+  const ids = (view: MatchingRosterResourceView) =>
+    resourcesWithoutMatchingRosterMemberships(
+      mixed, memberships, linked, ORG, view,
+    ).map((r) => r.id);
+  expect(ids(day)).toEqual(["worker-b"]);
+  expect(ids({ ...day, mode: "all" })).toEqual([]);
+  expect(ids({ ...day, status: "current" })).toEqual(["worker-b"]);
+  expect(ids({ ...day, status: "archived" })).toEqual(["worker-b"]);
+  expect(ids({ ...day, search: "Morgan" })).toEqual(["worker-b"]);
+  expect(ids({ ...day, search: "FOREIGN PRIVATE" }))
+    .toEqual(["worker-b", "crew-a"]);
+  expect(ids({ ...day, search: "555-1234" }))
+    .toEqual(["worker-b", "crew-a"]);
+  expect(ids({ ...day, date: "2026-11-08" }))
+    .toEqual(["worker-b", "crew-a"]);
+  expect(ids({ ...day, date: "2026-02-30" }))
+    .toEqual(["worker-b", "crew-a"]);
+  expect({ mixed, memberships, linked }).toEqual(before);
 });
