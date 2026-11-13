@@ -318,6 +318,24 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(rosterOverview).toContainText(
       "Matching membership records: " + people.length + ".",
     );
+    const summaryCsvButton = rosterOverview.getByRole("button", {
+      name: "Download roster overview CSV", exact: true,
+    });
+    await expect(summaryCsvButton).toBeEnabled();
+    const summaryDownloadPending = page.waitForEvent("download");
+    await summaryCsvButton.click();
+    const summaryDownload = await summaryDownloadPending;
+    expect(summaryDownload.suggestedFilename()).toBe(
+      "lms-resource-roster-summary-all-history.csv",
+    );
+    const summaryCsv = (await readFile((await summaryDownload.path())!))
+      .toString("utf8");
+    expect(summaryCsv).toContain('"Matching membership records"');
+    expect(summaryCsv).toContain(resource);
+    expect(summaryCsv).toContain('"' + people.length + '","' +
+      people.length + '","0"');
+    for (const name of people) expect(summaryCsv).not.toContain(name);
+    expect(summaryCsv).not.toContain("PRIVATE");
     const rosterRows = resourceCard.locator(".workforce-members li");
     await expect(rosterRows).toHaveCount(people.length);
     await rosterMode.selectOption("overlapping-day");
@@ -333,6 +351,7 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "Download filtered roster memberships CSV", exact: true,
     });
     await rosterStatus.selectOption("archived");
+    await expect(summaryCsvButton).toBeEnabled();
     await expect(rosterOverview).toContainText(
       "Matching membership records: 0. Current records: 0. Archived records: 0.",
     );
@@ -374,6 +393,7 @@ test("fictional crews and workers publish availability, schedule both industries
       expect(searchedCsv).not.toContain(other + " membership");
     }
     await rosterSearch.fill("no-such-member-name");
+    await expect(summaryCsvButton).toBeDisabled();
     await expect(rosterOverview).toContainText(
       "Matching resources: 0 of 1 directory resources.",
     );
@@ -387,8 +407,18 @@ test("fictional crews and workers publish availability, schedule both industries
     )).toBeVisible();
     await expect(rosterCsvButton).toBeDisabled();
     await onlyMatchingResources.uncheck();
+    await expect(summaryCsvButton).toBeEnabled();
     await expect(resourceCard).toBeVisible();
     await expect(rosterRows).toHaveCount(0);
+    const emptySummaryPending = page.waitForEvent("download");
+    await summaryCsvButton.click();
+    const emptySummaryDownload = await emptySummaryPending;
+    const emptySummaryCsv = (await readFile((await emptySummaryDownload.path())!))
+      .toString("utf8");
+    expect(emptySummaryCsv).toContain(resource);
+    expect(emptySummaryCsv).toContain('"' + people.length +
+      '","0","0","0"');
+    for (const name of people) expect(emptySummaryCsv).not.toContain(name);
     await expect(resourceCard.getByText(
       "No retained memberships match this roster search.", { exact: true },
     )).toBeVisible();
@@ -424,6 +454,7 @@ test("fictional crews and workers publish availability, schedule both industries
     expect(rosterCsv).not.toContain("PRIVATE");
     expect(rosterCsv).not.toContain("membership-id");
     await rosterDate.fill("2026-12-06");
+    await expect(summaryCsvButton).toBeEnabled();
     await expect(rosterRows).toHaveCount(0);
     await expect(resourceCard.getByText(
       "No retained memberships overlap the selected day.", { exact: true },
@@ -434,6 +465,7 @@ test("fictional crews and workers publish availability, schedule both industries
     );
     await onlyMatchingResources.check();
     await expect(resourceCard).toHaveCount(0);
+    await expect(summaryCsvButton).toBeDisabled();
     await page.getByRole("button", {
       name: "Clear resource filters", exact: true,
     }).click();
@@ -445,6 +477,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(rosterSearch).toHaveValue("");
     await expect(rosterRows).toHaveCount(people.length);
     await expect(rosterCsvButton).toBeEnabled();
+    await expect(summaryCsvButton).toBeEnabled();
     await expect(page.getByLabel(
       "Membership review date", { exact: true },
     )).toHaveCount(0);

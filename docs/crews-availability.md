@@ -602,3 +602,42 @@ foreign-linked names and raw IDs.
 No database migration, API, permissions, scheduling change,
 deployment or other repository is involved. MIT and the fictional
 no-login demo remain unchanged.
+
+## Download a one-row-per-resource roster overview (PR #124)
+
+In **Crews & availability → Resource directory → Roster membership
+overview**, **Download roster overview CSV** saves a compact, one-row-per-
+visible-resource report. It is a companion to the existing detailed
+**Download filtered roster memberships CSV**, not a replacement for
+membership history. The summary contains the resource name/type,
+current or archived **resource** record status, retained
+**Enrolled/Resource-only** category (Equipment marked Not applicable),
+total retained membership records, and the matching **Current**,
+**Archived**, and **Total** membership-record counts. Each row also
+states whether the review covers all retained history or a selected
+business-local day, plus that date and the business time zone.
+Individual employee names, contact details, notes, skills, customer
+information and raw database identifiers are **not** included.
+
+The summary applies the current resource name/type/enrollment,
+membership day, record-status, employee-name/title search and
+**Sort resources by matching memberships** selections. The separate
+per-resource membership-history sort cannot change summary counts.
+Unlike the detailed membership CSV, the summary **includes resources
+with zero matching membership rows** while **Show only resources with
+matching memberships** is unchecked. This helps explain a gap
+without erasing the fact that a resource has retained history.
+With match-only checked, empty cards are omitted from the summary,
+as in the on-screen Resource Directory. The button is disabled when
+no resource cards are visible or a selected review date is invalid.
+
+The report independently reapplies organization scoping and all
+filters to original authorized records and quotes/formula-protects
+every CSV cell. Archived history stays marked as archived and
+retained enrollment is never derived from the filtered count.
+Matching rows are historic **records**, not unique employees,
+available shifts, complete crew coverage or booking eligibility.
+Downloading the report is a local browser action; no new API,
+database, scheduling rule, access control, stored record, deployment,
+workspace JSON backup or other repository is modified.
+MIT licensing and the fictional no-login demo remain unchanged.

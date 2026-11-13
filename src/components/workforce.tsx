@@ -31,7 +31,11 @@ import {
 } from "../core/workforce-assignment-history";
 import { staffAssignmentHistoryCsv } from "../core/workforce-assignment-history-csv";
 import { filteredAvailabilityPeriodsCsv } from "../core/workforce-availability-csv";
-import { filteredResourceMembershipsCsv } from "../core/resource-membership-review-csv";
+import {
+  filteredResourceMembershipsCsv,
+  type ResourceMembershipCsvView,
+} from "../core/resource-membership-review-csv";
+import { filteredRosterResourceSummaryCsv } from "../core/resource-roster-summary-csv";
 import {
   resourceMembershipRowsForReview,
   resourceMembershipReviewDateError,
@@ -160,6 +164,23 @@ export function Workforce({
   );
   const exportableRosterRows = !rosterDateError &&
     matchingRosterResources.length > 0;
+  // A summary can document zero matching records for visible resources,
+  // unlike the detail report which needs at least one matching member row.
+  const exportableRosterSummary = !rosterDateError &&
+    shownRosterResources.length > 0;
+  const rosterExportView: ResourceMembershipCsvView = {
+    archivedResources: history,
+    resourceSearch,
+    resourceKind: resourceType,
+    enrollment: resourceEnrollment,
+    mode: rosterMode,
+    membershipStatus: rosterStatus,
+    memberSearch: rosterSearch,
+    onlyMatchingResources: onlyMatchingRosterResources,
+    resourceSort: resourceCountSort,
+    sort: rosterSort,
+    date: rosterDate,
+  };
   const resourceFiltersActive = resourceSearch.trim().length > 0 ||
     resourceType !== "all" || resourceEnrollment !== "all" ||
     rosterMode !== "all" || rosterStatus !== "all" ||
@@ -238,25 +259,28 @@ export function Workforce({
     // Reapply organization, resource and membership filters from the
     // canonical authorized workspace before creating any report rows.
     const csv = filteredResourceMembershipsCsv(
-      records, organizationId, zone, {
-        archivedResources: history,
-        resourceSearch,
-        resourceKind: resourceType,
-        enrollment: resourceEnrollment,
-        mode: rosterMode,
-        membershipStatus: rosterStatus,
-        memberSearch: rosterSearch,
-        onlyMatchingResources: onlyMatchingRosterResources,
-        resourceSort: resourceCountSort,
-        sort: rosterSort,
-        date: rosterDate,
-      },
+      records, organizationId, zone, rosterExportView,
     );
     const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(file);
     const link = document.createElement("a");
     link.href = url;
     link.download = "lms-resource-roster-review" +
+      (rosterMode === "overlapping-day" ? "-" + rosterDate : "-all-history") +
+      ".csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function downloadRosterSummary() {
+    if (!exportableRosterSummary) return;
+    const csv = filteredRosterResourceSummaryCsv(
+      records, organizationId, zone, rosterExportView,
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-resource-roster-summary" +
       (rosterMode === "overlapping-day" ? "-" + rosterDate : "-all-history") +
       ".csv";
     link.click();
@@ -570,6 +594,15 @@ export function Workforce({
             Counts are retained membership records matching the selected
             resource, date, status and name/title filters, not unique
             employees, available workers or staffing capacity.
+          </p>
+          <button type="button" className="secondary"
+            disabled={!exportableRosterSummary}
+            onClick={downloadRosterSummary}>
+            Download roster overview CSV
+          </button>
+          <p className="muted">
+            One row per visible resource, including zero-match cards when
+            shown. No employee names, contacts or raw IDs are exported.
           </p>
         </div>
         <p className="muted">
