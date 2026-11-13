@@ -187,3 +187,61 @@ export function resourcesWithMatchingRosterMemberships(
     ).length > 0;
   });
 }
+
+export interface RosterMembershipOverview {
+  directoryResources: number;
+  matchingResources: number;
+  matchingMemberships: number;
+  currentMemberships: number;
+  archivedMemberships: number;
+}
+
+/**
+ * Counts dated membership RECORDS across directory-selected resources, not
+ * distinct employees, staffing capacity, available shifts or appointments.
+ * The match-only card toggle deliberately has no effect on these counts:
+ * hidden empty cards have zero matching rows. Recheck the organization
+ * boundary even when arrays supplied by a caller contain foreign records.
+ */
+export function summarizeMatchingRosterMemberships(
+  resources: readonly WorkspaceRecord[],
+  memberships: readonly WorkspaceRecord[],
+  linkedRecords: readonly WorkspaceRecord[],
+  organizationId: string,
+  view: MatchingRosterResourceView,
+): RosterMembershipOverview {
+  const scopedResources = resources.filter((resource) =>
+    resource.entity === "resources" &&
+    resource.organization_id === organizationId,
+  );
+  const scopedMemberships = memberships.filter((membership) =>
+    membership.organization_id === organizationId,
+  );
+  const scopedLinkedRecords = linkedRecords.filter((record) =>
+    record.organization_id === organizationId,
+  );
+  let matchingResources = 0;
+  let currentMemberships = 0;
+  let archivedMemberships = 0;
+  for (const resource of scopedResources) {
+    const dated = resourceMembershipRowsForReview(
+      scopedMemberships, resource, view.mode, view.date, view.zone,
+    );
+    const matched = filterResourceMembershipsByName(
+      filterResourceMembershipRecordStatus(dated, view.status),
+      scopedLinkedRecords, view.search,
+    );
+    if (matched.length) matchingResources += 1;
+    for (const membership of matched) {
+      if (membership.archived) archivedMemberships += 1;
+      else currentMemberships += 1;
+    }
+  }
+  return {
+    directoryResources: scopedResources.length,
+    matchingResources,
+    matchingMemberships: currentMemberships + archivedMemberships,
+    currentMemberships,
+    archivedMemberships,
+  };
+}

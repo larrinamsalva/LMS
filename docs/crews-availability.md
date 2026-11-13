@@ -529,3 +529,39 @@ exclude foreign-linked names, contacts, notes, skills and raw IDs;
 CSV formula protection and effective-start sorting remain unchanged.
 No database, scheduling rules, permissions, export backup format or
 other app is modified. MIT and the fictional no-login demo remain.
+
+## Roster membership overview for filtered Resource Directory (PR #122)
+
+**Crews & availability → Resource directory → Roster membership
+overview** shows how many directory-selected resources have at least one
+matching retained membership, how many resource cards are selected by
+the existing name/type/enrollment filters, and the total matching
+membership **records** split into **Current records** and **Archived
+records**. The counts recompute as the membership review day, archive
+status, member-name/title search or resource filters change.
+
+A *current membership record* is one that has not been archived, **not**
+evidence of a currently active employee, on-duty crew, a complete
+assignment roster or capacity to accept work. Archived memberships
+remain retained history. The selected day uses the existing
+business-local overlap rules, including daylight-saving changes; a
+record overlapping part of a day counts once for each resource to
+which it is legitimately linked. The totals are **membership rows**,
+not unique employees or time slots. The default retained-history
+view covers all historic membership periods regardless of date.
+
+The **Show only resources with matching memberships** checkbox does
+not change these summary totals: it hides zero-match cards but the
+summary already counts only matching membership rows. The visible
+resource-card count and the summary's directory-resource denominator
+may differ when this checkbox is enabled. The overview does not
+change the CSV's detail rows, any roster data, scheduling checks or
+employee enrollment; exporting still follows the existing authorized,
+filtered report. The calculation enforces the selected organization
+inside the helper, even if a caller supplies mixed-organization
+records. It does not expose contacts, private notes, raw IDs, skills
+or foreign-linked names.
+
+No API, database schema, permissions, scheduling logic, backups or
+other repository is changed. MIT and the fictional no-login demo
+remain intact.
