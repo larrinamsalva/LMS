@@ -297,11 +297,30 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCard).toContainText(
       "retained dated memberships overlapping 2026-11-06",
     );
+    const rosterCsvButton = page.getByRole("button", {
+      name: "Download filtered roster memberships CSV", exact: true,
+    });
+    await expect(rosterCsvButton).toBeEnabled();
+    const rosterDownloadPending = page.waitForEvent("download");
+    await rosterCsvButton.click();
+    const rosterDownload = await rosterDownloadPending;
+    expect(rosterDownload.suggestedFilename()).toBe(
+      "lms-resource-roster-review-2026-11-06.csv",
+    );
+    const rosterCsv = (await readFile((await rosterDownload.path())!))
+      .toString("utf8");
+    expect(rosterCsv).toContain(resource);
+    expect(rosterCsv).toContain('"Overlapping selected day"');
+    expect(rosterCsv).toContain('"Membership record status"');
+    for (const name of people) expect(rosterCsv).toContain(name);
+    expect(rosterCsv).not.toContain("PRIVATE");
+    expect(rosterCsv).not.toContain("membership-id");
     await rosterDate.fill("2026-12-06");
     await expect(rosterRows).toHaveCount(0);
     await expect(resourceCard.getByText(
       "No retained memberships overlap the selected day.", { exact: true },
     )).toBeVisible();
+    await expect(rosterCsvButton).toBeDisabled();
     await expect(resourceCard).toContainText(
       "Enrolled — employee reservations required",
     );
@@ -310,6 +329,7 @@ test("fictional crews and workers publish availability, schedule both industries
     }).click();
     await expect(rosterMode).toHaveValue("all");
     await expect(rosterRows).toHaveCount(people.length);
+    await expect(rosterCsvButton).toBeEnabled();
     await expect(page.getByLabel(
       "Membership review date", { exact: true },
     )).toHaveCount(0);
