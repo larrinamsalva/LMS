@@ -213,6 +213,65 @@ export function resourcesWithoutMatchingRosterMemberships(
   );
 }
 
+export interface UnmatchedRosterResourceOverview {
+  withoutMatching: number;
+  enrolledWithoutMatching: number;
+  resourceOnlyWithoutMatching: number;
+  equipmentWithoutMatching: number;
+}
+
+/**
+ * Classification of resources with zero membership RECORDS matching the
+ * selected historic filters. Enrolled means a Worker/Crew has ever had a
+ * retained membership, even if archived or outside the selected day. Equipment
+ * never has employee enrollment; do not treat no-match as free-to-book.
+ *
+ * Caller directory filtering is preserved, but authorization and resource
+ * kind are revalidated against explicit organization scope.
+ */
+export function summarizeUnmatchedRosterResources(
+  resources: readonly WorkspaceRecord[],
+  memberships: readonly WorkspaceRecord[],
+  linkedRecords: readonly WorkspaceRecord[],
+  organizationId: string,
+  view: MatchingRosterResourceView,
+): UnmatchedRosterResourceOverview {
+  const selected = resources.filter((resource) =>
+    resource.entity === "resources" &&
+    resource.organization_id === organizationId &&
+    (resource.data.kind === "Crew" ||
+      resource.data.kind === "Worker" ||
+      resource.data.kind === "Equipment"),
+  );
+  const unmatched = resourcesWithoutMatchingRosterMemberships(
+    selected, memberships, linkedRecords, organizationId, view,
+  );
+  const scopedMemberships = memberships.filter((membership) =>
+    membership.entity === "resource-memberships" &&
+    membership.organization_id === organizationId,
+  );
+  let enrolledWithoutMatching = 0;
+  let resourceOnlyWithoutMatching = 0;
+  let equipmentWithoutMatching = 0;
+  for (const resource of unmatched) {
+    if (resource.data.kind === "Equipment") {
+      equipmentWithoutMatching += 1;
+    } else if (scopedMemberships.some((membership) =>
+      membership.data.resource === resource.id,
+    )) {
+      enrolledWithoutMatching += 1;
+    } else {
+      resourceOnlyWithoutMatching += 1;
+    }
+  }
+  return {
+    withoutMatching: unmatched.length,
+    enrolledWithoutMatching,
+    resourceOnlyWithoutMatching,
+    equipmentWithoutMatching,
+  };
+}
+
 export interface RosterMembershipOverview {
   directoryResources: number;
   matchingResources: number;

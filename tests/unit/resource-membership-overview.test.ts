@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import {
   summarizeMatchingRosterMemberships,
+  summarizeUnmatchedRosterResources,
   orderRosterResourcesByMatchingCount,
   resourcesWithoutMatchingRosterMemberships,
   type MatchingRosterResourceView,
@@ -267,4 +268,75 @@ it("selects only current-organization resources with zero matching retained rost
   expect(ids({ ...day, date: "2026-02-30" }))
     .toEqual(["worker-b", "crew-a"]);
   expect({ mixed, memberships, linked }).toEqual(before);
+});
+
+it("categorizes unmatched resources by retained history and equipment, scoped to organization", () => {
+  const emptyCrew = record("resources", "empty-crew", {
+    kind: "Crew", name: "Never enrolled",
+  });
+  const buffer = record("resources", "buffer", {
+    kind: "Equipment", name: "Floor buffer",
+  });
+  const invalid = record("resources", "invalid-kind", {
+    kind: "Other", name: "Not a directory resource",
+  });
+  const duplicateForeign = record("resources", "empty-crew", {
+    kind: "Crew", name: "FOREIGN COLLISION",
+  }, false, OTHER);
+  const selected = [resources[0], emptyCrew, resources[1], buffer,
+    invalid, resources[2], duplicateForeign];
+  const foreignMembership = record("resource-memberships", "foreign-empty", {
+    resource: "empty-crew", employee: "foreign-person",
+    title: "FOREIGN NEVER COUNT",
+    start: "2026-11-06T08:00:00Z", end: "2026-11-06T12:00:00Z",
+  }, false, OTHER);
+  const mixedMemberships = [...memberships, foreignMembership];
+  const before = structuredClone({ selected, mixedMemberships, linked });
+  const summarize = (v: MatchingRosterResourceView, subset = selected) =>
+    summarizeUnmatchedRosterResources(
+      subset, mixedMemberships, linked, ORG, v,
+    );
+  expect(summarize(day)).toEqual({
+    withoutMatching: 3,
+    enrolledWithoutMatching: 1,
+    resourceOnlyWithoutMatching: 1,
+    equipmentWithoutMatching: 1,
+  });
+  expect(summarize({ ...day, mode: "all" })).toEqual({
+    withoutMatching: 2,
+    enrolledWithoutMatching: 0,
+    resourceOnlyWithoutMatching: 1,
+    equipmentWithoutMatching: 1,
+  });
+  // A historical archived membership still counts as enrolled.
+  expect(summarize({ ...day, status: "archived" })).toEqual({
+    withoutMatching: 3,
+    enrolledWithoutMatching: 1,
+    resourceOnlyWithoutMatching: 1,
+    equipmentWithoutMatching: 1,
+  });
+  expect(summarize({ ...day, search: "FOREIGN PRIVATE" })).toEqual({
+    withoutMatching: 4,
+    enrolledWithoutMatching: 2,
+    resourceOnlyWithoutMatching: 1,
+    equipmentWithoutMatching: 1,
+  });
+  expect(summarize({ ...day, date: "2026-02-30" })).toEqual({
+    withoutMatching: 4,
+    enrolledWithoutMatching: 2,
+    resourceOnlyWithoutMatching: 1,
+    equipmentWithoutMatching: 1,
+  });
+  expect(summarize(day, [resources[1], resources[2]])).toEqual({
+    withoutMatching: 1,
+    enrolledWithoutMatching: 1,
+    resourceOnlyWithoutMatching: 0,
+    equipmentWithoutMatching: 0,
+  });
+  const result = summarize(day);
+  expect(result.withoutMatching).toBe(
+    result.enrolledWithoutMatching + result.resourceOnlyWithoutMatching +
+    result.equipmentWithoutMatching,
+  );
+  expect({ selected, mixedMemberships, linked }).toEqual(before);
 });
