@@ -30,6 +30,7 @@ import {
   type StaffAssignmentHistorySort,
 } from "../core/workforce-assignment-history";
 import { staffAssignmentHistoryCsv } from "../core/workforce-assignment-history-csv";
+import { filteredAvailabilityPeriodsCsv } from "../core/workforce-availability-csv";
 
 export function Workforce({
   records,
@@ -164,6 +165,25 @@ export function Workforce({
     const link = document.createElement("a");
     link.href = url;
     link.download = "lms-filtered-assignment-history.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function downloadFilteredAvailabilityPeriods() {
+    if (!displayedPeriods.length) return;
+    // The report recomputes the date/type/name filter from organization-scoped
+    // records instead of trusting the displayed subset.
+    const csv = filteredAvailabilityPeriodsCsv(
+      records, organizationId, zone, {
+        date, archived: history, kind: availabilityKind,
+        search: availabilitySearch,
+      },
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-availability-periods-" + date +
+      (history ? "-archived" : "-current") + ".csv";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -477,6 +497,17 @@ export function Workforce({
           Showing {displayedPeriods.length} of {visible.length}
           {" "}{history ? "archived" : "current"} availability periods
           {" "}on {date || "the selected date"}.
+        </p>
+        <button type="button" className="secondary"
+          disabled={displayedPeriods.length === 0}
+          onClick={downloadFilteredAvailabilityPeriods}>
+          Download filtered availability periods CSV
+        </button>
+        <p className="muted">
+          Downloads only the periods matching this day, current/archived
+          view, type and search. Local times include UTC instants for
+          daylight-saving clarity. These are recorded periods, not
+          verified staffing capacity or booking eligibility.
         </p>
         <p className="muted">
           Daily period overview counts records overlapping this local day,

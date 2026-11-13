@@ -276,3 +276,38 @@ them with the same care as business paperwork. Every CSV cell is quoted
 and spreadsheet-formula prefixes are neutralized. Existing workspace
 JSON exports, saved history, audit records and scheduled appointments
 are unchanged. MIT and the fictional no-login demo remain intact.
+
+## Download filtered availability periods (PR #115)
+
+In **Crews & availability → Availability**, **Download filtered availability
+periods CSV** saves exactly the authorized periods matching the selected
+**Availability date**, the current/archived view, the period-type filter
+and the period-title or employee/resource-name search. It is disabled
+when nothing matches. The selected date uses the configured **business
+time zone**, and includes every period overlapping any part of that local
+day (not just periods beginning on it). A period spanning midnight may
+appear on two different daily reports. A 23- or 25-hour daylight-saving
+day is handled by its real local midnight boundaries, not a guessed
+24-hour UTC interval.
+
+The export recomputes matches from the authorized organization's
+records rather than trusting a caller-provided list. Each row contains
+the selected date, recorded period title and kind, subject type and
+authorized employee/resource name when present, local start/end, UTC
+start/end instants, archived/current state and business time zone.
+The UTC instants distinguish repeated wall-clock hours during an
+autumn DST fold. Unknown or foreign linked subjects have **blank**
+name fields; raw IDs, staff contacts, notes, skills, customer data,
+appointment details and other organizations' periods are not included.
+Spreadsheet formulas are neutralized using the existing safe CSV
+encoder.
+
+**This is a period-record review, not a staffing or capacity
+certificate.** Working hours do not alone prove that a worker or crew
+is bookable: employee status, stable roster, complete appointment
+coverage, blocking time off and existing reservations still apply.
+Archived periods are historical, not active availability. The CSV
+is generated in-browser without a new report API, database mutation,
+production upload or change to the existing JSON export. Handle
+fictional staff names as business paperwork. MIT licensing and
+the no-login fictional demo remain unchanged.
