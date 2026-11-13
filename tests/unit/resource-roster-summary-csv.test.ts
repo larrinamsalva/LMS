@@ -169,7 +169,7 @@ it("rejects bad days/zones and protects spreadsheet formula cells", () => {
   }
   const risky = [
     record("resources", "formula-resource", {
-      name: "=HYPERLINK(\\"https://example.test\\",\\"evil\\")",
+      name: '=HYPERLINK("https://example.test","evil")',
       kind: "Crew",
     }),
   ];
