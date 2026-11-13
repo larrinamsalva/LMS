@@ -46,6 +46,7 @@ import {
   filterResourceMembershipRecordStatus,
   filterResourceMembershipsByName,
   resourcesWithMatchingRosterMemberships,
+  resourcesWithoutMatchingRosterMemberships,
   summarizeMatchingRosterMemberships,
   orderRosterResourcesByMatchingCount,
   orderResourceMembershipsByStart,
@@ -114,6 +115,8 @@ export function Workforce({
     useState<RosterResourceCountSort>("directory");
   const [onlyMatchingRosterResources, setOnlyMatchingRosterResources] =
     useState(false);
+  const [onlyWithoutMatchingRosterResources, setOnlyWithoutMatchingRosterResources] =
+    useState(false);
   // Presentation-only collapse state, keyed by organization + resource.
   // Never changes retained membership records or export selection.
   const [collapsedRosterCards, setCollapsedRosterCards] =
@@ -156,8 +159,17 @@ export function Workforce({
       status: rosterStatus, search: rosterSearch,
     },
   );
+  const withoutMatchingRosterResources = resourcesWithoutMatchingRosterMemberships(
+    displayedResources, scopedMemberships, scopedRosterRecords,
+    organizationId, {
+      mode: rosterMode, date: rosterDate, zone,
+      status: rosterStatus, search: rosterSearch,
+    },
+  );
   const shownRosterResources = orderRosterResourcesByMatchingCount(
-    onlyMatchingRosterResources ? matchingRosterResources : displayedResources,
+    onlyMatchingRosterResources ? matchingRosterResources
+      : onlyWithoutMatchingRosterResources ? withoutMatchingRosterResources
+      : displayedResources,
     scopedMemberships, scopedRosterRecords, organizationId, {
       mode: rosterMode, date: rosterDate, zone,
       status: rosterStatus, search: rosterSearch,
@@ -176,6 +188,7 @@ export function Workforce({
     },
   );
   const exportableRosterRows = !rosterDateError &&
+    !onlyWithoutMatchingRosterResources &&
     matchingRosterResources.length > 0;
   // A summary can document zero matching records for visible resources,
   // unlike the detail report which needs at least one matching member row.
@@ -190,6 +203,7 @@ export function Workforce({
     membershipStatus: rosterStatus,
     memberSearch: rosterSearch,
     onlyMatchingResources: onlyMatchingRosterResources,
+    onlyWithoutMatchingResources: onlyWithoutMatchingRosterResources,
     resourceSort: resourceCountSort,
     sort: rosterSort,
     date: rosterDate,
@@ -198,7 +212,8 @@ export function Workforce({
     resourceType !== "all" || resourceEnrollment !== "all" ||
     rosterMode !== "all" || rosterStatus !== "all" ||
     rosterSort !== "retained" || rosterSearch.trim().length > 0 ||
-    onlyMatchingRosterResources || resourceCountSort !== "directory";
+    onlyMatchingRosterResources || onlyWithoutMatchingRosterResources ||
+    resourceCountSort !== "directory";
   const range = (r: WorkspaceRecord) =>
     `${displayTime(String(r.data.start), String(r.data.time_zone ?? zone))} → ${displayTime(String(r.data.end), String(r.data.time_zone ?? zone))}`;
   let visible: WorkspaceRecord[] = [];
@@ -529,10 +544,22 @@ export function Workforce({
           <label className="check-label">
             <input type="checkbox"
               checked={onlyMatchingRosterResources}
-              onChange={(event) =>
-                setOnlyMatchingRosterResources(event.target.checked)}
+              onChange={(event) => {
+                setOnlyMatchingRosterResources(event.target.checked);
+                if (event.target.checked) setOnlyWithoutMatchingRosterResources(false);
+              }}
             />
             Show only resources with matching memberships
+          </label>
+          <label className="check-label">
+            <input type="checkbox"
+              checked={onlyWithoutMatchingRosterResources}
+              onChange={(event) => {
+                setOnlyWithoutMatchingRosterResources(event.target.checked);
+                if (event.target.checked) setOnlyMatchingRosterResources(false);
+              }}
+            />
+            Show only resources without matching memberships
           </label>
           <div>
             <label htmlFor="resource-card-count-sort">
@@ -581,6 +608,7 @@ export function Workforce({
               setRosterSort("retained");
               setRosterSearch("");
               setOnlyMatchingRosterResources(false);
+              setOnlyWithoutMatchingRosterResources(false);
               setResourceCountSort("directory");
               setRosterDate(date);
             }}>
@@ -629,8 +657,10 @@ export function Workforce({
           filtering nor sorting changes enrollment, employee activity or
           booking eligibility. Search matches membership titles and linked
           employee names, not contact details or IDs. Match-only hides
-          resource cards with no matching retained memberships without
-          changing enrollment, history or booking rights. Resource-card sort
+          resource cards with no matching retained memberships; the
+          complementary without-matches view shows only such cards.
+          Neither selection changes enrollment, history or booking rights.
+          Resource-card sort
           orders recorded membership counts, not distinct staff or capacity.
           Each resource card shows a matching Current/Archived record
           breakdown. Membership entries can be collapsed without hiding
@@ -781,7 +811,9 @@ export function Workforce({
               ? "No resources in this view."
               : onlyMatchingRosterResources && displayedResources.length > 0
                 ? "No resources have memberships matching these roster filters."
-                : "No resources match these filters."}
+                : onlyWithoutMatchingRosterResources && displayedResources.length > 0
+                  ? "Every selected resource has a matching membership record."
+                  : "No resources match these filters."}
           </p>
         )}
       </section>

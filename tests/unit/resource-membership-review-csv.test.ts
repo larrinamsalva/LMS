@@ -21,7 +21,8 @@ const view: ResourceMembershipCsvView = {
   archivedResources: false, resourceSearch: "", resourceKind: "all",
   enrollment: "all", mode: "all", membershipStatus: "all",
   sort: "retained", resourceSort: "directory", memberSearch: "",
-  onlyMatchingResources: false, date: "",
+  onlyMatchingResources: false, onlyWithoutMatchingResources: false,
+  date: "",
 };
 const records: WorkspaceRecord[] = [
   record("resources", "crew-a", {
@@ -392,4 +393,28 @@ it("follows stable resource-card matching-count order in CSV without changing ma
     expect(fewest).not.toContain(secret);
     expect(day).not.toContain(secret);
   }
+});
+
+it("does not export membership detail rows when only zero-match resources are selected", () => {
+  const onlyNoMatch = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, onlyWithoutMatchingResources: true,
+    },
+  );
+  expect(onlyNoMatch.trimEnd().split("\r\n")).toHaveLength(1);
+  expect(onlyNoMatch).toContain('"Membership title"');
+  expect(onlyNoMatch).not.toContain('"Blue Crew"');
+  expect(onlyNoMatch).not.toContain('"East Worker"');
+  expect(onlyNoMatch).not.toContain("FOREIGN");
+  const archivedOnly = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, membershipStatus: "archived",
+      onlyWithoutMatchingResources: true,
+    },
+  );
+  expect(archivedOnly.trimEnd().split("\r\n")).toHaveLength(1);
+  const original = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", view,
+  );
+  expect(original.trimEnd().split("\r\n")).toHaveLength(4);
 });

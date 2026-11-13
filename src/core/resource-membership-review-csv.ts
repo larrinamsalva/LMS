@@ -12,6 +12,7 @@ import {
   filterResourceMembershipRecordStatus,
   filterResourceMembershipsByName,
   resourcesWithMatchingRosterMemberships,
+  resourcesWithoutMatchingRosterMemberships,
   orderRosterResourcesByMatchingCount,
   orderResourceMembershipsByStart,
   type ResourceMembershipStartSort,
@@ -29,6 +30,7 @@ export interface ResourceMembershipCsvView {
   membershipStatus: ResourceMembershipRecordStatus;
   memberSearch: string;
   onlyMatchingResources: boolean;
+  onlyWithoutMatchingResources: boolean;
   resourceSort: RosterResourceCountSort;
   sort: ResourceMembershipStartSort;
   date: string;
@@ -72,7 +74,11 @@ export function filteredResourceMembershipsCsv(
     ? resourcesWithMatchingRosterMemberships(
       directoryResources, memberships, scoped, organizationId, matchingView,
     )
-    : directoryResources;
+    : view.onlyWithoutMatchingResources
+      ? resourcesWithoutMatchingRosterMemberships(
+        directoryResources, memberships, scoped, organizationId, matchingView,
+      )
+      : directoryResources;
   const visibleResources = orderRosterResourcesByMatchingCount(
     selectedResources, memberships, scoped, organizationId,
     matchingView, view.resourceSort,
