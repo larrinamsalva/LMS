@@ -141,3 +141,39 @@ export function resourceMembershipRowsForReview(
     return [];
   }
 }
+
+
+export interface MatchingRosterResourceView {
+  mode: ResourceMembershipReviewMode;
+  date: string;
+  zone: string;
+  status: ResourceMembershipRecordStatus;
+  search: string;
+}
+
+/**
+ * Optional read-only resource-card narrowing: keep a resource only if it has
+ * at least one retained membership matching the date, record-status and
+ * employee-name/title filters. Never treat an empty daily view as permanent
+ * unenrollment or booking authority.
+ *
+ * Memberships are scoped to each resource's organization; linked employee
+ * names must belong to the same organization. Returns a stable nonmutating
+ * subset of the caller's authorized resource list.
+ */
+export function resourcesWithMatchingRosterMemberships(
+  resources: readonly WorkspaceRecord[],
+  memberships: readonly WorkspaceRecord[],
+  linkedRecords: readonly WorkspaceRecord[],
+  view: MatchingRosterResourceView,
+): WorkspaceRecord[] {
+  return resources.filter((resource) => {
+    const dated = resourceMembershipRowsForReview(
+      memberships, resource, view.mode, view.date, view.zone,
+    );
+    const byStatus = filterResourceMembershipRecordStatus(dated, view.status);
+    return filterResourceMembershipsByName(
+      byStatus, linkedRecords, view.search,
+    ).length > 0;
+  });
+}
