@@ -336,6 +336,13 @@ test("fictional crews and workers publish availability, schedule both industries
       people.length + '","0"');
     for (const name of people) expect(summaryCsv).not.toContain(name);
     expect(summaryCsv).not.toContain("PRIVATE");
+    const cardBreakdown = resourceCard.getByRole("group", {
+      name: "Matching membership status breakdown", exact: true,
+    });
+    await expect(cardBreakdown).toContainText(
+      "Matching records: " + people.length + ". Current: " +
+      people.length + ". Archived: 0.",
+    );
     const rosterRows = resourceCard.locator(".workforce-members li");
     await expect(rosterRows).toHaveCount(people.length);
     await rosterMode.selectOption("overlapping-day");
@@ -351,6 +358,9 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "Download filtered roster memberships CSV", exact: true,
     });
     await rosterStatus.selectOption("archived");
+    await expect(cardBreakdown).toContainText(
+      "Matching records: 0. Current: 0. Archived: 0.",
+    );
     await expect(summaryCsvButton).toBeEnabled();
     await expect(rosterOverview).toContainText(
       "Matching membership records: 0. Current records: 0. Archived records: 0.",
@@ -364,12 +374,19 @@ test("fictional crews and workers publish availability, schedule both industries
     );
     await expect(rosterCsvButton).toBeDisabled();
     await rosterStatus.selectOption("current");
+    await expect(cardBreakdown).toContainText(
+      "Matching records: " + people.length + ". Current: " +
+      people.length + ". Archived: 0.",
+    );
     await expect(rosterOverview).toContainText(
       "Matching membership records: " + people.length +
       ". Current records: " + people.length + ". Archived records: 0.",
     );
     await expect(rosterRows).toHaveCount(people.length);
     await rosterSearch.fill(people[0].toLowerCase());
+    await expect(cardBreakdown).toContainText(
+      "Matching records: 1. Current: 1. Archived: 0.",
+    );
     await expect(rosterOverview).toContainText(
       "Matching resources: 1 of 1 directory resources.",
     );
@@ -409,6 +426,9 @@ test("fictional crews and workers publish availability, schedule both industries
     await onlyMatchingResources.uncheck();
     await expect(summaryCsvButton).toBeEnabled();
     await expect(resourceCard).toBeVisible();
+    await expect(cardBreakdown).toContainText(
+      "Matching records: 0. Current: 0. Archived: 0.",
+    );
     await expect(rosterRows).toHaveCount(0);
     const emptySummaryPending = page.waitForEvent("download");
     await summaryCsvButton.click();
@@ -476,6 +496,10 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCountSort).toHaveValue("directory");
     await expect(rosterSearch).toHaveValue("");
     await expect(rosterRows).toHaveCount(people.length);
+    await expect(cardBreakdown).toContainText(
+      "Matching records: " + people.length + ". Current: " +
+      people.length + ". Archived: 0.",
+    );
     await expect(rosterCsvButton).toBeEnabled();
     await expect(summaryCsvButton).toBeEnabled();
     await expect(page.getByLabel(
