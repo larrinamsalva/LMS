@@ -12,8 +12,10 @@ import {
   filterResourceMembershipRecordStatus,
   filterResourceMembershipsByName,
   resourcesWithMatchingRosterMemberships,
+  orderRosterResourcesByMatchingCount,
   orderResourceMembershipsByStart,
   type ResourceMembershipStartSort,
+  type RosterResourceCountSort,
   type ResourceMembershipRecordStatus,
   type ResourceMembershipReviewMode,
 } from "./resource-membership-review";
@@ -27,6 +29,7 @@ export interface ResourceMembershipCsvView {
   membershipStatus: ResourceMembershipRecordStatus;
   memberSearch: string;
   onlyMatchingResources: boolean;
+  resourceSort: RosterResourceCountSort;
   sort: ResourceMembershipStartSort;
   date: string;
 }
@@ -61,14 +64,19 @@ export function filteredResourceMembershipsCsv(
     resources, memberships, view.archivedResources, view.resourceSearch,
     view.resourceKind, view.enrollment,
   );
-  const visibleResources = view.onlyMatchingResources
+  const matchingView = {
+    mode: view.mode, date: view.date, zone,
+    status: view.membershipStatus, search: view.memberSearch,
+  };
+  const selectedResources = view.onlyMatchingResources
     ? resourcesWithMatchingRosterMemberships(
-      directoryResources, memberships, scoped, organizationId, {
-        mode: view.mode, date: view.date, zone,
-        status: view.membershipStatus, search: view.memberSearch,
-      },
+      directoryResources, memberships, scoped, organizationId, matchingView,
     )
     : directoryResources;
+  const visibleResources = orderRosterResourcesByMatchingCount(
+    selectedResources, memberships, scoped, organizationId,
+    matchingView, view.resourceSort,
+  );
   const employeeName = (id: unknown): string => {
     const employee = employees.find((e) => e.id === id);
     return typeof employee?.data.name === "string" ? employee.data.name : "";

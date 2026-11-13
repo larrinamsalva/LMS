@@ -245,3 +245,50 @@ export function summarizeMatchingRosterMemberships(
     archivedMemberships,
   };
 }
+
+export type RosterResourceCountSort = "directory" | "most" | "fewest";
+
+/**
+ * Read-only sorting of resource CARDS by the number of retained membership
+ * records matching the current roster filters, not by headcount, availability
+ * or scheduling capacity. Rechecks the organization boundary even if a caller
+ * provides mixed input. Equal counts preserve the input directory order.
+ */
+export function orderRosterResourcesByMatchingCount(
+  resources: readonly WorkspaceRecord[],
+  memberships: readonly WorkspaceRecord[],
+  linkedRecords: readonly WorkspaceRecord[],
+  organizationId: string,
+  view: MatchingRosterResourceView,
+  sort: RosterResourceCountSort,
+): WorkspaceRecord[] {
+  const scopedResources = resources.filter((resource) =>
+    resource.entity === "resources" &&
+    resource.organization_id === organizationId,
+  );
+  if (sort === "directory") return [...scopedResources];
+  const scopedMemberships = memberships.filter((member) =>
+    member.entity === "resource-memberships" &&
+    member.organization_id === organizationId,
+  );
+  const scopedLinkedRecords = linkedRecords.filter((record) =>
+    record.organization_id === organizationId,
+  );
+  const counted = scopedResources.map((resource, index) => {
+    const dated = resourceMembershipRowsForReview(
+      scopedMemberships, resource, view.mode, view.date, view.zone,
+    );
+    const byStatus = filterResourceMembershipRecordStatus(dated, view.status);
+    return {
+      resource, index,
+      count: filterResourceMembershipsByName(
+        byStatus, scopedLinkedRecords, view.search,
+      ).length,
+    };
+  });
+  counted.sort((a, b) =>
+    (sort === "most" ? b.count - a.count : a.count - b.count) ||
+    a.index - b.index,
+  );
+  return counted.map(({ resource }) => resource);
+}
