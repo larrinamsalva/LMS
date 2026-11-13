@@ -36,6 +36,7 @@ import {
   resourceMembershipRowsForReview,
   resourceMembershipReviewDateError,
   filterResourceMembershipRecordStatus,
+  filterResourceMembershipsByName,
   orderResourceMembershipsByStart,
   type ResourceMembershipReviewMode,
   type ResourceMembershipRecordStatus,
@@ -96,6 +97,7 @@ export function Workforce({
     useState<ResourceMembershipRecordStatus>("all");
   const [rosterSort, setRosterSort] =
     useState<ResourceMembershipStartSort>("retained");
+  const [rosterSearch, setRosterSearch] = useState("");
   const [rosterDate, setRosterDate] = useState(date);
   const [availabilitySearch, setAvailabilitySearch] = useState("");
   const [availabilityKind, setAvailabilityKind] =
@@ -114,6 +116,9 @@ export function Workforce({
   const scopedMemberships = memberships.filter((m) =>
     m.organization_id === organizationId,
   );
+  const scopedRosterRecords = records.filter((r) =>
+    r.organization_id === organizationId,
+  );
   const currentResources = filterWorkforceResourceDirectory(
     scopedResources, scopedMemberships, history, "", "all", "all",
   );
@@ -125,17 +130,21 @@ export function Workforce({
     ? resourceMembershipReviewDateError(rosterDate, zone)
     : null;
   const exportableRosterRows = !rosterDateError && displayedResources.some(
-    (resource) => filterResourceMembershipRecordStatus(
-      resourceMembershipRowsForReview(
-        scopedMemberships, resource, rosterMode, rosterDate, zone,
+    (resource) => filterResourceMembershipsByName(
+      filterResourceMembershipRecordStatus(
+        resourceMembershipRowsForReview(
+          scopedMemberships, resource, rosterMode, rosterDate, zone,
+        ),
+        rosterStatus,
       ),
-      rosterStatus,
+      scopedRosterRecords,
+      rosterSearch,
     ).length > 0,
   );
   const resourceFiltersActive = resourceSearch.trim().length > 0 ||
     resourceType !== "all" || resourceEnrollment !== "all" ||
     rosterMode !== "all" || rosterStatus !== "all" ||
-    rosterSort !== "retained";
+    rosterSort !== "retained" || rosterSearch.trim().length > 0;
   const range = (r: WorkspaceRecord) =>
     `${displayTime(String(r.data.start), String(r.data.time_zone ?? zone))} → ${displayTime(String(r.data.end), String(r.data.time_zone ?? zone))}`;
   let visible: WorkspaceRecord[] = [];
@@ -216,6 +225,7 @@ export function Workforce({
         enrollment: resourceEnrollment,
         mode: rosterMode,
         membershipStatus: rosterStatus,
+        memberSearch: rosterSearch,
         sort: rosterSort,
         date: rosterDate,
       },
@@ -448,6 +458,16 @@ export function Workforce({
             </select>
           </div>
           <div>
+            <label htmlFor="resource-membership-search">
+              Search roster memberships
+            </label>
+            <input id="resource-membership-search" type="search"
+              placeholder="Membership title or employee name"
+              value={rosterSearch}
+              onChange={(event) => setRosterSearch(event.target.value)}
+            />
+          </div>
+          <div>
             <label htmlFor="resource-membership-sort">
               Sort membership history
             </label>
@@ -479,6 +499,7 @@ export function Workforce({
               setRosterMode("all");
               setRosterStatus("all");
               setRosterSort("retained");
+              setRosterSearch("");
               setRosterDate(date);
             }}>
               Clear resource filters
@@ -498,7 +519,9 @@ export function Workforce({
           state. Sorting uses the original effective start instant, not the
           archive or creation date, and only changes row order. Neither
           filtering nor sorting changes enrollment, employee activity or
-          booking eligibility. The review date is independent of Availability below.
+          booking eligibility. Search matches membership titles and linked
+          employee names, not contact details or IDs. The review date is
+          independent of Availability below.
         </p>
         {rosterDateError && <p role="alert">{rosterDateError}</p>}
         <button type="button" className="secondary"
@@ -508,7 +531,7 @@ export function Workforce({
         </button>
         <p className="muted">
           Export includes all membership rows shown by resource search,
-          type, enrollment, record status, sort and selected-day controls.
+          type, enrollment, record status, member search, sort and selected-day controls.
           No contact details or internal IDs are included.
           This is a dated roster record, not booking eligibility.
         </p>
@@ -520,9 +543,14 @@ export function Workforce({
               const dateRows = resourceMembershipRowsForReview(
                 scopedMemberships, r, rosterMode, rosterDate, zone,
               );
+              const statusRows = filterResourceMembershipRecordStatus(
+                dateRows, rosterStatus,
+              );
+              const searchedRows = filterResourceMembershipsByName(
+                statusRows, scopedRosterRecords, rosterSearch,
+              );
               const rows = orderResourceMembershipsByStart(
-                filterResourceMembershipRecordStatus(dateRows, rosterStatus),
-                rosterSort,
+                searchedRows, rosterSort,
               );
               return (
                 <article
@@ -550,7 +578,7 @@ export function Workforce({
                     {rows.map((m) => (
                       <li key={m.id}>
                         <strong>
-                          {relatedLabel(m.data.employee, records)}
+                          {relatedLabel(m.data.employee, scopedRosterRecords)}
                         </strong>
                         {m.archived ? " · Membership archived" : ""}
                         <br />
@@ -569,9 +597,11 @@ export function Workforce({
                           : rosterMode === "overlapping-day" &&
                             dateRows.length === 0
                             ? "No retained memberships overlap the selected day."
-                            : rosterStatus !== "all"
+                            : rosterStatus !== "all" && statusRows.length === 0
                               ? "No retained memberships match this status filter."
-                              : "No dated memberships."}
+                              : rosterSearch.trim().length > 0
+                                ? "No retained memberships match this roster search."
+                                : "No dated memberships."}
                     </p>
                   )}
                 </article>
