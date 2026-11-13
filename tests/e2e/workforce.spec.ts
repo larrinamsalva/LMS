@@ -288,7 +288,11 @@ test("fictional crews and workers publish availability, schedule both industries
     const rosterMode = page.getByLabel(
       "Show resource memberships", { exact: true },
     );
+    const rosterStatus = page.getByLabel(
+      "Filter membership record status", { exact: true },
+    );
     await expect(rosterMode).toHaveValue("all");
+    await expect(rosterStatus).toHaveValue("all");
     const rosterRows = resourceCard.locator(".workforce-members li");
     await expect(rosterRows).toHaveCount(people.length);
     await rosterMode.selectOption("overlapping-day");
@@ -303,6 +307,17 @@ test("fictional crews and workers publish availability, schedule both industries
     const rosterCsvButton = page.getByRole("button", {
       name: "Download filtered roster memberships CSV", exact: true,
     });
+    await rosterStatus.selectOption("archived");
+    await expect(rosterRows).toHaveCount(0);
+    await expect(resourceCard.getByText(
+      "No retained memberships match this status filter.", { exact: true },
+    )).toBeVisible();
+    await expect(resourceCard).toContainText(
+      "Enrolled — employee reservations required",
+    );
+    await expect(rosterCsvButton).toBeDisabled();
+    await rosterStatus.selectOption("current");
+    await expect(rosterRows).toHaveCount(people.length);
     await expect(rosterCsvButton).toBeEnabled();
     const rosterDownloadPending = page.waitForEvent("download");
     await rosterCsvButton.click();
@@ -331,6 +346,7 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "Clear resource filters", exact: true,
     }).click();
     await expect(rosterMode).toHaveValue("all");
+    await expect(rosterStatus).toHaveValue("all");
     await expect(rosterRows).toHaveCount(people.length);
     await expect(rosterCsvButton).toBeEnabled();
     await expect(page.getByLabel(
