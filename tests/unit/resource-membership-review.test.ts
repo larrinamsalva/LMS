@@ -284,19 +284,18 @@ it("shows only resources with roster rows matching status, day and title/name wi
   };
   const original = structuredClone(source);
   const match = (v: MatchingRosterResourceView) =>
-    resourcesWithMatchingRosterMemberships(resources, source, linked, v)
-      .map((r) => r.id);
-  expect(match(view)).toEqual(["crew-a", "crew-b", "foreign-crew"]);
-  expect(match({ ...view, status: "current" })).toEqual([
-    "crew-b", "foreign-crew",
-  ]);
+    resourcesWithMatchingRosterMemberships(
+      resources, source, linked, ORG, v,
+    ).map((r) => r.id);
+  expect(match(view)).toEqual(["crew-a", "crew-b"]);
+  expect(match({ ...view, status: "current" })).toEqual(["crew-b"]);
   expect(match({ ...view, status: "archived" })).toEqual(["crew-a"]);
   expect(match({ ...view, search: "Morgan" })).toEqual(["crew-b"]);
   expect(match({ ...view, search: "late SETUP" })).toEqual(["crew-b"]);
   expect(match({ ...view, search: "FOREIGN PERSON" })).toEqual([]);
-  expect(match({ ...view, search: "Foreign private" })).toEqual([
-    "foreign-crew",
-  ]);
+  expect(match({ ...view, search: "Foreign private" })).toEqual([]);
+  // Even when a mixed/foreign record array is supplied, no foreign
+  // resource, title or linked name may enter the authorized directory.
   expect(match({ ...view, date: "2026-11-08" })).toEqual([]);
   expect(match({ ...view, date: "2026-02-30" })).toEqual([]);
   expect(source).toEqual(original);
