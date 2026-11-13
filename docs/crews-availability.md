@@ -428,3 +428,34 @@ Archived or Current is a read-only history view; it never archives,
 restores, changes enrollment or weakens booking eligibility checks.
 No new database schema, permissions, API or deployment is involved.
 The MIT-licensed fictional no-login demo remains unchanged.
+
+## Sort retained roster memberships by effective start (PR #119)
+
+In **Crews & availability → Resource directory**, **Sort membership
+history** offers **Retained record order** (the unchanged default),
+**Newest effective start first** and **Oldest effective start first**.
+The selected order applies separately to each visible resource's
+membership list after the existing current/archived record status
+and optional overlapping business-local day filters. The resource
+cards themselves keep their established directory order; the
+matching versus retained counts do not change.
+
+Sorting uses the original recorded **effective start instant** for
+each membership, not its creation date, last edit, archive status
+or the date someone opened the roster. Identical instants preserve
+their original relative order; missing/invalid start timestamps
+are placed last in both time-based orders rather than guessed.
+A repeated local clock hour during a fall DST change is ordered by
+unambiguous instants. **Clear resource filters** restores the
+original retained record order alongside the other roster controls.
+
+The **Download filtered roster memberships CSV** action applies the
+same selected membership order per resource, after independently
+recomputing resource, status and date filters from authorized
+organization records. The report continues to exclude raw IDs,
+contacts, private notes, skills and foreign organization linked names,
+and to neutralize spreadsheet formulas. Sorting never changes
+stored history, roster membership, eligibility, permissions,
+enrollment, appointments, backups or exports other than the new
+presentation order of this CSV. MIT and the fictional no-login
+demo remain unchanged.
