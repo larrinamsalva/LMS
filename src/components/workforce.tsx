@@ -38,6 +38,7 @@ import {
   filterResourceMembershipRecordStatus,
   filterResourceMembershipsByName,
   resourcesWithMatchingRosterMemberships,
+  summarizeMatchingRosterMemberships,
   orderResourceMembershipsByStart,
   type ResourceMembershipReviewMode,
   type ResourceMembershipRecordStatus,
@@ -141,6 +142,13 @@ export function Workforce({
   );
   const shownRosterResources = onlyMatchingRosterResources
     ? matchingRosterResources : displayedResources;
+  const rosterOverview = summarizeMatchingRosterMemberships(
+    displayedResources, scopedMemberships, scopedRosterRecords,
+    organizationId, {
+      mode: rosterMode, date: rosterDate, zone,
+      status: rosterStatus, search: rosterSearch,
+    },
+  );
   const exportableRosterRows = !rosterDateError &&
     matchingRosterResources.length > 0;
   const resourceFiltersActive = resourceSearch.trim().length > 0 ||
@@ -523,6 +531,23 @@ export function Workforce({
           Showing {shownRosterResources.length} of {currentResources.length}
           {" "}{history ? "archived" : "current"} resources.
         </p>
+        <div role="group" aria-label="Roster membership overview">
+          <h3>Roster membership overview</h3>
+          <p>
+            Matching resources: {rosterOverview.matchingResources}
+            {" "}of {rosterOverview.directoryResources} directory resources.
+          </p>
+          <p>
+            Matching membership records: {rosterOverview.matchingMemberships}.
+            {" "}Current records: {rosterOverview.currentMemberships}.
+            {" "}Archived records: {rosterOverview.archivedMemberships}.
+          </p>
+          <p className="muted">
+            Counts are retained membership records matching the selected
+            resource, date, status and name/title filters, not unique
+            employees, available workers or staffing capacity.
+          </p>
+        </div>
         <p className="muted">
           Enrollment means a Worker or Crew has retained membership history,
           even when its last membership is archived. Equipment has no employee
