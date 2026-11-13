@@ -31,6 +31,7 @@ import {
 } from "../core/workforce-assignment-history";
 import { staffAssignmentHistoryCsv } from "../core/workforce-assignment-history-csv";
 import { filteredAvailabilityPeriodsCsv } from "../core/workforce-availability-csv";
+import { filteredResourceMembershipsCsv } from "../core/resource-membership-review-csv";
 import {
   resourceMembershipRowsForReview,
   resourceMembershipReviewDateError,
@@ -115,6 +116,11 @@ export function Workforce({
   const rosterDateError = rosterMode === "overlapping-day"
     ? resourceMembershipReviewDateError(rosterDate, zone)
     : null;
+  const exportableRosterRows = !rosterDateError && displayedResources.some(
+    (resource) => resourceMembershipRowsForReview(
+      scopedMemberships, resource, rosterMode, rosterDate, zone,
+    ).length > 0,
+  );
   const resourceFiltersActive = resourceSearch.trim().length > 0 ||
     resourceType !== "all" || resourceEnrollment !== "all" ||
     rosterMode !== "all";
@@ -183,6 +189,30 @@ export function Workforce({
     const link = document.createElement("a");
     link.href = url;
     link.download = "lms-filtered-assignment-history.csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function downloadRosterReview() {
+    if (!exportableRosterRows) return;
+    // Reapply organization, resource and membership filters from the
+    // canonical authorized workspace before creating any report rows.
+    const csv = filteredResourceMembershipsCsv(
+      records, organizationId, zone, {
+        archivedResources: history,
+        resourceSearch,
+        resourceKind: resourceType,
+        enrollment: resourceEnrollment,
+        mode: rosterMode,
+        date: rosterDate,
+      },
+    );
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-resource-roster-review" +
+      (rosterMode === "overlapping-day" ? "-" + rosterDate : "-all-history") +
+      ".csv";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
@@ -427,6 +457,17 @@ export function Workforce({
           Availability date below.
         </p>
         {rosterDateError && <p role="alert">{rosterDateError}</p>}
+        <button type="button" className="secondary"
+          disabled={!exportableRosterRows}
+          onClick={downloadRosterReview}>
+          Download filtered roster memberships CSV
+        </button>
+        <p className="muted">
+          Export includes all membership rows shown by the resource search,
+          type, enrollment and selected-day controls, including archived
+          membership history. No contact details or internal IDs are included.
+          This is a dated roster record, not booking eligibility.
+        </p>
         <div className="workforce-grid">
           {displayedResources.map((r) => {
               const allRows = resourceMembershipRowsForReview(
