@@ -188,6 +188,31 @@ export function resourcesWithMatchingRosterMemberships(
   });
 }
 
+/**
+ * Complement of the match-only resource view. A missing roster match is a
+ * historical reporting result for this date/status/search, never evidence
+ * that a worker is unassigned, free to book, or permanently unenrolled.
+ * Recheck organization and resource entity before comparing IDs.
+ */
+export function resourcesWithoutMatchingRosterMemberships(
+  resources: readonly WorkspaceRecord[],
+  memberships: readonly WorkspaceRecord[],
+  linkedRecords: readonly WorkspaceRecord[],
+  organizationId: string,
+  view: MatchingRosterResourceView,
+): WorkspaceRecord[] {
+  const matchingIds = new Set(
+    resourcesWithMatchingRosterMemberships(
+      resources, memberships, linkedRecords, organizationId, view,
+    ).map((resource) => resource.id),
+  );
+  return resources.filter((resource) =>
+    resource.entity === "resources" &&
+    resource.organization_id === organizationId &&
+    !matchingIds.has(resource.id),
+  );
+}
+
 export interface RosterMembershipOverview {
   directoryResources: number;
   matchingResources: number;
