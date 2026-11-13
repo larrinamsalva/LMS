@@ -253,6 +253,28 @@ test("fictional crews and workers publish availability, schedule both industries
       "Resources without matches: 1. Enrolled workers/crews: 0. " +
       "Resource-only workers/crews: 1. Equipment: 0.",
     );
+    const gapQuickBefore = preEnrollmentUnmatched.getByRole("group", {
+      name: "Review resources without matching memberships by category",
+      exact: true,
+    });
+    await expect(gapQuickBefore.getByRole("button", {
+      name: "Review enrolled worker/crew gaps",
+    })).toBeDisabled();
+    await expect(gapQuickBefore.getByRole("button", {
+      name: "Review equipment gaps",
+    })).toBeDisabled();
+    await gapQuickBefore.getByRole("button", {
+      name: "Review resource-only worker/crew gaps",
+    }).click();
+    await expect(resourceEnrollment).toHaveValue("resource-only");
+    await expect(page.getByRole("checkbox", {
+      name: "Show only resources without matching memberships", exact: true,
+    })).toBeChecked();
+    await expect(resourceCard).toBeVisible();
+    await page.getByRole("button", {
+      name: "Clear resource filters", exact: true,
+    }).click();
+    await expect(resourceEnrollment).toHaveValue("all");
     await resourceSearch.fill("");
     for (const name of people) {
       await directory(page);
@@ -434,6 +456,27 @@ test("fictional crews and workers publish availability, schedule both industries
       "Resources without matches: 1. Enrolled workers/crews: 1. " +
       "Resource-only workers/crews: 0. Equipment: 0.",
     );
+    const gapQuick = unmatchedBreakdown.getByRole("group", {
+      name: "Review resources without matching memberships by category",
+      exact: true,
+    });
+    await expect(gapQuick.getByRole("button", {
+      name: "Review resource-only worker/crew gaps",
+    })).toBeDisabled();
+    await gapQuick.getByRole("button", {
+      name: "Review equipment gaps",
+    })).toBeDisabled();
+    await gapQuick.getByRole("button", {
+      name: "Review enrolled worker/crew gaps",
+    }).click();
+    await expect(onlyWithoutResources).toBeChecked();
+    await expect(onlyMatchingResources).not.toBeChecked();
+    await expect(resourceEnrollment).toHaveValue("enrolled");
+    await expect(rosterStatus).toHaveValue("archived");
+    await expect(rosterMode).toHaveValue("overlapping-day");
+    await expect(resourceCard).toBeVisible();
+    await onlyWithoutResources.uncheck();
+    await resourceEnrollment.selectOption("all");
     await expect(cardBreakdown).toContainText(
       "Matching records: 0. Current: 0. Archived: 0.",
     );
