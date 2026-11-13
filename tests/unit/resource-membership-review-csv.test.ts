@@ -19,7 +19,7 @@ function record(
 }
 const view: ResourceMembershipCsvView = {
   archivedResources: false, resourceSearch: "", resourceKind: "all",
-  enrollment: "all", mode: "all", date: "",
+  enrollment: "all", mode: "all", membershipStatus: "all", date: "",
 };
 const records: WorkspaceRecord[] = [
   record("resources", "crew-a", {
@@ -170,4 +170,56 @@ it("refuses invalid selected days, neutralizes formulas, never leaks foreign lin
   expect(csv).toContain("\"'=1+2\"");
   expect(csv).not.toContain("FOREIGN PERSON");
   expect(csv).not.toContain("foreign-person");
+});
+
+
+it("combines membership archive status with resource filters, date review and CSV rows", () => {
+  const all = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "Blue Crew",
+    },
+  );
+  expect(all.trimEnd().split("\r\n")).toHaveLength(3);
+  const active = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "Blue Crew", membershipStatus: "current",
+    },
+  );
+  expect(active.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(active).toContain("Morning roster");
+  expect(active).not.toContain("Archived past membership");
+  const archive = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "Blue Crew", membershipStatus: "archived",
+    },
+  );
+  expect(archive.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(archive).toContain("Archived past membership");
+  expect(archive).not.toContain("Morning roster");
+  expect(archive).toContain('"Enrolled"');
+  const onDay = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "Blue Crew",
+      membershipStatus: "archived",
+      mode: "overlapping-day", date: "2026-11-06",
+    },
+  );
+  expect(onDay.trimEnd().split("\r\n")).toHaveLength(1);
+  const past = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "Blue Crew",
+      membershipStatus: "archived",
+      mode: "overlapping-day", date: "2026-11-03",
+    },
+  );
+  expect(past.trimEnd().split("\r\n")).toHaveLength(2);
+  expect(past).toContain("Archived past membership");
+  for (const secret of ["FOREIGN", "PRIVATE", "employee-b", "crew-a"]) {
+    expect(past).not.toContain(secret);
+  }
+  expect(filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSearch: "Blue Crew", membershipStatus: "all",
+    },
+  )).toBe(all);
 });
