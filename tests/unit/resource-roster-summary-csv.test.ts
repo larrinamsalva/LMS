@@ -199,3 +199,31 @@ it("respects DST local-day overlap while excluding the following midnight", () =
   );
   expect(csv).toContain('"Fold Crew","Crew","Current","Enrolled","3","2","2","0"');
 });
+
+it("exports exactly zero-match resources, preserving their historical enrollment", () => {
+  const noMatch = lines({ ...view, onlyWithoutMatchingResources: true });
+  expect(noMatch).toHaveLength(2);
+  expect(noMatch[1]).toContain(
+    '"Floor buffer","Equipment","Current","Not applicable","0","0","0","0"',
+  );
+  const archivedOnly = lines({
+    ...view, membershipStatus: "archived",
+    onlyWithoutMatchingResources: true,
+  });
+  expect(archivedOnly).toHaveLength(3);
+  expect(archivedOnly[1]).toContain(
+    '"East Worker","Worker","Current","Enrolled","1","0","0","0"',
+  );
+  expect(archivedOnly[2]).toContain('"Floor buffer"');
+  const dayWithout = lines({
+    ...view, mode: "overlapping-day", date: "2026-11-06",
+    onlyWithoutMatchingResources: true, resourceSort: "fewest",
+  });
+  expect(dayWithout).toHaveLength(3);
+  expect(dayWithout[1]).toContain('"East Worker"');
+  expect(dayWithout[2]).toContain('"Floor buffer"');
+  for (const row of [...noMatch, ...archivedOnly, ...dayWithout]) {
+    expect(row).not.toContain("FOREIGN");
+    expect(row).not.toContain("PRIVATE");
+  }
+});
