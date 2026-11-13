@@ -282,6 +282,9 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "Clear resource filters", exact: true,
     }).click();
     await expect(resourceCard).toBeVisible();
+    // CSV covers every filtered resource, not just this card. Scope the
+    // directory to the new fictional crew before testing an empty day.
+    await resourceSearch.fill(resource);
     const rosterMode = page.getByLabel(
       "Show resource memberships", { exact: true },
     );
