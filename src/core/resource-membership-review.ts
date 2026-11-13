@@ -157,23 +157,33 @@ export interface MatchingRosterResourceView {
  * employee-name/title filters. Never treat an empty daily view as permanent
  * unenrollment or booking authority.
  *
- * Memberships are scoped to each resource's organization; linked employee
- * names must belong to the same organization. Returns a stable nonmutating
- * subset of the caller's authorized resource list.
+ * Resources and memberships must explicitly belong to the requested
+ * organization; linked employee names must belong to that same organization.
+ * Returns a stable nonmutating subset without trusting the caller's arrays
+ * to have been prefiltered for organization access.
  */
 export function resourcesWithMatchingRosterMemberships(
   resources: readonly WorkspaceRecord[],
   memberships: readonly WorkspaceRecord[],
   linkedRecords: readonly WorkspaceRecord[],
+  organizationId: string,
   view: MatchingRosterResourceView,
 ): WorkspaceRecord[] {
+  const scopedMemberships = memberships.filter((member) =>
+    member.organization_id === organizationId,
+  );
+  const scopedLinkedRecords = linkedRecords.filter((record) =>
+    record.organization_id === organizationId,
+  );
   return resources.filter((resource) => {
+    if (resource.entity !== "resources" ||
+        resource.organization_id !== organizationId) return false;
     const dated = resourceMembershipRowsForReview(
-      memberships, resource, view.mode, view.date, view.zone,
+      scopedMemberships, resource, view.mode, view.date, view.zone,
     );
     const byStatus = filterResourceMembershipRecordStatus(dated, view.status);
     return filterResourceMembershipsByName(
-      byStatus, linkedRecords, view.search,
+      byStatus, scopedLinkedRecords, view.search,
     ).length > 0;
   });
 }
