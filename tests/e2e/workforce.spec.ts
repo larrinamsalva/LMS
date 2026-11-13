@@ -320,6 +320,26 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(workingHoursOverview.locator("p")).toHaveText(recordedCount);
     await periodSearch.fill(people[0].toLowerCase());
     await expect(firstPeriod).toBeVisible();
+    const availabilityCsvButton = page.getByRole("button", {
+      name: "Download filtered availability periods CSV", exact: true,
+    });
+    await expect(availabilityCsvButton).toBeEnabled();
+    const availabilityDownloadPending = page.waitForEvent("download");
+    await availabilityCsvButton.click();
+    const availabilityDownload = await availabilityDownloadPending;
+    expect(availabilityDownload.suggestedFilename()).toBe(
+      "lms-availability-periods-2026-11-06-current.csv",
+    );
+    const periodCsv = (await readFile((await availabilityDownload.path())!))
+      .toString("utf8");
+    expect(periodCsv).toContain(people[0] + " Friday work");
+    expect(periodCsv).toContain(people[0]);
+    expect(periodCsv).toContain('"Working hours"');
+    expect(periodCsv).toContain('"Start (UTC)"');
+    expect(periodCsv).not.toContain("PRIVATE");
+    for (const other of people.slice(1)) {
+      expect(periodCsv).not.toContain(other + " Friday work");
+    }
     for (const other of people.slice(1)) {
       await expect(page.getByRole("article", {
         name: other + " Friday work", exact: true,
@@ -330,6 +350,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(page.getByText(
       "No availability periods match these filters.", { exact: true },
     )).toBeVisible();
+    await expect(availabilityCsvButton).toBeDisabled();
     await periodKind.selectOption("Working hours");
     await expect(firstPeriod).toBeVisible();
     await periodSearch.fill("no-such-period-title");
@@ -339,6 +360,7 @@ test("fictional crews and workers publish availability, schedule both industries
     }).click();
     await expect(periodKind).toHaveValue("all");
     await expect(periodSearch).toHaveValue("");
+    await expect(availabilityCsvButton).toBeEnabled();
     await expect(firstPeriod).toBeVisible();
     for (const other of people.slice(1)) {
       await expect(page.getByRole("article", {
