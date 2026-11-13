@@ -446,7 +446,7 @@ export function Workforce({
                   <p className="muted">
                     {r.data.kind === "Equipment"
                       ? "Equipment — no employee roster"
-                      : rows.length
+                      : allRows.length
                         ? "Enrolled — employee reservations required"
                         : "Resource-only — no employee reservations"}
                   </p>
