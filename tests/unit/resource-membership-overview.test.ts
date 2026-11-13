@@ -202,3 +202,44 @@ it("keeps stable ties and ignores foreign matches or private linked search terms
     })).toEqual(["worker-b", "crew-a"]);
   }
 });
+
+it("per-resource matching current/archived breakdown agrees with overview totals under all roster filters", () => {
+  const selections = [resources[0], resources[1]];
+  const inputSnapshot = structuredClone({ selections, memberships, linked });
+  const scenarios: Array<{
+    view: MatchingRosterResourceView;
+    blue: [number, number];
+    worker: [number, number];
+  }> = [
+    { view: { ...day, mode: "all" }, blue: [1, 1], worker: [1, 0] },
+    { view: day, blue: [1, 1], worker: [0, 0] },
+    { view: { ...day, status: "archived" }, blue: [0, 1], worker: [0, 0] },
+    { view: { ...day, status: "current" }, blue: [1, 0], worker: [0, 0] },
+    { view: { ...day, search: "Morgan" }, blue: [0, 1], worker: [0, 0] },
+    { view: { ...day, date: "2026-11-08" }, blue: [0, 0], worker: [0, 0] },
+  ];
+  for (const scenario of scenarios) {
+    const one = (resource: WorkspaceRecord) =>
+      summarizeMatchingRosterMemberships(
+        [resource, resources[2]], memberships, linked, ORG, scenario.view,
+      );
+    const blue = one(selections[0]);
+    const worker = one(selections[1]);
+    expect([blue.currentMemberships, blue.archivedMemberships])
+      .toEqual(scenario.blue);
+    expect([worker.currentMemberships, worker.archivedMemberships])
+      .toEqual(scenario.worker);
+    expect(blue.matchingMemberships).toBe(scenario.blue[0] + scenario.blue[1]);
+    expect(worker.matchingMemberships).toBe(
+      scenario.worker[0] + scenario.worker[1],
+    );
+    const all = summarizeMatchingRosterMemberships(
+      selections, memberships, linked, ORG, scenario.view,
+    );
+    expect(all.currentMemberships)
+      .toBe(blue.currentMemberships + worker.currentMemberships);
+    expect(all.archivedMemberships)
+      .toBe(blue.archivedMemberships + worker.archivedMemberships);
+  }
+  expect({ selections, memberships, linked }).toEqual(inputSnapshot);
+});
