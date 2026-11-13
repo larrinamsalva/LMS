@@ -20,7 +20,8 @@ function record(
 const view: ResourceMembershipCsvView = {
   archivedResources: false, resourceSearch: "", resourceKind: "all",
   enrollment: "all", mode: "all", membershipStatus: "all",
-  sort: "retained", memberSearch: "", onlyMatchingResources: false, date: "",
+  sort: "retained", resourceSort: "directory", memberSearch: "",
+  onlyMatchingResources: false, date: "",
 };
 const records: WorkspaceRecord[] = [
   record("resources", "crew-a", {
@@ -346,4 +347,49 @@ it("match-only resources option recomputes scoped roster search and preserves ex
     "PRIVATE@EXAMPLE.COM", "PRIVATE MEMBERSHIP NOTE",
     "FOREIGN PRIVATE PERSON", "crew-a", "employee-a",
   ]) expect(selected).not.toContain(hidden);
+});
+
+
+it("follows stable resource-card matching-count order in CSV without changing matching details", () => {
+  const original = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", view,
+  );
+  const most = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSort: "most",
+    },
+  );
+  const fewest = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, resourceSort: "fewest",
+    },
+  );
+  expect(most).toBe(original);
+  expect(fewest.indexOf('"East Worker"')).toBeLessThan(
+    fewest.indexOf('"Blue Crew"'),
+  );
+  expect(original.indexOf('"Blue Crew"')).toBeLessThan(
+    original.indexOf('"East Worker"'),
+  );
+  expect(original.trimEnd().split("\r\n")).toHaveLength(4);
+  expect(most.trimEnd().split("\r\n")).toHaveLength(4);
+  expect(fewest.trimEnd().split("\r\n")).toHaveLength(4);
+
+  const day = filteredResourceMembershipsCsv(
+    records, ORG, "America/Los_Angeles", {
+      ...view, mode: "overlapping-day", date: "2026-11-06",
+      resourceSort: "fewest", memberSearch: "Avery",
+      membershipStatus: "current", onlyMatchingResources: true,
+    },
+  );
+  expect(day.trimEnd().split("\r\n")).toHaveLength(3);
+  expect(day.indexOf('"Blue Crew"')).toBeLessThan(
+    day.indexOf('"East Worker"'),
+  ); // stable tie: one matching record in each resource
+  for (const secret of [
+    "FOREIGN", "PRIVATE", "555-0123", "employee-a", "crew-a",
+  ]) {
+    expect(fewest).not.toContain(secret);
+    expect(day).not.toContain(secret);
+  }
 });
