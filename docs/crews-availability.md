@@ -494,3 +494,38 @@ columns remain intact. **Clear resource filters** also clears the
 member search, restoring the original retained-history view. No
 database, permissions, scheduling, JSON backup, production release,
 or other app is changed. MIT and the fictional no-login demo remain.
+
+## Show only resources with matching roster memberships (PR #121)
+
+In **Crews & availability → Resource directory**, check
+**Show only resources with matching memberships** to hide resource
+cards with **zero retained membership rows** matching the selected
+membership date, current/archived record status and membership
+title/employee-name query. The existing resource name/type/enrollment
+filters apply first. The option defaults **off**, preserving the
+original directory view with empty resource cards visible. It
+does not automatically enroll, unenroll, archive or remove any
+resource, crew or member. The result count reports the visible
+resource cards, and a clear empty-directory message appears if
+none of the selected resources contains matching retained rows.
+**Clear resource filters** also unchecks this option.
+
+This is a **historical record matching aid**, not a live availability
+or staffing-capacity filter. A member record that overlaps any part
+of a selected date does not confirm that a worker is eligible for a
+job all day. A resource's **Enrolled** versus **Resource-only**
+classification remains based on **any retained membership ever**,
+including archived history omitted by the current date or status
+filters. Memberships remain immutable unless an authorized user
+separately performs an explicit record action.
+
+**Download filtered roster memberships CSV** recomputes the same
+resource-match selection from the authorized organization and
+keeps every matching membership row. Resources with zero matching
+membership rows never produce CSV detail rows even with the
+checkbox unchecked, so toggling the option changes card visibility,
+not the set of CSV membership rows. Existing privacy restrictions
+exclude foreign-linked names, contacts, notes, skills and raw IDs;
+CSV formula protection and effective-start sorting remain unchanged.
+No database, scheduling rules, permissions, export backup format or
+other app is modified. MIT and the fictional no-login demo remain.
