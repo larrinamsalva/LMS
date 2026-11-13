@@ -21,7 +21,8 @@ const view: ResourceMembershipCsvView = {
   archivedResources: false, resourceSearch: "", resourceKind: "all",
   enrollment: "all", mode: "all", membershipStatus: "all",
   sort: "retained", resourceSort: "directory", memberSearch: "",
-  onlyMatchingResources: false, date: "",
+  onlyMatchingResources: false, onlyWithoutMatchingResources: false,
+  date: "",
 };
 const records: WorkspaceRecord[] = [
   record("resources", "crew-a", {
