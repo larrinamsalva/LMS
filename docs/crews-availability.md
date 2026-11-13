@@ -641,3 +641,39 @@ Downloading the report is a local browser action; no new API,
 database, scheduling rule, access control, stored record, deployment,
 workspace JSON backup or other repository is modified.
 MIT licensing and the fictional no-login demo remain unchanged.
+
+## Matching current and archived membership counts on resource cards (PR #125)
+
+Each **Resource directory** card now displays a small
+**Matching membership status breakdown** directly beneath
+**Showing X of Y retained dated memberships**:
+
+- **Matching records**: count of the filtered, visible membership rows.
+- **Current**: those matching membership records not marked archived.
+- **Archived**: those matching membership records marked archived.
+
+The breakdown responds to the same business-local selected-day,
+membership current/archived status and same-organization employee
+name/membership-title filters as the visible membership list. The
+counts add up to **Matching records**, stay accurate as the separate
+membership effective-start or resource-card count sorting changes
+order, and preserve zero matches when the card stays visible.
+**Show only resources with matching memberships** can hide zero-
+matching cards; turning it off restores them and their 0/0
+breakdown. The **Roster membership overview** totals remain the
+sum across the directory-selected resources.
+
+Counts are for retained **membership records**, not unique employees,
+current work assignments, availability, capacity, or the number of
+people bookable for a job. A **Current** record means only that the
+membership has not been archived. It is not proof that its effective
+date includes today or that a person is on duty. Resource
+**Enrolled / Resource-only** classification still depends on all
+retained membership history, even if the selected filter has no
+matching rows.
+
+The breakdown reads only the already organization-scoped,
+filtered membership records; it adds no personal fields, database
+calls, saved-record edits, scheduling changes, exports or new
+permissions. Both existing CSV downloads, MIT licensing and the
+fictional no-login demo remain unchanged.

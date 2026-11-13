@@ -619,8 +619,9 @@ export function Workforce({
           resource cards with no matching retained memberships without
           changing enrollment, history or booking rights. Resource-card sort
           orders recorded membership counts, not distinct staff or capacity.
-          The review date
-          is independent of Availability below.
+          Each resource card now shows a matching Current/Archived record
+          breakdown using these same filters. The review date is
+          independent of Availability below.
         </p>
         {rosterDateError && <p role="alert">{rosterDateError}</p>}
         <button type="button" className="secondary"
@@ -652,6 +653,10 @@ export function Workforce({
               const rows = orderResourceMembershipsByStart(
                 searchedRows, rosterSort,
               );
+              const archivedMatching = searchedRows.filter(
+                (membership) => membership.archived,
+              ).length;
+              const currentMatching = searchedRows.length - archivedMatching;
               return (
                 <article
                   className="workforce-card"
@@ -674,6 +679,13 @@ export function Workforce({
                       ? " overlapping " + (rosterDate || "the selected day")
                       : ""}.
                   </p>
+                  <div role="group" aria-label="Matching membership status breakdown">
+                    <p className="muted">
+                      Matching records: {rows.length}.
+                      {" "}Current: {currentMatching}.
+                      {" "}Archived: {archivedMatching}.
+                    </p>
+                  </div>
                   <ul className="workforce-members">
                     {rows.map((m) => (
                       <li key={m.id}>
