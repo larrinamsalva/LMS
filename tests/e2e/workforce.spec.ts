@@ -282,6 +282,37 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "Clear resource filters", exact: true,
     }).click();
     await expect(resourceCard).toBeVisible();
+    const rosterMode = page.getByLabel(
+      "Show resource memberships", { exact: true },
+    );
+    await expect(rosterMode).toHaveValue("all");
+    const rosterRows = resourceCard.locator(".workforce-members li");
+    await expect(rosterRows).toHaveCount(people.length);
+    await rosterMode.selectOption("overlapping-day");
+    const rosterDate = page.getByLabel(
+      "Membership review date", { exact: true },
+    );
+    await rosterDate.fill("2026-11-06");
+    await expect(rosterRows).toHaveCount(people.length);
+    await expect(resourceCard).toContainText(
+      "retained dated memberships overlapping 2026-11-06",
+    );
+    await rosterDate.fill("2026-12-06");
+    await expect(rosterRows).toHaveCount(0);
+    await expect(resourceCard.getByText(
+      "No retained memberships overlap the selected day.", { exact: true },
+    )).toBeVisible();
+    await expect(resourceCard).toContainText(
+      "Enrolled — employee reservations required",
+    );
+    await page.getByRole("button", {
+      name: "Clear resource filters", exact: true,
+    }).click();
+    await expect(rosterMode).toHaveValue("all");
+    await expect(rosterRows).toHaveCount(people.length);
+    await expect(page.getByLabel(
+      "Membership review date", { exact: true },
+    )).toHaveCount(0);
     await page
       .getByLabel("Availability date", { exact: true })
       .fill("2026-11-06");

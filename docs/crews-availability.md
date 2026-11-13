@@ -311,3 +311,45 @@ is generated in-browser without a new report API, database mutation,
 production upload or change to the existing JSON export. Handle
 fictional staff names as business paperwork. MIT licensing and
 the no-login fictional demo remain unchanged.
+
+## Review roster membership periods on a selected day (PR #116)
+
+In **Crews & availability → Resource directory**, the **Show resource
+memberships** selector offers **All retained membership history** (the
+original default, including archived membership records) or
+**Overlapping selected day**. Choose a separate **Membership review
+date** when using the date-focused view. The selected day is interpreted
+in the business display time zone and includes every saved membership
+whose half-open effective interval touches **any instant** of that
+local calendar day. A membership can appear on two adjacent days when
+it crosses midnight. Spring-forward and fall-back days use actual local
+midnight boundaries (23 or 25 elapsed hours where appropriate).
+
+Each resource card shows **matching versus retained membership counts**
+for that resource. A clear no-match message distinguishes a resource
+with no recorded membership from one whose membership history exists
+but falls outside the chosen day. An invalid/partial date produces
+an explicit message rather than guessing. **Clear resource filters**
+resets this date-focused view to All retained membership history
+alongside the existing resource name, type and enrollment filters.
+The Membership review date is intentionally **independent** of the
+Availability section's date and its period filters.
+
+This is a **read-only historical period viewer**, not a "crew is
+available" badge. Even a membership spanning part of a selected day
+does **not** guarantee that its roster stays constant for an entire
+appointment. It also does not establish an active employee profile,
+covering work windows, absence of time-off conflicts, or absence of
+other bookings. Archived memberships remain visibly marked
+"Membership archived" if their retained dates overlap the review
+day. A Worker/Crew's **enrollment** still depends on **any retained
+membership ever**, including archived memberships outside the
+selected date; selecting an empty day never changes enrollment,
+resource-only labels, or booking authority.
+
+The presentation helper uses only matching same-organization
+resource-membership links and does not create, modify, archive,
+restore or delete memberships. The original source order and
+retained history are unchanged, as are existing scheduling
+constraints, exports, access controls, MIT licensing, and the
+fictional no-login demo.
