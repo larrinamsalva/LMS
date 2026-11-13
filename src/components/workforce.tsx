@@ -48,6 +48,7 @@ import {
   resourcesWithMatchingRosterMemberships,
   resourcesWithoutMatchingRosterMemberships,
   summarizeMatchingRosterMemberships,
+  summarizeUnmatchedRosterResources,
   orderRosterResourcesByMatchingCount,
   orderResourceMembershipsByStart,
   type ResourceMembershipReviewMode,
@@ -181,6 +182,13 @@ export function Workforce({
     ),
   ).length;
   const rosterOverview = summarizeMatchingRosterMemberships(
+    displayedResources, scopedMemberships, scopedRosterRecords,
+    organizationId, {
+      mode: rosterMode, date: rosterDate, zone,
+      status: rosterStatus, search: rosterSearch,
+    },
+  );
+  const rosterUnmatchedOverview = summarizeUnmatchedRosterResources(
     displayedResources, scopedMemberships, scopedRosterRecords,
     organizationId, {
       mode: rosterMode, date: rosterDate, zone,
@@ -631,10 +639,20 @@ export function Workforce({
             {" "}Current records: {rosterOverview.currentMemberships}.
             {" "}Archived records: {rosterOverview.archivedMemberships}.
           </p>
+          <div role="group" aria-label="Resources without matching roster records">
+            <p>
+              Resources without matches: {rosterUnmatchedOverview.withoutMatching}.
+              {" "}Enrolled workers/crews: {rosterUnmatchedOverview.enrolledWithoutMatching}.
+              {" "}Resource-only workers/crews: {rosterUnmatchedOverview.resourceOnlyWithoutMatching}.
+              {" "}Equipment: {rosterUnmatchedOverview.equipmentWithoutMatching}.
+            </p>
+          </div>
           <p className="muted">
             Counts are retained membership records matching the selected
             resource, date, status and name/title filters, not unique
             employees, available workers or staffing capacity.
+            The no-match breakdown groups resources by retained enrollment,
+            not worker availability or booking eligibility.
           </p>
           <button type="button" className="secondary"
             disabled={!exportableRosterSummary}
