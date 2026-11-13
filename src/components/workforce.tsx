@@ -39,10 +39,12 @@ import {
   filterResourceMembershipsByName,
   resourcesWithMatchingRosterMemberships,
   summarizeMatchingRosterMemberships,
+  orderRosterResourcesByMatchingCount,
   orderResourceMembershipsByStart,
   type ResourceMembershipReviewMode,
   type ResourceMembershipRecordStatus,
   type ResourceMembershipStartSort,
+  type RosterResourceCountSort,
 } from "../core/resource-membership-review";
 
 export function Workforce({
@@ -100,6 +102,8 @@ export function Workforce({
   const [rosterSort, setRosterSort] =
     useState<ResourceMembershipStartSort>("retained");
   const [rosterSearch, setRosterSearch] = useState("");
+  const [resourceCountSort, setResourceCountSort] =
+    useState<RosterResourceCountSort>("directory");
   const [onlyMatchingRosterResources, setOnlyMatchingRosterResources] =
     useState(false);
   const [rosterDate, setRosterDate] = useState(date);
@@ -140,8 +144,13 @@ export function Workforce({
       status: rosterStatus, search: rosterSearch,
     },
   );
-  const shownRosterResources = onlyMatchingRosterResources
-    ? matchingRosterResources : displayedResources;
+  const shownRosterResources = orderRosterResourcesByMatchingCount(
+    onlyMatchingRosterResources ? matchingRosterResources : displayedResources,
+    scopedMemberships, scopedRosterRecords, organizationId, {
+      mode: rosterMode, date: rosterDate, zone,
+      status: rosterStatus, search: rosterSearch,
+    }, resourceCountSort,
+  );
   const rosterOverview = summarizeMatchingRosterMemberships(
     displayedResources, scopedMemberships, scopedRosterRecords,
     organizationId, {
@@ -155,7 +164,7 @@ export function Workforce({
     resourceType !== "all" || resourceEnrollment !== "all" ||
     rosterMode !== "all" || rosterStatus !== "all" ||
     rosterSort !== "retained" || rosterSearch.trim().length > 0 ||
-    onlyMatchingRosterResources;
+    onlyMatchingRosterResources || resourceCountSort !== "directory";
   const range = (r: WorkspaceRecord) =>
     `${displayTime(String(r.data.start), String(r.data.time_zone ?? zone))} → ${displayTime(String(r.data.end), String(r.data.time_zone ?? zone))}`;
   let visible: WorkspaceRecord[] = [];
@@ -238,6 +247,7 @@ export function Workforce({
         membershipStatus: rosterStatus,
         memberSearch: rosterSearch,
         onlyMatchingResources: onlyMatchingRosterResources,
+        resourceSort: resourceCountSort,
         sort: rosterSort,
         date: rosterDate,
       },
@@ -488,6 +498,19 @@ export function Workforce({
             Show only resources with matching memberships
           </label>
           <div>
+            <label htmlFor="resource-card-count-sort">
+              Sort resources by matching memberships
+            </label>
+            <select id="resource-card-count-sort" value={resourceCountSort}
+              onChange={(event) => setResourceCountSort(
+                event.target.value as RosterResourceCountSort,
+              )}>
+              <option value="directory">Original directory order</option>
+              <option value="most">Most matching memberships first</option>
+              <option value="fewest">Fewest matching memberships first</option>
+            </select>
+          </div>
+          <div>
             <label htmlFor="resource-membership-sort">
               Sort membership history
             </label>
@@ -521,6 +544,7 @@ export function Workforce({
               setRosterSort("retained");
               setRosterSearch("");
               setOnlyMatchingRosterResources(false);
+              setResourceCountSort("directory");
               setRosterDate(date);
             }}>
               Clear resource filters
@@ -560,7 +584,9 @@ export function Workforce({
           booking eligibility. Search matches membership titles and linked
           employee names, not contact details or IDs. Match-only hides
           resource cards with no matching retained memberships without
-          changing enrollment, history or booking rights. The review date
+          changing enrollment, history or booking rights. Resource-card sort
+          orders recorded membership counts, not distinct staff or capacity.
+          The review date
           is independent of Availability below.
         </p>
         {rosterDateError && <p role="alert">{rosterDateError}</p>}
@@ -571,7 +597,8 @@ export function Workforce({
         </button>
         <p className="muted">
           Export includes all membership rows shown by resource search,
-          type, enrollment, record status, member search, sort and selected-day controls.
+          type, enrollment, record status, member search, resource-card and
+          membership sorting, and selected-day controls.
           No contact details or internal IDs are included.
           This is a dated roster record, not booking eligibility.
         </p>
