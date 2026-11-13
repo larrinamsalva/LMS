@@ -110,6 +110,10 @@ export function Workforce({
     useState<RosterResourceCountSort>("directory");
   const [onlyMatchingRosterResources, setOnlyMatchingRosterResources] =
     useState(false);
+  // Presentation-only collapse state, keyed by organization + resource.
+  // Never changes retained membership records or export selection.
+  const [collapsedRosterCards, setCollapsedRosterCards] =
+    useState<string[]>([]);
   const [rosterDate, setRosterDate] = useState(date);
   const [availabilitySearch, setAvailabilitySearch] = useState("");
   const [availabilityKind, setAvailabilityKind] =
@@ -619,9 +623,10 @@ export function Workforce({
           resource cards with no matching retained memberships without
           changing enrollment, history or booking rights. Resource-card sort
           orders recorded membership counts, not distinct staff or capacity.
-          Each resource card now shows a matching Current/Archived record
-          breakdown using these same filters. The review date is
-          independent of Availability below.
+          Each resource card shows a matching Current/Archived record
+          breakdown. Membership entries can be collapsed without hiding
+          counts, changing the filters, enrollment or either CSV report.
+          The review date is independent of Availability below.
         </p>
         {rosterDateError && <p role="alert">{rosterDateError}</p>}
         <button type="button" className="secondary"
@@ -657,6 +662,9 @@ export function Workforce({
                 (membership) => membership.archived,
               ).length;
               const currentMatching = searchedRows.length - archivedMatching;
+              const cardKey = organizationId + ":" + r.id;
+              const membershipListId = "resource-membership-entries-" + r.id;
+              const collapsed = collapsedRosterCards.includes(cardKey);
               return (
                 <article
                   className="workforce-card"
@@ -686,8 +694,21 @@ export function Workforce({
                       {" "}Archived: {archivedMatching}.
                     </p>
                   </div>
-                  <ul className="workforce-members">
-                    {rows.map((m) => (
+                  <button type="button" className="secondary"
+                    aria-expanded={!collapsed}
+                    aria-controls={membershipListId}
+                    onClick={() => setCollapsedRosterCards((previous) =>
+                      previous.includes(cardKey)
+                        ? previous.filter((key) => key !== cardKey)
+                        : [...previous, cardKey]
+                    )}>
+                    {collapsed ? "Show membership entries" : "Hide membership entries"}
+                  </button>
+                  <div id={membershipListId}>
+                    {!collapsed && (
+                      <>
+                        <ul className="workforce-members">
+                          {rows.map((m) => (
                       <li key={m.id}>
                         <strong>
                           {relatedLabel(m.data.employee, scopedRosterRecords)}
@@ -698,10 +719,10 @@ export function Workforce({
                         <p>{String(m.data.title)}</p>
                         {actions(m)}
                       </li>
-                    ))}
-                  </ul>
-                  {!rows.length && (
-                    <p className="empty-state">
+                          ))}
+                        </ul>
+                        {!rows.length && (
+                          <p className="empty-state">
                       {rosterDateError
                         ? "Choose a valid membership review date."
                         : allRows.length === 0
@@ -714,8 +735,11 @@ export function Workforce({
                               : rosterSearch.trim().length > 0
                                 ? "No retained memberships match this roster search."
                                 : "No dated memberships."}
-                    </p>
-                  )}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </article>
               );
             })}
