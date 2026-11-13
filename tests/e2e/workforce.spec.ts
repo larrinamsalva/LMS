@@ -294,12 +294,16 @@ test("fictional crews and workers publish availability, schedule both industries
     const rosterSort = page.getByLabel(
       "Sort membership history", { exact: true },
     );
+    const resourceCountSort = page.getByLabel(
+      "Sort resources by matching memberships", { exact: true },
+    );
     const rosterSearch = page.getByLabel(
       "Search roster memberships", { exact: true },
     );
     await expect(rosterMode).toHaveValue("all");
     await expect(rosterStatus).toHaveValue("all");
     await expect(rosterSort).toHaveValue("retained");
+    await expect(resourceCountSort).toHaveValue("directory");
     await expect(rosterSearch).toHaveValue("");
     const onlyMatchingResources = page.getByRole("checkbox", {
       name: "Show only resources with matching memberships", exact: true,
@@ -392,6 +396,12 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(rosterRows).toHaveCount(1);
     await rosterSearch.fill("");
     await expect(rosterRows).toHaveCount(people.length);
+    await resourceCountSort.selectOption("most");
+    await expect(resourceCountSort).toHaveValue("most");
+    await expect(rosterRows).toHaveCount(people.length);
+    await resourceCountSort.selectOption("fewest");
+    await expect(resourceCountSort).toHaveValue("fewest");
+    await expect(rosterRows).toHaveCount(people.length);
     await rosterSort.selectOption("newest");
     await expect(rosterSort).toHaveValue("newest");
     await expect(rosterRows).toHaveCount(people.length);
@@ -431,6 +441,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(rosterMode).toHaveValue("all");
     await expect(rosterStatus).toHaveValue("all");
     await expect(rosterSort).toHaveValue("retained");
+    await expect(resourceCountSort).toHaveValue("directory");
     await expect(rosterSearch).toHaveValue("");
     await expect(rosterRows).toHaveCount(people.length);
     await expect(rosterCsvButton).toBeEnabled();
