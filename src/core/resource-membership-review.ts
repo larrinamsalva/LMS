@@ -3,6 +3,23 @@ import type { WorkspaceRecord } from "./engine";
 import { instant, isTimeZone } from "./time";
 
 export type ResourceMembershipReviewMode = "all" | "overlapping-day";
+export type ResourceMembershipRecordStatus = "all" | "current" | "archived";
+
+/**
+ * Status is a presentation filter over already-authorized retained membership
+ * rows. Archived refers to the membership record, not the resource or the
+ * employee profile, and does not affect permanent enrollment.
+ */
+export function filterResourceMembershipRecordStatus(
+  memberships: readonly WorkspaceRecord[],
+  status: ResourceMembershipRecordStatus,
+): WorkspaceRecord[] {
+  return memberships.filter((membership) =>
+    membership.entity === "resource-memberships" &&
+    (status === "all" ||
+      (status === "archived" ? membership.archived : !membership.archived)),
+  );
+}
 
 /** The chosen roster review day uses the business-local calendar, not UTC. */
 export function resourceMembershipReviewDateError(
