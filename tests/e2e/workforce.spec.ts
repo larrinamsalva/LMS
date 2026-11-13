@@ -343,8 +343,19 @@ test("fictional crews and workers publish availability, schedule both industries
       "Matching records: " + people.length + ". Current: " +
       people.length + ". Archived: 0.",
     );
+    const bulkVisibility = page.getByRole("group", {
+      name: "Shown resource membership entry visibility", exact: true,
+    });
+    const collapseShown = bulkVisibility.getByRole("button", {
+      name: "Collapse all shown membership entries", exact: true,
+    });
+    const expandShown = bulkVisibility.getByRole("button", {
+      name: "Expand all shown membership entries", exact: true,
+    });
     const rosterRows = resourceCard.locator(".workforce-members li");
     await expect(rosterRows).toHaveCount(people.length);
+    await expect(collapseShown).toBeEnabled();
+    await expect(expandShown).toBeDisabled();
     const hideMemberships = resourceCard.getByRole("button", {
       name: "Hide membership entries", exact: true,
     });
@@ -366,6 +377,25 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(summaryCsvButton).toBeEnabled();
     await showMemberships.click();
     await expect(hideMemberships).toHaveAttribute("aria-expanded", "true");
+    await expect(rosterRows).toHaveCount(people.length);
+    await collapseShown.click();
+    await expect(collapseShown).toBeDisabled();
+    await expect(expandShown).toBeEnabled();
+    await expect(showMemberships).toHaveAttribute("aria-expanded", "false");
+    await expect(rosterRows).toHaveCount(0);
+    await expect(cardBreakdown).toContainText(
+      "Matching records: " + people.length + ". Current: " +
+      people.length + ". Archived: 0.",
+    );
+    await expect(summaryCsvButton).toBeEnabled();
+    await expandShown.click();
+    await expect(collapseShown).toBeEnabled();
+    await expect(expandShown).toBeDisabled();
+    await expect(hideMemberships).toHaveAttribute("aria-expanded", "true");
+    await expect(rosterRows).toHaveCount(people.length);
+    await hideMemberships.click();
+    await expect(expandShown).toBeEnabled();
+    await expandShown.click();
     await expect(rosterRows).toHaveCount(people.length);
     await rosterMode.selectOption("overlapping-day");
     const rosterDate = page.getByLabel(
@@ -444,6 +474,8 @@ test("fictional crews and workers publish availability, schedule both industries
       "No resources have memberships matching these roster filters.",
       { exact: true },
     )).toBeVisible();
+    await expect(collapseShown).toBeDisabled();
+    await expect(expandShown).toBeDisabled();
     await expect(rosterCsvButton).toBeDisabled();
     await onlyMatchingResources.uncheck();
     await expect(summaryCsvButton).toBeEnabled();
