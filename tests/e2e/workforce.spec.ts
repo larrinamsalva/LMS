@@ -345,6 +345,28 @@ test("fictional crews and workers publish availability, schedule both industries
     );
     const rosterRows = resourceCard.locator(".workforce-members li");
     await expect(rosterRows).toHaveCount(people.length);
+    const hideMemberships = resourceCard.getByRole("button", {
+      name: "Hide membership entries", exact: true,
+    });
+    await expect(hideMemberships).toHaveAttribute("aria-expanded", "true");
+    await hideMemberships.click();
+    const showMemberships = resourceCard.getByRole("button", {
+      name: "Show membership entries", exact: true,
+    });
+    await expect(showMemberships).toHaveAttribute("aria-expanded", "false");
+    await expect(rosterRows).toHaveCount(0);
+    await expect(resourceCard).toContainText(
+      "Enrolled — employee reservations required",
+    );
+    await expect(cardBreakdown).toContainText(
+      "Matching records: " + people.length + ". Current: " +
+      people.length + ". Archived: 0.",
+    );
+    // Collapsing is a view-only choice; both existing downloads stay usable.
+    await expect(summaryCsvButton).toBeEnabled();
+    await showMemberships.click();
+    await expect(hideMemberships).toHaveAttribute("aria-expanded", "true");
+    await expect(rosterRows).toHaveCount(people.length);
     await rosterMode.selectOption("overlapping-day");
     const rosterDate = page.getByLabel(
       "Membership review date", { exact: true },

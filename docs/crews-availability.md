@@ -677,3 +677,35 @@ filtered membership records; it adds no personal fields, database
 calls, saved-record edits, scheduling changes, exports or new
 permissions. Both existing CSV downloads, MIT licensing and the
 fictional no-login demo remain unchanged.
+
+## Expand or collapse membership entries on individual resource cards (PR #126)
+
+In **Crews & availability → Resource directory**, each resource
+card now offers **Hide membership entries** and **Show membership
+entries**. The membership list starts **expanded**, as before.
+Hiding it makes long Crew or Worker directories easier to scan on
+phones, tablets and desktops. Each card has its own independent
+expand/collapse state, with an accessible button exposing its
+expanded status to assistive technology. The card's resource
+name/type, full retained-membership count, matching Current and
+Archived record breakdown, and enrollment explanation remain
+visible even when its membership entries are hidden.
+
+Expanding a card restores the same authorized membership rows
+and explicit member-record actions permitted by the current user
+role, already filtered and sorted by the selected roster
+controls. Collapsing an empty roster also hides its explanatory
+empty-state message until the list is expanded; it never changes
+the actual matching count. Per-card collapse state is scoped to
+both organization and resource so one business's presentation
+selection cannot affect another business with the same resource
+identifier.
+
+Collapse is **presentation-only**. It does not alter the
+organization-scoped membership filters, roster overview, 
+record-level authorization, employee eligibility, scheduling,
+retained history, resource sorting, or the detailed and overview
+CSV exports (which always include their full selected data).
+No backend, database, migrations, JSON backups, deployment, or
+other repository is changed. MIT and the fictional no-login
+demo remain unchanged.
