@@ -245,6 +245,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceType).toHaveValue("all");
     await expect(resourceEnrollment).toHaveValue("all");
     await expect(resourceCard).toBeVisible();
+    await resourceSearch.fill(resource);
     const preEnrollmentUnmatched = page.getByRole("group", {
       name: "Resources without matching roster records", exact: true,
     });
@@ -252,6 +253,7 @@ test("fictional crews and workers publish availability, schedule both industries
       "Resources without matches: 1. Enrolled workers/crews: 0. " +
       "Resource-only workers/crews: 1. Equipment: 0.",
     );
+    await resourceSearch.fill("");
     for (const name of people) {
       await directory(page);
       await page
