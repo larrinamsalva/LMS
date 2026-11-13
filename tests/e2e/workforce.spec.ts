@@ -463,7 +463,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(gapQuick.getByRole("button", {
       name: "Review resource-only worker/crew gaps",
     })).toBeDisabled();
-    await gapQuick.getByRole("button", {
+    await expect(gapQuick.getByRole("button", {
       name: "Review equipment gaps",
     })).toBeDisabled();
     await gapQuick.getByRole("button", {
