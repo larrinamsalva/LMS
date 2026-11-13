@@ -301,6 +301,10 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(rosterStatus).toHaveValue("all");
     await expect(rosterSort).toHaveValue("retained");
     await expect(rosterSearch).toHaveValue("");
+    const onlyMatchingResources = page.getByRole("checkbox", {
+      name: "Show only resources with matching memberships", exact: true,
+    });
+    await expect(onlyMatchingResources).not.toBeChecked();
     const rosterRows = resourceCard.locator(".workforce-members li");
     await expect(rosterRows).toHaveCount(people.length);
     await rosterMode.selectOption("overlapping-day");
@@ -328,6 +332,8 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(rosterRows).toHaveCount(people.length);
     await rosterSearch.fill(people[0].toLowerCase());
     await expect(rosterRows).toHaveCount(1);
+    await onlyMatchingResources.check();
+    await expect(resourceCard).toBeVisible();
     await expect(resourceCard).toContainText(
       "Enrolled — employee reservations required",
     );
@@ -342,11 +348,18 @@ test("fictional crews and workers publish availability, schedule both industries
       expect(searchedCsv).not.toContain(other + " membership");
     }
     await rosterSearch.fill("no-such-member-name");
+    await expect(resourceCard).toHaveCount(0);
+    await expect(page.getByText(
+      "No resources have memberships matching these roster filters.",
+      { exact: true },
+    )).toBeVisible();
+    await expect(rosterCsvButton).toBeDisabled();
+    await onlyMatchingResources.uncheck();
+    await expect(resourceCard).toBeVisible();
     await expect(rosterRows).toHaveCount(0);
     await expect(resourceCard.getByText(
       "No retained memberships match this roster search.", { exact: true },
     )).toBeVisible();
-    await expect(rosterCsvButton).toBeDisabled();
     await rosterSearch.fill(people[0] + " membership");
     await expect(rosterRows).toHaveCount(1);
     await rosterSearch.fill("");
@@ -381,9 +394,12 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCard).toContainText(
       "Enrolled — employee reservations required",
     );
+    await onlyMatchingResources.check();
+    await expect(resourceCard).toHaveCount(0);
     await page.getByRole("button", {
       name: "Clear resource filters", exact: true,
     }).click();
+    await expect(onlyMatchingResources).not.toBeChecked();
     await expect(rosterMode).toHaveValue("all");
     await expect(rosterStatus).toHaveValue("all");
     await expect(rosterSort).toHaveValue("retained");
