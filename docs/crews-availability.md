@@ -741,3 +741,44 @@ A historical membership is not evidence of staff availability
 or booking eligibility. No database, role permission, API,
 migration, JSON backup, deployment or other repository is
 changed. MIT licensing and the fictional no-login demo remain.
+
+## Show only resources without matching roster memberships (PR #128)
+
+In **Crews & availability → Resource directory**, the new
+**Show only resources without matching memberships** checkbox is the
+complement of **Show only resources with matching memberships**. It
+keeps resources from the currently selected organization and
+resource name/type/enrollment filters only when they have **zero**
+retained membership rows matching the chosen membership date,
+current/archived record state, and membership-title or linked
+employee-name search. The two opposite selections automatically
+uncheck one another. Both default **off**, preserving the original
+Resource Directory.
+
+Use this view to inspect **historical roster coverage gaps** for
+the selected filters. A zero match does **not** mean that an
+employee or crew is available, unassigned, inactive or
+permanently unenrolled: an archived membership, a membership
+outside the selected date, a different title search, or a
+resource-only entry can cause zero matching rows. The original
+**Enrolled / Resource-only** explanation still uses all retained
+membership history, independent of this checkbox. When every
+directory-selected resource has at least one match, the view
+shows a clear empty-result message.
+
+**Download roster overview CSV** follows the zero-match card
+selection, keeping one row per displayed resource with its
+retained enrollment and historical total intact and matching
+current/archived counts of zero. The detailed membership CSV is
+disabled in this view because there are no matching membership
+detail rows to export. The existing matching-only and all-
+resources views continue to behave as before. Bulk and
+individual collapse/expand, card count sorting, and Clear
+resource filters continue to apply to the selected cards.
+
+Both helpers and reports independently enforce organization
+scoping; foreign organization matches are excluded even if
+input arrays are mixed. No personal contacts, notes, raw IDs,
+skills, record edits, scheduling eligibility, API, database
+migration, JSON backup, other repository or deployment is
+affected. MIT licensing and fictional no-login demo remain.
