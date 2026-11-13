@@ -36,8 +36,10 @@ import {
   resourceMembershipRowsForReview,
   resourceMembershipReviewDateError,
   filterResourceMembershipRecordStatus,
+  orderResourceMembershipsByStart,
   type ResourceMembershipReviewMode,
   type ResourceMembershipRecordStatus,
+  type ResourceMembershipStartSort,
 } from "../core/resource-membership-review";
 
 export function Workforce({
@@ -92,6 +94,8 @@ export function Workforce({
     useState<ResourceMembershipReviewMode>("all");
   const [rosterStatus, setRosterStatus] =
     useState<ResourceMembershipRecordStatus>("all");
+  const [rosterSort, setRosterSort] =
+    useState<ResourceMembershipStartSort>("retained");
   const [rosterDate, setRosterDate] = useState(date);
   const [availabilitySearch, setAvailabilitySearch] = useState("");
   const [availabilityKind, setAvailabilityKind] =
@@ -130,7 +134,8 @@ export function Workforce({
   );
   const resourceFiltersActive = resourceSearch.trim().length > 0 ||
     resourceType !== "all" || resourceEnrollment !== "all" ||
-    rosterMode !== "all" || rosterStatus !== "all";
+    rosterMode !== "all" || rosterStatus !== "all" ||
+    rosterSort !== "retained";
   const range = (r: WorkspaceRecord) =>
     `${displayTime(String(r.data.start), String(r.data.time_zone ?? zone))} → ${displayTime(String(r.data.end), String(r.data.time_zone ?? zone))}`;
   let visible: WorkspaceRecord[] = [];
@@ -211,6 +216,7 @@ export function Workforce({
         enrollment: resourceEnrollment,
         mode: rosterMode,
         membershipStatus: rosterStatus,
+        sort: rosterSort,
         date: rosterDate,
       },
     );
@@ -441,6 +447,19 @@ export function Workforce({
               <option value="archived">Archived membership records</option>
             </select>
           </div>
+          <div>
+            <label htmlFor="resource-membership-sort">
+              Sort membership history
+            </label>
+            <select id="resource-membership-sort" value={rosterSort}
+              onChange={(event) => setRosterSort(
+                event.target.value as ResourceMembershipStartSort,
+              )}>
+              <option value="retained">Retained record order</option>
+              <option value="newest">Newest effective start first</option>
+              <option value="oldest">Oldest effective start first</option>
+            </select>
+          </div>
           {rosterMode === "overlapping-day" && (
             <div>
               <label htmlFor="resource-membership-date">
@@ -459,6 +478,7 @@ export function Workforce({
               setResourceEnrollment("all");
               setRosterMode("all");
               setRosterStatus("all");
+              setRosterSort("retained");
               setRosterDate(date);
             }}>
               Clear resource filters
@@ -475,9 +495,10 @@ export function Workforce({
           enrollment and appears only with All enrollment types.
           Membership review shows periods overlapping any part of the selected
           local day. Status filters describe the membership record's archive
-          state, not the resource's enrollment or employee activity.
-          These records do not prove a complete day roster or booking
-          eligibility. The review date is independent of Availability below.
+          state. Sorting uses the original effective start instant, not the
+          archive or creation date, and only changes row order. Neither
+          filtering nor sorting changes enrollment, employee activity or
+          booking eligibility. The review date is independent of Availability below.
         </p>
         {rosterDateError && <p role="alert">{rosterDateError}</p>}
         <button type="button" className="secondary"
@@ -487,7 +508,7 @@ export function Workforce({
         </button>
         <p className="muted">
           Export includes all membership rows shown by resource search,
-          type, enrollment, record status and selected-day controls.
+          type, enrollment, record status, sort and selected-day controls.
           No contact details or internal IDs are included.
           This is a dated roster record, not booking eligibility.
         </p>
@@ -499,8 +520,9 @@ export function Workforce({
               const dateRows = resourceMembershipRowsForReview(
                 scopedMemberships, r, rosterMode, rosterDate, zone,
               );
-              const rows = filterResourceMembershipRecordStatus(
-                dateRows, rosterStatus,
+              const rows = orderResourceMembershipsByStart(
+                filterResourceMembershipRecordStatus(dateRows, rosterStatus),
+                rosterSort,
               );
               return (
                 <article
