@@ -565,3 +565,40 @@ or foreign-linked names.
 No API, database schema, permissions, scheduling logic, backups or
 other repository is changed. MIT and the fictional no-login demo
 remain intact.
+
+## Sort resource cards by matching roster membership count (PR #123)
+
+**Crews & availability → Resource directory → Sort resources by
+matching memberships** offers **Original directory order** (the
+unchanged default), **Most matching memberships first**, and
+**Fewest matching memberships first**. Unlike the separate
+**Sort membership history** control, this sorts the resource
+**cards** themselves. It counts retained membership **records**
+matching the selected resource directory, date, archived/current
+membership status and employee-name/title search filters. Counts
+are not distinct employees, available shifts, staffing capacity or
+booking eligibility. Archived matching history may be counted when
+the status filter includes it.
+
+Ties retain the original directory order, including when every
+resource has zero matching records. Sorting works whether or not
+**Show only resources with matching memberships** is enabled:
+when it is on, the zero-match cards are hidden before sorting.
+**Clear resource filters** restores the original directory
+order. This ordering does not change the original stored
+resource order, retained membership counts, roster enrollment,
+record archive state, employee availability or assignments.
+
+**Download filtered roster memberships CSV** applies the same
+card-count sort when grouping matching detail rows by resource,
+then applies the independent membership effective-start sort
+inside each resource. The CSV contains the same authorized
+matching records regardless of card sort; only the row grouping
+order changes. The reporting helper enforces organization
+scoping even if supplied mixed-organization arrays and retains
+formula safety and the exclusion of emails, phones, notes, skills,
+foreign-linked names and raw IDs.
+
+No database migration, API, permissions, scheduling change,
+deployment or other repository is involved. MIT and the fictional
+no-login demo remain unchanged.
