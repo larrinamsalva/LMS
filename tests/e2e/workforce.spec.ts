@@ -242,9 +242,16 @@ test("fictional crews and workers publish availability, schedule both industries
     const clearEnrollment = recoverEnrollment.getByRole("button", {
       name: "Show all enrollment types (keep other filters)", exact: true,
     });
+    const recoverResourceType = page.getByRole("group", {
+      name: "Recover resource type filter", exact: true,
+    });
+    const clearResourceType = recoverResourceType.getByRole("button", {
+      name: "Show all resource types (keep other filters)", exact: true,
+    });
     await resourceSearch.fill(resource.toUpperCase());
     await expect(resourceCard).toBeVisible();
     await expect(recoverEnrollment).toHaveCount(0);
+    await expect(recoverResourceType).toHaveCount(0);
     const resourceTypes = page.getByRole("group", {
       name: "Resource directory type breakdown", exact: true,
     });
@@ -298,6 +305,22 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCard).toHaveCount(0);
     await expect(recoverNameSearch).toHaveCount(0);
     await expect(recoverEnrollment).toHaveCount(0);
+    await expect(recoverResourceType).toContainText(
+      "Switching only to All resource types would restore",
+    );
+    await expect(recoverResourceType).toContainText(
+      "1 resource within the current name search, employee enrollment and",
+    );
+    await expect(recoverResourceType).not.toContainText(resource);
+    await clearResourceType.click();
+    await expect(resourceType).toHaveValue("all");
+    await expect(resourceSearch).toHaveValue(resource.toUpperCase());
+    await expect(resourceEnrollment).toHaveValue("all");
+    await expect(resourceCard).toBeVisible();
+    await expect(recoverResourceType).toHaveCount(0);
+    // Direct type selection remains an independent filter.
+    await resourceType.selectOption(industry === "cleaning" ? "Worker" : "Crew");
+    await expect(resourceCard).toHaveCount(0);
     await expect(resourceTypes).toContainText(
       "Directory-selected resources: " + zeroResourceKinds,
     );
@@ -308,6 +331,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCard).toBeVisible();
     await resourceEnrollment.selectOption("enrolled");
     await expect(resourceCard).toHaveCount(0);
+    await expect(recoverResourceType).toHaveCount(0);
     await expect(recoverEnrollment).toContainText(
       "Selecting All enrollment types would restore",
     );
@@ -359,6 +383,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCard).toBeVisible();
     await resourceSearch.fill("no-such-resource");
     await expect(recoverEnrollment).toHaveCount(0);
+    await expect(recoverResourceType).toHaveCount(0);
     await expect(matchingTypeButton).toContainText("(0 directory, 0 shown)");
     await expect(otherTypeButton).toContainText("(0 directory, 0 shown)");
     await expect(equipmentButton).toContainText("(0 directory, 0 shown)");
