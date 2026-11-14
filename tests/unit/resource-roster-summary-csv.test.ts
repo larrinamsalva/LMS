@@ -327,3 +327,19 @@ it("shares safe fixed-context wording between the screen and CSV", () => {
   });
   expect(privateTerms).toEqual(before);
 });
+
+it("sorts authorized summary resource rows A-Z or Z-A with matching order context", () => {
+  const ascending = lines({ ...view, resourceSort: "name-asc" });
+  const descending = lines({ ...view, resourceSort: "name-desc" });
+  expect(ascending).toHaveLength(4);
+  expect(ascending[1]).toContain('"Blue Crew"');
+  expect(ascending[2]).toContain('"East Worker"');
+  expect(ascending[3]).toContain('"Floor buffer"');
+  expect(descending[1]).toContain('"Floor buffer"');
+  expect(descending[2]).toContain('"East Worker"');
+  expect(descending[3]).toContain('"Blue Crew"');
+  expect(ascending[1]).toContain('"Resource name A-Z"');
+  expect(descending[1]).toContain('"Resource name Z-A"');
+  expect(ascending.join("\r\n")).not.toContain("FOREIGN");
+  expect(descending.join("\r\n")).not.toContain("PRIVATE");
+});
