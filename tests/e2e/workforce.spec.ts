@@ -230,6 +230,12 @@ test("fictional crews and workers publish availability, schedule both industries
     const restoreButton = restoreCards.getByRole("button", {
       name: "Show all selected resource cards (keep filters)", exact: true,
     });
+    const recoverNameSearch = page.getByRole("group", {
+      name: "Recover resource name search", exact: true,
+    });
+    const clearNameSearch = recoverNameSearch.getByRole("button", {
+      name: "Clear resource name search (keep other filters)", exact: true,
+    });
     await resourceSearch.fill(resource.toUpperCase());
     await expect(resourceCard).toBeVisible();
     const resourceTypes = page.getByRole("group", {
@@ -283,6 +289,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCard).toBeVisible();
     await resourceType.selectOption(industry === "cleaning" ? "Worker" : "Crew");
     await expect(resourceCard).toHaveCount(0);
+    await expect(recoverNameSearch).toHaveCount(0);
     await expect(resourceTypes).toContainText(
       "Directory-selected resources: " + zeroResourceKinds,
     );
@@ -293,6 +300,16 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCard).toBeVisible();
     await resourceEnrollment.selectOption("enrolled");
     await expect(resourceCard).toHaveCount(0);
+    // Other demo resources may be enrolled even when this newly created
+    // resource is resource-only. Clearing the *name* search can therefore
+    // recover that selected type/enrollment directory without changing it.
+    await expect(recoverNameSearch).toContainText(
+      "clearing only that search would show",
+    );
+    await expect(recoverNameSearch).toContainText(
+      "within the current type, enrollment and",
+    );
+    await expect(recoverNameSearch).not.toContainText(resource);
     await expect(matchingTypeButton).toContainText("(0 directory, 0 shown)");
     await expect(allTypesButton).toContainText("(0 directory, 0 shown)");
     await expect(equipmentButton).toContainText("(0 directory, 0 shown)");
@@ -326,6 +343,21 @@ test("fictional crews and workers publish availability, schedule both industries
       "No resources match these filters.", { exact: true },
     )).toBeVisible();
     await expect(restoreCards).toHaveCount(0);
+    await expect(recoverNameSearch).toContainText(
+      "clearing only that search would show",
+    );
+    await expect(recoverNameSearch).toContainText(
+      "1 resource within the current type, enrollment and",
+    );
+    await expect(recoverNameSearch).not.toContainText(resource);
+    await clearNameSearch.click();
+    await expect(resourceSearch).toHaveValue("");
+    await expect(resourceType).toHaveValue(industry === "cleaning" ? "Crew" : "Worker");
+    await expect(resourceEnrollment).toHaveValue("resource-only");
+    await expect(resourceCard).toBeVisible();
+    await expect(recoverNameSearch).toHaveCount(0);
+    // Full reset remains available separately.
+    await resourceSearch.fill("no-such-resource");
     await page.getByRole("button", {
       name: "Clear resource filters", exact: true,
     }).click();
