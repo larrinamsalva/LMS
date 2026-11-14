@@ -1208,3 +1208,43 @@ No membership records, resource enrollment, availability,
 scheduling/permissions, API, database, CSV/JSON formats,
 migrations, deployment, other repository, MIT license or
 fictional no-login demo behavior changes.
+
+## Restore cards hidden by an empty roster-only view (PR #140)
+
+Sometimes the Resource Directory still contains valid Worker,
+Crew, or Equipment records even though no resource cards are
+visible. For example, **Show only resources with matching
+memberships** may hide every card when no membership matches
+the selected historic day, current/archived status or member
+search. Conversely, **Show only resources without matching
+memberships** may hide every card when each selected resource
+has a matching record.
+
+When directory-selected resources exist, **zero** cards are
+shown, and either card-only filter is on, the empty state now
+explains which card-only filter is hiding the selection and
+shows **Show all selected resource cards (keep filters)**.
+It clears **only** the two mutually exclusive card-only
+toggles. The existing Resource Directory name/type/enrollment
+filters, current/archived resource tab, membership review
+day/status/search, member and resource-card sort, and
+individual card collapse state remain intact. The existing
+counts and authorized CSV eligibility then recompute using
+the restored displayed selection.
+
+This focused button does **not** appear when the directory
+selection itself is empty (for example, an unmatched name
+search or type filter). In that situation, use the existing
+directory controls or **Clear resource filters**. The new
+action is narrower than **Show all resource categories (keep
+roster filters)**, which also resets type and enrollment, and
+**Reset membership review (keep resource filters)**, which
+resets the historic membership date/status/search/sort.
+
+A missing historic membership match is not proof that any
+employee, crew or equipment item is available or can be
+booked. This action is view-only: it makes no saved-record
+edits, does not change enrollment or permissions, and has
+no effect on database/API/migrations, scheduling, CSV or JSON
+formats, releases, deployments, other repositories, the MIT
+license or the fictional no-login demonstration.
