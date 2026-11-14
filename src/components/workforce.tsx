@@ -43,6 +43,7 @@ import {
 import { membershipReviewFiltersActive } from "../core/roster-review-reset";
 import {
   previewResourceTypeQuickViews,
+  previewShownCardsForResourceTypeQuickViews,
   resourceTypeQuickView,
 } from "../core/resource-type-quick-view";
 import {
@@ -166,6 +167,13 @@ export function Workforce({
   const typePreview = previewResourceTypeQuickViews(
     scopedResources, scopedMemberships, organizationId, history,
     resourceSearch, resourceEnrollment,
+  );
+  const shownCardPreview = previewShownCardsForResourceTypeQuickViews(
+    scopedResources, scopedMemberships, scopedRosterRecords,
+    organizationId, history, resourceSearch, resourceEnrollment,
+    { mode: rosterMode, date: rosterDate, zone, status: rosterStatus,
+      search: rosterSearch },
+    onlyMatchingRosterResources, onlyWithoutMatchingRosterResources,
   );
   const rosterDateError = rosterMode === "overlapping-day"
     ? resourceMembershipReviewDateError(rosterDate, zone)
@@ -711,40 +719,44 @@ export function Workforce({
             <button type="button" className="secondary"
               aria-pressed={resourceType === "Crew"}
               aria-label="View crews"
-              aria-description={typePreview.crews + " directory resources"}
+              aria-description={typePreview.crews + " directory resources, " +
+                shownCardPreview.crews + " shown cards after roster filters"}
               onClick={() => selectResourceTypeQuickView("Crew")}>
-              View crews <span aria-hidden="true">({typePreview.crews})</span>
+              View crews <span aria-hidden="true">({typePreview.crews} directory, {shownCardPreview.crews} shown)</span>
             </button>
             <button type="button" className="secondary"
               aria-pressed={resourceType === "Worker"}
               aria-label="View workers"
-              aria-description={typePreview.workers + " directory resources"}
+              aria-description={typePreview.workers + " directory resources, " +
+                shownCardPreview.workers + " shown cards after roster filters"}
               onClick={() => selectResourceTypeQuickView("Worker")}>
-              View workers <span aria-hidden="true">({typePreview.workers})</span>
+              View workers <span aria-hidden="true">({typePreview.workers} directory, {shownCardPreview.workers} shown)</span>
             </button>
             <button type="button" className="secondary"
               aria-pressed={resourceType === "Equipment"}
               aria-label="View equipment"
-              aria-description={typePreview.equipment + " directory resources"}
+              aria-description={typePreview.equipment + " directory resources, " +
+                shownCardPreview.equipment + " shown cards after roster filters"}
               onClick={() => selectResourceTypeQuickView("Equipment")}>
-              View equipment <span aria-hidden="true">({typePreview.equipment})</span>
+              View equipment <span aria-hidden="true">({typePreview.equipment} directory, {shownCardPreview.equipment} shown)</span>
             </button>
             <button type="button" className="secondary"
               aria-pressed={resourceType === "all"}
               aria-label="View all resource types"
-              aria-description={typePreview.all + " directory resources"}
+              aria-description={typePreview.all + " directory resources, " +
+                shownCardPreview.all + " shown cards after roster filters"}
               onClick={() => selectResourceTypeQuickView("all")}>
-              View all resource types <span aria-hidden="true">({typePreview.all})</span>
+              View all resource types <span aria-hidden="true">({typePreview.all} directory, {shownCardPreview.all} shown)</span>
             </button>
           </div>
           <p className="muted">
             Directory-selected counts follow resource name, type and
             enrollment filters. Shown-card counts also reflect the
             matching-only or without-matches-only roster view.
-            The number on each shortcut previews directory records after
-            that shortcut's type and enrollment filters, not the roster
-            match-only card view. Type shortcuts keep name search, roster
-            review and card selection. Equipment resets enrollment to All
+            Each shortcut shows prospective directory resources and shown
+            cards after the current membership match-only or no-match-only
+            filter. Type shortcuts keep name search, roster review and card
+            selection. Equipment resets enrollment to All
             because employee enrollment does not apply to equipment.
             These are resource records, not staff headcounts or availability.
           </p>
