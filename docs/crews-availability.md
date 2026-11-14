@@ -1696,3 +1696,38 @@ No database or API schema, saved assignment record, availability or
 booking decision, UI control, exported CSV column/format, permission,
 MIT license, release/deployment, fictional public no-login demo or other
 repository (including ForgeOS) is changed.
+
+
+## Indexed availability CSV subject-name labels (PR #153)
+
+The selected-day availability-period CSV still reapplies the authorized
+organization, selected local calendar date, archive status, kind and
+title/linked-subject search to canonical records. The exporter now builds
+temporary employee-name and resource-name lookup maps **once for the
+export** instead of searching all authorized linked records for every
+output row. This complements the presentation search index introduced
+in PR #151 without changing existing CSV columns or their order.
+
+The maps are separated by entity type and keep the **first matching
+record** even when its display-name field is malformed or absent.
+An employee link continues to determine an "Employee" subject and an
+employee-name lookup whenever truthy; otherwise the resource link
+determines the "Resource" label. Malformed, non-string IDs cannot match
+string record IDs. Foreign-organization records and contacts cannot
+contribute names. Existing CSV formula escaping, historical local/UTC
+instants, daylight-saving-hour disambiguation and header-only exports
+are unchanged.
+
+Independent regression tests compare the complete exported CSV with a
+copy of the original per-output-row lookup for **720 fictional period
+records**. Cases cover organization collisions, duplicate linked IDs,
+malformed first names, wrong entity types, archived status, type/search
+filters, overlapping days, DST fold hours, private fields, invalid
+dates, invalid zones and empty output. These validate output parity,
+not a quantified performance speedup.
+
+This is a read-only internal improvement: it does not affect stored
+periods, permissions, staffing availability or booking authority,
+UI controls, API/database/migrations, CSV schema, deployment/releases,
+MIT licensing, the fictional public no-login demo, or other
+repositories including ForgeOS.
