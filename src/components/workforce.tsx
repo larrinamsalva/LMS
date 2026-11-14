@@ -1020,8 +1020,9 @@ export function Workforce({
         {emptyRosterCardsRecoverable && (
           <div role="group" aria-label="Restore hidden resource cards">
             <p className="muted">
-              {displayedResources.length} directory-selected resource
-              {displayedResources.length === 1 ? "" : "s"} remain,
+              {displayedResources.length === 1
+                ? "1 directory-selected resource remains"
+                : displayedResources.length + " directory-selected resources remain"},
               but the {onlyMatchingRosterResources
                 ? "matching-only" : "without-matches-only"} roster view hides
               every card. This is a historical roster match, not evidence
