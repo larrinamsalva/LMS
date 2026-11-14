@@ -900,3 +900,47 @@ not worker availability or permission to book. Database,
 permissions, exports, migrations, scheduling, deployments, MIT
 licensing, the fictional no-login demo and other repositories
 remain unchanged.
+
+## Understand the selected filters in an exported roster overview (PR #132)
+
+**Download roster overview CSV** now includes seven additional,
+privacy-conscious columns after **Business time zone**, so a
+downloaded report remains interpretable after someone changes
+the filters in LMS or shares the file with another authorized
+operator:
+
+- **Membership record status filter:** All retained, Current
+  only, or Archived only
+- **Member name/title search applied:** Yes or No, never the
+  search text or matched employee names
+- **Resource name search applied:** Yes or No, never the
+  literal name-search text
+- **Resource type filter:** All types, Worker, Crew, or Equipment
+- **Employee enrollment filter:** All, Enrolled only, or
+  Resource-only
+- **Resource card selection:** All selected, Matching only,
+  or Without matches only
+- **Resource card order:** Original directory, Most matching,
+  or Fewest matching first
+
+Each report row carries the same selection context in plain
+words. The first eleven existing columns retain their original
+names, ordering and count meanings. The report still includes
+one row per selected resource (including zero-match resources
+when requested), and can contain a header-only result if there
+are no authorized resources in the selection. The detailed
+**Download filtered roster memberships CSV** is unchanged.
+
+The indicators use fixed, safe labels only: no raw member-name,
+title, email, phone, identifier or directory-search text is
+copied into the new fields. Resource names already visible in
+the Resource Directory remain part of each selected resource
+row. The exporter independently rechecks organization scope,
+CSV formula protection and selected day validity.
+
+These metadata columns describe historical filters, not
+bookability, staff headcount, attendance or current employee
+availability. No stored records, booking rules, permissions,
+database/migrations, API, deployment, JSON backup or other
+repository is changed. MIT and the fictional no-login demo
+remain intact.

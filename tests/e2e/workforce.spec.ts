@@ -384,6 +384,13 @@ test("fictional crews and workers publish availability, schedule both industries
     const summaryCsv = (await readFile((await summaryDownload.path())!))
       .toString("utf8");
     expect(summaryCsv).toContain('"Matching membership records"');
+    expect(summaryCsv).toContain('"Membership record status filter"');
+    expect(summaryCsv).toContain('"Member name/title search applied"');
+    expect(summaryCsv).toContain('"Resource card selection"');
+    expect(summaryCsv).toContain(
+      '"All retained records","No","Yes","All types",' +
+      '"All enrollment types","All selected resources","Directory order"',
+    );
     expect(summaryCsv).toContain(resource);
     expect(summaryCsv).toContain('"' + people.length + '","' +
       people.length + '","0"');

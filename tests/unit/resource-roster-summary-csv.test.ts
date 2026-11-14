@@ -227,3 +227,62 @@ it("exports exactly zero-match resources, preserving their historical enrollment
     expect(row).not.toContain("PRIVATE");
   }
 });
+
+it("adds self-describing filter metadata without exposing search terms or private identities", () => {
+  const before = structuredClone(records);
+  const filtered = lines({
+    ...view,
+    resourceSearch: "BLU",
+    membershipStatus: "archived",
+    memberSearch: "Morgan Example",
+    resourceKind: "Crew",
+    enrollment: "enrolled",
+    onlyMatchingResources: true,
+    resourceSort: "most",
+  });
+  expect(filtered).toHaveLength(2);
+  expect(filtered[0]).toContain('"Membership record status filter"');
+  expect(filtered[0]).toContain('"Member name/title search applied"');
+  expect(filtered[0]).toContain('"Resource name search applied"');
+  expect(filtered[0]).toContain('"Resource card selection"');
+  expect(filtered[1]).toContain('"Blue Crew","Crew","Current","Enrolled"');
+  expect(filtered[1]).toContain(
+    '"Archived records only","Yes","Yes","Crew","Enrolled only",' +
+    '"Matching resources only","Most matching first"',
+  );
+  expect(filtered.join("\r\n")).not.toContain("Morgan Example");
+  expect(filtered.join("\r\n")).not.toContain("BLU");
+  expect(filtered.join("\r\n")).not.toContain("PRIVATE");
+  expect(records).toEqual(before);
+});
+
+it("describes no-match and default selections with stable vocabulary", () => {
+  const all = lines(view);
+  expect(all[1]).toContain(
+    '"All retained records","No","No","All types",' +
+    '"All enrollment types","All selected resources","Directory order"',
+  );
+  const gap = lines({
+    ...view,
+    membershipStatus: "archived",
+    resourceKind: "Equipment",
+    enrollment: "all",
+    onlyWithoutMatchingResources: true,
+    resourceSort: "fewest",
+  });
+  expect(gap).toHaveLength(2);
+  expect(gap[1]).toContain('"Floor buffer"');
+  expect(gap[1]).toContain(
+    '"Archived records only","No","No","Equipment",' +
+    '"All enrollment types","Resources without matches only",' +
+    '"Fewest matching first"',
+  );
+  const noMatches = lines({
+    ...view,
+    memberSearch: "secret@example.test",
+    onlyMatchingResources: true,
+  });
+  expect(noMatches).toHaveLength(1);
+  expect(noMatches[0]).toContain('"Member name/title search applied"');
+  expect(noMatches[0]).not.toContain("secret@example.test");
+});
