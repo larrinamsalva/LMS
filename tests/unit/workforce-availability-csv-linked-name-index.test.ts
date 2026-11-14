@@ -37,7 +37,7 @@ function previousCsv(
   if (!isTimeZone(zone)) throw new Error("Choose a valid business time zone.");
   let day: Temporal.PlainDate;
   try {
-    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(view.date)) throw new Error("Invalid date");
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(view.date)) throw new Error("Invalid date");
     day = Temporal.PlainDate.from(view.date, { overflow: "reject" });
     if (day.toString() !== view.date) throw new Error("Invalid date");
   } catch {
@@ -87,7 +87,7 @@ function previousCsv(
   });
   return [header, ...rows]
     .map((row) => row.map(csvSafeCell).join(","))
-    .join("\\r\\n") + "\\r\\n";
+    .join("\r\n") + "\r\n";
 }
 
 it("matches prior CSV byte-for-byte across 720 fictional periods, status/type/search/date selections", () => {
