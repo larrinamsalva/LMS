@@ -35,7 +35,10 @@ import {
   filteredResourceMembershipsCsv,
   type ResourceMembershipCsvView,
 } from "../core/resource-membership-review-csv";
-import { filteredRosterResourceSummaryCsv } from "../core/resource-roster-summary-csv";
+import {
+  filteredRosterResourceSummaryCsv,
+  rosterSummaryFilterContext,
+} from "../core/resource-roster-summary-csv";
 import {
   rosterGapCategoryFilters,
   type RosterGapCategory,
@@ -220,6 +223,7 @@ export function Workforce({
     sort: rosterSort,
     date: rosterDate,
   };
+  const reviewContext = rosterSummaryFilterContext(rosterExportView);
   function reviewRosterGapCategory(category: RosterGapCategory) {
     const filters = rosterGapCategoryFilters(category, resourceType);
     setResourceType(filters.resourceKind);
@@ -653,6 +657,24 @@ export function Workforce({
         </p>
         <div role="group" aria-label="Roster membership overview">
           <h3>Roster membership overview</h3>
+          <div role="group" aria-label="Current roster review scope">
+            <p className="muted">
+              Resource records: {history ? "Archived" : "Current"}.
+              {" "}Membership period: {rosterMode === "all"
+                ? "All retained history"
+                : "Overlapping selected day " + (rosterDate || "(not selected)")}.
+              {" "}Membership status: {reviewContext.membershipStatus}.
+              {" "}Resource type: {reviewContext.resourceType}.
+              {" "}Enrollment: {reviewContext.enrollment}.
+              {" "}Card selection: {reviewContext.cardSelection}.
+              {" "}Card order: {reviewContext.resourceOrder}.
+            </p>
+            <p className="muted">
+              Resource-name search applied: {reviewContext.resourceSearchApplied}.
+              {" "}Employee-name/title search applied: {reviewContext.memberSearchApplied}.
+              {" "}Search terms are not repeated here.
+            </p>
+          </div>
           <p>
             Matching resources: {rosterOverview.matchingResources}
             {" "}of {rosterOverview.directoryResources} directory resources.
