@@ -41,6 +41,7 @@ import {
   rosterSummaryFilterContext,
 } from "../core/resource-roster-summary-csv";
 import { membershipReviewFiltersActive } from "../core/roster-review-reset";
+import { resourceTypeQuickView } from "../core/resource-type-quick-view";
 import {
   rosterGapCategoryFilters,
   type RosterGapCategory,
@@ -232,6 +233,11 @@ export function Workforce({
     date: rosterDate,
   };
   const reviewContext = rosterSummaryFilterContext(rosterExportView);
+  function selectResourceTypeQuickView(kind: WorkforceResourceTypeFilter) {
+    const selected = resourceTypeQuickView(kind, resourceEnrollment);
+    setResourceType(selected.kind);
+    setResourceEnrollment(selected.enrollment);
+  }
   function reviewRosterGapCategory(category: RosterGapCategory) {
     const filters = rosterGapCategoryFilters(category, resourceType);
     setResourceType(filters.resourceKind);
@@ -693,10 +699,36 @@ export function Workforce({
             {" "}Workers: {shownResourceTypeCounts.workers}.
             {" "}Equipment: {shownResourceTypeCounts.equipment}.
           </p>
+          <div className="schedule-toolbar" role="group"
+            aria-label="Quick filter resource types">
+            <button type="button" className="secondary"
+              aria-pressed={resourceType === "Crew"}
+              onClick={() => selectResourceTypeQuickView("Crew")}>
+              View crews
+            </button>
+            <button type="button" className="secondary"
+              aria-pressed={resourceType === "Worker"}
+              onClick={() => selectResourceTypeQuickView("Worker")}>
+              View workers
+            </button>
+            <button type="button" className="secondary"
+              aria-pressed={resourceType === "Equipment"}
+              onClick={() => selectResourceTypeQuickView("Equipment")}>
+              View equipment
+            </button>
+            <button type="button" className="secondary"
+              aria-pressed={resourceType === "all"}
+              onClick={() => selectResourceTypeQuickView("all")}>
+              View all resource types
+            </button>
+          </div>
           <p className="muted">
             Directory-selected counts follow resource name, type and
             enrollment filters. Shown-card counts also reflect the
             matching-only or without-matches-only roster view.
+            Type shortcuts keep name search, roster review and card
+            selection. Equipment resets enrollment to All because employee
+            enrollment does not apply to equipment.
             These are resource records, not staff headcounts or availability.
           </p>
         </div>
