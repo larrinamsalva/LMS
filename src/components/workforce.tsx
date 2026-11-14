@@ -41,6 +41,7 @@ import {
   rosterSummaryFilterContext,
 } from "../core/resource-roster-summary-csv";
 import { membershipReviewFiltersActive } from "../core/roster-review-reset";
+import { resourceNameSearchRecoveryCount } from "../core/resource-name-search-recovery";
 import {
   previewResourceTypeQuickViews,
   previewShownCardsForResourceTypeQuickViews,
@@ -163,6 +164,10 @@ export function Workforce({
   const displayedResources = filterWorkforceResourceDirectory(
     scopedResources, scopedMemberships, history, resourceSearch, resourceType,
     resourceEnrollment,
+  );
+  const recoverableNameSearchResources = resourceNameSearchRecoveryCount(
+    scopedResources, scopedMemberships, organizationId, history,
+    resourceSearch, resourceType, resourceEnrollment,
   );
   const typePreview = previewResourceTypeQuickViews(
     scopedResources, scopedMemberships, organizationId, history,
@@ -1016,6 +1021,23 @@ export function Workforce({
                   ? "Every selected resource has a matching membership record."
                   : "No resources match these filters."}
           </p>
+        )}
+        {recoverableNameSearchResources > 0 && (
+          <div role="group" aria-label="Recover resource name search">
+            <p className="muted">
+              The resource-name search matches no directory records, but
+              clearing only that search would show{" "}
+              {recoverableNameSearchResources}{" "}
+              resource{recoverableNameSearchResources === 1 ? "" : "s"}
+              {" "}within the current type, enrollment and
+              current/archived resource filters. Other roster filters
+              may still hide cards.
+            </p>
+            <button type="button" className="secondary"
+              onClick={() => setResourceSearch("")}>
+              Clear resource name search (keep other filters)
+            </button>
+          </div>
         )}
         {emptyRosterCardsRecoverable && (
           <div role="group" aria-label="Restore hidden resource cards">
