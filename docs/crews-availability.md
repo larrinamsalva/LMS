@@ -1011,3 +1011,38 @@ Neither reset modifies employee, resource or membership
 records, CSV contents, organization scope, booking rules,
 permissions, database/API/migrations, deployment, MIT license,
 fictional no-login demo, or any other repository.
+
+## Alphabetical Resource Directory card sorting (PR #135)
+
+The **Sort resource cards** control in **Crews & availability →
+Resource directory** now offers **Resource name A–Z** and
+**Resource name Z–A** alongside the existing **Original directory
+order**, **Most matching memberships first**, and **Fewest
+matching memberships first** choices.
+
+The new name sorts use the displayed resource name only. They
+compare case-insensitively and with natural number order
+(for example, Crew 2 before Crew 10 in A–Z), keeping original
+directory order when names compare equal. Sorting never
+changes the resources selected by directory search, kind,
+enrollment, current/archived view, roster day/status/search,
+or matching-only and without-matches-only filters. It also
+does not alter the members within an individual resource
+card; that remains controlled by **Sort membership history**.
+
+Both the existing **Download filtered roster memberships CSV**
+(resource-group order) and **Download roster overview CSV**
+(one row per resource) follow the same authorized resource-card
+name sorting. The overview CSV's existing **Resource card order**
+field and the on-screen **Current roster review scope** report
+**Resource name A-Z** or **Resource name Z-A**. No CSV columns
+have been added or removed.
+
+The sort runs entirely on an immutable view of the selected
+resources, rechecking the organization boundary and preserving
+the user's retained membership records and enrollment history.
+These historical membership counts cannot establish actual
+worker availability, staffing headcount or permission to book.
+No database, permissions, API, scheduling, migrations, JSON
+backup, deployment, other repository, MIT license or fictional
+no-login demo behavior changes.
