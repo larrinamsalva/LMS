@@ -1046,3 +1046,44 @@ worker availability, staffing headcount or permission to book.
 No database, permissions, API, scheduling, migrations, JSON
 backup, deployment, other repository, MIT license or fictional
 no-login demo behavior changes.
+
+## Resource Directory type breakdown for selected and shown cards (PR #136)
+
+In **Crews & availability → Resource directory**, the new
+**Resource directory type breakdown** appears beneath the
+**Showing X of Y current/archived resources** status line. It
+displays two separate, read-only sets of counts:
+
+- **Directory-selected resources:** The numbers of Crew,
+  Worker, and Equipment resource records remaining after the
+  Resource Directory's current/archived resource tab, name
+  search, resource type, and retained enrollment filters
+- **Shown resource cards:** The Crew, Worker, and Equipment
+  counts currently displayed after the additional
+  **Show only resources with matching memberships** or
+  **Show only resources without matching memberships** choice
+
+When neither matching-only checkbox is enabled, both sets of
+counts agree. When a roster date, membership status, or
+membership-title/employee-name search causes the card-only
+filter to hide some resources, **Shown resource cards** can
+be lower while **Directory-selected resources** continues to
+describe the operator's directory selection. Zero-result
+states display zero for all three categories. Resource-card
+sort order, member-history sort order and expand/collapse
+state do not change either count.
+
+The counts are recomputed from resource records authorized
+for the selected organization and ignore foreign records,
+invalid resource kinds and employee records. They contain
+no names, private search text, contacts, IDs, notes or
+membership-row detail. A Crew resource is one Crew **record**,
+not a headcount of employees; neither count indicates
+available workers, scheduled labor, unused equipment or
+booking eligibility. The existing roster overview and both
+CSV reports remain unchanged.
+
+This feature is presentation-only. No database, permissions,
+API, stored records, enrollment/scheduling rules, migration,
+backup/export format, deployment, other repository, MIT
+licensing or fictional no-login demo behavior is modified.
