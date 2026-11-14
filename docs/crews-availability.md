@@ -1164,3 +1164,47 @@ No database, API, resource/roster record, authorization,
 enrollment, scheduling rule, CSV/JSON format, release,
 deployment, other repository, MIT license or fictional
 no-login demo behavior is changed.
+
+## Preview shown cards after membership filters (PR #139)
+
+The four **View crews / View workers / View equipment /
+View all resource types** buttons now display two numbers:
+**X directory, Y shown**. The first number is the same
+prospective directory count from PR #138; the second predicts
+the resource **cards that would remain visible** after clicking
+that shortcut with the current roster membership filters.
+
+Both numbers use the destination type filter, the current
+resource-name search and the current/archived resource tab.
+Worker/Crew/All retain the selected employee enrollment filter;
+Equipment always resets enrollment to All, consistent with
+the existing type shortcut. The **shown** number additionally
+applies the current **Show only resources with matching
+memberships** or **Show only resources without matching
+memberships** toggle and its membership review day,
+current/archived membership record status and
+employee-name/membership-title search. When neither card-only
+toggle is on, the two numbers are equal. When a toggle hides
+cards, the shown count can be smaller (including zero) while
+the directory count stays unchanged.
+
+The previews evaluate all four prospective choices independently
+of whichever type is currently selected. No action is needed to
+refresh them: they update as filters change. The existing stable
+button accessible names and selected states are preserved;
+assistive-technology descriptions convey both counts. The
+matching-only/no-match-only controls themselves remain the
+actual source of truth for visible cards, and exports continue
+to follow the authorized displayed selection.
+
+Counts are of historical **resource records**, not unique
+employees, free workers or booking eligibility. The helper
+rechecks organization boundaries for resources, memberships
+and linked employee names even with colliding IDs. No private
+search text, employee names, contacts, notes or IDs are
+shown in the preview, and no data is modified.
+
+No membership records, resource enrollment, availability,
+scheduling/permissions, API, database, CSV/JSON formats,
+migrations, deployment, other repository, MIT license or
+fictional no-login demo behavior changes.
