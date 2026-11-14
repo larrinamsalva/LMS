@@ -61,15 +61,34 @@ export function filteredAvailabilityPeriodsCsv(
     "Start (business local)", "End (business local)",
     "Start (UTC)", "End (UTC)", "Record status", "Business time zone",
   ];
+  // Index authorized linked display names once rather than scanning scoped
+  // records for every exported period. Keep entity types separate; preserve
+  // first-record-wins even when the first label is missing or malformed.
+  const employeeNames = new Map<string, string>();
+  const resourceNames = new Map<string, string>();
+  for (const record of scoped) {
+    if (record.entity === "employees") {
+      if (!employeeNames.has(record.id)) {
+        const name = record.data.name;
+        employeeNames.set(record.id, typeof name === "string" ? name : "");
+      }
+    } else if (record.entity === "resources") {
+      if (!resourceNames.has(record.id)) {
+        const name = record.data.name;
+        resourceNames.set(record.id, typeof name === "string" ? name : "");
+      }
+    }
+  }
   const rows = matching.map((period) => {
     const employeeId = period.data.employee;
     const resourceId = period.data.resource;
     const subjectType = employeeId ? "Employee" : resourceId ? "Resource" : "";
     const subjectId = employeeId || resourceId;
     const subjectEntity = employeeId ? "employees" : "resources";
-    const subject = scoped.find((r) =>
-      r.id === subjectId && r.entity === subjectEntity,
-    );
+    const subjectName = typeof subjectId === "string"
+      ? (subjectEntity === "employees" ? employeeNames : resourceNames)
+        .get(subjectId) ?? ""
+      : "";
     const startInstant = instant(String(period.data.start)).toString();
     const endInstant = instant(String(period.data.end)).toString();
     return [
@@ -77,7 +96,7 @@ export function filteredAvailabilityPeriodsCsv(
       typeof period.data.title === "string" ? period.data.title : "",
       typeof period.data.kind === "string" ? period.data.kind : "",
       subjectType,
-      typeof subject?.data.name === "string" ? subject.data.name : "",
+      subjectName,
       localTime(startInstant, zone),
       localTime(endInstant, zone),
       startInstant,
