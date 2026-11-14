@@ -340,3 +340,32 @@ it("categorizes unmatched resources by retained history and equipment, scoped to
   );
   expect({ selected, mixedMemberships, linked }).toEqual(before);
 });
+
+it("sorts resource cards by display name with stable ties and natural numbers", () => {
+  const selected = [
+    record("resources", "zulu", { kind: "Crew", name: "Zulu Crew" }),
+    record("resources", "alpha-upper", { kind: "Crew", name: "Alpha crew" }),
+    record("resources", "unnamed", { kind: "Worker" }),
+    record("resources", "ten", { kind: "Crew", name: "Crew 10" }),
+    record("resources", "alpha-lower", { kind: "Crew", name: "alpha Crew" }),
+    record("resources", "two", { kind: "Crew", name: "Crew 2" }),
+    record("resources", "foreign", { kind: "Crew", name: "AAA PRIVATE" },
+      false, OTHER),
+  ];
+  const original = structuredClone({ selected, memberships, linked });
+  const ids = (sort: "directory" | "name-asc" | "name-desc") =>
+    orderRosterResourcesByMatchingCount(
+      selected, memberships, linked, ORG, day, sort,
+    ).map((resource) => resource.id);
+  expect(ids("directory")).toEqual([
+    "zulu", "alpha-upper", "unnamed", "ten", "alpha-lower", "two",
+  ]);
+  expect(ids("name-asc")).toEqual([
+    "unnamed", "alpha-upper", "alpha-lower", "two", "ten", "zulu",
+  ]);
+  expect(ids("name-desc")).toEqual([
+    "zulu", "ten", "two", "alpha-upper", "alpha-lower", "unnamed",
+  ]);
+  // Equal case-insensitive names retain their original directory sequence.
+  expect({ selected, memberships, linked }).toEqual(original);
+});

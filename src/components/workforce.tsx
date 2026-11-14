@@ -602,13 +602,15 @@ export function Workforce({
           </label>
           <div>
             <label htmlFor="resource-card-count-sort">
-              Sort resources by matching memberships
+              Sort resource cards
             </label>
             <select id="resource-card-count-sort" value={resourceCountSort}
               onChange={(event) => setResourceCountSort(
                 event.target.value as RosterResourceCountSort,
               )}>
               <option value="directory">Original directory order</option>
+              <option value="name-asc">Resource name A–Z</option>
+              <option value="name-desc">Resource name Z–A</option>
               <option value="most">Most matching memberships first</option>
               <option value="fewest">Fewest matching memberships first</option>
             </select>

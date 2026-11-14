@@ -418,3 +418,24 @@ it("does not export membership detail rows when only zero-match resources are se
   );
   expect(original.trimEnd().split("\r\n")).toHaveLength(4);
 });
+
+it("orders detailed membership CSV resource groups by resource name", () => {
+  const asc = filteredResourceMembershipsCsv(records, ORG, "UTC", {
+    ...view, resourceSort: "name-asc",
+  });
+  const desc = filteredResourceMembershipsCsv(records, ORG, "UTC", {
+    ...view, resourceSort: "name-desc",
+  });
+  expect(asc).toContain('"Blue Crew"');
+  expect(asc).toContain('"East Worker"');
+  expect(asc.indexOf('"Blue Crew"')).toBeLessThan(
+    asc.indexOf('"East Worker"'),
+  );
+  expect(desc.indexOf('"East Worker"')).toBeLessThan(
+    desc.indexOf('"Blue Crew"'),
+  );
+  expect(asc).not.toContain("FOREIGN");
+  expect(desc).not.toContain("FOREIGN");
+  expect(asc).not.toContain("PRIVATE");
+  expect(desc).not.toContain("PRIVATE");
+});
