@@ -345,7 +345,7 @@ it("sorts resource cards by display name with stable ties and natural numbers", 
   const selected = [
     record("resources", "zulu", { kind: "Crew", name: "Zulu Crew" }),
     record("resources", "alpha-upper", { kind: "Crew", name: "Alpha crew" }),
-    record("resources", "unnamed", { kind: "Worker", name: null }),
+    record("resources", "unnamed", { kind: "Worker" }),
     record("resources", "ten", { kind: "Crew", name: "Crew 10" }),
     record("resources", "alpha-lower", { kind: "Crew", name: "alpha Crew" }),
     record("resources", "two", { kind: "Crew", name: "Crew 2" }),
