@@ -4,6 +4,7 @@ import {
   resourceNameSearchRecoveryCount,
   resourceEnrollmentRecoveryCount,
   resourceTypeRecoveryCount,
+  combinedResourceDirectoryRecoveryCount,
 } from "../../src/core/resource-name-search-recovery";
 
 const ORG = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -148,4 +149,49 @@ it("does not leak foreign organizations or let foreign memberships enroll local 
   expect(recoverType("Southern Worker", "Crew", "enrolled")).toBe(0);
   expect(recoverType("Southern Worker", "Crew", "resource-only")).toBe(1);
   expect(recoverType("foreign-link", "Crew", "all")).toBe(0);
+});
+
+
+const recoverCombination = (
+  search: string, kind: "all" | "Crew" | "Worker" | "Equipment" = "all",
+  enrollment: "all" | "enrolled" | "resource-only" = "all",
+  archived = false,
+) => combinedResourceDirectoryRecoveryCount(
+  resources, memberships, ORG, archived, search, kind, enrollment,
+);
+
+it("recovers only combined filter dead ends where no single change is sufficient", () => {
+  const snapshot = structuredClone({ resources, memberships });
+  expect(recoverCombination("NO SUCH RESOURCE", "Equipment", "enrolled")).toBe(3);
+  expect(recoverCombination("NO SUCH RESOURCE", "Equipment", "resource-only")).toBe(3);
+  // In the archived view there is only a resource-only Worker, and neither
+  // clearing Crew nor enrolled-only would recover it independently.
+  expect(recoverCombination("", "Crew", "enrolled", true)).toBe(1);
+  expect(recoverCombination("  ", "Crew", "enrolled", true)).toBe(1);
+  expect({ resources, memberships }).toEqual(snapshot);
+});
+
+it("prefers a useful single-filter recovery and never suggests a combined reset for a nonempty view", () => {
+  // The name-only reset restores the current Crew.
+  expect(recoverCombination("NO SUCH RESOURCE", "Crew", "all")).toBe(0);
+  // A type-only reset finds the Northern Crew.
+  expect(recoverCombination("Northern Crew", "Worker", "all")).toBe(0);
+  // Enrollment-only reset finds the Worker.
+  expect(recoverCombination("Southern Worker", "Worker", "enrolled")).toBe(0);
+  // A different resource-only Worker exists when just name search is cleared.
+  expect(recoverCombination("Northern Crew", "Worker", "resource-only")).toBe(0);
+  expect(recoverCombination("Northern Crew", "Crew", "all")).toBe(0);
+  expect(recoverCombination("", "all", "enrolled")).toBe(0);
+  expect(recoverCombination("", "all", "all")).toBe(0);
+});
+
+it("keeps organization and current/archived scope and does not expose foreign records", () => {
+  expect(recoverCombination("PRIVATE FOREIGN", "Equipment", "enrolled")).toBe(3);
+  expect(recoverCombination("PRIVATE FOREIGN", "Equipment", "enrolled", true)).toBe(1);
+  // A fake organization without any accessible resource must not be offered a reset.
+  expect(combinedResourceDirectoryRecoveryCount(
+    resources, memberships, "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    false, "no-such-resource", "Equipment", "enrolled",
+  )).toBe(0);
+  expect(recoverCombination("NO SUCH RESOURCE", "Equipment", "enrolled", true)).toBe(1);
 });

@@ -45,6 +45,7 @@ import {
   resourceNameSearchRecoveryCount,
   resourceEnrollmentRecoveryCount,
   resourceTypeRecoveryCount,
+  combinedResourceDirectoryRecoveryCount,
 } from "../core/resource-name-search-recovery";
 import {
   previewResourceTypeQuickViews,
@@ -178,6 +179,10 @@ export function Workforce({
     resourceSearch, resourceType, resourceEnrollment,
   );
   const recoverableResourceTypes = resourceTypeRecoveryCount(
+    scopedResources, scopedMemberships, organizationId, history,
+    resourceSearch, resourceType, resourceEnrollment,
+  );
+  const recoverableCombinedDirectoryResources = combinedResourceDirectoryRecoveryCount(
     scopedResources, scopedMemberships, organizationId, history,
     resourceSearch, resourceType, resourceEnrollment,
   );
@@ -1081,6 +1086,28 @@ export function Workforce({
             <button type="button" className="secondary"
               onClick={() => setResourceType("all")}>
               Show all resource types (keep other filters)
+            </button>
+          </div>
+        )}
+        {recoverableCombinedDirectoryResources > 0 && (
+          <div role="group" aria-label="Recover combined directory filters">
+            <p className="muted">
+              Several directory filters together hide every resource,
+              and clearing any one filter alone would not help.
+              Clearing resource name search, type and enrollment together
+              would restore{" "}{recoverableCombinedDirectoryResources}{" "}
+              resource{recoverableCombinedDirectoryResources === 1 ? "" : "s"}
+              {" "}in the current/archived resource view.
+              Membership review filters and card-only selection stay in place,
+              so they may still hide some resource cards.
+            </p>
+            <button type="button" className="secondary"
+              onClick={() => {
+                setResourceSearch("");
+                setResourceType("all");
+                setResourceEnrollment("all");
+              }}>
+              Reset directory selection (keep roster review)
             </button>
           </div>
         )}

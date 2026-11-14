@@ -248,10 +248,17 @@ test("fictional crews and workers publish availability, schedule both industries
     const clearResourceType = recoverResourceType.getByRole("button", {
       name: "Show all resource types (keep other filters)", exact: true,
     });
+    const recoverCombined = page.getByRole("group", {
+      name: "Recover combined directory filters", exact: true,
+    });
+    const clearCombined = recoverCombined.getByRole("button", {
+      name: "Reset directory selection (keep roster review)", exact: true,
+    });
     await resourceSearch.fill(resource.toUpperCase());
     await expect(resourceCard).toBeVisible();
     await expect(recoverEnrollment).toHaveCount(0);
     await expect(recoverResourceType).toHaveCount(0);
+    await expect(recoverCombined).toHaveCount(0);
     const resourceTypes = page.getByRole("group", {
       name: "Resource directory type breakdown", exact: true,
     });
@@ -305,6 +312,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCard).toHaveCount(0);
     await expect(recoverNameSearch).toHaveCount(0);
     await expect(recoverEnrollment).toHaveCount(0);
+    await expect(recoverCombined).toHaveCount(0);
     await expect(recoverResourceType).toContainText(
       "Switching only to All resource types would restore",
     );
@@ -331,6 +339,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCard).toBeVisible();
     await resourceEnrollment.selectOption("enrolled");
     await expect(resourceCard).toHaveCount(0);
+    await expect(recoverCombined).toHaveCount(0);
     await expect(recoverResourceType).toHaveCount(0);
     await expect(recoverEnrollment).toContainText(
       "Selecting All enrollment types would restore",
@@ -368,6 +377,44 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceTypes).toContainText(
       "Directory-selected resources: " + oneResourceKind,
     );
+    // No single adjustment can rescue a search + type + enrollment dead end.
+    // Preserve the business-local roster review while recovering the directory.
+    const reviewStatusForRecovery = page.getByLabel(
+      "Filter membership record status", { exact: true },
+    );
+    const reviewSearchForRecovery = page.getByLabel(
+      "Search roster memberships", { exact: true },
+    );
+    await reviewStatusForRecovery.selectOption("archived");
+    await reviewSearchForRecovery.fill("another-no-such-member");
+    await resourceType.selectOption("Equipment");
+    await resourceSearch.fill("no-such-resource-for-combined-recovery");
+    await expect(resourceCard).toHaveCount(0);
+    await expect(recoverNameSearch).toHaveCount(0);
+    await expect(recoverEnrollment).toHaveCount(0);
+    await expect(recoverResourceType).toHaveCount(0);
+    await expect(recoverCombined).toContainText(
+      "clearing any one filter alone would not help",
+    );
+    await expect(recoverCombined).toContainText(
+      "would restore",
+    );
+    await expect(recoverCombined).not.toContainText(resource);
+    await clearCombined.click();
+    await expect(resourceSearch).toHaveValue("");
+    await expect(resourceType).toHaveValue("all");
+    await expect(resourceEnrollment).toHaveValue("all");
+    await expect(reviewStatusForRecovery).toHaveValue("archived");
+    await expect(reviewSearchForRecovery).toHaveValue("another-no-such-member");
+    await expect(recoverCombined).toHaveCount(0);
+    await expect(resourceCard).toBeVisible();
+    await reviewStatusForRecovery.selectOption("all");
+    await reviewSearchForRecovery.fill("");
+    // Return to the original resource selection for the rest of the flow.
+    await resourceSearch.fill(resource.toUpperCase());
+    await resourceType.selectOption(industry === "cleaning" ? "Crew" : "Worker");
+    await resourceEnrollment.selectOption("resource-only");
+    await expect(resourceCard).toBeVisible();
     await equipmentButton.click();
     await expect(resourceType).toHaveValue("Equipment");
     await expect(resourceEnrollment).toHaveValue("all");
@@ -384,6 +431,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await resourceSearch.fill("no-such-resource");
     await expect(recoverEnrollment).toHaveCount(0);
     await expect(recoverResourceType).toHaveCount(0);
+    await expect(recoverCombined).toHaveCount(0);
     await expect(matchingTypeButton).toContainText("(0 directory, 0 shown)");
     await expect(otherTypeButton).toContainText("(0 directory, 0 shown)");
     await expect(equipmentButton).toContainText("(0 directory, 0 shown)");

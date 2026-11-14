@@ -1375,3 +1375,49 @@ contact information or notes. No saved records, enrollment
 classification, scheduling, permissions, database/API,
 migration, CSV/JSON format, deployment, other repository,
 MIT license or fictional public no-login demo changes.
+
+## Recover a directory hidden by multiple filters together (PR #144)
+
+If the **resource name search**, **resource type**, and/or
+**employee enrollment** filters interact to hide every resource,
+a single-filter recovery might not be enough. LMS now checks
+for this special combination of at least **two active
+directory filters**, when zero directory resources are selected.
+
+If the existing individual **Clear resource name search**,
+**Show all enrollment types**, and **Show all resource types**
+recoveries would *all* still leave the directory empty, but
+clearing the three directory controls together would restore
+authorized resource records, the empty state offers
+**Reset directory selection (keep roster review)** with a
+privacy-safe count of records that would return.
+
+Unlike the existing **Clear resource filters**, this targeted
+recovery resets *only* directory name search, resource type
+and employee enrollment to their defaults. It preserves:
+
+- Current or archived resource tab
+- The membership review period, business-local day, current/
+  archived membership record status, and member name/title search
+- Matching-only and without-matches-only roster-card filters
+- Resource-card and membership-row sort order, and each card's
+  expanded or collapsed state
+
+The existing single-filter recovery takes priority whenever
+clearing just one control would suffice. No combined suggestion
+appears if the directory is already nonempty, fewer than two
+directory filters are active, or the chosen current/archived
+tab itself contains no resource records. If a retained
+membership-only card filter still hides the restored directory
+selection, **Show all selected resource cards (keep filters)**
+can be used separately without touching the roster day.
+
+All recovery counts recheck the current organization for
+resource and retained membership records. No names, raw
+search terms, IDs, contacts or private membership details
+are exposed, and these counts represent historical resource
+**records**, not workers available to book or staffing
+capacity. No saved records, permissions, enrollment history,
+scheduling rules, APIs, database, migration, CSV/JSON formats,
+release, deployment, other repository, MIT license or
+fictional public no-login demo behavior changes.

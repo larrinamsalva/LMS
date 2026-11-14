@@ -105,3 +105,49 @@ export function resourceTypeRecoveryCount(
     scopedResources, scopedMemberships, showArchived, search, "all", enrollment,
   ).length;
 }
+
+/**
+ * Last-resort directory recovery when a *combination* of active name/type/
+ * enrollment filters hides every resource and none of the single-filter
+ * recovery shortcuts can help. Keep the current/archived resource tab and
+ * all roster history filters when the operator deliberately chooses it.
+ *
+ * Return only the number of in-scope records restored by clearing the three
+ * directory filters together. Never expose names or internal identifiers.
+ */
+export function combinedResourceDirectoryRecoveryCount(
+  resources: readonly WorkspaceRecord[],
+  memberships: readonly WorkspaceRecord[],
+  organizationId: string,
+  showArchived: boolean,
+  search: string,
+  kind: WorkforceResourceTypeFilter,
+  enrollment: WorkforceResourceEnrollmentFilter,
+): number {
+  const activeCount = Number(search.trim().length > 0) +
+    Number(kind !== "all") + Number(enrollment !== "all");
+  if (activeCount < 2) return 0;
+  const scopedResources = resources.filter((resource) =>
+    resource.organization_id === organizationId,
+  );
+  const scopedMemberships = memberships.filter((membership) =>
+    membership.organization_id === organizationId,
+  );
+  if (filterWorkforceResourceDirectory(
+    scopedResources, scopedMemberships, showArchived, search, kind, enrollment,
+  ).length > 0) return 0;
+  // Prefer the smaller, context-preserving recovery when it suffices.
+  if (resourceNameSearchRecoveryCount(
+    scopedResources, scopedMemberships, organizationId, showArchived,
+    search, kind, enrollment,
+  ) > 0 || resourceEnrollmentRecoveryCount(
+    scopedResources, scopedMemberships, organizationId, showArchived,
+    search, kind, enrollment,
+  ) > 0 || resourceTypeRecoveryCount(
+    scopedResources, scopedMemberships, organizationId, showArchived,
+    search, kind, enrollment,
+  ) > 0) return 0;
+  return filterWorkforceResourceDirectory(
+    scopedResources, scopedMemberships, showArchived, "", "all", "all",
+  ).length;
+}
