@@ -1835,3 +1835,39 @@ authority. There are no changes to UI, permissions, stored data,
 database/API/migrations, CSV schema, deployment/releases, MIT
 license, fictional public no-login demo or any other repository
 (including ForgeOS).
+
+
+## Reused member-search results in detailed roster CSV (PR #157)
+
+For a nonblank member-name or membership-title search, the detailed
+roster CSV now evaluates the authorized membership search **once per
+export**, then reuses its matching retained **record references**
+across resource cards. Previously the export repeated the linked
+employee-name index and search for every card after each date/status
+filter. The title/employee search is independent of those filters,
+so each card now intersects its status- and date-filtered rows with
+the previously computed matching records.
+
+A blank or whitespace-only search skips the extra match set entirely.
+Using **record identity rather than membership IDs** is important:
+historical retained records may share an ID, and each revision
+must retain its own match result and visible occurrence. Duplicate
+resource cards that share a local ID also keep their prior output.
+The original first-matching employee name behavior (even with
+malformed names), same-organization separation, archived history,
+business-local DST review, all existing sorting, CSV columns and
+spreadsheet formula protection remain unchanged.
+
+The regression suite copies the old exporter and checks **byte-for-byte
+CSV equality** across **720 fictional membership records** and
+multiple member searches, archive/status/date settings, card filters
+and sort orders, duplicate local IDs, repeated record references,
+malformed employee links and private foreign records. These are
+correctness checks, not measured speed benchmarks.
+
+This is an internal, read-only export optimization. Matching retained
+membership records do not establish current staffing availability or
+booking eligibility. There are no changes to persisted history,
+permissions, UI, API/databases/migrations, CSV schema,
+release/deployment, MIT license, the fictional no-login public demo,
+or other repositories, including ForgeOS.
