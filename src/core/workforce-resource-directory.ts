@@ -46,3 +46,33 @@ export function filterWorkforceResourceDirectory(
       resource.data.name.toLocaleLowerCase().includes(query);
   });
 }
+
+export interface WorkforceResourceTypeBreakdown {
+  crews: number;
+  workers: number;
+  equipment: number;
+  total: number;
+}
+
+/**
+ * Counts only authorized, valid resource records in a caller-selected view.
+ * Use with the directory-filtered subset or the shown-card subset, never to
+ * determine available workers, scheduling capacity or booking eligibility.
+ * Recheck resource entity, kind and organization even for mixed inputs.
+ */
+export function summarizeWorkforceResourceTypes(
+  resources: readonly WorkspaceRecord[],
+  organizationId: string,
+): WorkforceResourceTypeBreakdown {
+  let crews = 0;
+  let workers = 0;
+  let equipment = 0;
+  for (const resource of resources) {
+    if (resource.entity !== "resources" ||
+        resource.organization_id !== organizationId) continue;
+    if (resource.data.kind === "Crew") crews += 1;
+    else if (resource.data.kind === "Worker") workers += 1;
+    else if (resource.data.kind === "Equipment") equipment += 1;
+  }
+  return { crews, workers, equipment, total: crews + workers + equipment };
+}
