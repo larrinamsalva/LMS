@@ -201,6 +201,11 @@ export function Workforce({
       status: rosterStatus, search: rosterSearch,
     }, resourceCountSort,
   );
+  // A selected resource may be present even though a roster-card-only
+  // filter hides every card. Offer a reversible, narrow recovery in that case.
+  const emptyRosterCardsRecoverable = displayedResources.length > 0 &&
+    shownRosterResources.length === 0 &&
+    (onlyMatchingRosterResources || onlyWithoutMatchingRosterResources);
   const directoryResourceTypeCounts = summarizeWorkforceResourceTypes(
     displayedResources, organizationId,
   );
@@ -1011,6 +1016,27 @@ export function Workforce({
                   ? "Every selected resource has a matching membership record."
                   : "No resources match these filters."}
           </p>
+        )}
+        {emptyRosterCardsRecoverable && (
+          <div role="group" aria-label="Restore hidden resource cards">
+            <p className="muted">
+              {displayedResources.length} directory-selected resource
+              {displayedResources.length === 1 ? "" : "s"} remain,
+              but the {onlyMatchingRosterResources
+                ? "matching-only" : "without-matches-only"} roster view hides
+              every card. This is a historical roster match, not evidence
+              of workforce or equipment availability.
+            </p>
+            <button type="button" className="secondary"
+              onClick={() => {
+                // Restore cards only; keep resource type/enrollment/search,
+                // review day/status/name search, sorting and collapse state.
+                setOnlyMatchingRosterResources(false);
+                setOnlyWithoutMatchingRosterResources(false);
+              }}>
+              Show all selected resource cards (keep filters)
+            </button>
+          </div>
         )}
       </section>
       <section className="panel" aria-labelledby="availability-heading">
