@@ -14,6 +14,7 @@ import {
 } from "../core/workforce-availability-filter";
 import {
   filterWorkforceResourceDirectory,
+  summarizeWorkforceResourceTypes,
   type WorkforceResourceTypeFilter,
   type WorkforceResourceEnrollmentFilter,
 } from "../core/workforce-resource-directory";
@@ -183,6 +184,12 @@ export function Workforce({
       mode: rosterMode, date: rosterDate, zone,
       status: rosterStatus, search: rosterSearch,
     }, resourceCountSort,
+  );
+  const directoryResourceTypeCounts = summarizeWorkforceResourceTypes(
+    displayedResources, organizationId,
+  );
+  const shownResourceTypeCounts = summarizeWorkforceResourceTypes(
+    shownRosterResources, organizationId,
   );
   const collapsedShownRosterCount = shownRosterResources.filter((resource) =>
     collapsedRosterCards.includes(
@@ -675,6 +682,24 @@ export function Workforce({
           Showing {shownRosterResources.length} of {currentResources.length}
           {" "}{history ? "archived" : "current"} resources.
         </p>
+        <div role="group" aria-label="Resource directory type breakdown">
+          <p>
+            Directory-selected resources: Crews: {directoryResourceTypeCounts.crews}.
+            {" "}Workers: {directoryResourceTypeCounts.workers}.
+            {" "}Equipment: {directoryResourceTypeCounts.equipment}.
+          </p>
+          <p>
+            Shown resource cards: Crews: {shownResourceTypeCounts.crews}.
+            {" "}Workers: {shownResourceTypeCounts.workers}.
+            {" "}Equipment: {shownResourceTypeCounts.equipment}.
+          </p>
+          <p className="muted">
+            Directory-selected counts follow resource name, type and
+            enrollment filters. Shown-card counts also reflect the
+            matching-only or without-matches-only roster view.
+            These are resource records, not staff headcounts or availability.
+          </p>
+        </div>
         <div role="group" aria-label="Roster membership overview">
           <h3>Roster membership overview</h3>
           <div role="group" aria-label="Current roster review scope">
