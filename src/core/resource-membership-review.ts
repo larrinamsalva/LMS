@@ -321,19 +321,23 @@ export function summarizeUnmatchedRosterResources(
   const unmatched = resourcesWithoutMatchingRosterMemberships(
     selected, memberships, linkedRecords, organizationId, view,
   );
-  const scopedMemberships = memberships.filter((membership) =>
-    membership.entity === "resource-memberships" &&
-    membership.organization_id === organizationId,
-  );
+  // Classify historical enrollment once for the full directory view.
+  // Keep archived retained records; only same-organization, valid string
+  // resource links can match an authorized resource ID.
+  const historicallyEnrolledResourceIds = new Set<string>();
+  for (const membership of memberships) {
+    if (membership.entity !== "resource-memberships" ||
+        membership.organization_id !== organizationId ||
+        typeof membership.data.resource !== "string") continue;
+    historicallyEnrolledResourceIds.add(membership.data.resource);
+  }
   let enrolledWithoutMatching = 0;
   let resourceOnlyWithoutMatching = 0;
   let equipmentWithoutMatching = 0;
   for (const resource of unmatched) {
     if (resource.data.kind === "Equipment") {
       equipmentWithoutMatching += 1;
-    } else if (scopedMemberships.some((membership) =>
-      membership.data.resource === resource.id,
-    )) {
+    } else if (historicallyEnrolledResourceIds.has(resource.id)) {
       enrolledWithoutMatching += 1;
     } else {
       resourceOnlyWithoutMatching += 1;

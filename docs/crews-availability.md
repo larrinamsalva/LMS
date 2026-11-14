@@ -1539,3 +1539,33 @@ No UI controls, database schema, APIs, exports, authorization, live
 scheduling, booking eligibility, record mutation, installation,
 deployment, MIT license, public fictional no-login demo, or any other
 repository (including ForgeOS) are changed by this optimization.
+
+
+## Indexed retained enrollment in unmatched roster summaries (PR #148)
+
+The unmatched-roster overview separately identifies resources with historic
+enrollment, resources with no retained enrollment, and equipment. LMS now
+builds a temporary organization-scoped set of retained resource links **once
+per overview calculation** rather than scanning every membership record for
+each unmatched Worker or Crew. The lookup includes archived memberships
+regardless of the current historic review day, status or title/employee search,
+because those filters only control visible matching history; they do not
+erase historical enrollment.
+
+Only valid string resource links on `resource-memberships` records within
+the requested organization enter the set. Foreign organization ID collisions,
+unrelated record types and malformed links never imply local enrollment.
+Equipment always remains in the equipment category, not an enrolled Worker
+or Crew. No result indicates staffing availability or permission to book.
+
+Independent reference tests reproduce the previous per-resource `.some()`
+scan and compare classifications with **720 fictional membership records**,
+duplicate local resource IDs, archival status, resource type, malformed
+links, foreign organization collisions, selected directories and multiple
+historic review filters. These are correctness regressions, not measured
+performance benchmarks.
+
+This is internal read-only computation. There are no changes to saved
+records, UI controls, database/API/export schemas, permissions, scheduling,
+availability, booking decisions, release/deployment, MIT license, the public
+fictional no-login demo, or other repositories (including ForgeOS).
