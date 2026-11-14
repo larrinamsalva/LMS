@@ -112,6 +112,15 @@ export function filteredResourceMembershipsCsv(
     "Effective end (UTC)", "Business time zone",
   ];
   const rows: string[][] = [];
+  // A nonblank member-name/title search is independent of resource, status
+  // and day filters. Evaluate it once against authorized canonical rows and
+  // reuse the matching record *references* per card (not IDs, which may
+  // repeat across historical records). Blank search needs no index.
+  const matchingMemberRows = view.memberSearch.trim()
+    ? new Set(filterResourceMembershipsByName(
+      memberships, scoped, view.memberSearch,
+    ))
+    : null;
   // Group retained same-organization memberships once per export. Keep the
   // canonical membership order and preserve identical results for duplicate
   // local resource cards that share an ID.
@@ -135,13 +144,13 @@ export function filteredResourceMembershipsCsv(
       : resourceMembershipRowsForReview(
         all, resource, view.mode, view.date, zone,
       );
-    const shown = orderResourceMembershipsByStart(
-      filterResourceMembershipsByName(
-        filterResourceMembershipRecordStatus(dateRows, view.membershipStatus),
-        scoped, view.memberSearch,
-      ),
-      view.sort,
+    const statusRows = filterResourceMembershipRecordStatus(
+      dateRows, view.membershipStatus,
     );
+    const nameRows = matchingMemberRows
+      ? statusRows.filter((membership) => matchingMemberRows.has(membership))
+      : statusRows;
+    const shown = orderResourceMembershipsByStart(nameRows, view.sort);
     for (const membership of shown) {
       const start = dateValue(membership.data.start);
       const end = dateValue(membership.data.end);
