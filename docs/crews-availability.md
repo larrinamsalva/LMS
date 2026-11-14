@@ -1087,3 +1087,40 @@ This feature is presentation-only. No database, permissions,
 API, stored records, enrollment/scheduling rules, migration,
 backup/export format, deployment, other repository, MIT
 licensing or fictional no-login demo behavior is modified.
+
+## One-click resource type quick views (PR #137)
+
+The **Resource directory type breakdown** now includes four
+accessible, selected-state buttons: **View crews**, **View workers**,
+**View equipment**, and **View all resource types**. These shortcuts
+set the same **Filter resource type** dropdown already used by the
+directory, so the directory-selected and shown-card type counts
+and CSV downloads stay consistent with the visible resource cards.
+
+The quick views preserve resource-name search, current/archived
+resource tab, roster membership review date/status/name/title
+search, enrollment selection for Crew/Worker/All, membership
+card-only matching options, sorting and expand/collapse state.
+Choosing **Equipment** resets **Filter employee enrollment**
+to **All enrollment types**, because Equipment has no employee
+enrollment and an enrolled-only or resource-only equipment
+selection would otherwise show an apparently empty directory.
+Afterward, **View all resource types** keeps enrollment at All;
+an operator can manually reselect a different enrollment filter.
+The shortcut for the currently selected resource type remains
+marked as selected, and any type can be selected directly even
+when the preceding type filter produced zero results.
+
+The count labels above the buttons continue to reflect the
+current resource filters, not counts for hypothetical alternative
+filters. Consequently, choosing **View all resource types**
+does not automatically clear resource-name search or an
+existing Worker/Crew enrollment filter; the existing
+**Clear resource filters** remains the full reset.
+
+This is only a presentation shortcut. Each Crew/Worker/Equipment
+number counts resource records, **not** people, booking capacity,
+available staff, or equipment ready to schedule. No saved data,
+roster/enrollment rules, permissions, CSV formats, API, database,
+migrations, deployment, other repository, MIT licensing or
+fictional no-login demonstration is changed.
