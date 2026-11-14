@@ -1595,3 +1595,35 @@ No UI controls, data or permissions, scheduling/availability/booking rules,
 database/API/migrations, CSV/JSON exports, deployments/releases, MIT license,
 fictional public no-login demo, or other repositories including ForgeOS
 have changed.
+
+
+## Organization-scoped staff-assignment history search index (PR #150)
+
+Retained staff-assignment search continues matching snapshot employee names
+and roles, along with linked appointment titles and resource display names
+from the **same organization**. To avoid searching all linked records twice
+for each assignment, nonblank searches now build temporary per-organization
+indexes of appointment titles and resource names once per invocation. Each
+index is also separated by entity type and preserves the previous
+`find()` behavior: the first matching record wins even when that first
+record's display label is missing or malformed.
+
+A blank or whitespace-only search returns assignment rows filtered by their
+existing reserved/released status without constructing indexes or reading
+linked records. Nonblank searches still preserve the assignment source
+order, active/released filters and saved snapshot employee name/role.
+Never search internal IDs, skills, private contacts, notes, foreign records,
+or mutable employee-profile names.
+
+An independent implementation of the old scan-based lookup is compared
+against the indexed implementation across **720 fictional assignment
+revisions**, all status choices, mixed organizations, archived resources,
+case-insensitive search, malformed/duplicate labels and missing links.
+These regression tests demonstrate **matching-result correctness**, not
+measured real-world performance.
+
+This is an internal, nonpersisting, read-only optimization. It does not
+change assignment history, employee or resource availability, booking,
+permissions, UI controls, API/database/migrations, CSV/JSON exports,
+releases/deployment, MIT license, the fictional no-login demo or any
+other repository including ForgeOS.
