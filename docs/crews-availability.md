@@ -1421,3 +1421,44 @@ capacity. No saved records, permissions, enrollment history,
 scheduling rules, APIs, database, migration, CSV/JSON formats,
 release, deployment, other repository, MIT license or
 fictional public no-login demo behavior changes.
+
+## Indexed Resource Directory enrollment filtering (PR #145)
+
+The **Resource Directory** enrollment filter remains a
+read-only classification of Crew and Worker resource records,
+based on whether *any* dated resource membership has ever
+been retained. Archived membership records still count as
+enrollment. Equipment has no employee enrollment and is
+excluded when the filter is **Enrolled** or **Resource-only**.
+
+To keep resource browsing responsive as lists grow, the
+directory now prepares an organization-separated lookup of
+retained resource memberships **once per filter evaluation**,
+rather than scanning the entire membership history for each
+Worker or Crew. This changes the enrollment lookup work from
+a repeated per-resource scan to one membership pass plus
+resource lookups; it is not a database or cache migration.
+
+The resulting visible resources, original resource ordering,
+archived/current tab, name search, type and enrollment
+selection, zero-result recoveries, type preview counts,
+roster-card view and CSV reporting all retain their
+existing semantics. No archived history is discarded.
+Organizations that reuse resource IDs remain separate; a
+membership from another organization cannot enroll a
+resource in the current organization.
+
+Automated tests compare the optimized result with an
+independent reference implementation across a mixed
+720-resource fixture, including duplicates, retained
+archived memberships, foreign-organization records,
+invalid entities, all type/enrollment options, archived
+and current tabs, and name-search variations. This is
+a correctness regression test, **not** a measured
+performance benchmark or proof of browser load speed.
+
+No interface controls or saved data change, and no change
+is made to booking eligibility, availability, member
+history, permissions, database/API/migrations, CSV/JSON
+formats, releases, deployment, other repositories, MIT
+licensing or the fictional public no-login demo.
