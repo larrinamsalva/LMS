@@ -1797,3 +1797,41 @@ individual employee headcount, live availability or booking authority.
 No UI, permissions, stored records, APIs/databases/migrations, CSV
 columns/format, deployment/release, MIT license, fictional public
 no-login demo or other repository including ForgeOS is changed.
+
+
+## Indexed retained membership groups for detailed roster CSV (PR #156)
+
+The detailed resource-roster membership CSV now groups retained
+same-organization `resource-memberships` records by their resource
+link **once per export**. The former implementation re-scanned the
+entire retained membership collection twice for every displayed
+resource card: once to establish historical enrollment and once to
+select the roster review-day rows. The new grouping retains the
+original membership order, including archived records, and reuses
+the grouped list for all-history reviews. For selected-day reviews,
+the existing DST-safe date-overlap filter still runs, but only over
+that resource's previously grouped rows.
+
+Only `resource-memberships` in the authorized organization with
+string resource links enter the temporary groups. Duplicate local
+resource cards with the same ID still show the same historical
+membership rows, while foreign organizations and malformed links
+cannot leak into any exported card. The existing resource directory
+filters, selected date and archive filters, title/employee-name search,
+resource and membership sorting, retained enrollment labels,
+business-local and UTC date formatting, CSV columns and
+spreadsheet-formula escaping remain unchanged.
+
+An independent copy of the earlier detailed CSV exporter compares
+**byte-for-byte output** over **720 fictional membership records**
+with multiple review and sorting selections, duplicate local IDs,
+archived history, foreign resource collisions, malformed timestamps,
+invalid dates, and DST fold hours. This is a correctness regression,
+not a measured performance benchmark.
+
+Membership rows are retained historical records, not evidence of
+current employee availability, scheduling eligibility or booking
+authority. There are no changes to UI, permissions, stored data,
+database/API/migrations, CSV schema, deployment/releases, MIT
+license, fictional public no-login demo or any other repository
+(including ForgeOS).
