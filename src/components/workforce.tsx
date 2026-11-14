@@ -39,6 +39,7 @@ import {
   filteredRosterResourceSummaryCsv,
   rosterSummaryFilterContext,
 } from "../core/resource-roster-summary-csv";
+import { membershipReviewFiltersActive } from "../core/roster-review-reset";
 import {
   rosterGapCategoryFilters,
   type RosterGapCategory,
@@ -243,6 +244,9 @@ export function Workforce({
   const rosterCategoryNarrowed =
     resourceType !== "all" || resourceEnrollment !== "all" ||
     onlyMatchingRosterResources || onlyWithoutMatchingRosterResources;
+  const memberReviewFiltersActive = membershipReviewFiltersActive(
+    rosterMode, rosterStatus, rosterSort, rosterSearch,
+  );
   const resourceFiltersActive = resourceSearch.trim().length > 0 ||
     resourceType !== "all" || resourceEnrollment !== "all" ||
     rosterMode !== "all" || rosterStatus !== "all" ||
@@ -633,6 +637,20 @@ export function Workforce({
               />
             </div>
           )}
+          <button type="button" className="secondary"
+            disabled={!memberReviewFiltersActive}
+            onClick={() => {
+              // Reset only membership review controls; resource-directory
+              // search/type/enrollment, card selection, card order and
+              // per-card collapse state remain untouched.
+              setRosterMode("all");
+              setRosterStatus("all");
+              setRosterSort("retained");
+              setRosterSearch("");
+              setRosterDate(date);
+            }}>
+            Reset membership review (keep resource filters)
+          </button>
           {resourceFiltersActive && (
             <button type="button" className="secondary" onClick={() => {
               setResourceSearch("");
