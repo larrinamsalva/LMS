@@ -1763,3 +1763,37 @@ permissions, staffing availability, booking eligibility, UI controls,
 saved records, API/database/migrations, CSV schema, release/deployment,
 MIT licensing, the fictional public no-login demo, or other
 repositories including ForgeOS.
+
+
+## Indexed retained memberships for roster-summary CSV (PR #155)
+
+The one-row-per-resource historical roster summary CSV now groups retained
+`resource-memberships` records by their same-organization resource link
+**once per export**, preserving original membership order. Previously,
+each displayed resource card independently scanned the whole retained
+membership list to count all history and then scanned the list again
+for the selected business-local review day. All-history exports now
+reuse the same grouped records for both purposes.
+
+The selected-day view still delegates date-overlap validation to the
+existing DST-safe roster review helper, using only the resource's
+already-grouped membership history. The original archived/current,
+employee-name/title search, directory/type/enrollment selection,
+matching-only/without-matches choices, count/name sorting, and
+spreadsheet-safe CSV escaping are unchanged. Duplicate local resource
+cards with the same ID continue showing the same retained membership
+counts. Foreign-organization memberships, unrelated record types
+and malformed non-string resource links cannot enter a local group.
+
+An independent copy of the prior summary exporter compares **exact
+CSV output** against the grouped version across **720 fictional
+membership records**, multiple selected views, duplicate local and
+foreign resource IDs, archived memberships, malformed timestamps and
+business-local DST boundaries. This is a correctness regression,
+not a quantified speed benchmark.
+
+These are retained historic **membership RECORD** counts, never
+individual employee headcount, live availability or booking authority.
+No UI, permissions, stored records, APIs/databases/migrations, CSV
+columns/format, deployment/release, MIT license, fictional public
+no-login demo or other repository including ForgeOS is changed.
