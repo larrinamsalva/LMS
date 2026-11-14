@@ -975,3 +975,39 @@ authorized record rows, time zone handling, sorting, enrollment,
 scheduling, permissions, database, migrations, API, releases
 and other repositories are not changed. MIT and the fictional
 no-login demonstration remain intact.
+
+## Reset membership review without clearing resource directory filters (PR #134)
+
+Use **Reset membership review (keep resource filters)** in
+**Crews & availability → Resource directory** when you want to
+clear just the current *membership* review and return to
+all retained membership history. It resets:
+
+- Membership period from overlapping selected day to **All retained membership history**
+- Membership record status to **All retained memberships**
+- Membership-title / employee-name search to blank
+- Membership-history sorting to **Retained record order**
+- The hidden selected review date back to the main business review day
+
+The button is disabled if those four visible membership-review
+controls are already at their defaults. A hidden remembered
+date by itself does not activate the button while **All
+retained membership history** is selected.
+
+Unlike **Clear resource filters**, this focused reset keeps
+Resource Directory name search, Crew/Worker/Equipment type,
+retained enrollment selection, matching-only/without-matches-only
+resource-card view, resource-card ordering, current/archived
+resource tab and per-card expanded/collapsed state unchanged.
+The visible **Current roster review scope** updates alongside
+the existing authorized totals and download eligibility.
+The category **Show all resource categories (keep roster filters)**
+button still performs the opposite narrower reset of type,
+enrollment and card selection.
+
+A missing matching membership record is only a historical
+filter result, not worker availability or permission to book.
+Neither reset modifies employee, resource or membership
+records, CSV contents, organization scope, booking rules,
+permissions, database/API/migrations, deployment, MIT license,
+fictional no-login demo, or any other repository.
