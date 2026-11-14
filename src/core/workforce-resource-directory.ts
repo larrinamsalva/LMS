@@ -11,6 +11,8 @@ export type WorkforceResourceEnrollmentFilter =
  * must never display a misleading "resource-only" shortcut. Equipment has
  * no employee enrollment, so it appears only with enrollment filter "all".
  *
+ * Enrollment lookup is indexed by organization and resource ID in one pass,
+ * avoiding a membership scan for each resource on large directory views.
  * Matches only displayed resource names (not IDs, notes, or private data).
  * Never determines eligibility, employee availability or booking authority.
  */
@@ -23,6 +25,23 @@ export function filterWorkforceResourceDirectory(
   enrollment: WorkforceResourceEnrollmentFilter = "all",
 ): WorkspaceRecord[] {
   const query = search.trim().toLocaleLowerCase();
+  // Build the retained-enrollment lookup once, rather than scanning every
+  // membership for each Worker/Crew. Keep organizations separate even when
+  // different workspaces reuse the same resource ID.
+  const enrolledByOrganization = new Map<string, Set<string>>();
+  if (enrollment !== "all") {
+    for (const membership of memberships) {
+      if (membership.entity !== "resource-memberships" ||
+          typeof membership.data.resource !== "string") continue;
+      let enrolled = enrolledByOrganization.get(membership.organization_id);
+      if (!enrolled) {
+        enrolled = new Set<string>();
+        enrolledByOrganization.set(membership.organization_id, enrolled);
+      }
+      // Archived memberships remain retained proof of historical enrollment.
+      enrolled.add(membership.data.resource);
+    }
+  }
   return resources.filter((resource) => {
     if (resource.entity !== "resources" || resource.archived !== showArchived) {
       return false;
@@ -33,11 +52,8 @@ export function filterWorkforceResourceDirectory(
     if (kind !== "all" && resourceKind !== kind) return false;
     if (enrollment !== "all") {
       if (resourceKind === "Equipment") return false;
-      const everEnrolled = memberships.some((membership) =>
-        membership.entity === "resource-memberships" &&
-        membership.organization_id === resource.organization_id &&
-        membership.data.resource === resource.id,
-      );
+      const everEnrolled =
+        enrolledByOrganization.get(resource.organization_id)?.has(resource.id) ?? false;
       if (enrollment === "enrolled" && !everEnrolled) return false;
       if (enrollment === "resource-only" && everEnrolled) return false;
     }
