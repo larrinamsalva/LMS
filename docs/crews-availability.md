@@ -1627,3 +1627,40 @@ change assignment history, employee or resource availability, booking,
 permissions, UI controls, API/database/migrations, CSV/JSON exports,
 releases/deployment, MIT license, the fictional no-login demo or any
 other repository including ForgeOS.
+
+
+## Indexed same-organization availability-period name search (PR #151)
+
+The Availability period list continues searching only its displayed
+period titles and the name of the linked employee or resource within
+the **same organization**. For nonblank searches, LMS now creates a
+temporary organization-separated name index once per filter invocation
+instead of scanning the entire linked employee/resource record array for
+each displayed availability period.
+
+This index deliberately preserves the previous `find()` behavior:
+**the first same-organization employee OR resource record with a
+matching ID wins**, regardless of which entity type it belongs to, and
+even if its first name field is invalid or missing. If the period has
+both an employee and resource reference, the employee reference takes
+precedence whenever it is truthy; an unknown employee reference does not
+cause a fallback to the resource. Malformed non-string subject links
+never match string record IDs. Unknown, foreign, contact and unrelated
+records cannot leak names into the search. Period title search remains
+case-insensitive and matched before the linked name check.
+
+A blank or whitespace-only search now skips linked-record indexing and
+returns the same kind-filtered periods in original source order.
+The search is **presentation-only**, never a live claim of available
+workers, equipment, booking capacity or permission to schedule.
+
+Independent regression tests compare the optimized filter against the
+prior per-period lookup on **720 fictional periods** across every kind
+filter, same-business and foreign links, archived links, duplicate IDs,
+invalid names, private-field search exclusions and input immutability.
+These are correctness tests, not a measured performance benchmark.
+
+No periods, appointments, employee records, reservations, permissions,
+UI controls, APIs/databases/migrations, CSV/JSON formats, deployments,
+MIT license, the public fictional no-login demo or other repositories
+(including ForgeOS) are changed.
