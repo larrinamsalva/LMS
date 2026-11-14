@@ -1569,3 +1569,29 @@ This is internal read-only computation. There are no changes to saved
 records, UI controls, database/API/export schemas, permissions, scheduling,
 availability, booking decisions, release/deployment, MIT license, the public
 fictional no-login demo, or other repositories (including ForgeOS).
+
+
+## Skip timestamp parsing for retained roster order (PR #149)
+
+When an operator selects **Retained order** for the historical roster, LMS
+now returns a separate shallow copy in the existing source order **without
+reading or parsing any membership start timestamps**. Previously it parsed
+all retained start values even though that particular sort did not use them.
+
+**Newest first** and **Oldest first** continue parsing effective-start
+instants once per row, keeping stable ties, invalid timestamps last,
+original archive history, and daylight-saving instant ordering. In
+all three modes, the records themselves and stored order are unchanged;
+an invalid historical timestamp is never guessed or repaired.
+
+Independent reference regression tests compare all three modes against
+the earlier implementation over 720 fictional membership records,
+mixed timestamps, equal instants, invalid dates, archived history and
+an unrelated entity. A focused retained-order test uses intentionally
+throwing timestamp getters to prove that mode never reads start times.
+This is a read-only optimization, not a measured performance benchmark.
+
+No UI controls, data or permissions, scheduling/availability/booking rules,
+database/API/migrations, CSV/JSON exports, deployments/releases, MIT license,
+fictional public no-login demo, or other repositories including ForgeOS
+have changed.
