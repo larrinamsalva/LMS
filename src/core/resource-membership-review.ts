@@ -330,13 +330,15 @@ export function summarizeMatchingRosterMemberships(
   };
 }
 
-export type RosterResourceCountSort = "directory" | "most" | "fewest";
+export type RosterResourceCountSort =
+  "directory" | "most" | "fewest" | "name-asc" | "name-desc";
 
 /**
- * Read-only sorting of resource CARDS by the number of retained membership
- * records matching the current roster filters, not by headcount, availability
- * or scheduling capacity. Rechecks the organization boundary even if a caller
- * provides mixed input. Equal counts preserve the input directory order.
+ * Read-only sorting of resource CARDS by their displayed names or the number
+ * of retained membership records matching current roster filters. Matching
+ * counts are not headcount, availability or scheduling capacity. Rechecks the
+ * organization boundary even if the caller gives mixed input. Equal
+ * counts/names preserve the original directory order.
  */
 export function orderRosterResourcesByMatchingCount(
   resources: readonly WorkspaceRecord[],
@@ -351,6 +353,23 @@ export function orderRosterResourcesByMatchingCount(
     resource.organization_id === organizationId,
   );
   if (sort === "directory") return [...scopedResources];
+  if (sort === "name-asc" || sort === "name-desc") {
+    const collator = new Intl.Collator("en", {
+      sensitivity: "base", numeric: true,
+    });
+    return scopedResources
+      .map((resource, index) => ({ resource, index }))
+      .sort((a, b) => {
+        const nameA = typeof a.resource.data.name === "string"
+          ? a.resource.data.name : "";
+        const nameB = typeof b.resource.data.name === "string"
+          ? b.resource.data.name : "";
+        const compared = collator.compare(nameA, nameB);
+        return (sort === "name-asc" ? compared : -compared) ||
+          a.index - b.index;
+      })
+      .map(({ resource }) => resource);
+  }
   const scopedMemberships = memberships.filter((member) =>
     member.entity === "resource-memberships" &&
     member.organization_id === organizationId,
