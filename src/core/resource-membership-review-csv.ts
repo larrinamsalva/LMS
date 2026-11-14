@@ -83,10 +83,18 @@ export function filteredResourceMembershipsCsv(
     selectedResources, memberships, scoped, organizationId,
     matchingView, view.resourceSort,
   );
-  const employeeName = (id: unknown): string => {
-    const employee = employees.find((e) => e.id === id);
-    return typeof employee?.data.name === "string" ? employee.data.name : "";
-  };
+  // Build a temporary lookup from same-organization employee records once.
+  // Preserve the previous find() result: first record wins, even when its
+  // display name is invalid/missing. Never search contacts or foreign data.
+  const employeeNames = new Map<string, string>();
+  for (const employee of employees) {
+    if (!employeeNames.has(employee.id)) {
+      const name = employee.data.name;
+      employeeNames.set(employee.id, typeof name === "string" ? name : "");
+    }
+  }
+  const employeeName = (id: unknown): string =>
+    typeof id === "string" ? employeeNames.get(id) ?? "" : "";
   const dateValue = (value: unknown): { local: string; utc: string } => {
     try {
       const utc = instant(String(value)).toString();
