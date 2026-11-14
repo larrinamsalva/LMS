@@ -127,7 +127,8 @@ it("suggests type-only reset only for empty selected types with recoverable reso
   expect(recoverType("Northern Crew", "Crew")).toBe(0);
   expect(recoverType("Northern Crew", "all")).toBe(0);
   expect(recoverType("no-match", "Worker")).toBe(0);
-  expect(recoverType("  ", "Worker")).toBe(2);
+  // A blank name search still finds the current Worker, so no recovery.
+  expect(recoverType("  ", "Worker")).toBe(0);
   expect({ resources, memberships }).toEqual(before);
 });
 
