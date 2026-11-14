@@ -121,13 +121,28 @@ export function filteredRosterResourceSummaryCsv(
     "Resource card selection", "Resource card order",
   ]];
   const filterContext = rosterSummaryFilterContext(view);
+  // Group same-organization retained history once, in original record order.
+  // Duplicate resource cards with the same ID deliberately reuse the same
+  // history, just like the previous independent per-card membership scan.
+  const membershipsByResource = new Map<string, WorkspaceRecord[]>();
+  for (const membership of memberships) {
+    const resourceId = membership.data.resource;
+    if (typeof resourceId !== "string") continue;
+    let entries = membershipsByResource.get(resourceId);
+    if (!entries) {
+      entries = [];
+      membershipsByResource.set(resourceId, entries);
+    }
+    entries.push(membership);
+  }
   for (const resource of ordered) {
-    const retained = resourceMembershipRowsForReview(
-      memberships, resource, "all", view.date, zone,
-    );
-    const dated = resourceMembershipRowsForReview(
-      memberships, resource, view.mode, view.date, zone,
-    );
+    const retained = membershipsByResource.get(resource.id) ?? [];
+    // All-history mode already has exactly the retained rows. For a
+    // selected local day, keep the existing DST-safe overlap calculation.
+    const dated = view.mode === "all" ? retained :
+      resourceMembershipRowsForReview(
+        retained, resource, view.mode, view.date, zone,
+      );
     const matched = filterResourceMembershipsByName(
       filterResourceMembershipRecordStatus(dated, view.membershipStatus),
       scoped, view.memberSearch,
