@@ -636,7 +636,16 @@ test("fictional crews and workers publish availability, schedule both industries
     await onlyMatchingResources.check();
     await expect(onlyWithoutResources).not.toBeChecked();
     await expect(resourceCard).toHaveCount(0);
+    await expect(resourceTypes).toContainText(
+      "Directory-selected resources: " + oneResourceKind,
+    );
+    await expect(resourceTypes).toContainText(
+      "Shown resource cards: " + zeroResourceKinds,
+    );
     await onlyMatchingResources.uncheck();
+    await expect(resourceTypes).toContainText(
+      "Shown resource cards: " + oneResourceKind,
+    );
     await expect(resourceCard).toBeVisible();
     await rosterStatus.selectOption("current");
     await expect(unmatchedBreakdown).toContainText(
