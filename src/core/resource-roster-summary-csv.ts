@@ -121,6 +121,15 @@ export function filteredRosterResourceSummaryCsv(
     "Resource card selection", "Resource card order",
   ]];
   const filterContext = rosterSummaryFilterContext(view);
+  // Member title/linked-name matches do not depend on a resource card's
+  // date/status selection. Build one authorized match set per nonblank
+  // search, using record identity rather than potentially duplicate IDs.
+  // An empty search requires no additional lookup.
+  const matchingMemberRows = view.memberSearch.trim()
+    ? new Set(filterResourceMembershipsByName(
+      memberships, scoped, view.memberSearch,
+    ))
+    : null;
   // Group same-organization retained history once, in original record order.
   // Duplicate resource cards with the same ID deliberately reuse the same
   // history, just like the previous independent per-card membership scan.
@@ -143,10 +152,12 @@ export function filteredRosterResourceSummaryCsv(
       resourceMembershipRowsForReview(
         retained, resource, view.mode, view.date, zone,
       );
-    const matched = filterResourceMembershipsByName(
-      filterResourceMembershipRecordStatus(dated, view.membershipStatus),
-      scoped, view.memberSearch,
+    const statusRows = filterResourceMembershipRecordStatus(
+      dated, view.membershipStatus,
     );
+    const matched = matchingMemberRows
+      ? statusRows.filter((membership) => matchingMemberRows.has(membership))
+      : statusRows;
     const archivedCount = matched.filter((record) => record.archived).length;
     const currentCount = matched.length - archivedCount;
     rows.push([
