@@ -64,6 +64,9 @@ export function orderResourceMembershipsByStart(
   memberships: readonly WorkspaceRecord[],
   order: ResourceMembershipStartSort,
 ): WorkspaceRecord[] {
+  // Retained order is already the source order: avoid parsing any timestamps.
+  // Copy rather than return the caller's readonly array.
+  if (order === "retained") return [...memberships];
   const indexed = memberships.map((record, index) => {
     let start: bigint | null = null;
     try {
@@ -73,7 +76,6 @@ export function orderResourceMembershipsByStart(
     }
     return { record, index, start };
   });
-  if (order === "retained") return indexed.map(({ record }) => record);
   indexed.sort((a, b) => {
     if (a.start === null || b.start === null) {
       if (a.start === null && b.start === null) return a.index - b.index;
