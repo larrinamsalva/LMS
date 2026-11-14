@@ -10,6 +10,9 @@ export type ResourceMembershipStartSort = "retained" | "newest" | "oldest";
  * Search only displayed membership titles and names of linked employees
  * in the SAME organization as each authorized membership record.
  * Never search raw IDs, contacts, notes, skills or other organizations.
+ * For a nonblank query, index employee display names once per organization
+ * instead of searching all linked records for every membership. First-record
+ * matching is retained exactly for duplicate employee IDs.
  * Resource-directory selection and roster enrollment are not affected.
  */
 export function filterResourceMembershipsByName(
@@ -18,20 +21,35 @@ export function filterResourceMembershipsByName(
   search: string,
 ): WorkspaceRecord[] {
   const query = search.trim().toLocaleLowerCase();
+  if (!query) return memberships.filter(
+    (membership) => membership.entity === "resource-memberships",
+  );
+  // Index only employee display names, keeping organizations separate.
+  // Preserve find()'s first-record-wins behavior if duplicate IDs occur,
+  // including a first employee record without a valid display name.
+  const employeeNames = new Map<string, Map<string, string>>();
+  for (const record of records) {
+    if (record.entity !== "employees") continue;
+    let organizationNames = employeeNames.get(record.organization_id);
+    if (!organizationNames) {
+      organizationNames = new Map<string, string>();
+      employeeNames.set(record.organization_id, organizationNames);
+    }
+    if (!organizationNames.has(record.id)) {
+      organizationNames.set(record.id,
+        typeof record.data.name === "string"
+          ? record.data.name.toLocaleLowerCase() : "");
+    }
+  }
   return memberships.filter((membership) => {
     if (membership.entity !== "resource-memberships") return false;
-    if (!query) return true;
     const title = typeof membership.data.title === "string"
       ? membership.data.title : "";
     if (title.toLocaleLowerCase().includes(query)) return true;
-    const employee = records.find((record) =>
-      record.entity === "employees" &&
-      record.organization_id === membership.organization_id &&
-      record.id === membership.data.employee,
-    );
-    const name = employee && typeof employee.data.name === "string"
-      ? employee.data.name : "";
-    return name.toLocaleLowerCase().includes(query);
+    const id = membership.data.employee;
+    if (typeof id !== "string") return false;
+    const name = employeeNames.get(membership.organization_id)?.get(id) ?? "";
+    return name.includes(query);
   });
 }
 
