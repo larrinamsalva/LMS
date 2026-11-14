@@ -1731,3 +1731,35 @@ periods, permissions, staffing availability or booking authority,
 UI controls, API/database/migrations, CSV schema, deployment/releases,
 MIT licensing, the fictional public no-login demo, or other
 repositories including ForgeOS.
+
+
+## Indexed employee names in roster-membership CSV export (PR #154)
+
+The resource-roster membership CSV exporter now resolves employee display
+names through a temporary same-organization lookup indexed **once per export**
+instead of scanning the employee array separately for every exported
+membership row. Only employee records that already belong to the requested
+organization enter the lookup; contacts, notes, phone numbers, skills,
+foreign records and unrelated entity types are never used as labels.
+
+The lookup deliberately preserves the previous first-record-wins
+`employees.find()` result: if the first matching local employee record has
+an invalid or missing name, a later duplicate cannot replace that blank
+label. Malformed/non-string employee links remain unresolvable. Existing
+selected directory resources, historical enrollment, membership archive
+and review-day filters, sort order, effective start/end times, retained
+records, business-local/UTC timestamps, CSV columns and spreadsheet
+formula escaping are unchanged.
+
+An independent copy of the previous exporter checks **exact CSV equality**
+across **720 fictional membership rows** and many selected views,
+including archived records, duplicates, foreign ID collisions, invalid
+names, malformed dates, member-name/title search, resource ordering,
+and formula-looking content. These are correctness regressions rather
+than a measured performance benchmark.
+
+This is a read-only internal optimization. It does not change
+permissions, staffing availability, booking eligibility, UI controls,
+saved records, API/database/migrations, CSV schema, release/deployment,
+MIT licensing, the fictional public no-login demo, or other
+repositories including ForgeOS.
