@@ -236,8 +236,15 @@ test("fictional crews and workers publish availability, schedule both industries
     const clearNameSearch = recoverNameSearch.getByRole("button", {
       name: "Clear resource name search (keep other filters)", exact: true,
     });
+    const recoverEnrollment = page.getByRole("group", {
+      name: "Recover resource enrollment filter", exact: true,
+    });
+    const clearEnrollment = recoverEnrollment.getByRole("button", {
+      name: "Show all enrollment types (keep other filters)", exact: true,
+    });
     await resourceSearch.fill(resource.toUpperCase());
     await expect(resourceCard).toBeVisible();
+    await expect(recoverEnrollment).toHaveCount(0);
     const resourceTypes = page.getByRole("group", {
       name: "Resource directory type breakdown", exact: true,
     });
@@ -290,6 +297,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await resourceType.selectOption(industry === "cleaning" ? "Worker" : "Crew");
     await expect(resourceCard).toHaveCount(0);
     await expect(recoverNameSearch).toHaveCount(0);
+    await expect(recoverEnrollment).toHaveCount(0);
     await expect(resourceTypes).toContainText(
       "Directory-selected resources: " + zeroResourceKinds,
     );
@@ -298,6 +306,21 @@ test("fictional crews and workers publish availability, schedule both industries
     );
     await resourceType.selectOption(industry === "cleaning" ? "Crew" : "Worker");
     await expect(resourceCard).toBeVisible();
+    await resourceEnrollment.selectOption("enrolled");
+    await expect(resourceCard).toHaveCount(0);
+    await expect(recoverEnrollment).toContainText(
+      "Selecting All enrollment types would restore",
+    );
+    await expect(recoverEnrollment).toContainText(
+      "1 resource within the current resource name, type and",
+    );
+    await expect(recoverEnrollment).not.toContainText(resource);
+    await clearEnrollment.click();
+    await expect(resourceEnrollment).toHaveValue("all");
+    await expect(resourceSearch).toHaveValue(resource.toUpperCase());
+    await expect(resourceType).toHaveValue(industry === "cleaning" ? "Crew" : "Worker");
+    await expect(resourceCard).toBeVisible();
+    await expect(recoverEnrollment).toHaveCount(0);
     await resourceEnrollment.selectOption("enrolled");
     await expect(resourceCard).toHaveCount(0);
     // Other demo resources may be enrolled even when this newly created
@@ -335,6 +358,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceEnrollment).toHaveValue("resource-only");
     await expect(resourceCard).toBeVisible();
     await resourceSearch.fill("no-such-resource");
+    await expect(recoverEnrollment).toHaveCount(0);
     await expect(matchingTypeButton).toContainText("(0 directory, 0 shown)");
     await expect(otherTypeButton).toContainText("(0 directory, 0 shown)");
     await expect(equipmentButton).toContainText("(0 directory, 0 shown)");
