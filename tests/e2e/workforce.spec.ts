@@ -226,14 +226,39 @@ test("fictional crews and workers publish availability, schedule both industries
     });
     await resourceSearch.fill(resource.toUpperCase());
     await expect(resourceCard).toBeVisible();
+    const resourceTypes = page.getByRole("group", {
+      name: "Resource directory type breakdown", exact: true,
+    });
+    const oneResourceKind = industry === "cleaning"
+      ? "Crews: 1. Workers: 0. Equipment: 0."
+      : "Crews: 0. Workers: 1. Equipment: 0.";
+    const zeroResourceKinds = "Crews: 0. Workers: 0. Equipment: 0.";
+    await expect(resourceTypes).toContainText(
+      "Directory-selected resources: " + oneResourceKind,
+    );
+    await expect(resourceTypes).toContainText(
+      "Shown resource cards: " + oneResourceKind,
+    );
     await resourceType.selectOption(industry === "cleaning" ? "Worker" : "Crew");
     await expect(resourceCard).toHaveCount(0);
+    await expect(resourceTypes).toContainText(
+      "Directory-selected resources: " + zeroResourceKinds,
+    );
+    await expect(resourceTypes).toContainText(
+      "Shown resource cards: " + zeroResourceKinds,
+    );
     await resourceType.selectOption(industry === "cleaning" ? "Crew" : "Worker");
     await expect(resourceCard).toBeVisible();
     await resourceEnrollment.selectOption("enrolled");
     await expect(resourceCard).toHaveCount(0);
+    await expect(resourceTypes).toContainText(
+      "Directory-selected resources: " + zeroResourceKinds,
+    );
     await resourceEnrollment.selectOption("resource-only");
     await expect(resourceCard).toBeVisible();
+    await expect(resourceTypes).toContainText(
+      "Directory-selected resources: " + oneResourceKind,
+    );
     await resourceSearch.fill("no-such-resource");
     await expect(page.getByText(
       "No resources match these filters.", { exact: true },
@@ -537,6 +562,12 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(rosterStatus).toHaveValue("archived");
     await expect(rosterMode).toHaveValue("overlapping-day");
     await expect(resourceCard).toBeVisible();
+    await expect(resourceTypes).toContainText(
+      "Directory-selected resources: " + oneResourceKind,
+    );
+    await expect(resourceTypes).toContainText(
+      "Shown resource cards: " + oneResourceKind,
+    );
     await showAllCategories.click();
     await expect(resourceType).toHaveValue("all");
     await expect(resourceEnrollment).toHaveValue("all");
