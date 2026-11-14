@@ -1,7 +1,10 @@
 import { expect, it } from "vitest";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import type { ResourceMembershipCsvView } from "../../src/core/resource-membership-review-csv";
-import { filteredRosterResourceSummaryCsv } from "../../src/core/resource-roster-summary-csv";
+import {
+  filteredRosterResourceSummaryCsv,
+  rosterSummaryFilterContext,
+} from "../../src/core/resource-roster-summary-csv";
 
 const ORG = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const FOREIGN = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -285,4 +288,42 @@ it("describes no-match and default selections with stable vocabulary", () => {
   expect(noMatches).toHaveLength(1);
   expect(noMatches[0]).toContain('"Member name/title search applied"');
   expect(noMatches[0]).not.toContain("secret@example.test");
+});
+
+it("shares safe fixed-context wording between the screen and CSV", () => {
+  const privateTerms = {
+    ...view,
+    memberSearch: "=PRIVATE employee@example.test",
+    resourceSearch: "+SECRET 555-0101",
+    membershipStatus: "archived" as const,
+    resourceKind: "Worker" as const,
+    enrollment: "enrolled" as const,
+    onlyWithoutMatchingResources: true,
+    resourceSort: "fewest" as const,
+  };
+  const before = structuredClone(privateTerms);
+  const context = rosterSummaryFilterContext(privateTerms);
+  expect(context).toEqual({
+    membershipStatus: "Archived records only",
+    memberSearchApplied: "Yes",
+    resourceSearchApplied: "Yes",
+    resourceType: "Worker",
+    enrollment: "Enrolled only",
+    cardSelection: "Resources without matches only",
+    resourceOrder: "Fewest matching first",
+  });
+  expect(JSON.stringify(context)).not.toContain("PRIVATE");
+  expect(JSON.stringify(context)).not.toContain("SECRET");
+  expect(JSON.stringify(context)).not.toContain("@example");
+  expect(JSON.stringify(context)).not.toContain("555-0101");
+  expect(rosterSummaryFilterContext(view)).toEqual({
+    membershipStatus: "All retained records",
+    memberSearchApplied: "No",
+    resourceSearchApplied: "No",
+    resourceType: "All types",
+    enrollment: "All enrollment types",
+    cardSelection: "All selected resources",
+    resourceOrder: "Directory order",
+  });
+  expect(privateTerms).toEqual(before);
 });
