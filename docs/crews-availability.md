@@ -1124,3 +1124,43 @@ available staff, or equipment ready to schedule. No saved data,
 roster/enrollment rules, permissions, CSV formats, API, database,
 migrations, deployment, other repository, MIT licensing or
 fictional no-login demonstration is changed.
+
+## Preview results before switching resource types (PR #138)
+
+Each of the four **View crews / View workers / View equipment /
+View all resource types** shortcuts now displays a number in
+parentheses: the count of directory resource **records that
+would be selected if you clicked that button now**.
+
+The preview uses the chosen current/archived resource tab and
+the resource-name search, but deliberately evaluates the
+*destination* resource type instead of the currently active
+type. Worker and Crew previews respect the existing employee
+enrollment filter (All, Enrolled, or Resource-only). The
+Equipment preview always evaluates with **All enrollment
+types**, matching the Equipment shortcut's existing rule that
+employee enrollment cannot apply to equipment. **View all
+resource types** keeps the current enrollment selection and
+may therefore omit Equipment until the enrollment filter is
+changed to All.
+
+These are **directory-selected** previews, not predictions
+of how many resource cards will remain visible after the
+matching-only/without-matches-only membership filter. Those
+existing filters and the separate shown-card breakdown remain
+unchanged. The preview is recalculated when search,
+enrollment or archive selection changes, including for
+zero-result searches. The button's accessible name and
+pressed state remain stable; the preview count is exposed
+as supplementary accessible descriptive text.
+
+Counts exclude foreign-organization resource and membership
+records and do not display names, private search strings,
+IDs, contacts, notes or employee information. They are counts
+of historical resource records, never worker headcount,
+staffing availability, free equipment or eligibility to book.
+
+No database, API, resource/roster record, authorization,
+enrollment, scheduling rule, CSV/JSON format, release,
+deployment, other repository, MIT license or fictional
+no-login demo behavior is changed.
