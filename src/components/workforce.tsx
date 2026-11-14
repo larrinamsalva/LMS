@@ -41,7 +41,10 @@ import {
   rosterSummaryFilterContext,
 } from "../core/resource-roster-summary-csv";
 import { membershipReviewFiltersActive } from "../core/roster-review-reset";
-import { resourceTypeQuickView } from "../core/resource-type-quick-view";
+import {
+  previewResourceTypeQuickViews,
+  resourceTypeQuickView,
+} from "../core/resource-type-quick-view";
 import {
   rosterGapCategoryFilters,
   type RosterGapCategory,
@@ -159,6 +162,10 @@ export function Workforce({
   const displayedResources = filterWorkforceResourceDirectory(
     scopedResources, scopedMemberships, history, resourceSearch, resourceType,
     resourceEnrollment,
+  );
+  const typePreview = previewResourceTypeQuickViews(
+    scopedResources, scopedMemberships, organizationId, history,
+    resourceSearch, resourceEnrollment,
   );
   const rosterDateError = rosterMode === "overlapping-day"
     ? resourceMembershipReviewDateError(rosterDate, zone)
@@ -703,32 +710,42 @@ export function Workforce({
             aria-label="Quick filter resource types">
             <button type="button" className="secondary"
               aria-pressed={resourceType === "Crew"}
+              aria-label="View crews"
+              aria-description={typePreview.crews + " directory resources"}
               onClick={() => selectResourceTypeQuickView("Crew")}>
-              View crews
+              View crews <span aria-hidden="true">({typePreview.crews})</span>
             </button>
             <button type="button" className="secondary"
               aria-pressed={resourceType === "Worker"}
+              aria-label="View workers"
+              aria-description={typePreview.workers + " directory resources"}
               onClick={() => selectResourceTypeQuickView("Worker")}>
-              View workers
+              View workers <span aria-hidden="true">({typePreview.workers})</span>
             </button>
             <button type="button" className="secondary"
               aria-pressed={resourceType === "Equipment"}
+              aria-label="View equipment"
+              aria-description={typePreview.equipment + " directory resources"}
               onClick={() => selectResourceTypeQuickView("Equipment")}>
-              View equipment
+              View equipment <span aria-hidden="true">({typePreview.equipment})</span>
             </button>
             <button type="button" className="secondary"
               aria-pressed={resourceType === "all"}
+              aria-label="View all resource types"
+              aria-description={typePreview.all + " directory resources"}
               onClick={() => selectResourceTypeQuickView("all")}>
-              View all resource types
+              View all resource types <span aria-hidden="true">({typePreview.all})</span>
             </button>
           </div>
           <p className="muted">
             Directory-selected counts follow resource name, type and
             enrollment filters. Shown-card counts also reflect the
             matching-only or without-matches-only roster view.
-            Type shortcuts keep name search, roster review and card
-            selection. Equipment resets enrollment to All because employee
-            enrollment does not apply to equipment.
+            The number on each shortcut previews directory records after
+            that shortcut's type and enrollment filters, not the roster
+            match-only card view. Type shortcuts keep name search, roster
+            review and card selection. Equipment resets enrollment to All
+            because employee enrollment does not apply to equipment.
             These are resource records, not staff headcounts or availability.
           </p>
         </div>
