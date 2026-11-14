@@ -1462,3 +1462,46 @@ is made to booking eligibility, availability, member
 history, permissions, database/API/migrations, CSV/JSON
 formats, releases, deployment, other repositories, MIT
 licensing or the fictional public no-login demo.
+
+## Indexed employee-name lookup for roster membership searches (PR #146)
+
+Historic roster searches continue to match **membership titles**
+and the displayed **employee names** linked to retained
+membership records in the **same organization**. Searches
+never match internal resource/employee IDs, phone numbers,
+email addresses, private notes, skills or information from
+another organization. Archived membership rows remain
+included according to the existing membership status and
+date controls, and search does not change enrollment or
+booking eligibility.
+
+For nonblank membership searches, LMS now builds a
+temporary organization-separated index of employee display
+names **once for each search evaluation** instead of
+searching the entire employee record list for every
+membership row. This reduces repeated per-membership scans
+when a business has many historical roster records.
+
+The index preserves the previous behavior exactly,
+including the earliest matching employee record when
+duplicate employee IDs exist in the same organization
+(even if that first record has no valid display name),
+retained source order, casing-insensitive name/title matching,
+archive handling and foreign-organization isolation. An
+empty or whitespace-only search still returns all membership
+records in their original order without creating the index.
+
+Automated regression tests compare the optimized implementation
+against a simple independent copy of the original search
+across **720** fictional membership and employee records,
+archived records, foreign organization ID collisions,
+duplicate IDs, malformed names/links and private metadata.
+The test verifies correctness rather than measuring real
+application performance.
+
+This changes only an internal read-only lookup. No saved
+records, search controls, visibility rules, permissions,
+scheduling/availability/bookability, API, database,
+migration, CSV/JSON schemas, release/deployment, other
+repository, MIT license or fictional public no-login demo
+behavior is changed.
