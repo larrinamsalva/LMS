@@ -257,6 +257,10 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "View all resource types", exact: true,
     });
     await expect(allTypesButton).toHaveAttribute("aria-pressed", "true");
+    await expect(matchingTypeButton).toContainText("(1)");
+    await expect(otherTypeButton).toContainText("(0)");
+    await expect(equipmentButton).toContainText("(0)");
+    await expect(allTypesButton).toContainText("(1)");
     await matchingTypeButton.click();
     await expect(resourceType).toHaveValue(industry === "cleaning" ? "Crew" : "Worker");
     await expect(matchingTypeButton).toHaveAttribute("aria-pressed", "true");
@@ -264,6 +268,10 @@ test("fictional crews and workers publish availability, schedule both industries
     await otherTypeButton.click();
     await expect(otherTypeButton).toHaveAttribute("aria-pressed", "true");
     await expect(resourceCard).toHaveCount(0);
+    // Previews describe the result of switching, not the currently
+    // selected resource type; the matching category still shows one.
+    await expect(matchingTypeButton).toContainText("(1)");
+    await expect(otherTypeButton).toContainText("(0)");
     await allTypesButton.click();
     await expect(resourceType).toHaveValue("all");
     await expect(resourceCard).toBeVisible();
@@ -279,6 +287,9 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCard).toBeVisible();
     await resourceEnrollment.selectOption("enrolled");
     await expect(resourceCard).toHaveCount(0);
+    await expect(matchingTypeButton).toContainText("(0)");
+    await expect(allTypesButton).toContainText("(0)");
+    await expect(equipmentButton).toContainText("(0)");
     await expect(resourceTypes).toContainText(
       "Directory-selected resources: " + zeroResourceKinds,
     );
@@ -301,6 +312,10 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceEnrollment).toHaveValue("resource-only");
     await expect(resourceCard).toBeVisible();
     await resourceSearch.fill("no-such-resource");
+    await expect(matchingTypeButton).toContainText("(0)");
+    await expect(otherTypeButton).toContainText("(0)");
+    await expect(equipmentButton).toContainText("(0)");
+    await expect(allTypesButton).toContainText("(0)");
     await expect(page.getByText(
       "No resources match these filters.", { exact: true },
     )).toBeVisible();
