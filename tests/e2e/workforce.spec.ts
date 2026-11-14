@@ -224,6 +224,12 @@ test("fictional crews and workers publish availability, schedule both industries
     const resourceCard = page.getByRole("article", {
       name: "Resource " + resource, exact: true,
     });
+    const restoreCards = page.getByRole("group", {
+      name: "Restore hidden resource cards", exact: true,
+    });
+    const restoreButton = restoreCards.getByRole("button", {
+      name: "Show all selected resource cards (keep filters)", exact: true,
+    });
     await resourceSearch.fill(resource.toUpperCase());
     await expect(resourceCard).toBeVisible();
     const resourceTypes = page.getByRole("group", {
@@ -319,6 +325,7 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(page.getByText(
       "No resources match these filters.", { exact: true },
     )).toBeVisible();
+    await expect(restoreCards).toHaveCount(0);
     await page.getByRole("button", {
       name: "Clear resource filters", exact: true,
     }).click();
@@ -700,7 +707,21 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceTypes).toContainText(
       "Shown resource cards: " + zeroResourceKinds,
     );
-    await onlyMatchingResources.uncheck();
+    await expect(restoreCards).toContainText(
+      "1 directory-selected resource remains",
+    );
+    await expect(restoreCards).toContainText(
+      "matching-only roster view hides every card",
+    );
+    await expect(restoreCards).not.toContainText(resource);
+    await restoreButton.click();
+    await expect(onlyMatchingResources).not.toBeChecked();
+    await expect(onlyWithoutResources).not.toBeChecked();
+    await expect(rosterStatus).toHaveValue("archived");
+    await expect(rosterMode).toHaveValue("overlapping-day");
+    await expect(rosterDate).toHaveValue("2026-11-06");
+    await expect(resourceSearch).toHaveValue(resource);
+    await expect(restoreCards).toHaveCount(0);
     await expect(matchingTypeButton).toContainText("(1 directory, 1 shown)");
     await expect(resourceTypes).toContainText(
       "Shown resource cards: " + oneResourceKind,
@@ -728,7 +749,15 @@ test("fictional crews and workers publish availability, schedule both industries
       "Every selected resource has a matching membership record.",
       { exact: true },
     )).toBeVisible();
-    await onlyWithoutResources.uncheck();
+    await expect(restoreCards).toContainText(
+      "without-matches-only roster view hides every card",
+    );
+    await restoreButton.click();
+    await expect(onlyMatchingResources).not.toBeChecked();
+    await expect(onlyWithoutResources).not.toBeChecked();
+    await expect(rosterStatus).toHaveValue("current");
+    await expect(rosterMode).toHaveValue("overlapping-day");
+    await expect(resourceSearch).toHaveValue(resource);
     await expect(resourceCard).toBeVisible();
     await rosterSearch.fill(people[0].toLowerCase());
     await expect(cardBreakdown).toContainText(
@@ -780,7 +809,11 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(collapseShown).toBeDisabled();
     await expect(expandShown).toBeDisabled();
     await expect(rosterCsvButton).toBeDisabled();
-    await onlyMatchingResources.uncheck();
+    await expect(restoreCards).toBeVisible();
+    await restoreButton.click();
+    await expect(rosterSearch).toHaveValue("no-such-member-name");
+    await expect(onlyMatchingResources).not.toBeChecked();
+    await expect(onlyWithoutResources).not.toBeChecked();
     await expect(summaryCsvButton).toBeEnabled();
     await expect(resourceCard).toBeVisible();
     await expect(cardBreakdown).toContainText(
