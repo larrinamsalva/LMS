@@ -1505,3 +1505,37 @@ scheduling/availability/bookability, API, database,
 migration, CSV/JSON schemas, release/deployment, other
 repository, MIT license or fictional public no-login demo
 behavior is changed.
+
+
+## Shared historical roster card-count index (PR #147)
+
+Roster card filtering (matching-only and without-matches), aggregate
+membership counts, and most/fewest membership-count sorting now reuse a
+**single organization-scoped view index per operation**. Previously, each
+resource card re-scanned the retained membership list and independently
+re-indexed linked employee names. The indexed pass groups matching
+membership **records** by their resource link and tracks separate current
+and archived counts. It does not persist, cache or mutate any records.
+
+The index applies exactly the same review-day, member-record status,
+membership-title and linked employee-name search rules as the existing
+per-resource review. Invalid dates/time zones and malformed timestamps
+remain nonmatching, and business-local midnight and daylight-saving
+boundaries still use half-open instant intervals. Duplicate local
+resource IDs retain the prior displayed per-card counts. A foreign
+organization's resource, membership or employee cannot contribute to a
+local card, even when IDs collide. Archived membership history remains
+visible under the selected review filters but never proves an employee
+is available for booking.
+
+Regression tests compare all changed views and count sorting against
+an independent reconstruction of the previous per-resource behavior
+using **720 fictional membership records**, multiple date/status/search
+combinations, invalid data, cross-organization collisions and duplicate
+resource IDs. These are correctness regressions, **not a quantified
+performance benchmark**.
+
+No UI controls, database schema, APIs, exports, authorization, live
+scheduling, booking eligibility, record mutation, installation,
+deployment, MIT license, public fictional no-login demo, or any other
+repository (including ForgeOS) are changed by this optimization.

@@ -169,6 +169,72 @@ export interface MatchingRosterResourceView {
   search: string;
 }
 
+
+interface MatchedRosterResourceCounts {
+  current: number;
+  archived: number;
+}
+
+/**
+ * Build one organization-scoped, read-only index for historic resource-card
+ * match, summary and count-sort views. One pass over retained memberships
+ * replaces the former full scan and employee-name lookup for EVERY resource.
+ * The dated [start, end) overlap and invalid-date behavior match the
+ * per-resource review exactly, including business-local DST boundaries.
+ *
+ * These are matching RECORD counts, not distinct employees or availability.
+ */
+function matchedRosterCountsByResource(
+  memberships: readonly WorkspaceRecord[],
+  linkedRecords: readonly WorkspaceRecord[],
+  organizationId: string,
+  view: MatchingRosterResourceView,
+): Map<string, MatchedRosterResourceCounts> {
+  const counts = new Map<string, MatchedRosterResourceCounts>();
+  let scoped = memberships.filter((membership) =>
+    membership.entity === "resource-memberships" &&
+    membership.organization_id === organizationId,
+  );
+  if (view.mode !== "all") {
+    if (resourceMembershipReviewDateError(view.date, view.zone)) return counts;
+    try {
+      const day = Temporal.PlainDate.from(view.date);
+      const start = day.toZonedDateTime(view.zone).epochNanoseconds;
+      const end = day.add({ days: 1 }).toZonedDateTime(view.zone).epochNanoseconds;
+      scoped = scoped.filter((membership) => {
+        try {
+          return instant(String(membership.data.start)).epochNanoseconds < end &&
+            instant(String(membership.data.end)).epochNanoseconds > start;
+        } catch {
+          // Malformed retained dates are not inferred or silently repaired.
+          return false;
+        }
+      });
+    } catch {
+      return counts;
+    }
+  }
+  const byStatus = filterResourceMembershipRecordStatus(scoped, view.status);
+  const matching = filterResourceMembershipsByName(
+    byStatus,
+    linkedRecords.filter((record) => record.organization_id === organizationId),
+    view.search,
+  );
+  for (const membership of matching) {
+    // A malformed resource link cannot match a valid string resource ID.
+    const resourceId = membership.data.resource;
+    if (typeof resourceId !== "string") continue;
+    let count = counts.get(resourceId);
+    if (!count) {
+      count = { current: 0, archived: 0 };
+      counts.set(resourceId, count);
+    }
+    if (membership.archived) count.archived += 1;
+    else count.current += 1;
+  }
+  return counts;
+}
+
 /**
  * Optional read-only resource-card narrowing: keep a resource only if it has
  * at least one retained membership matching the date, record-status and
@@ -187,23 +253,14 @@ export function resourcesWithMatchingRosterMemberships(
   organizationId: string,
   view: MatchingRosterResourceView,
 ): WorkspaceRecord[] {
-  const scopedMemberships = memberships.filter((member) =>
-    member.organization_id === organizationId,
+  const matching = matchedRosterCountsByResource(
+    memberships, linkedRecords, organizationId, view,
   );
-  const scopedLinkedRecords = linkedRecords.filter((record) =>
-    record.organization_id === organizationId,
+  return resources.filter((resource) =>
+    resource.entity === "resources" &&
+    resource.organization_id === organizationId &&
+    matching.has(resource.id),
   );
-  return resources.filter((resource) => {
-    if (resource.entity !== "resources" ||
-        resource.organization_id !== organizationId) return false;
-    const dated = resourceMembershipRowsForReview(
-      scopedMemberships, resource, view.mode, view.date, view.zone,
-    );
-    const byStatus = filterResourceMembershipRecordStatus(dated, view.status);
-    return filterResourceMembershipsByName(
-      byStatus, scopedLinkedRecords, view.search,
-    ).length > 0;
-  });
 }
 
 /**
@@ -316,28 +373,18 @@ export function summarizeMatchingRosterMemberships(
     resource.entity === "resources" &&
     resource.organization_id === organizationId,
   );
-  const scopedMemberships = memberships.filter((membership) =>
-    membership.organization_id === organizationId,
-  );
-  const scopedLinkedRecords = linkedRecords.filter((record) =>
-    record.organization_id === organizationId,
+  const counts = matchedRosterCountsByResource(
+    memberships, linkedRecords, organizationId, view,
   );
   let matchingResources = 0;
   let currentMemberships = 0;
   let archivedMemberships = 0;
   for (const resource of scopedResources) {
-    const dated = resourceMembershipRowsForReview(
-      scopedMemberships, resource, view.mode, view.date, view.zone,
-    );
-    const matched = filterResourceMembershipsByName(
-      filterResourceMembershipRecordStatus(dated, view.status),
-      scopedLinkedRecords, view.search,
-    );
-    if (matched.length) matchingResources += 1;
-    for (const membership of matched) {
-      if (membership.archived) archivedMemberships += 1;
-      else currentMemberships += 1;
-    }
+    const count = counts.get(resource.id);
+    if (!count) continue;
+    matchingResources += 1;
+    currentMemberships += count.current;
+    archivedMemberships += count.archived;
   }
   return {
     directoryResources: scopedResources.length,
@@ -388,23 +435,14 @@ export function orderRosterResourcesByMatchingCount(
       })
       .map(({ resource }) => resource);
   }
-  const scopedMemberships = memberships.filter((member) =>
-    member.entity === "resource-memberships" &&
-    member.organization_id === organizationId,
-  );
-  const scopedLinkedRecords = linkedRecords.filter((record) =>
-    record.organization_id === organizationId,
+  const counts = matchedRosterCountsByResource(
+    memberships, linkedRecords, organizationId, view,
   );
   const counted = scopedResources.map((resource, index) => {
-    const dated = resourceMembershipRowsForReview(
-      scopedMemberships, resource, view.mode, view.date, view.zone,
-    );
-    const byStatus = filterResourceMembershipRecordStatus(dated, view.status);
+    const match = counts.get(resource.id);
     return {
       resource, index,
-      count: filterResourceMembershipsByName(
-        byStatus, scopedLinkedRecords, view.search,
-      ).length,
+      count: match ? match.current + match.archived : 0,
     };
   });
   counted.sort((a, b) =>
