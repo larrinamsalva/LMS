@@ -944,3 +944,34 @@ availability. No stored records, booking rules, permissions,
 database/migrations, API, deployment, JSON backup or other
 repository is changed. MIT and the fictional no-login demo
 remain intact.
+
+## Check the live roster review scope before exporting (PR #133)
+
+In **Crews & availability → Resource directory → Roster membership
+overview**, **Current roster review scope** now displays a compact,
+read-only explanation of the active Resource Directory filters.
+It identifies the current/archived resources tab, all-history
+versus selected business-local day, current/archived membership
+record status, Worker/Crew/Equipment resource type, retained
+enrollment filter, all/matching/without-matches card selection,
+and card ordering. It also shows **Yes/No** indicators for an
+applied resource-name search and an applied employee-name or
+membership-title search.
+
+The scope refreshes with the existing controls, including the
+three gap quick views, **Show all resource categories (keep
+roster filters)** and **Clear resource filters**. It reuses
+the same fixed safe filter labels as the roster overview CSV,
+so the downloaded report and the screen describe those
+selections consistently. The summary does **not** repeat the
+search terms, names from employee records, contact information
+or raw IDs. The Resource Directory's original search inputs
+still show their own user-entered values, as before.
+
+This is explanatory UI, not a new way to change access or
+enrollment. Retained roster records do not establish actual
+employee availability or booking eligibility. CSV outputs,
+authorized record rows, time zone handling, sorting, enrollment,
+scheduling, permissions, database, migrations, API, releases
+and other repositories are not changed. MIT and the fictional
+no-login demonstration remain intact.
