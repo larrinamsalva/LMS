@@ -337,7 +337,7 @@ test("fictional crews and workers publish availability, schedule both industries
       "Sort membership history", { exact: true },
     );
     const resourceCountSort = page.getByLabel(
-      "Sort resources by matching memberships", { exact: true },
+      "Sort resource cards", { exact: true },
     );
     const rosterSearch = page.getByLabel(
       "Search roster memberships", { exact: true },
@@ -378,6 +378,20 @@ test("fictional crews and workers publish availability, schedule both industries
       "Employee-name/title search applied: No.",
     );
     await expect(currentReview).not.toContainText(resource);
+    await resourceCountSort.selectOption("name-asc");
+    await expect(currentReview).toContainText(
+      "Card order: Resource name A-Z.",
+    );
+    await expect(resourceCard).toBeVisible();
+    await resourceCountSort.selectOption("name-desc");
+    await expect(currentReview).toContainText(
+      "Card order: Resource name Z-A.",
+    );
+    await expect(resourceCard).toBeVisible();
+    await resourceCountSort.selectOption("directory");
+    await expect(currentReview).toContainText(
+      "Card order: Directory order.",
+    );
     const unmatchedBreakdown = rosterOverview.getByRole("group", {
       name: "Resources without matching roster records", exact: true,
     });
