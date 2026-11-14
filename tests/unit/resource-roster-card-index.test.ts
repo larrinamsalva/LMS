@@ -88,7 +88,7 @@ it("matches the previous per-resource card, overview and count-sort views across
       i % 3 === 1 ? "2026-11-06T22:00:00Z" : "2026-11-08T10:00:00Z";
     memberships.push(record("membership-" + i,
       i % 47 === 0 ? "availability" : "resource-memberships", {
-        resource: i % 67 === 0 ? null : "resource-" + (i % 140),
+        resource: i % 67 === 0 ? 42 : "resource-" + (i % 140),
         employee: i % 71 === 0 ? 42 : employeeId,
         title: i % 5 === 0 ? "Weekend shift " + i : "General shift " + i,
         start, end, notes: "Private shift " + i,
