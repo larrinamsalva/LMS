@@ -41,7 +41,10 @@ import {
   rosterSummaryFilterContext,
 } from "../core/resource-roster-summary-csv";
 import { membershipReviewFiltersActive } from "../core/roster-review-reset";
-import { resourceNameSearchRecoveryCount } from "../core/resource-name-search-recovery";
+import {
+  resourceNameSearchRecoveryCount,
+  resourceEnrollmentRecoveryCount,
+} from "../core/resource-name-search-recovery";
 import {
   previewResourceTypeQuickViews,
   previewShownCardsForResourceTypeQuickViews,
@@ -166,6 +169,10 @@ export function Workforce({
     resourceEnrollment,
   );
   const recoverableNameSearchResources = resourceNameSearchRecoveryCount(
+    scopedResources, scopedMemberships, organizationId, history,
+    resourceSearch, resourceType, resourceEnrollment,
+  );
+  const recoverableEnrollmentResources = resourceEnrollmentRecoveryCount(
     scopedResources, scopedMemberships, organizationId, history,
     resourceSearch, resourceType, resourceEnrollment,
   );
@@ -1036,6 +1043,22 @@ export function Workforce({
             <button type="button" className="secondary"
               onClick={() => setResourceSearch("")}>
               Clear resource name search (keep other filters)
+            </button>
+          </div>
+        )}
+        {recoverableEnrollmentResources > 0 && (
+          <div role="group" aria-label="Recover resource enrollment filter">
+            <p className="muted">
+              The employee-enrollment filter matches no directory resources.
+              Selecting All enrollment types would restore{" "}
+              {recoverableEnrollmentResources}{" "}
+              resource{recoverableEnrollmentResources === 1 ? "" : "s"}
+              {" "}within the current resource name, type and
+              current/archived filters. Roster-only filters may still hide cards.
+            </p>
+            <button type="button" className="secondary"
+              onClick={() => setResourceEnrollment("all")}>
+              Show all enrollment types (keep other filters)
             </button>
           </div>
         )}
