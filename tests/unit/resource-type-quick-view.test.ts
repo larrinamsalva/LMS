@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import {
   previewResourceTypeQuickViews,
+  previewShownCardsForResourceTypeQuickViews,
   resourceTypeQuickView,
 } from "../../src/core/resource-type-quick-view";
 import type {
@@ -89,4 +90,71 @@ it("applies archived tab and case-insensitive name searches without foreign leak
   expect(previewResourceTypeQuickViews(
     resources, memberships, ORG, false, "PRIVATE", "all",
   )).toEqual({ crews: 0, workers: 0, equipment: 0, all: 0 });
+});
+
+
+it("shows prospective cards after match-only and no-match-only filters without changing directory counts", () => {
+  const snapshot = structuredClone({ resources, memberships });
+  const view = {
+    mode: "all" as const, date: "", zone: "America/Los_Angeles",
+    status: "all" as const, search: "",
+  };
+  const shown = (
+    enrollment: WorkforceResourceEnrollmentFilter,
+    onlyMatching: boolean,
+    onlyWithoutMatching: boolean,
+    memberStatus: "all" | "current" | "archived" = "all",
+  ) => previewShownCardsForResourceTypeQuickViews(
+    resources, memberships, [...resources, ...memberships], ORG,
+    false, "North", enrollment, { ...view, status: memberStatus },
+    onlyMatching, onlyWithoutMatching,
+  );
+  expect(shown("all", false, false)).toEqual({
+    crews: 1, workers: 1, equipment: 1, all: 3,
+  });
+  // Retained archived crew membership is still a match in all-history view.
+  expect(shown("all", true, false)).toEqual({
+    crews: 1, workers: 0, equipment: 0, all: 1,
+  });
+  expect(shown("all", true, false, "current")).toEqual({
+    crews: 0, workers: 0, equipment: 0, all: 0,
+  });
+  expect(shown("all", false, true)).toEqual({
+    crews: 0, workers: 1, equipment: 1, all: 2,
+  });
+  expect(shown("enrolled", false, true)).toEqual({
+    crews: 0, workers: 0, equipment: 1, all: 0,
+  });
+  expect(shown("resource-only", false, true)).toEqual({
+    crews: 0, workers: 1, equipment: 1, all: 1,
+  });
+  expect({ resources, memberships }).toEqual(snapshot);
+});
+
+it("respects archived tab, day, member search and foreign organization isolation", () => {
+  const view = {
+    mode: "overlapping-day" as const,
+    date: "2026-11-06",
+    zone: "America/Los_Angeles",
+    status: "all" as const,
+    search: "",
+  };
+  const preview = (archived: boolean, search: string, onlyMatching: boolean) =>
+    previewShownCardsForResourceTypeQuickViews(
+      resources, memberships, [...resources, ...memberships], ORG,
+      archived, search, "all", view, onlyMatching, !onlyMatching,
+    );
+  // Fixture memberships have no dated range: none overlap the day.
+  expect(preview(false, "North", true)).toEqual({
+    crews: 0, workers: 0, equipment: 0, all: 0,
+  });
+  expect(preview(false, "North", false)).toEqual({
+    crews: 1, workers: 1, equipment: 1, all: 3,
+  });
+  expect(preview(true, "North", false)).toEqual({
+    crews: 1, workers: 0, equipment: 0, all: 1,
+  });
+  expect(preview(false, "PRIVATE", false)).toEqual({
+    crews: 0, workers: 0, equipment: 0, all: 0,
+  });
 });
