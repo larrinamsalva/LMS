@@ -1248,3 +1248,44 @@ edits, does not change enrollment or permissions, and has
 no effect on database/API/migrations, scheduling, CSV or JSON
 formats, releases, deployments, other repositories, the MIT
 license or the fictional no-login demonstration.
+
+## Recover a resource directory narrowed by a name search (PR #141)
+
+If the **Search resource directory** field contains a term and
+the directory has **zero matching resource records**, LMS now
+checks whether clearing *only* that search would restore any
+authorized resources while **preserving the selected resource
+type, retained enrollment filter and current/archived tab**.
+
+When a narrower name search is the reason for the empty
+directory, the empty state shows a read-only count of the
+resources that would return, plus **Clear resource name search
+(keep other filters)**. The button removes only the resource
+name search. It leaves the active Worker/Crew/Equipment type,
+employee enrollment, selected business-local roster day,
+membership record status, employee-name/title search,
+matching-only or without-matches-only roster cards, sorting
+and per-card collapse state unchanged.
+
+The suggestion is **not** shown for an empty search term,
+a name query that already matches resources, an archive tab
+with no records, or a type/enrollment filter that would stay
+empty even after clearing the name search. In those cases,
+use the type/enrollment controls or the existing broader
+**Clear resource filters** action. When a membership-only
+card filter still hides the recovered directory resources,
+the separate **Show all selected resource cards (keep filters)**
+action may then be useful.
+
+This feature is a read-only recovery suggestion. Its counts
+are computed only from resource and membership records for
+the requested organization, including archived retained
+enrollment where applicable. The suggestion does not expose
+matched names, search terms, contacts, internal IDs or notes.
+A retained membership match or lack of one is not proof of
+staff availability or booking eligibility.
+
+No saved record, organization permissions, enrollment rules,
+scheduling, database/API/migration, CSV/JSON format,
+release/deployment, other repository, MIT license or
+fictional no-login demo behavior is changed.
