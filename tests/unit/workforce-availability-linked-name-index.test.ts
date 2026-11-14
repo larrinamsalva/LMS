@@ -136,10 +136,10 @@ it("preserves first matching record even with duplicate IDs, malformed names and
     .toEqual([]);
   expect(filterAvailabilityPeriods(periods, linked, "all", "should not fallback"))
     .toEqual([]);
-  expect(filterAvailabilityPeriods(periods, linked, "all", "real resource"))
-    .map((r) => r.id).toEqual(["p2"]);
-  expect(filterAvailabilityPeriods(periods, linked, "all", "foreign valid"))
-    .map((r) => r.id).toEqual(["p5"]);
+  expect(filterAvailabilityPeriods(periods, linked, "all", "real resource")
+    .map((r) => r.id)).toEqual(["p2"]);
+  expect(filterAvailabilityPeriods(periods, linked, "all", "foreign valid")
+    .map((r) => r.id)).toEqual(["p5"]);
 });
 
 it("does not inspect linked records at all when the search is blank", () => {
