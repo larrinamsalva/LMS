@@ -347,6 +347,10 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(rosterSort).toHaveValue("retained");
     await expect(resourceCountSort).toHaveValue("directory");
     await expect(rosterSearch).toHaveValue("");
+    const resetMembershipReview = page.getByRole("button", {
+      name: "Reset membership review (keep resource filters)", exact: true,
+    });
+    await expect(resetMembershipReview).toBeDisabled();
     const onlyMatchingResources = page.getByRole("checkbox", {
       name: "Show only resources with matching memberships", exact: true,
     });
@@ -535,6 +539,34 @@ test("fictional crews and workers publish availability, schedule both industries
     );
     await expect(resourceSearch).toHaveValue(resource);
     await expect(resourceCard).toBeVisible();
+    // Reset the membership review while preserving directory search,
+    // enrollment and card selection. Then restore the archived-day
+    // review so the remaining existing assertions still apply.
+    await resourceEnrollment.selectOption("enrolled");
+    await rosterSort.selectOption("newest");
+    await rosterSearch.fill("no-such-member-name");
+    await expect(resetMembershipReview).toBeEnabled();
+    await resetMembershipReview.click();
+    await expect(resetMembershipReview).toBeDisabled();
+    await expect(rosterMode).toHaveValue("all");
+    await expect(rosterStatus).toHaveValue("all");
+    await expect(rosterSort).toHaveValue("retained");
+    await expect(rosterSearch).toHaveValue("");
+    await expect(resourceEnrollment).toHaveValue("enrolled");
+    await expect(resourceSearch).toHaveValue(resource);
+    await expect(onlyMatchingResources).not.toBeChecked();
+    await expect(onlyWithoutResources).not.toBeChecked();
+    await expect(currentReview).toContainText(
+      "Membership period: All retained history.",
+    );
+    await expect(currentReview).toContainText(
+      "Membership status: All retained records.",
+    );
+    await expect(rosterRows).toHaveCount(people.length);
+    await rosterMode.selectOption("overlapping-day");
+    await rosterDate.fill("2026-11-06");
+    await rosterStatus.selectOption("archived");
+    await resourceEnrollment.selectOption("all");
     await expect(cardBreakdown).toContainText(
       "Matching records: 0. Current: 0. Archived: 0.",
     );
