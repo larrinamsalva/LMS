@@ -22,27 +22,39 @@ export function filterStaffAssignmentHistory(
   search: string,
 ): StaffAssignment[] {
   const query = search.trim().toLocaleLowerCase();
+  // With no search text, neither linked names nor indexes are needed.
+  if (!query) return assignments.filter((assignment) =>
+    (status !== "reserved" || assignment.active) &&
+    (status !== "released" || !assignment.active),
+  );
+  // Index only display labels for appointments and resources, scoped by
+  // organization and entity. Preserve find()'s first-record-wins rule,
+  // including when the first duplicate record has an invalid display label.
+  const appointmentTitles = new Map<string, Map<string, string>>();
+  const resourceNames = new Map<string, Map<string, string>>();
+  for (const record of records) {
+    const isAppointment = record.entity === "appointments";
+    if (!isAppointment && record.entity !== "resources") continue;
+    const index = isAppointment ? appointmentTitles : resourceNames;
+    let names = index.get(record.organization_id);
+    if (!names) {
+      names = new Map<string, string>();
+      index.set(record.organization_id, names);
+    }
+    if (!names.has(record.id)) {
+      const label = isAppointment ? record.data.title : record.data.name;
+      names.set(record.id, typeof label === "string" ? label : "");
+    }
+  }
   return assignments.filter((assignment) => {
     if (status === "reserved" && !assignment.active) return false;
     if (status === "released" && assignment.active) return false;
-    if (!query) return true;
-    const appointment = records.find((record) =>
-      record.entity === "appointments" &&
-      record.id === assignment.appointment_id &&
-      record.organization_id === assignment.organization_id,
-    );
-    const appointmentLabel = appointment?.data.title;
-    const resource = records.find((record) =>
-      record.entity === "resources" &&
-      record.id === assignment.resource_id &&
-      record.organization_id === assignment.organization_id,
-    );
-    const resourceName = resource?.data.name;
+    const organizationId = assignment.organization_id;
     const searchable = [
       assignment.employee_name,
       assignment.employee_role,
-      typeof appointmentLabel === "string" ? appointmentLabel : "",
-      typeof resourceName === "string" ? resourceName : "",
+      appointmentTitles.get(organizationId)?.get(assignment.appointment_id) ?? "",
+      resourceNames.get(organizationId)?.get(assignment.resource_id) ?? "",
     ];
     return searchable.some((value) =>
       value.toLocaleLowerCase().includes(query),
