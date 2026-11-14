@@ -104,7 +104,7 @@ it("keeps first-record-wins for duplicate employee IDs, malformed names and fore
   ];
   const people = [
     row("shared", "employees", { name: "FOREIGN NAME" }, FOREIGN),
-    row("shared", "employees", { name: null, notes: "PRIVATE NOTE" }),
+    row("shared", "employees", { name: 123, notes: "PRIVATE NOTE" }),
     row("shared", "employees", { name: "IGNORED DUPLICATE" }),
     row("valid", "employees", { name: "Visible Worker" }),
     row("123", "employees", { name: "Should Not Match" }),
