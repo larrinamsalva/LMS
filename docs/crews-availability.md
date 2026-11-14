@@ -1334,3 +1334,44 @@ No saved records, enrollment history, permissions, schedule
 rules, database/API/migrations, CSV/JSON format, releases,
 deployment, other repository, MIT license or fictional
 public no-login demo behavior changes.
+
+## Recover an empty directory narrowed by resource type (PR #143)
+
+When **Filter resource type** is set to Crew, Worker or
+Equipment, the Resource Directory can appear empty even when
+authorized resources match the current name search,
+employee-enrollment filter and current/archived resource tab.
+
+If changing **only resource type** to **All resource types**
+would restore records, the empty state offers a read-only
+count plus **Show all resource types (keep other filters)**.
+Clicking this button changes only the type dropdown; it keeps
+resource name search, employee enrollment, current/archived
+tab, membership review day/status/name/title search,
+matching-only/without-matches-only resource-card filters,
+sorting and each card's expand/collapse selection.
+
+The suggestion is **not** shown when All types is already
+selected, the current directory has matching resources, the
+name search still excludes everything, or the enrollment/
+current-archived selection would exclude every resource even
+after choosing All types. Importantly, choosing All types
+here **preserves** enrolled-only or resource-only selection,
+which can exclude Equipment. This differs from the existing
+**View equipment** quick shortcut, which intentionally clears
+enrollment because Equipment has no employee enrollment.
+
+Type-only recovery complements **Clear resource name search
+(keep other filters)**, **Show all enrollment types (keep other
+filters)**, and **Show all selected resource cards (keep
+filters)**. The complete **Clear resource filters** action
+remains available for a deliberate wider reset.
+
+The returned number counts authorized resource records, not
+people, work availability, or bookable capacity. The helper
+checks resource and retained membership organization boundaries
+and never exposes names, private search text, identifiers,
+contact information or notes. No saved records, enrollment
+classification, scheduling, permissions, database/API,
+migration, CSV/JSON format, deployment, other repository,
+MIT license or fictional public no-login demo changes.

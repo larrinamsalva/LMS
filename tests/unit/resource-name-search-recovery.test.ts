@@ -3,6 +3,7 @@ import type { WorkspaceRecord } from "../../src/core/engine";
 import {
   resourceNameSearchRecoveryCount,
   resourceEnrollmentRecoveryCount,
+  resourceTypeRecoveryCount,
 } from "../../src/core/resource-name-search-recovery";
 
 const ORG = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -107,4 +108,44 @@ it("never offers enrollment reset when name/type/archive filters still hide ever
   expect(recoverEnrollment("Southern Worker", "Worker", "enrolled")).toBe(1);
   // A foreign membership with the same resource ID cannot enroll a local Worker.
   expect(recoverEnrollment("Southern Worker", "Worker", "resource-only")).toBe(0);
+});
+
+
+const recoverType = (
+  search: string, kind: "all" | "Crew" | "Worker" | "Equipment" = "all",
+  enrollment: "all" | "enrolled" | "resource-only" = "all",
+  archived = false,
+) => resourceTypeRecoveryCount(
+  resources, memberships, ORG, archived, search, kind, enrollment,
+);
+
+it("suggests type-only reset only for empty selected types with recoverable resources", () => {
+  const before = structuredClone({ resources, memberships });
+  expect(recoverType("Northern Crew", "Worker")).toBe(1);
+  expect(recoverType("Southern Worker", "Crew")).toBe(1);
+  expect(recoverType("Floor Machine", "Crew")).toBe(1);
+  expect(recoverType("Northern Crew", "Crew")).toBe(0);
+  expect(recoverType("Northern Crew", "all")).toBe(0);
+  expect(recoverType("no-match", "Worker")).toBe(0);
+  // A blank name search still finds the current Worker, so no recovery.
+  expect(recoverType("  ", "Worker")).toBe(0);
+  expect({ resources, memberships }).toEqual(before);
+});
+
+it("retains employee enrollment and current/archived filters when previewing type reset", () => {
+  expect(recoverType("Northern Crew", "Worker", "enrolled")).toBe(1);
+  expect(recoverType("Southern Worker", "Crew", "resource-only")).toBe(1);
+  // Equipment is never eligible under enrolled/resource-only filters.
+  expect(recoverType("Floor Machine", "Crew", "enrolled")).toBe(0);
+  expect(recoverType("Floor Machine", "Worker", "resource-only")).toBe(0);
+  expect(recoverType("Former Worker", "Crew", "all", true)).toBe(1);
+  expect(recoverType("Former Worker", "Crew", "all", false)).toBe(0);
+  expect(recoverType("Former Worker", "Worker", "all", true)).toBe(0);
+});
+
+it("does not leak foreign organizations or let foreign memberships enroll local resources", () => {
+  expect(recoverType("PRIVATE FOREIGN", "Worker", "all")).toBe(0);
+  expect(recoverType("Southern Worker", "Crew", "enrolled")).toBe(0);
+  expect(recoverType("Southern Worker", "Crew", "resource-only")).toBe(1);
+  expect(recoverType("foreign-link", "Crew", "all")).toBe(0);
 });

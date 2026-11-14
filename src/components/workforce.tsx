@@ -44,6 +44,7 @@ import { membershipReviewFiltersActive } from "../core/roster-review-reset";
 import {
   resourceNameSearchRecoveryCount,
   resourceEnrollmentRecoveryCount,
+  resourceTypeRecoveryCount,
 } from "../core/resource-name-search-recovery";
 import {
   previewResourceTypeQuickViews,
@@ -173,6 +174,10 @@ export function Workforce({
     resourceSearch, resourceType, resourceEnrollment,
   );
   const recoverableEnrollmentResources = resourceEnrollmentRecoveryCount(
+    scopedResources, scopedMemberships, organizationId, history,
+    resourceSearch, resourceType, resourceEnrollment,
+  );
+  const recoverableResourceTypes = resourceTypeRecoveryCount(
     scopedResources, scopedMemberships, organizationId, history,
     resourceSearch, resourceType, resourceEnrollment,
   );
@@ -1059,6 +1064,23 @@ export function Workforce({
             <button type="button" className="secondary"
               onClick={() => setResourceEnrollment("all")}>
               Show all enrollment types (keep other filters)
+            </button>
+          </div>
+        )}
+        {recoverableResourceTypes > 0 && (
+          <div role="group" aria-label="Recover resource type filter">
+            <p className="muted">
+              The selected resource type has no matching directory records.
+              Switching only to All resource types would restore{" "}
+              {recoverableResourceTypes}{" "}
+              resource{recoverableResourceTypes === 1 ? "" : "s"}
+              {" "}within the current name search, employee enrollment and
+              current/archived resource filters. Roster-only filters
+              may still hide cards.
+            </p>
+            <button type="button" className="secondary"
+              onClick={() => setResourceType("all")}>
+              Show all resource types (keep other filters)
             </button>
           </div>
         )}

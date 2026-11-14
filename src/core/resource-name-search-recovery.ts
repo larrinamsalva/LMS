@@ -70,3 +70,38 @@ export function resourceEnrollmentRecoveryCount(
     scopedResources, scopedMemberships, showArchived, search, kind, "all",
   ).length;
 }
+
+/**
+ * Count authorized resource records restored by clearing only a restrictive
+ * Worker/Crew/Equipment type filter. Preserve resource-name search,
+ * employee enrollment, current/archived resource tab and all roster review
+ * filters. Equipment remains excluded under enrollment-only views.
+ *
+ * Return zero unless the current directory selection is empty and switching
+ * just the resource kind to "all" would restore matching records. Revalidate
+ * organization scope, including retained foreign memberships with shared IDs.
+ * No record identities or private search terms are returned.
+ */
+export function resourceTypeRecoveryCount(
+  resources: readonly WorkspaceRecord[],
+  memberships: readonly WorkspaceRecord[],
+  organizationId: string,
+  showArchived: boolean,
+  search: string,
+  kind: WorkforceResourceTypeFilter,
+  enrollment: WorkforceResourceEnrollmentFilter,
+): number {
+  if (kind === "all") return 0;
+  const scopedResources = resources.filter((record) =>
+    record.organization_id === organizationId,
+  );
+  const scopedMemberships = memberships.filter((record) =>
+    record.organization_id === organizationId,
+  );
+  if (filterWorkforceResourceDirectory(
+    scopedResources, scopedMemberships, showArchived, search, kind, enrollment,
+  ).length > 0) return 0;
+  return filterWorkforceResourceDirectory(
+    scopedResources, scopedMemberships, showArchived, search, "all", enrollment,
+  ).length;
+}
