@@ -1289,3 +1289,48 @@ No saved record, organization permissions, enrollment rules,
 scheduling, database/API/migration, CSV/JSON format,
 release/deployment, other repository, MIT license or
 fictional no-login demo behavior is changed.
+
+## Recover an empty directory narrowed by employee enrollment (PR #142)
+
+When **Filter employee enrollment** is set to **Enrolled workers/crews**
+or **Resource-only workers/crews**, the directory may show zero
+resources even though authorized resources satisfy the other
+directory filters.
+
+If and only if clearing **the enrollment filter alone** would
+restore resource records, the empty directory now offers
+**Show all enrollment types (keep other filters)**, alongside a
+read-only count of records that would return. This targeted
+action resets enrollment to **All enrollment types** while
+preserving the name search, Crew/Worker/Equipment type filter,
+current/archived tab, historic membership review date/status
+and employee-name/title search, match-only/no-match-only
+card selection, sorting and each card's collapsed state.
+
+The suggestion is omitted for the default All enrollment
+setting, any directory selection that already has records,
+or a selected resource name/type/archive view that would
+remain empty with All enrollment. Because the equipment
+resource type cannot be employee-enrolled, selecting All
+enrollment can also recover equipment-only views. Worker/
+Crew resources with **any retained dated membership** are
+considered enrolled for directory classification even when
+the last membership was archived; clearing enrollment never
+modifies that historical classification.
+
+This is a separate recovery from **Clear resource name search
+(keep other filters)** (PR #141) and **Show all selected resource
+cards (keep filters)** (PR #140). If a roster-only matching
+filter still hides recovered directory cards, the roster-card
+recovery may be needed as a second, separate step.
+
+Counts use resource and membership records scoped to the
+current organization and do not expose names, raw search
+terms, contact information, notes or IDs. They are counts
+of historical resource **records**, not evidence of
+available employees, free equipment or booking eligibility.
+
+No saved records, enrollment history, permissions, schedule
+rules, database/API/migrations, CSV/JSON format, releases,
+deployment, other repository, MIT license or fictional
+public no-login demo behavior changes.
