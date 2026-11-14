@@ -1,6 +1,9 @@
 import { expect, it } from "vitest";
 import type { WorkspaceRecord } from "../../src/core/engine";
-import { filterWorkforceResourceDirectory } from "../../src/core/workforce-resource-directory";
+import {
+  filterWorkforceResourceDirectory,
+  summarizeWorkforceResourceTypes,
+} from "../../src/core/workforce-resource-directory";
 
 const ORG = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const OTHER = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -96,4 +99,61 @@ it("never uses foreign membership to imply enrollment or searches IDs and metada
     ["crew", "worker", "machine"],
   );
   expect(names).toHaveLength(4);
+});
+
+
+it("counts directory-selected and shown resource types without leaking foreign or invalid records", () => {
+  const foreign = record("foreign-crew", "resources", {
+    name: "PRIVATE FOREIGN CREW", kind: "Crew",
+  }, false, OTHER);
+  const foreignEquipment = record("machine", "resources", {
+    name: "PRIVATE FOREIGN MACHINE", kind: "Equipment",
+  }, false, OTHER);
+  const mixed = [...resources, foreign, foreignEquipment];
+  const original = structuredClone(mixed);
+  expect(summarizeWorkforceResourceTypes(mixed, ORG)).toEqual({
+    crews: 1, workers: 2, equipment: 1, total: 4,
+  });
+  const directory = filterWorkforceResourceDirectory(
+    mixed.filter((r) => r.organization_id === ORG),
+    memberships, false, "", "all", "all",
+  );
+  expect(summarizeWorkforceResourceTypes(directory, ORG)).toEqual({
+    crews: 1, workers: 1, equipment: 1, total: 3,
+  });
+  // A card-only filter narrows shown cards, but not directory selection.
+  expect(summarizeWorkforceResourceTypes([directory[1]], ORG)).toEqual({
+    crews: 0, workers: 1, equipment: 0, total: 1,
+  });
+  expect(summarizeWorkforceResourceTypes([], ORG)).toEqual({
+    crews: 0, workers: 0, equipment: 0, total: 0,
+  });
+  expect(mixed).toEqual(original);
+});
+
+it("agrees with resource name, type, enrollment and archived directory filters", () => {
+  const directory = (showArchived: boolean, search: string,
+    kind: "all" | "Crew" | "Worker" | "Equipment",
+    enrollment: "all" | "enrolled" | "resource-only",
+  ) => summarizeWorkforceResourceTypes(
+    filterWorkforceResourceDirectory(
+      resources, memberships, showArchived, search, kind, enrollment,
+    ), ORG,
+  );
+  expect(directory(false, "", "all", "all")).toEqual({
+    crews: 1, workers: 1, equipment: 1, total: 3,
+  });
+  expect(directory(false, "", "all", "enrolled")).toEqual({
+    crews: 1, workers: 0, equipment: 0, total: 1,
+  });
+  expect(directory(false, "", "all", "resource-only")).toEqual({
+    crews: 0, workers: 1, equipment: 0, total: 1,
+  });
+  expect(directory(false, "floor", "Equipment", "all")).toEqual({
+    crews: 0, workers: 0, equipment: 1, total: 1,
+  });
+  expect(directory(true, "", "all", "all")).toEqual({
+    crews: 0, workers: 1, equipment: 0, total: 1,
+  });
+  expect(directory(false, "none", "all", "all").total).toBe(0);
 });
