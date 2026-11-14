@@ -1,6 +1,9 @@
 import { expect, it } from "vitest";
 import type { WorkspaceRecord } from "../../src/core/engine";
-import { resourceNameSearchRecoveryCount } from "../../src/core/resource-name-search-recovery";
+import {
+  resourceNameSearchRecoveryCount,
+  resourceEnrollmentRecoveryCount,
+} from "../../src/core/resource-name-search-recovery";
 
 const ORG = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const FOREIGN = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -69,4 +72,39 @@ it("does not include foreign resources, foreign memberships or private metadata"
   // Foreign membership must not mark the worker as enrolled.
   expect(recover("FOREIGN", "Worker", "enrolled")).toBe(0);
   expect(recover("FOREIGN", "Worker", "resource-only")).toBe(1);
+});
+
+
+const recoverEnrollment = (
+  search: string, kind: "all" | "Crew" | "Worker" | "Equipment" = "all",
+  enrollment: "all" | "enrolled" | "resource-only" = "all",
+  archived = false,
+) => resourceEnrollmentRecoveryCount(
+  resources, memberships, ORG, archived, search, kind, enrollment,
+);
+
+it("suggests only an enrollment-only reset that would restore matching directory resources", () => {
+  const snapshot = structuredClone({ resources, memberships });
+  expect(recoverEnrollment("Northern Crew", "Crew", "resource-only")).toBe(1);
+  // An archived retained crew membership still counts as enrolled.
+  expect(recoverEnrollment("Northern Crew", "Crew", "enrolled")).toBe(0);
+  expect(recoverEnrollment("Southern Worker", "Worker", "enrolled")).toBe(1);
+  expect(recoverEnrollment("Southern Worker", "Worker", "resource-only")).toBe(0);
+  expect(recoverEnrollment("Floor Machine", "Equipment", "enrolled")).toBe(1);
+  expect(recoverEnrollment("Floor Machine", "Equipment", "resource-only")).toBe(1);
+  expect(recoverEnrollment("Floor Machine", "Equipment", "all")).toBe(0);
+  expect(recoverEnrollment("", "Crew", "enrolled")).toBe(0);
+  expect({ resources, memberships }).toEqual(snapshot);
+});
+
+it("never offers enrollment reset when name/type/archive filters still hide everything", () => {
+  expect(recoverEnrollment("NONE", "all", "enrolled")).toBe(0);
+  expect(recoverEnrollment("Southern Worker", "Crew", "enrolled")).toBe(0);
+  expect(recoverEnrollment("Northern Crew", "Crew", "enrolled", true)).toBe(0);
+  expect(recoverEnrollment("Former Worker", "Worker", "enrolled", true)).toBe(1);
+  expect(recoverEnrollment("Former Worker", "Worker", "resource-only", true)).toBe(0);
+  expect(recoverEnrollment("PRIVATE FOREIGN", "Crew", "enrolled")).toBe(0);
+  expect(recoverEnrollment("Southern Worker", "Worker", "enrolled")).toBe(1);
+  // A foreign membership with the same resource ID cannot enroll a local Worker.
+  expect(recoverEnrollment("Southern Worker", "Worker", "resource-only")).toBe(0);
 });
