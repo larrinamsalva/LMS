@@ -239,6 +239,34 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceTypes).toContainText(
       "Shown resource cards: " + oneResourceKind,
     );
+    const typeQuick = resourceTypes.getByRole("group", {
+      name: "Quick filter resource types", exact: true,
+    });
+    const matchingTypeButton = typeQuick.getByRole("button", {
+      name: industry === "cleaning" ? "View crews" : "View workers",
+      exact: true,
+    });
+    const otherTypeButton = typeQuick.getByRole("button", {
+      name: industry === "cleaning" ? "View workers" : "View crews",
+      exact: true,
+    });
+    const equipmentButton = typeQuick.getByRole("button", {
+      name: "View equipment", exact: true,
+    });
+    const allTypesButton = typeQuick.getByRole("button", {
+      name: "View all resource types", exact: true,
+    });
+    await expect(allTypesButton).toHaveAttribute("aria-pressed", "true");
+    await matchingTypeButton.click();
+    await expect(resourceType).toHaveValue(industry === "cleaning" ? "Crew" : "Worker");
+    await expect(matchingTypeButton).toHaveAttribute("aria-pressed", "true");
+    await expect(resourceCard).toBeVisible();
+    await otherTypeButton.click();
+    await expect(otherTypeButton).toHaveAttribute("aria-pressed", "true");
+    await expect(resourceCard).toHaveCount(0);
+    await allTypesButton.click();
+    await expect(resourceType).toHaveValue("all");
+    await expect(resourceCard).toBeVisible();
     await resourceType.selectOption(industry === "cleaning" ? "Worker" : "Crew");
     await expect(resourceCard).toHaveCount(0);
     await expect(resourceTypes).toContainText(
@@ -259,6 +287,19 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceTypes).toContainText(
       "Directory-selected resources: " + oneResourceKind,
     );
+    await equipmentButton.click();
+    await expect(resourceType).toHaveValue("Equipment");
+    await expect(resourceEnrollment).toHaveValue("all");
+    await expect(equipmentButton).toHaveAttribute("aria-pressed", "true");
+    await expect(resourceSearch).toHaveValue(resource.toUpperCase());
+    await expect(resourceCard).toHaveCount(0);
+    await allTypesButton.click();
+    await expect(resourceType).toHaveValue("all");
+    await expect(resourceCard).toBeVisible();
+    await resourceEnrollment.selectOption("resource-only");
+    await matchingTypeButton.click();
+    await expect(resourceEnrollment).toHaveValue("resource-only");
+    await expect(resourceCard).toBeVisible();
     await resourceSearch.fill("no-such-resource");
     await expect(page.getByText(
       "No resources match these filters.", { exact: true },
