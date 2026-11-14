@@ -41,7 +41,11 @@ export function rosterSummaryFilterContext(view: ResourceMembershipCsvView): {
     ? "Most matching first"
     : view.resourceSort === "fewest"
       ? "Fewest matching first"
-      : "Directory order";
+      : view.resourceSort === "name-asc"
+        ? "Resource name A-Z"
+        : view.resourceSort === "name-desc"
+          ? "Resource name Z-A"
+          : "Directory order";
   return {
     membershipStatus,
     memberSearchApplied: view.memberSearch.trim() ? "Yes" : "No",
