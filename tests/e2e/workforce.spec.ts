@@ -300,7 +300,16 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(resourceCard).toBeVisible();
     await resourceEnrollment.selectOption("enrolled");
     await expect(resourceCard).toHaveCount(0);
-    await expect(recoverNameSearch).toHaveCount(0);
+    // Other demo resources may be enrolled even when this newly created
+    // resource is resource-only. Clearing the *name* search can therefore
+    // recover that selected type/enrollment directory without changing it.
+    await expect(recoverNameSearch).toContainText(
+      "clearing only that search would show",
+    );
+    await expect(recoverNameSearch).toContainText(
+      "within the current type, enrollment and",
+    );
+    await expect(recoverNameSearch).not.toContainText(resource);
     await expect(matchingTypeButton).toContainText("(0 directory, 0 shown)");
     await expect(allTypesButton).toContainText("(0 directory, 0 shown)");
     await expect(equipmentButton).toContainText("(0 directory, 0 shown)");
