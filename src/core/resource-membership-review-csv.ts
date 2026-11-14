@@ -112,15 +112,29 @@ export function filteredResourceMembershipsCsv(
     "Effective end (UTC)", "Business time zone",
   ];
   const rows: string[][] = [];
+  // Group retained same-organization memberships once per export. Keep the
+  // canonical membership order and preserve identical results for duplicate
+  // local resource cards that share an ID.
+  const membershipsByResource = new Map<string, WorkspaceRecord[]>();
+  for (const membership of memberships) {
+    const resourceId = membership.data.resource;
+    if (typeof resourceId !== "string") continue;
+    let grouped = membershipsByResource.get(resourceId);
+    if (!grouped) {
+      grouped = [];
+      membershipsByResource.set(resourceId, grouped);
+    }
+    grouped.push(membership);
+  }
   for (const resource of visibleResources) {
-    // Historical enrollment is established by ANY retained membership, even
-    // if this selected day has zero overlapping membership rows.
-    const all = resourceMembershipRowsForReview(
-      memberships, resource, "all", view.date, zone,
-    );
-    const dateRows = resourceMembershipRowsForReview(
-      memberships, resource, view.mode, view.date, zone,
-    );
+    // Enrollment comes from ALL retained history, not the selected review day.
+    const all = membershipsByResource.get(resource.id) ?? [];
+    // Keep the original DST-safe overlap helper for selected-day review,
+    // but give it only this resource's group rather than the full history.
+    const dateRows = view.mode === "all" ? all
+      : resourceMembershipRowsForReview(
+        all, resource, view.mode, view.date, zone,
+      );
     const shown = orderResourceMembershipsByStart(
       filterResourceMembershipsByName(
         filterResourceMembershipRecordStatus(dateRows, view.membershipStatus),
