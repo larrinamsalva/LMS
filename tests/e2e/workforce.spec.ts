@@ -358,6 +358,22 @@ test("fictional crews and workers publish availability, schedule both industries
     const rosterOverview = page.getByRole("group", {
       name: "Roster membership overview", exact: true,
     });
+    const currentReview = rosterOverview.getByRole("group", {
+      name: "Current roster review scope", exact: true,
+    });
+    await expect(currentReview).toContainText(
+      "Resource records: Current. Membership period: All retained history.",
+    );
+    await expect(currentReview).toContainText(
+      "Membership status: All retained records.",
+    );
+    await expect(currentReview).toContainText(
+      "Resource-name search applied: Yes.",
+    );
+    await expect(currentReview).toContainText(
+      "Employee-name/title search applied: No.",
+    );
+    await expect(currentReview).not.toContainText(resource);
     const unmatchedBreakdown = rosterOverview.getByRole("group", {
       name: "Resources without matching roster records", exact: true,
     });
@@ -462,6 +478,9 @@ test("fictional crews and workers publish availability, schedule both industries
       "Membership review date", { exact: true },
     );
     await rosterDate.fill("2026-11-06");
+    await expect(currentReview).toContainText(
+      "Membership period: Overlapping selected day 2026-11-06.",
+    );
     await expect(rosterRows).toHaveCount(people.length);
     await expect(resourceCard).toContainText(
       "retained dated memberships overlapping 2026-11-06",
@@ -470,6 +489,9 @@ test("fictional crews and workers publish availability, schedule both industries
       name: "Download filtered roster memberships CSV", exact: true,
     });
     await rosterStatus.selectOption("archived");
+    await expect(currentReview).toContainText(
+      "Membership status: Archived records only.",
+    );
     await expect(unmatchedBreakdown).toContainText(
       "Resources without matches: 1. Enrolled workers/crews: 1. " +
       "Resource-only workers/crews: 0. Equipment: 0.",
@@ -487,6 +509,10 @@ test("fictional crews and workers publish availability, schedule both industries
     await gapQuick.getByRole("button", {
       name: "Review enrolled worker/crew gaps",
     }).click();
+    await expect(currentReview).toContainText("Enrollment: Enrolled only.");
+    await expect(currentReview).toContainText(
+      "Card selection: Resources without matches only.",
+    );
     await expect(onlyWithoutResources).toBeChecked();
     await expect(onlyMatchingResources).not.toBeChecked();
     await expect(resourceEnrollment).toHaveValue("enrolled");
@@ -501,6 +527,12 @@ test("fictional crews and workers publish availability, schedule both industries
     await expect(rosterStatus).toHaveValue("archived");
     await expect(rosterMode).toHaveValue("overlapping-day");
     await expect(rosterDate).toHaveValue("2026-11-06");
+    await expect(currentReview).toContainText(
+      "Membership status: Archived records only.",
+    );
+    await expect(currentReview).toContainText(
+      "Card selection: All selected resources.",
+    );
     await expect(resourceSearch).toHaveValue(resource);
     await expect(resourceCard).toBeVisible();
     await expect(cardBreakdown).toContainText(
@@ -580,6 +612,10 @@ test("fictional crews and workers publish availability, schedule both industries
       expect(searchedCsv).not.toContain(other + " membership");
     }
     await rosterSearch.fill("no-such-member-name");
+    await expect(currentReview).toContainText(
+      "Employee-name/title search applied: Yes.",
+    );
+    await expect(currentReview).not.toContainText("no-such-member-name");
     await expect(unmatchedBreakdown).toContainText(
       "Resources without matches: 1. Enrolled workers/crews: 1. " +
       "Resource-only workers/crews: 0. Equipment: 0.",
