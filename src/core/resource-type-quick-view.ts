@@ -1,5 +1,10 @@
 import type { WorkspaceRecord } from "./engine";
 import {
+  resourcesWithMatchingRosterMemberships,
+  resourcesWithoutMatchingRosterMemberships,
+  type MatchingRosterResourceView,
+} from "./resource-membership-review";
+import {
   filterWorkforceResourceDirectory,
   type WorkforceResourceEnrollmentFilter,
   type WorkforceResourceTypeFilter,
@@ -65,6 +70,60 @@ export function previewResourceTypeQuickViews(
       scopedResources, scopedMemberships, showArchived, search,
       filters.kind, filters.enrollment,
     ).length;
+  };
+  return {
+    crews: count("Crew"),
+    workers: count("Worker"),
+    equipment: count("Equipment"),
+    all: count("all"),
+  };
+}
+
+
+/**
+ * Preview the number of resource CARDS that remain after the existing
+ * membership matching-only or without-matches-only filter, for each
+ * prospective type shortcut. The shortcut's resource type and enrollment
+ * rules are applied before the same membership filters used by the UI.
+ *
+ * Counts are historical record selections, never workers available to book.
+ * All resources, membership records and linked employees are explicitly
+ * scoped to the same organization, even when callers include foreign IDs.
+ */
+export function previewShownCardsForResourceTypeQuickViews(
+  resources: readonly WorkspaceRecord[],
+  memberships: readonly WorkspaceRecord[],
+  linkedRecords: readonly WorkspaceRecord[],
+  organizationId: string,
+  showArchived: boolean,
+  resourceSearch: string,
+  enrollment: WorkforceResourceEnrollmentFilter,
+  review: MatchingRosterResourceView,
+  onlyMatching: boolean,
+  onlyWithoutMatching: boolean,
+): ResourceTypePreviewCounts {
+  const scopedResources = resources.filter((record) =>
+    record.organization_id === organizationId,
+  );
+  const scopedMemberships = memberships.filter((record) =>
+    record.organization_id === organizationId,
+  );
+  const scopedLinked = linkedRecords.filter((record) =>
+    record.organization_id === organizationId,
+  );
+  const count = (kind: WorkforceResourceTypeFilter) => {
+    const chosen = resourceTypeQuickView(kind, enrollment);
+    const directory = filterWorkforceResourceDirectory(
+      scopedResources, scopedMemberships, showArchived, resourceSearch,
+      chosen.kind, chosen.enrollment,
+    );
+    if (onlyMatching) return resourcesWithMatchingRosterMemberships(
+      directory, scopedMemberships, scopedLinked, organizationId, review,
+    ).length;
+    if (onlyWithoutMatching) return resourcesWithoutMatchingRosterMemberships(
+      directory, scopedMemberships, scopedLinked, organizationId, review,
+    ).length;
+    return directory.length;
   };
   return {
     crews: count("Crew"),
