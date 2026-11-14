@@ -51,11 +51,28 @@ export function staffAssignmentHistoryCsv(
     byStatusAndSearch, zone, view.fromDate, view.throughDate,
   );
   const ordered = orderStaffAssignmentHistory(byDate, view.sort);
-  const linkedName = (id: string, entity: string, field: "title" | "name") => {
-    const record = scopedRecords.find((r) => r.entity === entity && r.id === id);
-    const name = record?.data[field];
-    return typeof name === "string" ? name : "";
-  };
+  // Index labels once for the already-authorized organization. Keep entity
+  // types separate and preserve find()'s first-record-wins behavior, including
+  // an invalid/missing first label. Never index contact or private metadata.
+  const appointmentTitles = new Map<string, string>();
+  const resourceNames = new Map<string, string>();
+  for (const record of scopedRecords) {
+    if (record.entity === "appointments") {
+      if (!appointmentTitles.has(record.id)) {
+        const title = record.data.title;
+        appointmentTitles.set(record.id,
+          typeof title === "string" ? title : "");
+      }
+    } else if (record.entity === "resources") {
+      if (!resourceNames.has(record.id)) {
+        const name = record.data.name;
+        resourceNames.set(record.id,
+          typeof name === "string" ? name : "");
+      }
+    }
+  }
+  const linkedName = (id: string, entity: "appointments" | "resources") =>
+    (entity === "appointments" ? appointmentTitles : resourceNames).get(id) ?? "";
   const formatted = (instant: string | Date) => {
     try {
       const iso = new Date(instant).toISOString();
@@ -75,8 +92,8 @@ export function staffAssignmentHistoryCsv(
     assignment.employee_name,
     assignment.employee_role,
     assignment.active ? "Reserved" : "Released",
-    linkedName(assignment.appointment_id, "appointments", "title"),
-    linkedName(assignment.resource_id, "resources", "name"),
+    linkedName(assignment.appointment_id, "appointments"),
+    linkedName(assignment.resource_id, "resources"),
     formatted(assignment.starts_at),
     formatted(assignment.ends_at),
     String(assignment.appointment_revision),

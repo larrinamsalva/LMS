@@ -1664,3 +1664,35 @@ No periods, appointments, employee records, reservations, permissions,
 UI controls, APIs/databases/migrations, CSV/JSON formats, deployments,
 MIT license, the public fictional no-login demo or other repositories
 (including ForgeOS) are changed.
+
+
+## Indexed linked labels for staff-assignment CSV exports (PR #152)
+
+The historical staff-assignment CSV exporter still includes **all**
+authorized, filtered retained snapshot rows rather than only the first
+ten visible entries. It now builds temporary, per-export maps for
+in-organization appointment titles and resource names **once**, instead
+of scanning the entire linked-record list twice for each exported
+assignment row. This reduces repeated lookups on large exports.
+
+The exporter applies the same organization boundary, search, status,
+date-range and sort controls before formatting the CSV. Its two maps
+remain separated by entity type and preserve the earlier `find()`
+semantics: the first matching same-organization record wins, **even
+when that first record's display field is missing or malformed**.
+Foreign organizations, contacts, notes, record IDs and private fields
+cannot supply a label. Saved employee snapshot name and role remain
+unchanged, as do business-local date formatting and spreadsheet-formula
+escaping through the existing `csvSafeCell` function.
+
+An independent reproduction of the earlier per-row lookup is used to
+compare exact CSV output across **720 fictional assignment revisions**
+and varied status, search, date-range and sort combinations, duplicate
+records, first-invalid labels, organization collisions, archived links,
+unsafe spreadsheet-looking text and header-only exports. These tests
+verify output parity, not a measured performance improvement.
+
+No database or API schema, saved assignment record, availability or
+booking decision, UI control, exported CSV column/format, permission,
+MIT license, release/deployment, fictional public no-login demo or other
+repository (including ForgeOS) is changed.
