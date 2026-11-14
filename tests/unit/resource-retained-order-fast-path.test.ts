@@ -67,7 +67,7 @@ it("retained ordering skips date reads and returns a new array with the same rec
   const result = orderResourceMembershipsByStart(sample, "retained");
   expect(reads).toBe(0);
   expect(result).not.toBe(sample);
-  expect(result).toEqual(sample);
+  expect(result).toHaveLength(2);
   expect(result[0]).toBe(sample[0]);
   expect(result[1]).toBe(sample[1]);
 });
