@@ -18,7 +18,15 @@ import type { ResourceMembershipCsvView } from "./resource-membership-review-csv
  * Never write raw member-name/title or resource-name search text to the
  * compact report: these terms can contain personal information.
  */
-function summaryFilterContext(view: ResourceMembershipCsvView): string[] {
+export function rosterSummaryFilterContext(view: ResourceMembershipCsvView): {
+  membershipStatus: string;
+  memberSearchApplied: string;
+  resourceSearchApplied: string;
+  resourceType: string;
+  enrollment: string;
+  cardSelection: string;
+  resourceOrder: string;
+} {
   const membershipStatus = view.membershipStatus === "current"
     ? "Current records only"
     : view.membershipStatus === "archived"
@@ -34,17 +42,17 @@ function summaryFilterContext(view: ResourceMembershipCsvView): string[] {
     : view.resourceSort === "fewest"
       ? "Fewest matching first"
       : "Directory order";
-  return [
+  return {
     membershipStatus,
-    view.memberSearch.trim() ? "Yes" : "No",
-    view.resourceSearch.trim() ? "Yes" : "No",
-    view.resourceKind === "all" ? "All types" : view.resourceKind,
-    view.enrollment === "all" ? "All enrollment types"
+    memberSearchApplied: view.memberSearch.trim() ? "Yes" : "No",
+    resourceSearchApplied: view.resourceSearch.trim() ? "Yes" : "No",
+    resourceType: view.resourceKind === "all" ? "All types" : view.resourceKind,
+    enrollment: view.enrollment === "all" ? "All enrollment types"
       : view.enrollment === "enrolled" ? "Enrolled only"
       : "Resource-only",
-    selectedCards,
+    cardSelection: selectedCards,
     resourceOrder,
-  ];
+  };
 }
 
 /**
@@ -108,7 +116,7 @@ export function filteredRosterResourceSummaryCsv(
     "Resource type filter", "Employee enrollment filter",
     "Resource card selection", "Resource card order",
   ]];
-  const filterContext = summaryFilterContext(view);
+  const filterContext = rosterSummaryFilterContext(view);
   for (const resource of ordered) {
     const retained = resourceMembershipRowsForReview(
       memberships, resource, "all", view.date, zone,
@@ -132,7 +140,10 @@ export function filteredRosterResourceSummaryCsv(
         : retained.length ? "Enrolled" : "Resource-only",
       String(retained.length), String(matched.length),
       String(currentCount), String(archivedCount), zone,
-      ...filterContext,
+      filterContext.membershipStatus,
+      filterContext.memberSearchApplied, filterContext.resourceSearchApplied,
+      filterContext.resourceType, filterContext.enrollment,
+      filterContext.cardSelection, filterContext.resourceOrder,
     ]);
   }
   return rows.map((row) => row.map(csvSafeCell).join(",")).join("\r\n") +
