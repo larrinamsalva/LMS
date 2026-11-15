@@ -104,12 +104,20 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
       a.due.localeCompare(b.due) ||
       String(a.record.data.title).localeCompare(String(b.record.data.title)),
     );
+  // Both equipment views resolve the same authorized record by ID.
+  // Index only current, same-organization equipment once. Keep the FIRST
+  // matching record per ID, exactly like the previous records.find() calls,
+  // including duplicate IDs and separate retained historical revisions.
+  const equipmentById = new Map<string, WorkspaceRecord>();
+  for (const record of records) {
+    if (record.entity === "equipment" && !equipmentById.has(record.id)) {
+      equipmentById.set(record.id, record);
+    }
+  }
   const equipment = snapshot.equipmentStates
     .filter((state) => state.organization_id === snapshot.organizationId)
     .flatMap((state): EquipmentAttention[] => {
-      const record = records.find(
-        (r) => r.entity === "equipment" && r.id === state.record_id,
-      );
+      const record = equipmentById.get(state.record_id);
       if (!record || state.condition === "Retired") return [];
       const reason =
         state.condition !== "Serviceable"
@@ -127,9 +135,7 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
   const upcomingEquipmentInspections = snapshot.equipmentStates
     .filter((state) => state.organization_id === snapshot.organizationId)
     .flatMap((state): UpcomingEquipmentInspection[] => {
-      const record = records.find(
-        (r) => r.entity === "equipment" && r.id === state.record_id,
-      );
+      const record = equipmentById.get(state.record_id);
       if (!record || state.condition !== "Serviceable" || !state.next_inspection)
         return [];
       const due = String(state.next_inspection).slice(0, 10);
