@@ -289,7 +289,9 @@ it("keeps invalid string times blank and separates repeated UTC DST-fold instant
   expect(csv).toBe(previousCsv(
     rows, [], ORG, "America/Los_Angeles", defaultView,
   ));
-  expect(csv).toContain("2026-11-01T01:30");
+  // displayTime includes the UTC offset to disambiguate the two 01:30 hours.
+  expect(csv).toContain("2026-11-01 01:30-07:00");
+  expect(csv).toContain("2026-11-01 01:30-08:00");
   expect(csv).toContain('""');
   expect(csv.trimEnd().split("\r\n")).toHaveLength(5);
 });
