@@ -1,3 +1,4 @@
+import { Temporal } from "@js-temporal/polyfill";
 import { expect, it } from "vitest";
 import type { WorkspaceRecord } from "../../src/core/engine";
 import { csvSafeCell } from "../../src/core/daily-operations-csv";
@@ -226,8 +227,9 @@ it("preserves exact CSV bytes across 720 fictional roster memberships with repea
       resource: i % 71 === 0 ? 12 : "resource-" + (i % 29),
       employee: i % 83 === 0 ? 32 : "employee-" + (i % 340),
       title: i % 13 === 0 ? "@Formula title" : "Roster work " + i,
-      start: times[i % times.length],
-      end: times[(i + 3) % times.length],
+      // Deliberately include malformed historic values in this fixture.
+      start: times[i % times.length] as WorkspaceRecord["data"]["start"],
+      end: times[(i + 3) % times.length] as WorkspaceRecord["data"]["end"],
       notes: "PRIVATE MEMBER NOTES",
     }, i % 5 === 0, org));
   }
