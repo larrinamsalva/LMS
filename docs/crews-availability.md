@@ -2069,3 +2069,41 @@ This is read-only internal computation. No saved assignment revisions,
 booking/capacity/availability decision, permissions, UI, API/database
 schema or migrations, release/deployment, MIT license, fictional no-login
 public demo or any other repository (including ForgeOS) is changed.
+
+
+## Reuse scheduled start-day conversions in assignment-history filtering (PR #163)
+
+The retained staff-assignment history **date-range filter** now caches
+business-local start **calendar dates** for identical saved **string**
+scheduled-start timestamps within one filter call. Historical
+assignment revisions commonly repeat the same start instant. The
+previous filter reparsed every repeated string via `new Date(...)`,
+`toISOString()` and `localDate(..., zone)`, even when it could
+safely reuse the previous answer.
+
+A cache local to the filter invocation stores either the same
+business-local YYYY-MM-DD label or `null` for malformed string
+timestamps. The original date bounds remain inclusive. A missing
+range still returns a fresh copy without parsing or filtering.
+`Date` objects are **not cached**, because they are mutable; their
+conversion, errors and date matching remain per occurrence.
+Different exports/time zones receive independent caches. Invalid
+or reversed date ranges continue returning an empty set, and
+invalid timestamps are excluded rather than assigned an invented
+day. Date-only display, including the spring/fall DST transitions
+and leap days, is unchanged.
+
+An independent copy of the prior filter compares **the same
+historical row references, occurrence counts and source order**
+against the optimized implementation over **720 fictional retained
+assignment revisions** and multiple business time zones/ranges,
+including duplicate references, archived/released revisions,
+repeated timestamps, malformed values, mutable `Date` objects
+and DST dates. These are parity tests, not measured benchmarks.
+
+This is a read-only history filter optimization. No saved records,
+assignment release/reservation state, staff availability, scheduling
+or booking decisions, authorization, UI, CSV columns/format,
+APIs/database/migrations, deployment/release, MIT license, the
+fictional no-login public demo or other repositories
+(including ForgeOS) are changed.
