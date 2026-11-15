@@ -1,13 +1,13 @@
+import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "./engine";
 import { csvSafeCell } from "./daily-operations-csv";
-import { isTimeZone } from "./time";
+import { instant, isTimeZone } from "./time";
 import { filterWorkforceResourceDirectory } from "./workforce-resource-directory";
 import {
   filterResourceMembershipRecordStatus,
   filterResourceMembershipsByName,
   orderRosterResourcesByMatchingCount,
   resourceMembershipReviewDateError,
-  resourceMembershipRowsForReview,
   resourcesWithMatchingRosterMemberships,
   resourcesWithoutMatchingRosterMemberships,
 } from "./resource-membership-review";
@@ -144,14 +144,33 @@ export function filteredRosterResourceSummaryCsv(
     }
     entries.push(membership);
   }
+  // A review-day boundary is identical for every resource card. Compute it
+  // once and classify each authorized membership record only once, rather
+  // than recalculating the timezone boundary and parsing its dates per card.
+  // Keep a reference Set so duplicate IDs / repeated record references
+  // preserve their original occurrence counts during per-card filtering.
+  const overlappingDay = view.mode === "all" ? null : (() => {
+    const day = Temporal.PlainDate.from(view.date);
+    const start = day.toZonedDateTime(zone).epochNanoseconds;
+    const end = day.add({ days: 1 }).toZonedDateTime(zone).epochNanoseconds;
+    const matches = new Set<WorkspaceRecord>();
+    for (const membership of memberships) {
+      try {
+        if (instant(String(membership.data.start)).epochNanoseconds < end &&
+            instant(String(membership.data.end)).epochNanoseconds > start) {
+          matches.add(membership);
+        }
+      } catch {
+        // Never place malformed retained dates on a guessed review day.
+      }
+    }
+    return matches;
+  })();
   for (const resource of ordered) {
     const retained = membershipsByResource.get(resource.id) ?? [];
-    // All-history mode already has exactly the retained rows. For a
-    // selected local day, keep the existing DST-safe overlap calculation.
-    const dated = view.mode === "all" ? retained :
-      resourceMembershipRowsForReview(
-        retained, resource, view.mode, view.date, zone,
-      );
+    const dated = overlappingDay
+      ? retained.filter((membership) => overlappingDay.has(membership))
+      : retained;
     const statusRows = filterResourceMembershipRecordStatus(
       dated, view.membershipStatus,
     );
