@@ -29,10 +29,22 @@ export function dailyOperationsCsv(
     "Selected date", "Type", "Title", "Time or due date",
     "Status or reason", "Business time zone",
   ]];
+  // A daily summary can include multiple appointments sharing a scheduled
+  // start. Reuse formatted labels for identical immutable strings only within
+  // this export; non-string historical values retain per-use conversion.
+  const formattedStarts = new Map<string, string>();
+  const formattedStart = (value: unknown): string => {
+    if (typeof value !== "string") return displayTime(String(value), zone);
+    const cached = formattedStarts.get(value);
+    if (cached !== undefined) return cached;
+    const label = displayTime(value, zone);
+    formattedStarts.set(value, label);
+    return label;
+  };
   for (const appointment of overview.appointments) {
     rows.push([
       overview.date, "Appointment", String(appointment.data.title),
-      displayTime(String(appointment.data.start), zone),
+      formattedStart(appointment.data.start),
       String(appointment.data.status), zone,
     ]);
   }
