@@ -135,11 +135,13 @@ it("keeps calls isolated and skips parsing in retained order", () => {
     membership(2, "2026-11-06T18:00:00Z"),
   ];
   const initial = orderResourceMembershipsByStart(entries, "newest");
+  // Snapshot the initial order before changing a retained record in place.
+  const initialTitles = initial.map((row) => row.data.title);
   entries[0].data.start = "2027-01-01T00:00:00Z";
   const changed = orderResourceMembershipsByStart(entries, "newest");
-  expect(initial).toEqual(previousOrder(
+  expect(initialTitles).toEqual(previousOrder(
     [membership(0, "invalid"), entries[1], entries[2]], "newest",
-  ));
+  ).map((row) => row.data.title));
   expect(changed).toEqual(previousOrder(entries, "newest"));
   expect(changed[0]).toBe(entries[0]);
   const retained = orderResourceMembershipsByStart(entries, "retained");
