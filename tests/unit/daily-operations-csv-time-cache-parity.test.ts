@@ -170,8 +170,11 @@ it("keeps non-string starts uncached and preserves original errors and empty exp
     previousCsv(overview, "UTC", false),
   );
   one.data.start = 17;
-  expect(() => dailyOperationsCsv(overview, "UTC", false)).toThrow();
-  expect(() => previousCsv(overview, "UTC", false)).toThrow();
+  // displayTime intentionally falls back to the original invalid string.
+  expect(dailyOperationsCsv(overview, "UTC", false)).toBe(
+    previousCsv(overview, "UTC", false),
+  );
+  expect(dailyOperationsCsv(overview, "UTC", false)).toContain('"17"');
   one.data.start = originalStart;
   const empty = summarizeDailyOperations({
     organizationId: ORG, records: [], equipmentStates: [],
