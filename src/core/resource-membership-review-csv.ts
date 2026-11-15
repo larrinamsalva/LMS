@@ -1,3 +1,4 @@
+import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "./engine";
 import { csvSafeCell } from "./daily-operations-csv";
 import { instant, isTimeZone, localTime } from "./time";
@@ -7,7 +8,6 @@ import {
   type WorkforceResourceEnrollmentFilter,
 } from "./workforce-resource-directory";
 import {
-  resourceMembershipRowsForReview,
   resourceMembershipReviewDateError,
   filterResourceMembershipRecordStatus,
   filterResourceMembershipsByName,
@@ -135,15 +135,32 @@ export function filteredResourceMembershipsCsv(
     }
     grouped.push(membership);
   }
+  // Every card shares the same requested business-local review day. Reuse
+  // its DST-aware boundaries and classify each authorized retained record
+  // once. Keep record identity, not historical IDs, for duplicate revisions.
+  const overlappingDay = view.mode === "all" ? null : (() => {
+    const day = Temporal.PlainDate.from(view.date);
+    const start = day.toZonedDateTime(zone).epochNanoseconds;
+    const end = day.add({ days: 1 }).toZonedDateTime(zone).epochNanoseconds;
+    const matches = new Set<WorkspaceRecord>();
+    for (const membership of memberships) {
+      try {
+        if (instant(String(membership.data.start)).epochNanoseconds < end &&
+            instant(String(membership.data.end)).epochNanoseconds > start) {
+          matches.add(membership);
+        }
+      } catch {
+        // Invalid retained timestamps do not invent review-day membership.
+      }
+    }
+    return matches;
+  })();
   for (const resource of visibleResources) {
     // Enrollment comes from ALL retained history, not the selected review day.
     const all = membershipsByResource.get(resource.id) ?? [];
-    // Keep the original DST-safe overlap helper for selected-day review,
-    // but give it only this resource's group rather than the full history.
-    const dateRows = view.mode === "all" ? all
-      : resourceMembershipRowsForReview(
-        all, resource, view.mode, view.date, zone,
-      );
+    const dateRows = overlappingDay
+      ? all.filter((membership) => overlappingDay.has(membership))
+      : all;
     const statusRows = filterResourceMembershipRecordStatus(
       dateRows, view.membershipStatus,
     );

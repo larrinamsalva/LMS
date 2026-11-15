@@ -1950,3 +1950,46 @@ workers, staffing capacity or scheduling/booking authority.
 No UI, permissions, records, APIs/databases/migrations, CSV schema,
 release/deployment, MIT license, fictional no-login public demo or
 other repositories (including ForgeOS) are modified.
+
+
+## Shared business-local review-day overlap for detailed roster CSV (PR #160)
+
+The **detailed** resource-roster membership CSV now calculates the
+selected business-local day boundary only **once per export**, reusing
+a temporary set of overlapping, authorized historical membership
+**record references** across resource cards. Previously the exporter
+recomputed the same timezone-aware day start/end and reparsed the
+membership timestamps separately for each displayed resource card.
+This matches the safe approach independently verified for the
+summary roster export in PR #159.
+
+As before, a retained membership overlaps the selected local day iff
+its effective start instant is strictly before the **next** local
+midnight and its effective end instant is strictly after that day's
+local midnight. The calculation handles daylight-saving fold/gap
+days using the existing `Temporal` and `instant` functions.
+Malformed retained timestamps remain excluded from selected-day
+exports, rather than silently fabricating a review date. In
+`All retained history` mode, there is no selected-day classification.
+
+Using record **references**, not history IDs, preserves revisions
+that share the same ID as well as repeated object references and
+duplicate resource cards. The original organization boundary,
+archived/current membership filters, selected resource directory,
+enrollment, member title/name search, card/row sorting, CSV columns,
+local/UTC output values, spreadsheet formula safety, invalid-day
+errors, and header-only output remain unchanged.
+
+A standalone copy of the previous per-card export is compared
+**byte for byte** against the new output across **720 fictional
+membership records**, multiple business time zones and dates,
+archived history, foreign organization collisions, duplicate IDs
+and references, malformed retained instants and DST fold hours.
+These regressions establish output parity, not measured speed gains.
+
+Retained membership history does not establish live worker
+availability, booking capacity, or scheduling permission.
+No stored data, UI, permissions, APIs/database/migrations,
+CSV schema, release/deployment, MIT license, fictional
+public no-login demo or other repository (including ForgeOS)
+is modified by this optimization.
