@@ -31,8 +31,24 @@ export function sevenDayWorkload(overview: Overview, zone: string): DailyWorkloa
     inspections: 0,
   }));
   const byDate = new Map(days.map((day) => [day.date, day]));
+  // Upcoming appointments often share a saved start instant. Cache only
+  // identical string starts inside one authorized seven-day calculation.
+  // Non-string retained values preserve their original per-use conversion.
+  const localStartDays = new Map<string, string>();
   for (const item of overview.upcomingAppointments) {
-    const date = localDate(String(item.data.start), zone);
+    const value = item.data.start;
+    let date: string;
+    if (typeof value === "string") {
+      const cached = localStartDays.get(value);
+      if (cached !== undefined) {
+        date = cached;
+      } else {
+        date = localDate(value, zone);
+        localStartDays.set(value, date);
+      }
+    } else {
+      date = localDate(String(value), zone);
+    }
     const day = byDate.get(date);
     if (day) day.appointments += 1;
   }
