@@ -167,8 +167,8 @@ it("keeps non-string starts uncached and preserves malformed-time fallback and e
   const originalStart = one.data.start;
   // Deliberately inject a non-schema historic value to exercise the exporter
   // fallback; keep the fixture's unsafe shape explicit to TypeScript.
-  one.data.start = { toString: () => "2026-11-06T18:30:00Z" }
-    as unknown as WorkspaceRecord["data"]["start"];
+  one.data.start = { toString: () => "2026-11-06T18:30:00Z" } as
+    unknown as WorkspaceRecord["data"]["start"];
   expect(dailyOperationsCsv(overview, "UTC", false)).toBe(
     previousCsv(overview, "UTC", false),
   );
