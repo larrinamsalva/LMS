@@ -158,14 +158,28 @@ export function resourceMembershipRowsForReview(
     const day = Temporal.PlainDate.from(date);
     const start = day.toZonedDateTime(zone).epochNanoseconds;
     const end = day.add({ days: 1 }).toZonedDateTime(zone).epochNanoseconds;
-    return owned.filter((membership) => {
-      try {
-        return instant(String(membership.data.start)).epochNanoseconds < end &&
-          instant(String(membership.data.end)).epochNanoseconds > start;
-      } catch {
-        // Never invent a roster day for malformed retained date records.
-        return false;
+    // Retained revisions can repeat the same string start/end timestamps.
+    // Cache their parsed instants only for this review call. Non-string
+    // values keep per-use conversion and invalid dates still never match.
+    const parsedInstants = new Map<string, bigint | null>();
+    const parsedInstant = (value: unknown): bigint | null => {
+      if (typeof value === "string" && parsedInstants.has(value)) {
+        return parsedInstants.get(value) ?? null;
       }
+      let parsed: bigint | null = null;
+      try {
+        parsed = instant(String(value)).epochNanoseconds;
+      } catch {
+        // A malformed historical timestamp must never invent a roster day.
+      }
+      if (typeof value === "string") parsedInstants.set(value, parsed);
+      return parsed;
+    };
+    return owned.filter((membership) => {
+      const effectiveStart = parsedInstant(membership.data.start);
+      if (effectiveStart === null || effectiveStart >= end) return false;
+      const effectiveEnd = parsedInstant(membership.data.end);
+      return effectiveEnd !== null && effectiveEnd > start;
     });
   } catch {
     return [];
