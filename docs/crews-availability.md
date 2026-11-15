@@ -2381,3 +2381,39 @@ staff availability or booking decisions, permissions, UI,
 CSV schema, APIs/database/migrations, release/deployment, MIT
 license, fictional no-login public demo or any other repository
 (including ForgeOS).
+
+
+## Reuse selected-day overlap instants in retained roster CSV exports (PR #171)
+
+The read-only retained Resource Directory CSV exporter now reuses parsed
+**string** membership start/end timestamps during the selected-day overlap
+pass. Historical membership revisions frequently share the same saved
+whole-minute timestamps, so a temporary per-export map avoids repeatedly
+parsing identical strings. Valid inputs reuse their original
+`epochNanoseconds` values; malformed strings reuse a `null`
+(nonmatching) result. Non-string historical values are deliberately
+**not cached** and keep their original per-occurrence `String(value)`
+conversion and error handling.
+
+The existing **strict half-open interval** overlap with the business-local
+selected day, including spring-forward (23-hour) and fall-back (25-hour)
+days, remains unchanged. The optimization does not alter separate CSV
+date-display formatting, resource/organization authorization, archived and
+current membership visibility, employee-name privacy, date/status/search
+filters, duplicate historical revisions, source order, resource-card
+sorting, or formula-safe CSV quoting. The `all` history mode still skips
+selected-day overlap classification. Nothing persists between exports.
+
+Regression tests compare **exact CSV bytes** against the existing independent
+pre-cache exporter for **240 fictional retained rows** over UTC, Los Angeles
+and New York zones, six selected dates and multiple status/search/sort/card
+views. These supplement the existing 720-record parity tests and cover
+duplicate references, malformed/non-string values, foreign-organization
+collisions and DST transitions. They establish semantic parity, **not
+measured performance gains**.
+
+This change affects read-only export calculations only. No saved
+membership data, enrollment, available staffing, booking authority,
+permissions, UI, database/API/migrations, release/deployment, MIT license,
+fictional public no-login demo or other repositories (including ForgeOS)
+are changed.
