@@ -2178,3 +2178,46 @@ organization isolation, UI, permissions, CSV fields, persisted data,
 APIs/database/migrations, deployment/release, MIT license, the
 fictional no-login public demo or other repositories including
 ForgeOS.
+
+
+## Reused effective timestamps in per-resource roster-day reviews (PR #166)
+
+The resource-membership history review now parses repeated **string**
+start/end instants only **once per individual review call** when
+selecting memberships overlapping a business-local day. Historical
+membership revisions often share the same whole-minute start or end
+times. The previous helper parsed each occurrence separately, even if
+the same ISO timestamp had already been parsed for another record.
+The new temporary map stores the original `epochNanoseconds`
+or `null` for an invalid string, without modifying any records.
+
+The business-local review day still uses `Temporal.PlainDate`,
+with the original half-open [start, end) overlap condition:
+`membership.start < nextMidnight` and
+`membership.end > selectedMidnight`. This preserves 25-hour fall-back
+and 23-hour spring-forward days, excludes exact touching boundaries,
+and never guesses the date of malformed retained timestamps.
+Non-string historic values are **not cached** and still undergo the
+previous `String(value)` / instant-conversion behavior per use.
+The `All retained history` mode still requires no date parsing,
+returns all authorized retained memberships, and preserves source
+order, archival markers and duplicate record occurrences.
+
+The cache is private to one review invocation. Resource entity,
+resource ID and organization scoping are checked **before** date
+selection, so no foreign-organization or unrelated-entity records
+can be introduced. Review-only history is not staff availability,
+booking capacity, or scheduling authorization.
+
+An independent verbatim copy of the previous review helper is
+compared with the optimized output for **720 fictional retained
+memberships**, including the same reference repeated, distinct
+revisions with duplicate IDs, resource/entity/organization collisions,
+repeated and malformed times, DST folds/gaps, multiple time zones,
+unbounded/invalid days, and exact record-reference/order parity.
+These tests establish behavior parity, **not measured speed gains**.
+
+No saved data, roster enrollment, archived/current status,
+permissions, UI, CSV schema, API/database/migrations, deployment,
+MIT license, fictional no-login public demo or other repository
+(including ForgeOS) is changed.
