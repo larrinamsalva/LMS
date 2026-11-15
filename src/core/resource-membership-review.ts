@@ -227,14 +227,28 @@ function matchedRosterCountsByResource(
       const day = Temporal.PlainDate.from(view.date);
       const start = day.toZonedDateTime(view.zone).epochNanoseconds;
       const end = day.add({ days: 1 }).toZonedDateTime(view.zone).epochNanoseconds;
-      scoped = scoped.filter((membership) => {
+      // Count views can contain multiple retained revisions with identical
+      // effective starts/ends. Reuse string instants only within this local
+      // review; non-strings retain their original per-occurrence conversion.
+      const instants = new Map<string, bigint | null>();
+      const parsedInstant = (value: unknown): bigint | null => {
+        if (typeof value === "string" && instants.has(value)) {
+          return instants.get(value) ?? null;
+        }
+        let parsed: bigint | null = null;
         try {
-          return instant(String(membership.data.start)).epochNanoseconds < end &&
-            instant(String(membership.data.end)).epochNanoseconds > start;
+          parsed = instant(String(value)).epochNanoseconds;
         } catch {
           // Malformed retained dates are not inferred or silently repaired.
-          return false;
         }
+        if (typeof value === "string") instants.set(value, parsed);
+        return parsed;
+      };
+      scoped = scoped.filter((membership) => {
+        const membershipStart = parsedInstant(membership.data.start);
+        if (membershipStart === null || membershipStart >= end) return false;
+        const membershipEnd = parsedInstant(membership.data.end);
+        return membershipEnd !== null && membershipEnd > start;
       });
     } catch {
       return counts;
