@@ -2107,3 +2107,37 @@ or booking decisions, authorization, UI, CSV columns/format,
 APIs/database/migrations, deployment/release, MIT license, the
 fictional no-login public demo or other repositories
 (including ForgeOS) are changed.
+
+
+## Reuse scheduled start instants when sorting retained assignment history (PR #164)
+
+The read-only retained staff-assignment history sorter now caches parsed
+scheduled-start milliseconds for **identical string timestamps within
+one sort call**. Repeated reservations and released historical revisions
+can share a scheduled start time. Previously the sorter independently
+reparsed every start value, even if that exact timestamp string had
+already been encountered. Only sorted `oldest`/`newest` views
+allocate this temporary map; `retained` still returns a fresh copy
+without parsing dates.
+
+The cache also preserves a `null` result for malformed string
+timestamps. **Mutable `Date` objects are not cached** and keep their
+original per-occurrence conversion behavior. Chronological comparisons
+continue to use scheduled UTC instant milliseconds (not a local
+wall-clock rendering), retaining exact ordering across fall-back
+daylight-saving fold hours. Invalid starts stay **last in both sort
+directions**, and ties preserve the original retained source order.
+
+A standalone copy of the preoptimization sorter checks the **exact
+object references, duplicate occurrences and ordering** of **720
+fictional retained assignment revisions** with repeated timestamps,
+malformed strings, mutable Date objects, DST folds, stable ties and
+multiple sorts. These are correctness tests, not a measured speed
+benchmark.
+
+This is internal read-only sorting. It does not change saved
+assignment history, release/reservation state, date-range or
+organization filtering, staff availability/booking rules, UI,
+authorization, CSV format, API/database/migrations, deployment,
+MIT license, fictional public no-login demo or any other
+repository (including ForgeOS).

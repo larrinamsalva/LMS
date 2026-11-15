@@ -164,9 +164,18 @@ export function orderStaffAssignmentHistory(
   sort: StaffAssignmentHistorySort,
 ): StaffAssignment[] {
   if (sort === "retained") return [...entries];
-  const millis = (value: string | Date) => {
+  // Archived revisions can share the same scheduled-start string. Reuse
+  // that instant only for immutable string values within one sort call.
+  // Date objects are mutable and remain parsed for each occurrence.
+  const startTimes = new Map<string, number | null>();
+  const millis = (value: string | Date): number | null => {
+    if (typeof value === "string" && startTimes.has(value)) {
+      return startTimes.get(value) ?? null;
+    }
     const time = new Date(value).getTime();
-    return Number.isFinite(time) ? time : null;
+    const parsed = Number.isFinite(time) ? time : null;
+    if (typeof value === "string") startTimes.set(value, parsed);
+    return parsed;
   };
   return entries.map((entry, index) => ({
     entry, index, time: millis(entry.starts_at),
