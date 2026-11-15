@@ -114,8 +114,13 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
       equipmentById.set(record.id, record);
     }
   }
-  const equipment = snapshot.equipmentStates
-    .filter((state) => state.organization_id === snapshot.organizationId)
+  // Both read-only equipment views use the identical same-organization
+  // state subset. Scope it once per summary without deduplicating, sorting,
+  // changing the state references, or sharing data between calls.
+  const authorizedEquipmentStates = snapshot.equipmentStates.filter(
+    (state) => state.organization_id === snapshot.organizationId,
+  );
+  const equipment = authorizedEquipmentStates
     .flatMap((state): EquipmentAttention[] => {
       const record = equipmentById.get(state.record_id);
       if (!record || state.condition === "Retired") return [];
@@ -132,8 +137,7 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
     );
   // Look ahead only for serviceable assets with a saved next-inspection date.
   // Current/overdue conditions remain in "Equipment to review" instead.
-  const upcomingEquipmentInspections = snapshot.equipmentStates
-    .filter((state) => state.organization_id === snapshot.organizationId)
+  const upcomingEquipmentInspections = authorizedEquipmentStates
     .flatMap((state): UpcomingEquipmentInspection[] => {
       const record = equipmentById.get(state.record_id);
       if (!record || state.condition !== "Serviceable" || !state.next_inspection)
