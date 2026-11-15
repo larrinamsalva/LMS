@@ -156,7 +156,7 @@ it("reformats each independent export with its own zone, including DST-fold offs
   expect(utc).toBe(previousCsv(overview, "UTC", false));
 });
 
-it("keeps non-string starts uncached and preserves original errors and empty exports", () => {
+it("keeps non-string starts uncached and preserves malformed-time fallback and empty exports", () => {
   const one = record("appointments", "one", {
     title: "Fictional Example", status: "Scheduled",
     start: "2026-11-06T18:30:00Z", end: "2026-11-06T19:00:00Z",
@@ -165,7 +165,10 @@ it("keeps non-string starts uncached and preserves original errors and empty exp
     organizationId: ORG, records: [one], equipmentStates: [],
   }, "UTC", "2026-11-06");
   const originalStart = one.data.start;
-  one.data.start = { toString: () => "2026-11-06T18:30:00Z" };
+  // Deliberately inject a non-schema historic value to exercise the exporter
+  // fallback; keep the fixture's unsafe shape explicit to TypeScript.
+  one.data.start = { toString: () => "2026-11-06T18:30:00Z" }
+    as unknown as WorkspaceRecord["data"]["start"];
   expect(dailyOperationsCsv(overview, "UTC", false)).toBe(
     previousCsv(overview, "UTC", false),
   );
