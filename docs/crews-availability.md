@@ -1909,3 +1909,44 @@ permission. This is internal read-only computation: no UI,
 permissions, stored records, database/API/migrations, CSV schema,
 release/deployment, MIT license, fictional no-login demo or other
 repos (including ForgeOS) are changed.
+
+
+## Shared local-day overlap calculation in roster summary CSV (PR #159)
+
+The one-row-per-resource historical roster summary CSV now calculates
+the selected business-local review-day boundaries **once per export**.
+Previously, each resource card independently recalculated its
+time-zone-aware midnight boundaries and parsed its retained membership
+start/end instants to identify overlapping records. The report now
+classifies each authorized retained membership once for the selected
+day and reuses a temporary set of matching **record references**
+across resource cards.
+
+The inclusive/exclusive [start, end) overlap test is unchanged:
+an effective membership overlaps the selected local day only when
+its saved start instant is before the following local midnight and
+its saved end instant is after the selected midnight. This preserves
+daylight-saving fold hours and short/long local days, while invalid
+retained timestamps remain excluded rather than being guessed.
+`All retained history` mode skips day classification entirely.
+
+Record **references**, rather than IDs, preserve duplicate revisions
+and repeated occurrences; two local resource cards sharing one ID
+continue showing the same historic counts. Organization filtering,
+invalid date/zone validation, archived/current status, enrollment,
+member search, resource sorting, no-match selection, CSV columns,
+fixed filter-context metadata and spreadsheet-safe escaping are
+unchanged.
+
+An independent version of the previous per-card boundary calculation
+is compared against the new output **byte for byte** over **720
+fictional retained memberships**, across multiple days/time zones,
+resource filters, archived statuses, duplicate IDs/references,
+malformed instants and DST fold cases. This verifies parity rather
+than any measured speedup.
+
+Historic roster **record counts** do not imply distinct available
+workers, staffing capacity or scheduling/booking authority.
+No UI, permissions, records, APIs/databases/migrations, CSV schema,
+release/deployment, MIT license, fictional no-login public demo or
+other repositories (including ForgeOS) are modified.
