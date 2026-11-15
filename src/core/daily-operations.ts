@@ -36,14 +36,28 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
         instant(String(b.data.start)),
       ),
     );
+  // Upcoming records can share the same immutable start timestamp.
+  // Cache parsed string instants only within this read-only summary call.
+  // For unusual non-string historical values, preserve the original
+  // two-conversion short circuit and error behavior, without caching.
+  const upcomingStarts = new Map<string, bigint>();
   const upcomingAppointments = records
-    .filter(
-      (r) =>
-        r.entity === "appointments" &&
-        r.data.status !== "Cancelled" &&
-        instant(String(r.data.start)).epochNanoseconds >= until &&
-        instant(String(r.data.start)).epochNanoseconds < upcomingEnd,
-    )
+    .filter((r) => {
+      if (r.entity !== "appointments" || r.data.status === "Cancelled") {
+        return false;
+      }
+      const value = r.data.start;
+      if (typeof value !== "string") {
+        return instant(String(r.data.start)).epochNanoseconds >= until &&
+          instant(String(r.data.start)).epochNanoseconds < upcomingEnd;
+      }
+      let parsed = upcomingStarts.get(value);
+      if (parsed === undefined) {
+        parsed = instant(value).epochNanoseconds;
+        upcomingStarts.set(value, parsed);
+      }
+      return parsed >= until && parsed < upcomingEnd;
+    })
     .sort((a, b) =>
       Temporal.Instant.compare(
         instant(String(a.data.start)),
