@@ -46,6 +46,18 @@ export function filterStaffAssignmentHistory(
       names.set(record.id, typeof label === "string" ? label : "");
     }
   }
+  // Repeated historical revisions often share saved employee names, roles
+  // and linked display labels. Normalize each identical string once per
+  // nonblank search call; never keep results across calls or records.
+  const normalizedLabels = new Map<string, string>();
+  const matches = (value: string) => {
+    let normalized = normalizedLabels.get(value);
+    if (normalized === undefined) {
+      normalized = value.toLocaleLowerCase();
+      normalizedLabels.set(value, normalized);
+    }
+    return normalized.includes(query);
+  };
   return assignments.filter((assignment) => {
     if (status === "reserved" && !assignment.active) return false;
     if (status === "released" && assignment.active) return false;
@@ -56,9 +68,7 @@ export function filterStaffAssignmentHistory(
       appointmentTitles.get(organizationId)?.get(assignment.appointment_id) ?? "",
       resourceNames.get(organizationId)?.get(assignment.resource_id) ?? "",
     ];
-    return searchable.some((value) =>
-      value.toLocaleLowerCase().includes(query),
-    );
+    return searchable.some(matches);
   });
 }
 
