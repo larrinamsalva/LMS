@@ -1871,3 +1871,41 @@ booking eligibility. There are no changes to persisted history,
 permissions, UI, API/databases/migrations, CSV schema,
 release/deployment, MIT license, the fictional no-login public demo,
 or other repositories, including ForgeOS.
+
+
+## Reused member search in resource-roster summary CSV (PR #158)
+
+The roster summary CSV now computes nonblank historical membership title
+or linked employee-name search **once per authorized export** and
+reuses the resulting matching **record references** across resource
+cards. Previously, each card independently rebuilt the linked
+employee-name index and repeated title/name matching after applying
+that card's review date and archived/current status. Those filters
+are independent of the member search, so the exporter can intersect
+each existing date/status-selected list with a shared search-match
+set while preserving every original count and row.
+
+Blank or whitespace-only searches avoid the additional match set.
+Record identity is used instead of membership IDs because retained
+historical revisions may reuse identifiers; duplicate object
+references and duplicate resource cards must retain their original
+occurrence counts. The same-organization employee lookup,
+first-record-wins name behavior, archived membership history,
+business-local DST overlap checks, matching/without-matches
+selection, name/count sorting, redaction of raw search terms,
+fixed metadata vocabulary, CSV columns and spreadsheet-safety
+escaping remain unchanged.
+
+An independent copy of the previously merged summary exporter checks
+**byte-for-byte CSV parity** across **720 fictional membership
+records** with multiple search/status/date/sort/filter combinations,
+duplicate IDs and references, malformed names/links, organization
+collisions and header-only results. This validates correctness,
+not a measured benchmark.
+
+Summary counts still mean historical membership **records**, not
+distinct employees, live availability, staffing capacity or booking
+permission. This is internal read-only computation: no UI,
+permissions, stored records, database/API/migrations, CSV schema,
+release/deployment, MIT license, fictional no-login demo or other
+repos (including ForgeOS) are changed.
