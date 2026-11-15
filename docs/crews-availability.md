@@ -2221,3 +2221,43 @@ No saved data, roster enrollment, archived/current status,
 permissions, UI, CSV schema, API/database/migrations, deployment,
 MIT license, fictional no-login public demo or other repository
 (including ForgeOS) is changed.
+
+
+## Reuse effective instants in resource-card roster match counts (PR #167)
+
+The read-only **resource-card matching/count index** now parses repeated
+saved **string** membership start/end instants once within each
+business-local selected-day count call. Previously every retained
+membership was reparsed, even when its start or end string matched
+another historical revision. A private, short-lived map stores the
+original `epochNanoseconds` value or `null` for malformed string
+timestamps. Non-string historical values are **never cached**, and
+the previous `String(value)` conversion behavior remains per use.
+
+The same business-local midnight boundaries, strict half-open
+[start, end) overlap test, invalid review date/time zone rejection,
+and DST fold/gap semantics still determine selected-day matches.
+All-history mode skips day parsing and caching entirely. The index
+still filters resource membership entity and organization **before**
+parsing, then applies archived/current status, same-organization
+employee-name/title search and matching-record count rules.
+
+Card match-only/no-match selection, resource count sorting and
+summary totals continue counting **retained historical membership
+records**, not distinct workers or current available staffing.
+Duplicate retained revisions, repeated object references, equal
+resource IDs and original resource-card order remain significant.
+
+An independent copy of the previous matching/count calculation
+validates output against **720 fictional retained membership
+records** across multiple business time zones, archived/current and
+member-search filters, malformed historical dates, DST fold/gap
+days, duplicate histories, foreign-organization collisions and
+invalid review dates. Tests compare exact selected resource-card
+references and ordering, matching/nonmatching cards, summaries
+and count-sorted results. This verifies parity, **not measured speed**.
+
+No saved records, bookings or staffing decisions, persisted data,
+authorization, UI, CSV fields, APIs/database/migrations, release,
+deployment, MIT license, fictional public no-login demo or any other
+repository (including ForgeOS) is modified.
