@@ -95,13 +95,25 @@ export function filteredResourceMembershipsCsv(
   }
   const employeeName = (id: unknown): string =>
     typeof id === "string" ? employeeNames.get(id) ?? "" : "";
+  // An export often repeats effective start/end instants across retained
+  // shifts. Format an identical string timestamp once per authorized export,
+  // including a cached blank for malformed date strings. Non-string values
+  // keep the original per-use String(value) and error-handling behavior.
+  const formattedDates = new Map<string, { local: string; utc: string }>();
   const dateValue = (value: unknown): { local: string; utc: string } => {
+    if (typeof value === "string") {
+      const cached = formattedDates.get(value);
+      if (cached) return cached;
+    }
+    let formatted: { local: string; utc: string };
     try {
       const utc = instant(String(value)).toString();
-      return { local: localTime(utc, zone), utc };
+      formatted = { local: localTime(utc, zone), utc };
     } catch {
-      return { local: "", utc: "" };
+      formatted = { local: "", utc: "" };
     }
+    if (typeof value === "string") formattedDates.set(value, formatted);
+    return formatted;
   };
   const header = [
     "Membership review scope", "Membership review day (business local)",

@@ -1993,3 +1993,40 @@ No stored data, UI, permissions, APIs/database/migrations,
 CSV schema, release/deployment, MIT license, fictional
 public no-login demo or other repository (including ForgeOS)
 is modified by this optimization.
+
+
+## Reused datetime formatting in detailed roster CSV (PR #161)
+
+The detailed historical roster membership CSV now caches formatted
+business-local and UTC date/time values for **identical string
+timestamps within a single authorized export**. Resource memberships
+can share the same shift start/end instants, particularly in multi-crew
+and retained-revision histories. Previously, the exporter reparsed and
+formatted each start and end value for every emitted CSV row (including
+repeat occurrences and duplicate local resource cards). This
+read-only optimization formats a repeated string timestamp once
+per export. Local time is still computed in the same validated
+business time zone; UTC instants and column format are unchanged.
+
+The temporary lookup is confined to the export invocation and
+stores both successful local/UTC pairs and empty pairs for
+malformed **string** timestamps. Non-string or missing historic
+values follow the original per-use string-conversion and error
+handling; they are deliberately not cached. This preserves
+DST fold-hour distinctions, invalid-date blank cells, historical
+row order, duplicate record references, member filters and
+spreadsheet-formula-safe CSV escaping.
+
+An independent copy of the previous exporter is compared
+**byte for byte** with the new output across **720 fictional
+retained membership records**, repeated valid and malformed
+timestamps, both UTC and America/Los_Angeles time zones,
+archived/current review, resource and employee-name search,
+resource sorting, duplicate historical IDs and record
+references, and header-only exports. This establishes output
+parity, not a measured performance benchmark.
+
+No staffing/booking decision, current availability, saved record,
+authorization, API/database/migration, UI, CSV schema,
+deployment/release, MIT license, fictional public no-login
+demo or other repository (including ForgeOS) is changed.
