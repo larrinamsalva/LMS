@@ -48,11 +48,11 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
         instant(String(b.data.start)),
       ),
     );
-  // Upcoming records can share the same immutable start timestamp.
-  // Cache parsed string instants only within this read-only summary call.
-  // For unusual non-string historical values, preserve the original
-  // two-conversion short circuit and error behavior, without caching.
-  const upcomingStarts = new Map<string, bigint>();
+  // Both appointment views use the same string timestamp parser. Reuse
+  // the current-day cache for upcoming starts within this summary call:
+  // no cached value can cross organization, date, or snapshot boundaries.
+  // Non-string historical starts still take the original two-conversion
+  // short-circuit path below without caching.
   const upcomingAppointments = records
     .filter((r) => {
       if (r.entity !== "appointments" || r.data.status === "Cancelled") {
@@ -63,11 +63,7 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
         return instant(String(r.data.start)).epochNanoseconds >= until &&
           instant(String(r.data.start)).epochNanoseconds < upcomingEnd;
       }
-      let parsed = upcomingStarts.get(value);
-      if (parsed === undefined) {
-        parsed = instant(value).epochNanoseconds;
-        upcomingStarts.set(value, parsed);
-      }
+      const parsed = dayInstant(value);
       return parsed >= until && parsed < upcomingEnd;
     })
     .sort((a, b) =>
