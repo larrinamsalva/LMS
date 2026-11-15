@@ -2030,3 +2030,42 @@ No staffing/booking decision, current availability, saved record,
 authorization, API/database/migration, UI, CSV schema,
 deployment/release, MIT license, fictional public no-login
 demo or other repository (including ForgeOS) is changed.
+
+
+## Per-export scheduled-time label reuse in assignment history CSV (PR #162)
+
+The retained staff-assignment history CSV now reuses formatted business-local
+scheduled start/end labels for **identical string timestamps within one
+authorized export**. Released and reserved historical revisions can share
+scheduled instants across hundreds of retained records; previously each
+matching output row independently parsed and formatted both times.
+Repeated valid strings, as well as repeated malformed strings, now reuse
+the first computed display label (or the same empty label for invalid
+timestamps). The cache is temporary, private to that one report call.
+
+Mutable `Date` objects are **never cached**, so the original per-use
+`new Date(value).toISOString()` and `displayTime(iso, zone)` behavior is
+preserved for those records. A fresh cache is created for each export
+and validated business time zone. Distinct UTC instants in fall DST folds
+stay distinct in their source data, even if their local wall times match.
+Invalid string values continue to export as blank cells rather than
+invented local times.
+
+The existing same-organization assignment filter, retained employee
+snapshot names/roles, archived history, date range and status/search
+filters, source/scheduled-time sorting, linked appointment/resource label
+lookup, CSV column vocabulary/order and formula-safe quoting remain
+unchanged. No internal IDs, contact data, notes or foreign record names
+are introduced.
+
+Additional regression cases compare exact **byte-for-byte CSV output**
+against the independent pre-cache reference exporter over **720 fictional
+retained assignment revisions** across multiple selected views and both
+UTC and America/Los_Angeles display zones, repeated/invalid string
+timestamps, mutable Date objects, DST folds and header-only exports.
+This verifies data and export parity, **not a measured performance gain**.
+
+This is read-only internal computation. No saved assignment revisions,
+booking/capacity/availability decision, permissions, UI, API/database
+schema or migrations, release/deployment, MIT license, fictional no-login
+public demo or any other repository (including ForgeOS) is changed.
