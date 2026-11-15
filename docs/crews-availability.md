@@ -2343,3 +2343,41 @@ No persisted history, booking/release decisions, UI, permissions,
 CSV schema, APIs/database/migrations, release/deployment, MIT
 license, fictional public no-login demo or other repositories
 (including ForgeOS) are changed.
+
+
+## Reuse normalized Resource Directory names within one search (PR #170)
+
+The read-only Workforce Resource Directory name filter now caches
+`toLocaleLowerCase()` results for **identical displayed resource-name
+strings within one filter invocation**. Multiple historical resource
+cards can share the same displayed name, and repeatedly lowercasing
+that same string was unnecessary. This short-lived cache is
+allocated per invocation; a later query or a renamed resource
+always receives a fresh cache.
+
+The existing trimmed/lowercased search query, blank-search fast
+path, resource entity/type checks, archived-resource selection,
+historical-enrollment classification and original resource-card
+order remain unchanged. Worker/Crew enrollment still derives from
+**any retained same-organization membership**, including archived
+records, and never from just the selected review day. Equipment
+remains excluded from enrolled/resource-only views. Resource names
+with missing or invalid values remain unsearchable for nonblank
+queries, while unrelated private data, record IDs and notes are
+never searched.
+
+An independent copy of the previously merged directory filter
+checks **exact resource object references, duplicate occurrences,
+and ordering** against the updated filter over **720 fictional
+resource cards**, 900 fictional memberships, archived/current
+filters, Worker/Crew/Equipment type combinations, enrollment
+categories, Unicode case normalization, foreign-organization
+collisions and edits between search calls. These are correctness
+parity checks, **not a measured performance benchmark**.
+
+This change only affects read-only presentation filtering. It
+does not change historical membership data, enrollment persistence,
+staff availability or booking decisions, permissions, UI,
+CSV schema, APIs/database/migrations, release/deployment, MIT
+license, fictional no-login public demo or any other repository
+(including ForgeOS).

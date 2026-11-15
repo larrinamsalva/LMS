@@ -42,6 +42,9 @@ export function filterWorkforceResourceDirectory(
       enrolled.add(membership.data.resource);
     }
   }
+  // Repeated resource cards can share a display name. Reuse its lowercase
+  // form only within this search call; never cache membership or org state.
+  const normalizedNames = new Map<string, string>();
   return resources.filter((resource) => {
     if (resource.entity !== "resources" || resource.archived !== showArchived) {
       return false;
@@ -58,8 +61,14 @@ export function filterWorkforceResourceDirectory(
       if (enrollment === "resource-only" && everEnrolled) return false;
     }
     if (!query) return true;
-    return typeof resource.data.name === "string" &&
-      resource.data.name.toLocaleLowerCase().includes(query);
+    const name = resource.data.name;
+    if (typeof name !== "string") return false;
+    let normalized = normalizedNames.get(name);
+    if (normalized === undefined) {
+      normalized = name.toLocaleLowerCase();
+      normalizedNames.set(name, normalized);
+    }
+    return normalized.includes(query);
   });
 }
 
