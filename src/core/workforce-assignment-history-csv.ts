@@ -73,13 +73,23 @@ export function staffAssignmentHistoryCsv(
   }
   const linkedName = (id: string, entity: "appointments" | "resources") =>
     (entity === "appointments" ? appointmentTitles : resourceNames).get(id) ?? "";
-  const formatted = (instant: string | Date) => {
-    try {
-      const iso = new Date(instant).toISOString();
-      return displayTime(iso, zone);
-    } catch {
-      return "";
+  // Retained assignment revisions often share start/end strings. Reuse
+  // formatted labels for identical strings within this one authorized export.
+  // Date objects remain uncached because they are mutable.
+  const formattedStrings = new Map<string, string>();
+  const formatted = (value: string | Date) => {
+    if (typeof value === "string" && formattedStrings.has(value)) {
+      return formattedStrings.get(value) ?? "";
     }
+    let label: string;
+    try {
+      const iso = new Date(value).toISOString();
+      label = displayTime(iso, zone);
+    } catch {
+      label = "";
+    }
+    if (typeof value === "string") formattedStrings.set(value, label);
+    return label;
   };
 
   const header = [
