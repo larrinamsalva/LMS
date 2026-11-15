@@ -2141,3 +2141,40 @@ organization filtering, staff availability/booking rules, UI,
 authorization, CSV format, API/database/migrations, deployment,
 MIT license, fictional public no-login demo or any other
 repository (including ForgeOS).
+
+
+## Reuse effective-start parsing in retained roster membership sorting (PR #165)
+
+The read-only roster membership history sorter now caches parsed
+effective-start instants for **identical string timestamp values within
+a single oldest/newest sort call**. When multiple retained membership
+revisions share the same effective start, the previous sorter reparsed
+the string for each row. The new temporary map retains its
+`epochNanoseconds` value, or `null` when the string is malformed,
+without changing the comparison rules.
+
+The `retained` selection remains a simple array copy and does not
+parse any timestamps. Non-string historic values are **never
+cached**; their original per-record `String(value)` and instant
+conversion is preserved. Sorting continues to compare absolute UTC
+instants, distinguishing both occurrences of a daylight-saving
+fall-back hour. Equal valid starts are stable in source order,
+malformed starts remain last in both sort directions, and saved
+history, duplicate local identifiers and repeated record references
+are not deduplicated. The cache exists only during one sort call and
+is never stored or shared across organizations.
+
+An independent copy of the previously merged sorter checks the
+**exact sorted historical record references and occurrence order**
+for **720 fictional retained membership revisions**, repeated
+instants, numeric/malformed starts, duplicate IDs/references, DST
+fold timestamps and changing records between calls. These are
+regression parity checks, not a measured performance benchmark.
+
+This is a read-only display/export ordering optimization. It makes
+no changes to original timestamps, archived/current membership
+status, staff availability, enrollment or booking authority,
+organization isolation, UI, permissions, CSV fields, persisted data,
+APIs/database/migrations, deployment/release, MIT license, the
+fictional no-login public demo or other repositories including
+ForgeOS.
