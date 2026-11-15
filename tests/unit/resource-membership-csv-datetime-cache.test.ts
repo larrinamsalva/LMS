@@ -12,7 +12,6 @@ import {
   orderRosterResourcesByMatchingCount,
   orderResourceMembershipsByStart,
 } from "../../src/core/resource-membership-review";
-import { Temporal } from "@js-temporal/polyfill";
 import {
   filteredResourceMembershipsCsv,
   type ResourceMembershipCsvView,
