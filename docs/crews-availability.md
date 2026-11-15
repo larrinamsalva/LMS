@@ -2261,3 +2261,46 @@ No saved records, bookings or staffing decisions, persisted data,
 authorization, UI, CSV fields, APIs/database/migrations, release,
 deployment, MIT license, fictional public no-login demo or any other
 repository (including ForgeOS) is modified.
+
+
+## Reuse normalized membership titles in historical roster search (PR #168)
+
+The read-only roster member title/linked employee-name search now
+normalizes an identical retained membership **title string** with
+`toLocaleLowerCase()` only once **per nonblank search invocation**.
+Historical revisions frequently repeat the same title. The previous
+filter lowercased the same string independently for every retained
+membership occurrence, even when the requested query was unchanged.
+A temporary map from original title text to its lowercase search
+text avoids that repeat, including for invalid/non-string titles
+that continue to be treated as an empty display string.
+
+The original query `trim().toLocaleLowerCase()` operation,
+substring match, title-first short circuit, same-organization
+employee-name index, first-employee-record-wins rule (including
+invalid first display names), membership entity filter, source
+order and repeated historical record references remain unchanged.
+No contact names, private notes, email, skills or raw identifiers
+become searchable. A blank query still follows its original
+no-index path and selects retained membership entities.
+
+Every search call has its **own** temporary title map; a new query
+or modified retained title never uses stale normalized values.
+Authorization and organization scoping still belong to the
+caller's already-authorized records, while the linked employee-name
+index continues to keep organizations separate. This is
+presentation-only historic search; search results never indicate
+live worker availability or booking authority.
+
+An independent copy of the previously merged implementation
+compares exact membership object references and source order
+against the new search over **720 fictional retained revisions**,
+with repeated titles, Unicode casing, archived/current history,
+foreign-organization employee-name collisions, duplicate IDs,
+repeated record references, malformed display values and changing
+titles between calls. This establishes parity rather than
+benchmarked performance.
+
+No saved records, user permissions, UI, CSV fields, API/database
+schema, migrations, releases/deployments, MIT license, fictional
+no-login demo or other repositories (including ForgeOS) change.
