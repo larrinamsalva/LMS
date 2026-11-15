@@ -67,12 +67,22 @@ export function orderResourceMembershipsByStart(
   // Retained order is already the source order: avoid parsing any timestamps.
   // Copy rather than return the caller's readonly array.
   if (order === "retained") return [...memberships];
+  // Several retained membership revisions can share an effective start.
+  // Cache string instants only within this read-only sort call. Non-string
+  // historical values retain their original per-occurrence conversion path.
+  const starts = new Map<string, bigint | null>();
   const indexed = memberships.map((record, index) => {
+    const value = record.data.start;
     let start: bigint | null = null;
-    try {
-      start = instant(String(record.data.start)).epochNanoseconds;
-    } catch {
-      // Historical malformed timestamps remain visible, but never guessed.
+    if (typeof value === "string" && starts.has(value)) {
+      start = starts.get(value) ?? null;
+    } else {
+      try {
+        start = instant(String(value)).epochNanoseconds;
+      } catch {
+        // Historical malformed timestamps remain visible, but never guessed.
+      }
+      if (typeof value === "string") starts.set(value, start);
     }
     return { record, index, start };
   });
