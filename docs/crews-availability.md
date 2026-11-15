@@ -2304,3 +2304,42 @@ benchmarked performance.
 No saved records, user permissions, UI, CSV fields, API/database
 schema, migrations, releases/deployments, MIT license, fictional
 no-login demo or other repositories (including ForgeOS) change.
+
+
+## Reuse normalized staff-assignment history search labels (PR #169)
+
+The read-only retained assignment history search now normalizes identical
+**display strings** with `toLocaleLowerCase()` only once **within each
+nonblank search invocation**. Historical appointment assignment revisions
+frequently repeat saved employee names/roles and linked appointment or
+crew titles. The original filter lowercased each of those same strings for
+every matching record. A temporary map now reuses the exact normalized
+text while retaining the original case-insensitive substring search.
+
+The original `trim().toLocaleLowerCase()` query, blank-search fast path,
+reserved/released status filter, saved snapshot employee name/role and
+same-organization linked appointment/resource label indexes remain
+unchanged. The first linked record wins for a repeated ID even if it has
+an invalid/missing display label. Source order, duplicate revisions,
+original object references and linked resource/appointment entity
+boundaries are preserved. No IDs, emails, contacts, private notes,
+skills or other sensitive fields become searchable.
+
+The normalized-text map is scoped to **one search call** and carries
+no state across different searches, organizations or record changes.
+No saved record is edited. This historical assignment search does
+not assert that staff are available or that an appointment can be
+booked.
+
+An independent copy of the previously merged filter verifies
+**exact assignment object references and source order** over **720
+fictional retained assignment revisions** across search terms,
+Unicode casing, status filters, repeated snapshots and IDs, duplicate
+reference occurrences, foreign-organization collisions and record
+edits between calls. These tests demonstrate behavioral parity,
+**not measured runtime improvements**.
+
+No persisted history, booking/release decisions, UI, permissions,
+CSV schema, APIs/database/migrations, release/deployment, MIT
+license, fictional public no-login demo or other repositories
+(including ForgeOS) are changed.
