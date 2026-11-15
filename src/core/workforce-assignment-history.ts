@@ -127,17 +127,27 @@ export function filterStaffAssignmentHistoryByStartDate(
 ): StaffAssignment[] {
   if (staffAssignmentStartDateRangeError(fromDate, throughDate)) return [];
   if (!fromDate && !throughDate) return [...assignments];
+  // Retained revisions often reuse the same scheduled-start string.
+  // Cache only strings within this call; Date objects are mutable and must
+  // retain their original per-use conversion and validation behavior.
+  const startDays = new Map<string, string | null>();
   return assignments.filter((assignment) => {
-    try {
-      const startDay = localDate(
-        new Date(assignment.starts_at).toISOString(), zone,
-      );
-      return (!fromDate || startDay >= fromDate) &&
-        (!throughDate || startDay <= throughDate);
-    } catch {
-      // Malformed retained start dates cannot be assigned a guessed day.
-      return false;
+    const value = assignment.starts_at;
+    let startDay: string | null;
+    if (typeof value === "string" && startDays.has(value)) {
+      startDay = startDays.get(value) ?? null;
+    } else {
+      try {
+        startDay = localDate(new Date(value).toISOString(), zone);
+      } catch {
+        // Malformed retained start dates cannot be assigned a guessed day.
+        startDay = null;
+      }
+      if (typeof value === "string") startDays.set(value, startDay);
     }
+    return startDay !== null &&
+      (!fromDate || startDay >= fromDate) &&
+      (!throughDate || startDay <= throughDate);
   });
 }
 
