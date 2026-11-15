@@ -325,3 +325,83 @@ it("does not change invalid date/zone validation or header-only output", () => {
   expect(filteredResourceMembershipsCsv([], ORG, "UTC", baseView))
     .toBe(previousCsv([], ORG, "UTC", baseView));
 });
+
+
+it("keeps selected-day CSV bytes identical with repeated history, DST boundaries, and malformed instants", () => {
+  const records: WorkspaceRecord[] = [
+    rec("resources", "crew", { name: "Fictional Crew", kind: "Crew" }),
+    rec("resources", "crew", { name: "Duplicate Card", kind: "Crew" }),
+    rec("resources", "worker", { name: "Solo Worker", kind: "Worker" }),
+    rec("resources", "outside", { name: "FOREIGN RESOURCE", kind: "Crew" },
+      false, FOREIGN),
+    rec("employees", "alex", { name: "Alex Example", email: "PRIVATE EMAIL" }),
+    rec("employees", "alex", { name: "IGNORED DUPLICATE NAME" }),
+    rec("employees", "alex", { name: "FOREIGN EMPLOYEE" }, false, FOREIGN),
+  ];
+  const pairs: Array<readonly [unknown, unknown]> = [
+    ["2026-11-01T08:30:00Z", "2026-11-01T08:40:00Z"],
+    ["2026-11-01T09:30:00Z", "2026-11-01T09:40:00Z"],
+    ["2026-11-02T08:00:00Z", "2026-11-02T09:00:00Z"],
+    ["2026-03-08T09:30:00Z", "2026-03-08T09:45:00Z"],
+    ["2026-03-08T10:30:00Z", "2026-03-08T10:45:00Z"],
+    ["2026-03-09T07:00:00Z", "2026-03-09T07:30:00Z"],
+    ["2026-11-06T18:00:00Z", "2026-11-06T22:00:00Z"],
+    ["invalid-start", "2026-11-01T09:40:00Z"],
+    ["2026-11-01T09:30:00Z", "invalid-end"],
+    ["", ""],
+    [57, 72],
+    [null, { invalid: true }],
+  ];
+  for (let i = 0; i < 240; i++) {
+    const [start, end] = pairs[i % pairs.length];
+    records.push(rec("resource-memberships", "revision-" + (i % 71), {
+      resource: i % 3 === 0 ? "worker" : "crew",
+      employee: "alex",
+      title: i % 13 === 0 ? "=Risky title" : "Historic shift " + i,
+      start: start as WorkspaceRecord["data"]["start"],
+      end: end as WorkspaceRecord["data"]["end"],
+      notes: "PRIVATE ROSTER NOTES",
+    }, i % 4 === 0, i % 17 === 0 ? FOREIGN : ORG));
+  }
+  const identical = rec("resource-memberships", "duplicate-revision", {
+    resource: "crew", employee: "alex", title: "Repeated row",
+    start: "2026-11-01T08:30:00Z", end: "2026-11-01T08:40:00Z",
+  }, true);
+  records.push(identical, identical, rec("resource-memberships",
+    "duplicate-revision", {
+      resource: "crew", employee: "alex", title: "Independent revision",
+      start: "2026-11-01T09:30:00Z", end: "2026-11-01T09:40:00Z",
+    }));
+  const before = structuredClone(records);
+  const dates = [
+    "2026-11-01", "2026-11-02", "2026-03-08",
+    "2026-03-09", "2026-11-06", "2026-11-07",
+  ];
+  for (const zone of ["UTC", "America/Los_Angeles", "America/New_York"]) {
+    for (const date of dates) {
+      const choices: ResourceMembershipCsvView[] = [
+        { ...baseView, mode: "overlapping-day", date },
+        { ...baseView, mode: "overlapping-day", date,
+          sort: "newest", resourceSort: "most" },
+        { ...baseView, mode: "overlapping-day", date,
+          membershipStatus: "archived", resourceSort: "fewest" },
+        { ...baseView, mode: "overlapping-day", date,
+          memberSearch: "historic shift", onlyMatchingResources: true },
+      ];
+      for (const view of choices) {
+        const actual = filteredResourceMembershipsCsv(records, ORG, zone, view);
+        const expected = previousCsv(records, ORG, zone, view);
+        expect(actual).toBe(expected);
+        expect(actual).not.toContain("FOREIGN RESOURCE");
+        expect(actual).not.toContain("FOREIGN EMPLOYEE");
+        expect(actual).not.toContain("PRIVATE ROSTER NOTES");
+      }
+    }
+  }
+  // Invalid dates and zones still block rather than guessing a review day.
+  expect(() => filteredResourceMembershipsCsv(
+    records, ORG, "UTC", { ...baseView, mode: "overlapping-day",
+      date: "2026-02-30" },
+  )).toThrow(/valid membership review date/);
+  expect(records).toEqual(before);
+});

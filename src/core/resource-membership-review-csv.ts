@@ -154,15 +154,30 @@ export function filteredResourceMembershipsCsv(
     const day = Temporal.PlainDate.from(view.date);
     const start = day.toZonedDateTime(zone).epochNanoseconds;
     const end = day.add({ days: 1 }).toZonedDateTime(zone).epochNanoseconds;
+    // Retained revisions can share identical start/end strings. Reuse
+    // parsed instants only in this authorized export's selected-day check.
+    // Non-string historical values keep per-occurrence String conversion.
+    const overlapInstants = new Map<string, bigint | null>();
+    const parsedInstant = (value: unknown): bigint | null => {
+      if (typeof value === "string" && overlapInstants.has(value)) {
+        return overlapInstants.get(value) ?? null;
+      }
+      let parsed: bigint | null = null;
+      try {
+        parsed = instant(String(value)).epochNanoseconds;
+      } catch {
+        // Malformed retained timestamps cannot invent a review-day match.
+      }
+      if (typeof value === "string") overlapInstants.set(value, parsed);
+      return parsed;
+    };
     const matches = new Set<WorkspaceRecord>();
     for (const membership of memberships) {
-      try {
-        if (instant(String(membership.data.start)).epochNanoseconds < end &&
-            instant(String(membership.data.end)).epochNanoseconds > start) {
-          matches.add(membership);
-        }
-      } catch {
-        // Invalid retained timestamps do not invent review-day membership.
+      const effectiveStart = parsedInstant(membership.data.start);
+      if (effectiveStart === null || effectiveStart >= end) continue;
+      const effectiveEnd = parsedInstant(membership.data.end);
+      if (effectiveEnd !== null && effectiveEnd > start) {
+        matches.add(membership);
       }
     }
     return matches;
