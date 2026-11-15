@@ -193,3 +193,118 @@ it("keeps invalid ranges blocked and empty exports header-only", () => {
   expect(staffAssignmentHistoryCsv([], [], ORG, "UTC", defaultView))
     .toBe(previousCsv([], [], ORG, "UTC", defaultView));
 });
+
+
+it("preserves CSV bytes for 720 repeated scheduled times, malformed starts, Date values and view filters", () => {
+  const times = [
+    "2026-11-01T08:30:00Z",
+    "2026-11-01T09:30:00Z",
+    "2026-11-06T18:00:00Z",
+    "2026-11-07T07:30:00Z",
+    "2026-11-07T08:30:00Z",
+    "invalid-retained-instant",
+    "",
+  ];
+  const assignments: StaffAssignment[] = [];
+  const records: WorkspaceRecord[] = [
+    record("appointment-common", "appointments", { title: "Shared Example" }),
+    record("resource-common", "resources", { name: "Crew Example" }),
+    record("appointment-common", "appointments", {
+      title: "FOREIGN TITLE",
+    }, FOREIGN),
+    record("resource-common", "resources", {
+      name: "FOREIGN CREW",
+    }, FOREIGN),
+  ];
+  for (let i = 0; i < 720; i++) {
+    const a = assignment(i, i % 23 === 0 ? FOREIGN : ORG);
+    a.appointment_id = "appointment-common";
+    a.resource_id = "resource-common";
+    // Revisions frequently reuse the same wall-clock shifts. A Date object
+    // is intentionally left mutable and must not enter the string cache.
+    a.starts_at = i % 31 === 0
+      ? new Date("2026-11-06T18:00:00Z")
+      : times[i % times.length];
+    a.ends_at = i % 37 === 0
+      ? new Date("invalid")
+      : i % 29 === 0
+        ? new Date("2026-11-07T08:30:00Z")
+        : times[(i + 2) % times.length];
+    assignments.push(a);
+  }
+  const original = assignments.map((entry) => ({
+    ...entry,
+    starts_at: entry.starts_at instanceof Date
+      ? new Date(entry.starts_at) : entry.starts_at,
+    ends_at: entry.ends_at instanceof Date
+      ? new Date(entry.ends_at) : entry.ends_at,
+  }));
+  const views: StaffAssignmentCsvView[] = [
+    defaultView,
+    { ...defaultView, sort: "oldest" },
+    { ...defaultView, sort: "newest" },
+    { ...defaultView, status: "reserved" },
+    { ...defaultView, status: "released" },
+    { ...defaultView, search: "Crew Example" },
+    { ...defaultView, search: "Fictional Worker 12" },
+    { ...defaultView, search: "not present" },
+    { ...defaultView, fromDate: "2026-11-01", throughDate: "2026-11-01" },
+    { ...defaultView, fromDate: "2026-11-06", throughDate: "2026-11-07",
+      sort: "oldest" },
+  ];
+  for (const zone of ["UTC", "America/Los_Angeles"]) {
+    for (const view of views) {
+      const actual = staffAssignmentHistoryCsv(
+        assignments, records, ORG, zone, view,
+      );
+      expect(actual).toBe(previousCsv(
+        assignments, records, ORG, zone, view,
+      ));
+    }
+  }
+  const csv = staffAssignmentHistoryCsv(
+    assignments, records, ORG, "UTC", defaultView,
+  );
+  for (const forbidden of ["FOREIGN TITLE", "FOREIGN CREW",
+    "PRIVATE SKILLS", "private-employee-", "private-membership-"]) {
+    expect(csv).not.toContain(forbidden);
+  }
+  expect(assignments).toEqual(original);
+});
+
+it("keeps invalid string times blank and separates repeated UTC DST-fold instants", () => {
+  const rows = [
+    { ...assignment(0), starts_at: "2026-11-01T08:30:00Z",
+      ends_at: "2026-11-01T08:30:00Z" },
+    { ...assignment(1), starts_at: "2026-11-01T09:30:00Z",
+      ends_at: "2026-11-01T09:30:00Z" },
+    { ...assignment(2), starts_at: "invalid-retained-instant",
+      ends_at: "invalid-retained-instant" },
+    { ...assignment(3), starts_at: new Date("2026-11-01T09:30:00Z"),
+      ends_at: new Date("invalid") },
+  ];
+  const csv = staffAssignmentHistoryCsv(
+    rows, [], ORG, "America/Los_Angeles", defaultView,
+  );
+  expect(csv).toBe(previousCsv(
+    rows, [], ORG, "America/Los_Angeles", defaultView,
+  ));
+  expect(csv).toContain("2026-11-01T01:30");
+  expect(csv).toContain('""');
+  expect(csv.trimEnd().split("\r\n")).toHaveLength(5);
+});
+
+it("does not reuse cached labels between separate exports or invalid date ranges", () => {
+  const a = [assignment(0)];
+  const utc = staffAssignmentHistoryCsv(a, [], ORG, "UTC", defaultView);
+  const pacific = staffAssignmentHistoryCsv(
+    a, [], ORG, "America/Los_Angeles", defaultView,
+  );
+  expect(utc).toBe(previousCsv(a, [], ORG, "UTC", defaultView));
+  expect(pacific).toBe(previousCsv(a, [], ORG, "America/Los_Angeles", defaultView));
+  expect(utc).not.toBe(pacific);
+  const invalid = { ...defaultView, fromDate: "2026-11-07",
+    throughDate: "2026-11-06" };
+  expect(() => staffAssignmentHistoryCsv(a, [], ORG, "UTC", invalid))
+    .toThrow("Correct the assignment date range before exporting.");
+});
