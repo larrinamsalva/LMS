@@ -41,11 +41,20 @@ export function filterResourceMembershipsByName(
           ? record.data.name.toLocaleLowerCase() : "");
     }
   }
+  // Retained revisions often repeat titles. Normalize identical strings
+  // once per search invocation, without sharing state across organizations,
+  // searches or changes to canonical records.
+  const normalizedTitles = new Map<string, string>();
   return memberships.filter((membership) => {
     if (membership.entity !== "resource-memberships") return false;
     const title = typeof membership.data.title === "string"
       ? membership.data.title : "";
-    if (title.toLocaleLowerCase().includes(query)) return true;
+    let normalizedTitle = normalizedTitles.get(title);
+    if (normalizedTitle === undefined) {
+      normalizedTitle = title.toLocaleLowerCase();
+      normalizedTitles.set(title, normalizedTitle);
+    }
+    if (normalizedTitle.includes(query)) return true;
     const id = membership.data.employee;
     if (typeof id !== "string") return false;
     const name = employeeNames.get(membership.organization_id)?.get(id) ?? "";
