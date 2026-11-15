@@ -22,13 +22,25 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
   const records = snapshot.records.filter(
     (r) => r.organization_id === snapshot.organizationId && !r.archived,
   );
+  // Historical appointments often share start/end instants. Reuse parsed
+  // string timestamps only inside this authorized daily summary call.
+  // Non-string retained values still take the original conversion path.
+  const dayInstants = new Map<string, bigint>();
+  const dayInstant = (value: unknown): bigint => {
+    if (typeof value !== "string") return instant(String(value)).epochNanoseconds;
+    const cached = dayInstants.get(value);
+    if (cached !== undefined) return cached;
+    const parsed = instant(value).epochNanoseconds;
+    dayInstants.set(value, parsed);
+    return parsed;
+  };
   const appointments = records
     .filter(
       (r) =>
         r.entity === "appointments" &&
         r.data.status !== "Cancelled" &&
-        instant(String(r.data.start)).epochNanoseconds < until &&
-        instant(String(r.data.end)).epochNanoseconds > from,
+        dayInstant(r.data.start) < until &&
+        dayInstant(r.data.end) > from,
     )
     .sort((a, b) =>
       Temporal.Instant.compare(
