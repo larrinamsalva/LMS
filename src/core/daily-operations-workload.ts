@@ -209,13 +209,15 @@ export function summarizeFocusedWorkload(
   includeInspections: boolean,
   type: WorkloadActivityType,
 ): { savedItems: number; matchingDays: number; daysInWindow: number } {
+  // Keep one private accumulator per call, as for the full-week totals.
+  // Retain reduce's sparse-array behavior, category focus, and inspection
+  // toggle while avoiding a new result object for each day.
   return days.reduce((result, day) => {
     const saved = focusedRecordedItemCount(day, includeInspections, type);
-    return {
-      savedItems: result.savedItems + saved,
-      matchingDays: result.matchingDays + Number(saved > 0),
-      daysInWindow: result.daysInWindow + 1,
-    };
+    result.savedItems += saved;
+    result.matchingDays += Number(saved > 0);
+    result.daysInWindow += 1;
+    return result;
   }, { savedItems: 0, matchingDays: 0, daysInWindow: 0 });
 }
 
