@@ -108,6 +108,22 @@ export function visibleWorkloadDays(
 }
 
 /**
+ * Calendar dates with no SAVED activity in the authorized workload snapshot.
+ * This is a read-only planning cue, never evidence of staff availability,
+ * bookable spaces, operating hours, or confirmed resource capacity.
+ * Preserve the original order, references and duplicates of supplied days.
+ */
+export function datesWithoutSavedActivity(
+  days: readonly DailyWorkload[],
+  includeInspections: boolean,
+): DailyWorkload[] {
+  return days.filter((day) =>
+    !(day.appointments > 0 || day.unfinishedWork > 0 ||
+      (includeInspections && day.inspections > 0)),
+  );
+}
+
+/**
  * The date with the most *recorded items*, not the most work hours.
  * Appointments, due work, and enabled inspections each count as one.
  * For ties, choose the earliest business-local calendar date, regardless
