@@ -154,7 +154,29 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(page.getByRole("heading", { name: "Bright Path Cleaning" })).toBeVisible();
   // Reuse the existing session rather than adding a new one (24-slot demo limit).
   const operations = page.getByRole("region", { name: "Daily operations" });
-  await operations.getByLabel("Operations date", { exact: true }).fill("2026-11-06");
+  const operationsDate = operations.getByLabel("Operations date", { exact: true });
+  // The first no-saved-activity date is a navigation aid, NOT an availability
+  // or booking confirmation. Check it using this existing authorized demo session.
+  await operationsDate.fill("2035-02-26");
+  const noActivity = operations.getByRole("group", {
+    name: "Dates with no saved activity", exact: true,
+  });
+  await expect(noActivity).toContainText("7 of 7 dates with no saved activity");
+  await expect(noActivity).toContainText(
+    "No saved activity does not confirm staff, space or equipment availability.",
+  );
+  await noActivity.getByRole("button", {
+    name: "Review first date without saved activity 2035-02-27",
+    exact: true,
+  }).click();
+  await expect(operationsDate).toHaveValue("2035-02-27");
+  // Near the supported maximum, next-week dates may be visible but cannot
+  // be navigated to beyond the date input bounds.
+  await operationsDate.fill("2100-12-31");
+  await expect(noActivity.getByRole("button", {
+    name: /Review first date without saved activity/,
+  })).toHaveCount(0);
+  await operationsDate.fill("2026-11-06");
   const undatedQueue = operations.getByRole("region", {
     name: "Undated work needing scheduling", exact: true,
   });
