@@ -21,6 +21,20 @@ export function sevenDayOutlookCsv(outlook: Outlook, zone: string): string {
     "Appointment time or work due date", "Status", "Business time zone",
   ];
   const rows: OutlookRow[] = [];
+  // Duplicate saved string starts share both a display label and business-
+  // local sort key within this export. Never carry labels between workspaces,
+  // time zones or exports; non-string historical values are not cached.
+  const appointmentTimes = new Map<string, { display: string; sortKey: string }>();
+  function formattedAppointmentTime(value: unknown): { display: string; sortKey: string } {
+    const start = String(value);
+    if (typeof value === "string") {
+      const cached = appointmentTimes.get(start);
+      if (cached !== undefined) return cached;
+    }
+    const times = { display: displayTime(start, zone), sortKey: localTime(start, zone) };
+    if (typeof value === "string") appointmentTimes.set(start, times);
+    return times;
+  }
   function row(type: string, title: string, when: string, status: string, key: string) {
     rows.push({
       sortKey: key,
@@ -30,11 +44,11 @@ export function sevenDayOutlookCsv(outlook: Outlook, zone: string): string {
   }
 
   for (const appointment of outlook.upcomingAppointments) {
-    const start = String(appointment.data.start);
+    const times = formattedAppointmentTime(appointment.data.start);
     row(
       "Appointment", String(appointment.data.title),
-      displayTime(start, zone), String(appointment.data.status),
-      localTime(start, zone),
+      times.display, String(appointment.data.status),
+      times.sortKey,
     );
   }
   for (const { record, due } of outlook.upcoming) {
