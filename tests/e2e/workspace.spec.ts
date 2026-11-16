@@ -165,6 +165,52 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(noActivity).toContainText(
     "No saved activity does not confirm staff, space or equipment availability.",
   );
+  // View only calendar dates with no saved activity. This must remain separate
+  // from the existing active-only category filter and preserve the full-week
+  // canonical count and the availability warning.
+  const dateCards = operations.locator(".daily-workload-grid > button");
+  const quietToggle = operations.getByRole("button", {
+    name: "Show dates with no saved activity only", exact: true,
+  });
+  await quietToggle.click();
+  await expect(operations.getByRole("button", {
+    name: "Show all seven dates", exact: true,
+  })).toHaveAttribute("aria-pressed", "true");
+  await expect(dateCards).toHaveCount(7);
+  await operations.getByLabel("Calendar days to show", { exact: true })
+    .selectOption("weekends");
+  await expect(dateCards).toHaveCount(2);
+  await expect(noActivity).toContainText("7 of 7 dates with no saved activity");
+  await expect(operations.getByRole("group", {
+    name: "Visible date-card totals",
+  })).toContainText("Currently shown: 2 of 7 dates");
+  // Active-only and no-saved-activity-only must not intersect. The active
+  // filter should replace the quiet view, so an empty 2035 week has 0 cards.
+  await operations.getByRole("button", {
+    name: "Show active days only", exact: true,
+  }).click();
+  await expect(dateCards).toHaveCount(0);
+  await expect(quietToggle).toHaveAttribute("aria-pressed", "false");
+  await operations.getByRole("button", {
+    name: "Reset workload view", exact: true,
+  }).click();
+  await expect(dateCards).toHaveCount(7);
+  await expect(quietToggle).toHaveAttribute("aria-pressed", "false");
+  // Switch to a known saved-work window: the saved November 6 jobs must
+  // disappear from the quiet date-card view, without changing the summary.
+  await operationsDate.fill("2026-11-05");
+  await quietToggle.click();
+  const quietCards = await dateCards.count();
+  expect(quietCards).toBeLessThan(7);
+  await expect(dateCards.getByText("2026-11-06", { exact: true }))
+    .toHaveCount(0);
+  await expect(noActivity).toContainText(
+    quietCards + " of 7 dates with no saved activity",
+  );
+  await operations.getByRole("button", {
+    name: "Reset workload view", exact: true,
+  }).click();
+  await operationsDate.fill("2035-02-26");
   // Download only saved-activity observations from this existing fictional
   // session. Each row must warn against treating it as confirmed availability.
   const emptyDatesDownloadPending = page.waitForEvent("download");
