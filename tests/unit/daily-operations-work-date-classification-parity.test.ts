@@ -96,12 +96,18 @@ it("preserves exact due, overdue and seven-day work rows across 720 fictional re
   const records: WorkspaceRecord[] = Array.from({ length: 720 }, (_, i) => {
     const entity = i % 2 === 0 ? "tasks" : "jobs";
     const due = dueDates[i % dueDates.length];
-    return record("work-" + (i % 227), entity, {
+    const data: WorkspaceRecord["data"] = {
       title: titles[i % titles.length],
       status: statuses[i % statuses.length],
-      ...(entity === "tasks" ? { due } : { date: due }),
       notes: "PRIVATE WORK NOTES",
-    }, i % 29 === 0 ? FOREIGN : ORG, i % 31 === 0);
+    };
+    // The schema permits only string/number saved fields. Simulate null
+    // and undefined legacy due dates by omitting the saved due field.
+    if (typeof due === "string" || typeof due === "number") {
+      data[entity === "tasks" ? "due" : "date"] = due;
+    }
+    return record("work-" + (i % 227), entity, data,
+      i % 29 === 0 ? FOREIGN : ORG, i % 31 === 0);
   });
   const repeated = record("repeated", "tasks", {
     title: "Repeated row", status: "Open", due: "2026-11-05",
