@@ -84,6 +84,7 @@ export function DailyOperations({
   const [date, setDate] = useState(() => localDate(new Date().toISOString(), zone));
   const [visible, setVisible] = useState(initialVisible);
   const [activityOnly, setActivityOnly] = useState(false);
+  const [noSavedActivityOnly, setNoSavedActivityOnly] = useState(false);
   const [sortByActivity, setSortByActivity] = useState(false);
   const [comparisonDirection, setComparisonDirection] =
     useState<"none" | "previous" | "following">("none");
@@ -176,7 +177,9 @@ export function DailyOperations({
   const displayedDays = orderWorkloadDays(
     filterWorkloadDaysByCalendarDay(
       filterWorkloadDaysByType(
-        visibleWorkloadDays(nextSevenDays, equipmentEnabled, effectiveActivityOnly),
+        noSavedActivityOnly
+          ? noSavedActivityDays
+          : visibleWorkloadDays(nextSevenDays, equipmentEnabled, effectiveActivityOnly),
         equipmentEnabled,
         effectiveActivityType,
       ),
@@ -190,7 +193,7 @@ export function DailyOperations({
   // It reuses existing authorized data; a category filter selects dates,
   // not individual items on those dates.
   const visibleTotals = summarizeSevenDayWorkload(displayedDays, equipmentEnabled);
-  const isFiltered = effectiveActivityOnly ||
+  const isFiltered = noSavedActivityOnly || effectiveActivityOnly ||
     effectiveActivityType !== "all" || calendarDayFilter !== "all";
   // Always use the complete seven-day window, even when filtered on screen.
   const peakDay = busiestRecordedDay(nextSevenDays, equipmentEnabled);
@@ -618,19 +621,37 @@ export function DailyOperations({
                 className="secondary"
                 aria-pressed={effectiveActivityOnly}
                 onClick={() => {
-                  if (effectiveActivityOnly) {
+                  if (effectiveActivityOnly && !noSavedActivityOnly) {
                     setActivityOnly(false);
                     setActivityType("all");
                     setCalendarDayFilter("all");
                   } else {
-                    // An equipment-only choice from a different business is
-                    // unavailable here; activate the all-activity filter.
+                    // The two activity-status filters must never intersect.
+                    // An equipment-only choice from another business is invalid.
+                    setNoSavedActivityOnly(false);
                     if (unavailableEquipmentFilter) setActivityType("all");
                     setActivityOnly(true);
                   }
                 }}
               >
                 {effectiveActivityOnly ? "Show all seven days" : "Show active days only"}
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                aria-pressed={noSavedActivityOnly}
+                onClick={() => {
+                  setNoSavedActivityOnly((current) => !current);
+                  // "No saved activity" and "Active only" are opposites.
+                  // Clear the activity category to avoid silently hiding
+                  // all zero-count cards; keep calendar-day focus intact.
+                  setActivityOnly(false);
+                  setActivityType("all");
+                }}
+              >
+                {noSavedActivityOnly
+                  ? "Show all seven dates"
+                  : "Show dates with no saved activity only"}
               </button>
               <label className="daily-workload-category">
                 Activity to show
@@ -640,6 +661,9 @@ export function DailyOperations({
                   onChange={(event) => {
                     const nextType = event.target.value as WorkloadActivityType;
                     setActivityType(nextType);
+                    // A selected activity category means we are no longer
+                    // looking only for dates with zero saved activity.
+                    setNoSavedActivityOnly(false);
                     if (nextType !== "all") setActivityOnly(true);
                   }}
                 >
@@ -680,10 +704,11 @@ export function DailyOperations({
               <button
                 type="button"
                 className="secondary"
-                disabled={!activityOnly && activityType === "all" &&
+                disabled={!noSavedActivityOnly && !activityOnly && activityType === "all" &&
                   !sortByActivity && calendarDayFilter === "all"}
                 onClick={() => {
                   setActivityOnly(false);
+                  setNoSavedActivityOnly(false);
                   setActivityType("all");
                   setCalendarDayFilter("all");
                   setSortByActivity(false);
@@ -768,11 +793,13 @@ export function DailyOperations({
                 </button>
               </div>
             )}
-            {displayedDays.length === 0 && (effectiveActivityOnly ||
-              calendarDayFilter !== "all") && (
+            {displayedDays.length === 0 && (noSavedActivityOnly ||
+              effectiveActivityOnly || calendarDayFilter !== "all") && (
               <p className="muted" role="status">
-                {calendarDayFilter !== "all"
-                  ? "No saved activity matches the selected calendar days and activity filters."
+                {noSavedActivityOnly
+                  ? "No dates without saved activity match the selected calendar-day filter."
+                  : calendarDayFilter !== "all"
+                    ? "No saved activity matches the selected calendar days and activity filters."
                   : effectiveActivityType === "all"
                     ? "No saved activity in the next seven days."
                     : effectiveActivityType === "appointments"
