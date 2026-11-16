@@ -3,6 +3,7 @@ import {
   adjacentOperationsDate,
   weeklyOperationsDate,
   operationsToday,
+  isReviewableOperationsDate,
   OPERATIONS_DATE_MIN,
   OPERATIONS_DATE_MAX,
 } from "../../src/core/daily-operations-dates";
@@ -48,4 +49,22 @@ it("disables seven-day window jumps outside the date-picker bounds", () => {
   expect(weeklyOperationsDate("2028-02-30", 1)).toBeNull();
   expect(weeklyOperationsDate("", -1)).toBeNull();
   expect(adjacentOperationsDate("2026-11-06", 1)).toBe("2026-11-07");
+});
+
+it("accepts only real in-range calendar dates for every workload review shortcut", () => {
+  for (const date of [
+    OPERATIONS_DATE_MIN, "2020-02-29", "2026-03-08",
+    "2026-11-01", "2028-02-29", OPERATIONS_DATE_MAX,
+  ]) {
+    expect(isReviewableOperationsDate(date)).toBe(true);
+  }
+  for (const date of [
+    "2019-12-31", "2101-01-01", "2101-01-07",
+    "2026-02-30", "2027-02-29", "2026-11-31",
+    "2026-11-06T00:00", "2026-11-6", "", "not a date",
+  ]) {
+    expect(isReviewableOperationsDate(date)).toBe(false);
+  }
+  expect(weeklyOperationsDate("2100-12-25", 1)).toBeNull();
+  expect(adjacentOperationsDate("2020-01-01", -1)).toBeNull();
 });
