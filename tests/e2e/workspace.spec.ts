@@ -184,6 +184,20 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(operations.getByRole("group", {
     name: "Visible date-card totals",
   })).toContainText("Currently shown: 2 of 7 dates");
+  // The control explicitly says "Show all seven dates", so it must clear
+  // the weekend-only calendar focus rather than returning just two cards.
+  await operations.getByRole("button", {
+    name: "Show all seven dates", exact: true,
+  }).click();
+  await expect(operations.getByLabel("Calendar days to show", { exact: true }))
+    .toHaveValue("all");
+  await expect(dateCards).toHaveCount(7);
+  await expect(quietToggle).toHaveAttribute("aria-pressed", "false");
+  await quietToggle.click();
+  await expect(dateCards).toHaveCount(7);
+  await operations.getByLabel("Calendar days to show", { exact: true })
+    .selectOption("weekends");
+  await expect(dateCards).toHaveCount(2);
   // Active-only and no-saved-activity-only must not intersect. The active
   // filter should replace the quiet view, so an empty 2035 week has 0 cards.
   await operations.getByRole("button", {
@@ -243,6 +257,16 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(noActivity.getByRole("button", {
     name: /Review first date without saved activity/,
   })).toHaveCount(0);
+  // The next seven cards lie in 2101, beyond the date picker's maximum.
+  // Keep their saved counts readable but disable out-of-range navigation.
+  await expect(dateCards).toHaveCount(7);
+  // Match the date buttons themselves, not disabled descendants of buttons.
+  await expect(operations.locator(".daily-workload-grid > button:disabled"))
+    .toHaveCount(7);
+  await expect(dateCards.first()).toContainText(
+    "Outside supported operations date range",
+  );
+  await expect(operationsDate).toHaveValue("2100-12-31");
   await operationsDate.fill("2026-11-06");
   const undatedQueue = operations.getByRole("region", {
     name: "Undated work needing scheduling", exact: true,

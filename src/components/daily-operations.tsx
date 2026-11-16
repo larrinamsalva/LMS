@@ -97,6 +97,10 @@ export function DailyOperations({
   const nextWeek = weeklyOperationsDate(date, 1);
   function selectDate(next: string | null) {
     if (next === null || next === date) return;
+    // Keep temporary date-input edits as before, but never navigate to a
+    // complete date outside the picker bounds through any shortcut/card.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(next) &&
+        (next < OPERATIONS_DATE_MIN || next > OPERATIONS_DATE_MAX)) return;
     setDate(next);
     setVisible(initialVisible());
   }
@@ -641,10 +645,18 @@ export function DailyOperations({
                 className="secondary"
                 aria-pressed={noSavedActivityOnly}
                 onClick={() => {
-                  setNoSavedActivityOnly((current) => !current);
+                  if (noSavedActivityOnly) {
+                    // "Show all seven dates" must also restore calendar days;
+                    // otherwise a previous weekend-only choice shows two.
+                    setNoSavedActivityOnly(false);
+                    setCalendarDayFilter("all");
+                  } else {
+                    setNoSavedActivityOnly(true);
+                    // Keep an intentional weekday/weekend focus when entering
+                    // the no-saved-only view; it can be combined with both.
+                  }
                   // "No saved activity" and "Active only" are opposites.
-                  // Clear the activity category to avoid silently hiding
-                  // all zero-count cards; keep calendar-day focus intact.
+                  // Clear the activity category to avoid hiding zero-count days.
                   setActivityOnly(false);
                   setActivityType("all");
                 }}
@@ -811,35 +823,45 @@ export function DailyOperations({
               </p>
             )}
             <div className="daily-workload-grid">
-              {displayedDays.map((day) => (
-                <button
-                  key={day.date}
-                  type="button"
-                  className="secondary"
-                  onClick={() => selectDate(day.date)}
-                  aria-description={"Business-local weekday: " + workloadWeekday(day.date)}
-                  aria-label={
-                    "Review " + day.date + ": " + day.appointments +
-                    " appointments and " + day.unfinishedWork + " unfinished work items" +
-                    (equipmentEnabled ? " and " + day.inspections + " equipment inspections" : "")
-                  }
-                >
-                  <span className="daily-workload-weekday" aria-hidden="true">
-                    {workloadWeekday(day.date)}
-                  </span>
-                  <strong>{day.date}</strong>
-                  {effectiveActivityType !== "all" && (
-                    <span className="daily-workload-selected-count" aria-hidden="true">
-                      Selected: {focusedRecordedItemCount(
-                        day, equipmentEnabled, effectiveActivityType,
-                      )} {focusedLabel}
+              {displayedDays.map((day) => {
+                const reviewable = day.date >= OPERATIONS_DATE_MIN &&
+                  day.date <= OPERATIONS_DATE_MAX;
+                return (
+                  <button
+                    key={day.date}
+                    type="button"
+                    className="secondary"
+                    disabled={!reviewable}
+                    onClick={() => selectDate(day.date)}
+                    aria-description={"Business-local weekday: " + workloadWeekday(day.date) +
+                      (reviewable ? "" : "; outside supported operations date range")}
+                    aria-label={
+                      (reviewable ? "Review " : "Out-of-range date ") + day.date +
+                      ": " + day.appointments +
+                      " appointments and " + day.unfinishedWork + " unfinished work items" +
+                      (equipmentEnabled ? " and " + day.inspections + " equipment inspections" : "")
+                    }
+                  >
+                    <span className="daily-workload-weekday" aria-hidden="true">
+                      {workloadWeekday(day.date)}
                     </span>
-                  )}
-                  <span>{day.appointments} appointments</span>
-                  <span>{day.unfinishedWork} work items</span>
-                  {equipmentEnabled && <span>{day.inspections} inspections</span>}
-                </button>
-              ))}
+                    <strong>{day.date}</strong>
+                    {effectiveActivityType !== "all" && (
+                      <span className="daily-workload-selected-count" aria-hidden="true">
+                        Selected: {focusedRecordedItemCount(
+                          day, equipmentEnabled, effectiveActivityType,
+                        )} {focusedLabel}
+                      </span>
+                    )}
+                    <span>{day.appointments} appointments</span>
+                    <span>{day.unfinishedWork} work items</span>
+                    {equipmentEnabled && <span>{day.inspections} inspections</span>}
+                    {!reviewable && (
+                      <span className="muted">Outside supported operations date range</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </section>
           <div className="daily-sections">
