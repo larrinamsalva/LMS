@@ -149,10 +149,19 @@ export function orderWorkloadDays(
   if (mode === "calendar") {
     return result.sort((a, b) => a.date.localeCompare(b.date));
   }
+  // The comparator revisits dates during sorting. Count each input day at
+  // most once for this sort, keeping the exact prior descending-count and
+  // ascending-date tie-breaks. Duplicate references retain their occurrences.
+  const counts = new Map<DailyWorkload, number>();
+  const savedCount = (day: DailyWorkload): number => {
+    const cached = counts.get(day);
+    if (cached !== undefined) return cached;
+    const count = focusedRecordedItemCount(day, includeInspections, activityType);
+    counts.set(day, count);
+    return count;
+  };
   return result.sort((a, b) =>
-    focusedRecordedItemCount(b, includeInspections, activityType) -
-      focusedRecordedItemCount(a, includeInspections, activityType) ||
-    a.date.localeCompare(b.date),
+    savedCount(b) - savedCount(a) || a.date.localeCompare(b.date),
   );
 }
 
