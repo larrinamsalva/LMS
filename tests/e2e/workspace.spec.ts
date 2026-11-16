@@ -260,7 +260,9 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   // The next seven cards lie in 2101, beyond the date picker's maximum.
   // Keep their saved counts readable but disable out-of-range navigation.
   await expect(dateCards).toHaveCount(7);
-  await expect(dateCards.locator(":disabled")).toHaveCount(7);
+  // Match the date buttons themselves, not disabled descendants of buttons.
+  await expect(operations.locator(".daily-workload-grid > button:disabled"))
+    .toHaveCount(7);
   await expect(dateCards.first()).toContainText(
     "Outside supported operations date range",
   );
