@@ -257,7 +257,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await operationsDate.fill("2026-11-05");
   await expect(barItems).toHaveCount(7);
   await expect(barItems.first()).toHaveAttribute(
-    "aria-label", /2026-11-06: [1-9]\d* saved items/,
+    "aria-label", /2026-11-06: [1-9]\d* saved items?/,
   );
   const fullChartBeforeFiltering = await barItems.allTextContents();
   await expect(earliestRecorded).toContainText(
