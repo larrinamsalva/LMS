@@ -124,6 +124,27 @@ export function datesWithoutSavedActivity(
 }
 
 /**
+ * Earliest business-local date with at least one positive SAVED count.
+ * Compare calendar date strings rather than relying on the caller's order.
+ * This is a read-only review cue, not confirmed appointments, capacity,
+ * urgency or evidence that a resource is available.
+ */
+export function earliestRecordedActivityDay(
+  days: readonly DailyWorkload[],
+  includeInspections: boolean,
+): { date: string; recordedItems: number } | null {
+  let first: { date: string; recordedItems: number } | null = null;
+  for (const day of days) {
+    const count = recordedItemCount(day, includeInspections);
+    if (count <= 0) continue;
+    if (first === null || day.date < first.date) {
+      first = { date: day.date, recordedItems: count };
+    }
+  }
+  return first;
+}
+
+/**
  * The date with the most *recorded items*, not the most work hours.
  * Appointments, due work, and enabled inspections each count as one.
  * For ties, choose the earliest business-local calendar date, regardless
