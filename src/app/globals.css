@@ -1824,6 +1824,67 @@ legend {
 }
 .daily-workload-totals strong { font-size: 22px; }
 
+/* Full-window saved activity chart: not hours, capacity or staff utilization.
+   The exact counts and dates remain text; colored bars are decorative. */
+.daily-workload-activity-chart {
+  min-width: 0;
+  padding: 14px;
+  margin: 12px 0 18px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+}
+.daily-workload-activity-chart p { margin: 0 0 8px; }
+.daily-workload-activity-chart p.muted { font-size: 13px; }
+.daily-activity-bar-list {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(78px, 1fr));
+  align-items: end;
+  gap: 10px;
+  padding: 5px 0 9px;
+  margin: 0;
+  list-style: none;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.daily-activity-bar-list li {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.daily-activity-bar-count { font-size: 14px; color: var(--text); }
+.daily-activity-bar-track {
+  width: 100%;
+  height: 78px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 5px 5px 0 0;
+}
+.daily-activity-bar-fill {
+  display: block;
+  width: 65%;
+  max-width: 46px;
+  background: var(--accent);
+  border-radius: 4px 4px 0 0;
+}
+.daily-activity-bar-date {
+  color: var(--text);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .daily-workload-activity-chart { padding: 10px; }
+  .daily-activity-bar-list { gap: 7px; }
+}
+
 /* The optional active-days filter remains readable on narrow devices. */
 .daily-workload-filter {
   display: flex;
