@@ -96,7 +96,8 @@ it("keeps duplicate retained day references, a fresh array and empty weeks", () 
   expect(quietCards([], true)).toEqual([]);
   expect(quietCards(
     Array.from({ length: 7 }, (_, i) => ({
-      date: "2035-02-" + String(27 + i).padStart(2, "0"),
+      date: ["2035-02-27", "2035-02-28", "2035-03-01",
+        "2035-03-02", "2035-03-03", "2035-03-04", "2035-03-05"][i],
       appointments: 0, unfinishedWork: 0, inspections: 0,
     })),
     false,
