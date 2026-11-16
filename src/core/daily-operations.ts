@@ -34,6 +34,20 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
     dayInstants.set(value, parsed);
     return parsed;
   };
+  // Both views already parse included string starts when filtering.
+  // Compare their exact epoch nanoseconds instead of reparsing during
+  // every sort comparison. Non-string historical values retain original
+  // Temporal.Instant.compare and per-comparison String coercion.
+  const compareAppointmentStarts = (a: WorkspaceRecord, b: WorkspaceRecord): number => {
+    const first = a.data.start;
+    const second = b.data.start;
+    if (typeof first !== "string" || typeof second !== "string") {
+      return Temporal.Instant.compare(instant(String(first)), instant(String(second)));
+    }
+    const startA = dayInstant(first);
+    const startB = dayInstant(second);
+    return startA < startB ? -1 : startA > startB ? 1 : 0;
+  };
   const appointments = records
     .filter(
       (r) =>
@@ -42,12 +56,7 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
         dayInstant(r.data.start) < until &&
         dayInstant(r.data.end) > from,
     )
-    .sort((a, b) =>
-      Temporal.Instant.compare(
-        instant(String(a.data.start)),
-        instant(String(b.data.start)),
-      ),
-    );
+    .sort(compareAppointmentStarts);
   // Both appointment views use the same string timestamp parser. Reuse
   // the current-day cache for upcoming starts within this summary call:
   // no cached value can cross organization, date, or snapshot boundaries.
@@ -66,12 +75,7 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
       const parsed = dayInstant(value);
       return parsed >= until && parsed < upcomingEnd;
     })
-    .sort((a, b) =>
-      Temporal.Instant.compare(
-        instant(String(a.data.start)),
-        instant(String(b.data.start)),
-      ),
-    );
+    .sort(compareAppointmentStarts);
   // Keep work without an assigned date visible, without fabricating a due date.
   const activeWork = records.filter(
     (r) =>
