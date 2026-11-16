@@ -158,6 +158,24 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   // The first no-saved-activity date is a navigation aid, NOT an availability
   // or booking confirmation. Check it using this existing authorized demo session.
   await operationsDate.fill("2035-02-26");
+  // The new chart is always the complete, authorized business-local week:
+  // seven exact saved counts, even when every date is empty.
+  const activityChart = operations.getByRole("group", {
+    name: "Seven-day saved activity distribution", exact: true,
+  });
+  const barItems = activityChart.locator(".daily-activity-bar-list > li");
+  await expect(barItems).toHaveCount(7);
+  await expect(barItems.first()).toHaveAttribute(
+    "aria-label", "2035-02-27: 0 saved items",
+  );
+  await expect(barItems.last()).toHaveAttribute(
+    "aria-label", "2035-03-05: 0 saved items",
+  );
+  await expect(activityChart.locator(".daily-activity-bar-fill"))
+    .toHaveCount(7);
+  await expect(activityChart).toContainText(
+    "not work hours, staffing, resource capacity or confirmed availability",
+  );
   const noActivity = operations.getByRole("group", {
     name: "Dates with no saved activity", exact: true,
   });
@@ -237,6 +255,11 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   // Switch to a known saved-work window: the saved November 6 jobs must
   // disappear from the quiet date-card view, without changing the summary.
   await operationsDate.fill("2026-11-05");
+  await expect(barItems).toHaveCount(7);
+  await expect(barItems.first()).toHaveAttribute(
+    "aria-label", /2026-11-06: [1-9]\d* saved items/,
+  );
+  const fullChartBeforeFiltering = await barItems.allTextContents();
   await expect(earliestRecorded).toContainText(
     "First saved activity: 2026-11-06",
   );
@@ -294,6 +317,9 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   // Return to the exact prior window to exercise quiet-date filters below.
   await operationsDate.fill("2026-11-05");
   await quietToggle.click();
+  // Filtering date cards must not misrepresent the full-window chart.
+  await expect(barItems).toHaveCount(7);
+  expect(await barItems.allTextContents()).toEqual(fullChartBeforeFiltering);
   const quietCards = await dateCards.count();
   expect(quietCards).toBeLessThan(7);
   await expect(dateCards.getByText("2026-11-06", { exact: true }))
