@@ -6,7 +6,8 @@ import {
   datesWithoutSavedActivity, earliestRecordedActivityDay,
   busiestRecordedDay, orderWorkloadDays,
   filterWorkloadDaysByType,
-  summarizeFocusedWorkload, busiestFocusedDay, focusedRecordedItemCount,
+  summarizeFocusedWorkload, busiestFocusedDay, earliestFocusedActivityDay,
+  focusedRecordedItemCount,
   workloadWeekday, filterWorkloadDaysByCalendarDay, compareSevenDayWorkloadTotals,
   type WorkloadActivityType, type WorkloadCalendarDayFilter,
 } from "../core/daily-operations-workload";
@@ -185,6 +186,10 @@ export function DailyOperations({
   const focusedPeak = effectiveActivityType === "all" ? null : busiestFocusedDay(
     nextSevenDays, equipmentEnabled, effectiveActivityType,
   );
+  const firstFocusedDay = effectiveActivityType === "all" ? null :
+    earliestFocusedActivityDay(nextSevenDays, equipmentEnabled, effectiveActivityType);
+  const reviewableFirstFocusedDay = firstFocusedDay &&
+    isReviewableOperationsDate(firstFocusedDay.date);
   const focusedLabel = effectiveActivityType === "appointments" ? "appointment starts"
     : effectiveActivityType === "work" ? "unfinished work"
     : "equipment inspections";
@@ -836,6 +841,48 @@ export function DailyOperations({
                 {focusedTotals.daysInWindow} days. Full-week totals above and CSV
                 downloads are unchanged.
               </p>
+            )}
+            {effectiveActivityType !== "all" && (
+              <div
+                className="daily-workload-first-focused"
+                role="group"
+                aria-label="First selected activity day"
+              >
+                {firstFocusedDay ? (
+                  <>
+                    <p>
+                      <strong>First {focusedLabel}: {firstFocusedDay.date}</strong>
+                      <span className="muted">
+                        {" "}· {firstFocusedDay.matchingItems} saved{" "}
+                        {firstFocusedDay.matchingItems === 1 ? "item" : "items"}
+                      </span>
+                    </p>
+                    {reviewableFirstFocusedDay ? (
+                      <button
+                        type="button"
+                        className="secondary"
+                        aria-label={"Review first selected activity day " +
+                          firstFocusedDay.date}
+                        onClick={() => selectDate(firstFocusedDay.date)}
+                      >
+                        Review {firstFocusedDay.date}
+                      </button>
+                    ) : (
+                      <p className="muted">
+                        This date is outside the supported Operations date range.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="muted">
+                    No saved {focusedLabel} in this seven-day window.
+                  </p>
+                )}
+                <p className="muted">
+                  Saved counts are planning information, not a measure of
+                  staff availability, urgency or capacity.
+                </p>
+              </div>
             )}
             {focusedPeak && (
               <div

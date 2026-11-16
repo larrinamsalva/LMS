@@ -165,6 +165,21 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(noActivity).toContainText(
     "No saved activity does not confirm staff, space or equipment availability.",
   );
+  // No selected category activity in a distant fictional empty week.
+  await operations.getByLabel("Activity to show", { exact: true })
+    .selectOption("appointments");
+  const emptyFocused = operations.getByRole("group", {
+    name: "First selected activity day", exact: true,
+  });
+  await expect(emptyFocused).toContainText(
+    "No saved appointment starts in this seven-day window.",
+  );
+  await expect(emptyFocused.getByRole("button", {
+    name: /Review first selected activity day/,
+  })).toHaveCount(0);
+  await operations.getByRole("button", {
+    name: "Reset workload view", exact: true,
+  }).click();
   const earliestRecorded = operations.getByRole("group", {
     name: "First date with saved activity", exact: true,
   });
@@ -248,6 +263,22 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await operationsDate.fill("2026-11-05");
   await operations.getByLabel("Activity to show", { exact: true })
     .selectOption("work");
+  // The first work-due date is separate from the most-recorded work day.
+  // Keep its focus independent of date-card sorting and saved-data mutations.
+  const firstFocusedPanel = operations.getByRole("group", {
+    name: "First selected activity day", exact: true,
+  });
+  await expect(firstFocusedPanel).toContainText(
+    "First unfinished work: 2026-11-06",
+  );
+  await expect(firstFocusedPanel).toContainText(
+    "Saved counts are planning information, not a measure of",
+  );
+  await firstFocusedPanel.getByRole("button", {
+    name: "Review first selected activity day 2026-11-06", exact: true,
+  }).click();
+  await expect(operationsDate).toHaveValue("2026-11-06");
+  await operationsDate.fill("2026-11-05");
   const focusedReview = operations.getByRole("group", {
     name: "Most recorded selected activity day", exact: true,
   }).getByRole("button", { name: /Review top selected activity day / });

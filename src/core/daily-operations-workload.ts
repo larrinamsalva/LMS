@@ -260,6 +260,28 @@ export function summarizeFocusedWorkload(
 
 
 /**
+ * First business-local day with a positive count of the selected SAVED
+ * activity category. Use dates, not UI display ordering or activity volume.
+ * Appointments, unfinished due work and enabled inspections are distinct.
+ * Never infer booking availability, staffing, urgency or capacity.
+ */
+export function earliestFocusedActivityDay(
+  days: readonly DailyWorkload[],
+  includeInspections: boolean,
+  type: WorkloadActivityType,
+): { date: string; matchingItems: number } | null {
+  let first: { date: string; matchingItems: number } | null = null;
+  for (const day of days) {
+    const count = focusedRecordedItemCount(day, includeInspections, type);
+    if (count <= 0) continue;
+    if (first === null || day.date < first.date) {
+      first = { date: day.date, matchingItems: count };
+    }
+  }
+  return first;
+}
+
+/**
  * Largest selected-category saved-record count in the authorized business's
  * seven-day snapshot. The date and tie result are independent of UI sorting
  * and caller ordering. Never estimates staffing, duration or availability.
