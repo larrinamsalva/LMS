@@ -127,6 +127,11 @@ export function DailyOperations({
   // Show dates without recorded starts/due items from the full authorized
   // window, independent of UI date-card filters or sort order.
   const noSavedActivityDays = datesWithoutSavedActivity(nextSevenDays, equipmentEnabled);
+  // Date navigation must honor the same bounds as the Operations date input.
+  // Dates in the seven-day outlook can extend beyond that input's maximum.
+  const firstReviewableNoActivityDate = noSavedActivityDays.find(
+    (day) => day.date >= OPERATIONS_DATE_MIN && day.date <= OPERATIONS_DATE_MAX,
+  )?.date ?? null;
   // Optional adjacent comparisons use the same authorized business snapshot.
   // Previous: delta = current minus previous. Following: delta = following
   // minus current. Neither direction uses screen-only date filters.
@@ -550,6 +555,17 @@ export function DailyOperations({
                 <p className="muted">
                   Every date in this window has at least one saved activity item.
                 </p>
+              )}
+              {firstReviewableNoActivityDate && (
+                <button
+                  type="button"
+                  className="secondary"
+                  aria-label={"Review first date without saved activity " +
+                    firstReviewableNoActivityDate}
+                  onClick={() => selectDate(firstReviewableNoActivityDate)}
+                >
+                  Review {firstReviewableNoActivityDate}
+                </button>
               )}
               <p className="muted">
                 No saved activity does not confirm staff, space or equipment
