@@ -233,6 +233,33 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     exact: true,
   }).click();
   await expect(operationsDate).toHaveValue("2026-11-06");
+  // Both peak review shortcuts must still navigate when their saved
+  // business-local dates are valid, independent of empty-day filtering.
+  await operationsDate.fill("2026-11-05");
+  const peakReview = operations.getByRole("group", {
+    name: "Busiest recorded day", exact: true,
+  }).getByRole("button", { name: /Review busiest recorded day / });
+  await expect(peakReview).toBeVisible();
+  const peakTarget = (await peakReview.getAttribute("aria-label") ?? "")
+    .split(" ").at(-1) ?? "";
+  expect(peakTarget).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  await peakReview.click();
+  await expect(operationsDate).toHaveValue(peakTarget);
+  await operationsDate.fill("2026-11-05");
+  await operations.getByLabel("Activity to show", { exact: true })
+    .selectOption("work");
+  const focusedReview = operations.getByRole("group", {
+    name: "Most recorded selected activity day", exact: true,
+  }).getByRole("button", { name: /Review top selected activity day / });
+  await expect(focusedReview).toBeVisible();
+  const focusedTarget = (await focusedReview.getAttribute("aria-label") ?? "")
+    .split(" ").at(-1) ?? "";
+  expect(focusedTarget).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  await focusedReview.click();
+  await expect(operationsDate).toHaveValue(focusedTarget);
+  await operations.getByRole("button", {
+    name: "Reset workload view", exact: true,
+  }).click();
   // Return to the exact prior window to exercise quiet-date filters below.
   await operationsDate.fill("2026-11-05");
   await quietToggle.click();
