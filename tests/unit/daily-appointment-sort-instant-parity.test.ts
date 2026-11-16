@@ -218,8 +218,8 @@ it("preserves original non-string sort comparator behavior for valid legacy coer
   });
   // Deliberately inject a non-schema legacy value: the actual production
   // record schema still requires an explicit-offset timestamp string.
-  old.data.start = { toString: () => "2026-11-06T18:30:00Z" }
-    as unknown as WorkspaceRecord["data"]["start"];
+  old.data.start = ({ toString: () => "2026-11-06T18:30:00Z" }
+    as unknown as WorkspaceRecord["data"]["start"]);
   const second = record("second", "appointments", {
     title: "Normal", status: "Scheduled",
     start: "2026-11-06T19:30:00Z", end: "2026-11-06T20:00:00Z",
