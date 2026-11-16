@@ -110,7 +110,9 @@ export function recordedActivityBars(
   return days.map((day, index) => ({
     date: day.date,
     savedItems: counts[index],
-    relativePercent: largest > 0 ? Math.round(100 * counts[index] / largest) : 0,
+    // A positive saved count always remains visible, even when tiny.
+    relativePercent: largest > 0 && counts[index] > 0
+      ? Math.max(1, Math.round(100 * counts[index] / largest)) : 0,
   }));
 }
 
