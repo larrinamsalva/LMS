@@ -120,36 +120,40 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
   const authorizedEquipmentStates = snapshot.equipmentStates.filter(
     (state) => state.organization_id === snapshot.organizationId,
   );
-  const equipment = authorizedEquipmentStates
-    .flatMap((state): EquipmentAttention[] => {
-      const record = equipmentById.get(state.record_id);
-      if (!record || state.condition === "Retired") return [];
+  // Classify each authorized state once into the two read-only views.
+  // Preserve duplicate state occurrences, original reason/date predicates,
+  // and each view's separate display ordering.
+  const equipment: EquipmentAttention[] = [];
+  const upcomingEquipmentInspections: UpcomingEquipmentInspection[] = [];
+  for (const state of authorizedEquipmentStates) {
+    const record = equipmentById.get(state.record_id);
+    if (!record) continue;
+    if (state.condition !== "Retired") {
       const reason =
         state.condition !== "Serviceable"
           ? state.condition
           : state.next_inspection && String(state.next_inspection).slice(0, 10) <= date
             ? "Inspection due"
             : "";
-      return reason ? [{ record, reason }] : [];
-    })
-    .sort((a, b) =>
-      String(a.record.data.name).localeCompare(String(b.record.data.name)),
-    );
-  // Look ahead only for serviceable assets with a saved next-inspection date.
-  // Current/overdue conditions remain in "Equipment to review" instead.
-  const upcomingEquipmentInspections = authorizedEquipmentStates
-    .flatMap((state): UpcomingEquipmentInspection[] => {
-      const record = equipmentById.get(state.record_id);
-      if (!record || state.condition !== "Serviceable" || !state.next_inspection)
-        return [];
+      if (reason) equipment.push({ record, reason });
+    }
+    // Look ahead only for serviceable assets with a saved next-inspection
+    // date; current and overdue conditions belong in Equipment to review.
+    if (state.condition === "Serviceable" && state.next_inspection) {
       const due = String(state.next_inspection).slice(0, 10);
-      return due > date && due <= upcomingThrough ? [{ record, due }] : [];
-    })
-    .sort((a, b) =>
-      a.due.localeCompare(b.due) ||
-      String(a.record.data.name).localeCompare(String(b.record.data.name)) ||
-      a.record.id.localeCompare(b.record.id),
-    );
+      if (due > date && due <= upcomingThrough) {
+        upcomingEquipmentInspections.push({ record, due });
+      }
+    }
+  }
+  equipment.sort((a, b) =>
+    String(a.record.data.name).localeCompare(String(b.record.data.name)),
+  );
+  upcomingEquipmentInspections.sort((a, b) =>
+    a.due.localeCompare(b.due) ||
+    String(a.record.data.name).localeCompare(String(b.record.data.name)) ||
+    a.record.id.localeCompare(b.record.id),
+  );
   // Classify the same sorted, authorized due-work rows once instead of
   // filtering them separately for each read-only Operations panel.
   // Each branch retains the exact YYYY-MM-DD lexical comparison rules,
