@@ -13,6 +13,7 @@ import { displayTime, localDate } from "../core/time";
 import { dailyPage, DAILY_OPERATIONS_PAGE_SIZE } from "../core/daily-operations-pages";
 import { dailyOperationsCsv } from "../core/daily-operations-csv";
 import { sevenDayOutlookCsv } from "../core/seven-day-outlook-csv";
+import { noSavedActivityDatesCsv } from "../core/no-saved-activity-dates-csv";
 import { sevenDayWorkloadCsv, visibleWorkloadCsv } from "../core/seven-day-workload-csv";
 import { sevenDayComparisonCsv } from "../core/seven-day-comparison-csv";
 import { needsSchedulingCsv } from "../core/needs-scheduling-csv";
@@ -225,6 +226,20 @@ export function DailyOperations({
     const link = document.createElement("a");
     link.href = url;
     link.download = "lms-upcoming-inspections-" + summary.date +
+      "-through-" + summary.upcomingThrough + ".csv";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  function downloadNoSavedActivityDates() {
+    if (!summary || noSavedActivityDays.length === 0) return;
+    // Derive the CSV afresh from this authorized, complete seven-day summary,
+    // not screen filters, displayed cards, or caller-provided dates/counts.
+    const csv = noSavedActivityDatesCsv(summary, zone, equipmentEnabled);
+    const file = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(file);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "lms-no-saved-activity-" + summary.date +
       "-through-" + summary.upcomingThrough + ".csv";
     link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -565,6 +580,15 @@ export function DailyOperations({
                   onClick={() => selectDate(firstReviewableNoActivityDate)}
                 >
                   Review {firstReviewableNoActivityDate}
+                </button>
+              )}
+              {noSavedActivityDays.length > 0 && (
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={downloadNoSavedActivityDates}
+                >
+                  Download dates with no saved activity CSV
                 </button>
               )}
               <p className="muted">

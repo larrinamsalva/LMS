@@ -165,6 +165,27 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(noActivity).toContainText(
     "No saved activity does not confirm staff, space or equipment availability.",
   );
+  // Download only saved-activity observations from this existing fictional
+  // session. Each row must warn against treating it as confirmed availability.
+  const emptyDatesDownloadPending = page.waitForEvent("download");
+  await noActivity.getByRole("button", {
+    name: "Download dates with no saved activity CSV", exact: true,
+  }).click();
+  const emptyDatesDownload = await emptyDatesDownloadPending;
+  expect(emptyDatesDownload.suggestedFilename())
+    .toBe("lms-no-saved-activity-2035-02-26-through-2035-03-05.csv");
+  const emptyDatesCsv = (await readFile((await emptyDatesDownload.path())!))
+    .toString("utf8");
+  const emptyDatesRows = emptyDatesCsv.trimEnd().split("\r\n");
+  expect(emptyDatesRows).toHaveLength(8);
+  expect(emptyDatesRows[0]).toContain('"Business-local date"');
+  expect(emptyDatesRows[1]).toContain('"2035-02-27","None recorded"');
+  expect(emptyDatesRows[7]).toContain('"2035-03-05","None recorded"');
+  for (const row of emptyDatesRows.slice(1)) {
+    expect(row).toContain("NOT CONFIRMED AVAILABILITY");
+  }
+  expect(emptyDatesCsv).not.toContain("Fictional upcoming window clean");
+  expect(emptyDatesCsv).not.toContain("Taylor Edited");
   await noActivity.getByRole("button", {
     name: "Review first date without saved activity 2035-02-27",
     exact: true,
