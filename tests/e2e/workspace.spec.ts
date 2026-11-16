@@ -165,6 +165,15 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(noActivity).toContainText(
     "No saved activity does not confirm staff, space or equipment availability.",
   );
+  const earliestRecorded = operations.getByRole("group", {
+    name: "First date with saved activity", exact: true,
+  });
+  await expect(earliestRecorded).toContainText(
+    "No saved upcoming activity in this seven-day window.",
+  );
+  await expect(earliestRecorded.getByRole("button", {
+    name: /Review first date with saved activity/,
+  })).toHaveCount(0);
   // View only calendar dates with no saved activity. This must remain separate
   // from the existing active-only category filter and preserve the full-week
   // canonical count and the availability warning.
@@ -213,6 +222,19 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   // Switch to a known saved-work window: the saved November 6 jobs must
   // disappear from the quiet date-card view, without changing the summary.
   await operationsDate.fill("2026-11-05");
+  await expect(earliestRecorded).toContainText(
+    "First saved activity: 2026-11-06",
+  );
+  await expect(earliestRecorded).toContainText(
+    "Recorded items are not a measure of staffing, urgency or capacity.",
+  );
+  await earliestRecorded.getByRole("button", {
+    name: "Review first date with saved activity 2026-11-06",
+    exact: true,
+  }).click();
+  await expect(operationsDate).toHaveValue("2026-11-06");
+  // Return to the exact prior window to exercise quiet-date filters below.
+  await operationsDate.fill("2026-11-05");
   await quietToggle.click();
   const quietCards = await dateCards.count();
   expect(quietCards).toBeLessThan(7);
@@ -256,6 +278,9 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await operationsDate.fill("2100-12-31");
   await expect(noActivity.getByRole("button", {
     name: /Review first date without saved activity/,
+  })).toHaveCount(0);
+  await expect(earliestRecorded.getByRole("button", {
+    name: /Review first date with saved activity/,
   })).toHaveCount(0);
   // The next seven cards lie in 2101, beyond the date picker's maximum.
   // Keep their saved counts readable but disable out-of-range navigation.

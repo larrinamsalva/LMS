@@ -3,7 +3,8 @@ import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
 import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
-  datesWithoutSavedActivity, busiestRecordedDay, orderWorkloadDays,
+  datesWithoutSavedActivity, earliestRecordedActivityDay,
+  busiestRecordedDay, orderWorkloadDays,
   filterWorkloadDaysByType,
   summarizeFocusedWorkload, busiestFocusedDay, focusedRecordedItemCount,
   workloadWeekday, filterWorkloadDaysByCalendarDay, compareSevenDayWorkloadTotals,
@@ -130,6 +131,15 @@ export function DailyOperations({
     (module) => module.id === "equipment",
   );
   const weeklyTotals = summarizeSevenDayWorkload(nextSevenDays, equipmentEnabled);
+  // Earliest saved-activity date is a canonical full-window review cue.
+  // Independent of card filters and display sort; never claim capacity.
+  const earliestRecordedDay = earliestRecordedActivityDay(
+    nextSevenDays, equipmentEnabled,
+  );
+  const earliestReviewableRecordedDay = earliestRecordedDay &&
+    earliestRecordedDay.date >= OPERATIONS_DATE_MIN &&
+    earliestRecordedDay.date <= OPERATIONS_DATE_MAX
+      ? earliestRecordedDay : null;
   // Show dates without recorded starts/due items from the full authorized
   // window, independent of UI date-card filters or sort order.
   const noSavedActivityDays = datesWithoutSavedActivity(nextSevenDays, equipmentEnabled);
@@ -532,6 +542,45 @@ export function DailyOperations({
                 <span className="metric-label">Days with saved activity</span>
                 <strong>{weeklyTotals.daysWithActivity} of {weeklyTotals.daysInWindow}</strong>
               </div>
+            </div>
+            <div
+              className="daily-workload-first-recorded"
+              role="group"
+              aria-label="First date with saved activity"
+            >
+              {earliestRecordedDay ? (
+                <>
+                  <p>
+                    <strong>First saved activity: {earliestRecordedDay.date}</strong>
+                    <span className="muted">
+                      {" "}· {earliestRecordedDay.recordedItems} saved{" "}
+                      {earliestRecordedDay.recordedItems === 1 ? "item" : "items"}
+                    </span>
+                  </p>
+                  {earliestReviewableRecordedDay ? (
+                    <button
+                      type="button"
+                      className="secondary"
+                      aria-label={"Review first date with saved activity " +
+                        earliestReviewableRecordedDay.date}
+                      onClick={() => selectDate(earliestReviewableRecordedDay.date)}
+                    >
+                      Review {earliestReviewableRecordedDay.date}
+                    </button>
+                  ) : (
+                    <p className="muted">
+                      This date is outside the supported Operations date range.
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="muted">
+                  No saved upcoming activity in this seven-day window.
+                </p>
+              )}
+              <p className="muted">
+                Recorded items are not a measure of staffing, urgency or capacity.
+              </p>
             </div>
             <div className="daily-workload-peak" role="group" aria-label="Busiest recorded day">
               {peakDay ? (
