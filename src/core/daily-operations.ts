@@ -82,28 +82,30 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
       (r.entity === "tasks" || r.entity === "jobs") &&
       !["Done", "Completed", "Cancelled"].includes(String(r.data.status)),
   );
-  const needsScheduling = activeWork
-    .filter((record) => {
-      const value = record.entity === "jobs" ? record.data.date : record.data.due;
-      return value === null || value === undefined ||
-        (typeof value === "string" && value.trim() === "");
-    })
-    .sort((a, b) =>
-      String(a.data.title).localeCompare(String(b.data.title)) ||
-      a.id.localeCompare(b.id),
-    );
-  const unfinished = activeWork
-    .flatMap((record): DueWork[] => {
-      const value = record.entity === "jobs" ? record.data.date : record.data.due;
-      // Do not invent deadlines for work that has no due date.
-      return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
-        ? [{ record, due: value }]
-        : [];
-    })
-    .sort((a, b) =>
-      a.due.localeCompare(b.due) ||
-      String(a.record.data.title).localeCompare(String(b.record.data.title)),
-    );
+  // Both read-only work views inspect the same already-authorized active
+  // jobs and tasks. Read each saved due value once, retaining the original
+  // missing/blank test, date-shape test, record references and duplicates.
+  const needsScheduling: WorkspaceRecord[] = [];
+  const unfinished: DueWork[] = [];
+  for (const record of activeWork) {
+    const value = record.entity === "jobs" ? record.data.date : record.data.due;
+    if (value === null || value === undefined ||
+        (typeof value === "string" && value.trim() === "")) {
+      needsScheduling.push(record);
+    }
+    // Do not invent deadlines: only existing exact YYYY-MM-DD shaped values.
+    if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      unfinished.push({ record, due: value });
+    }
+  }
+  needsScheduling.sort((a, b) =>
+    String(a.data.title).localeCompare(String(b.data.title)) ||
+    a.id.localeCompare(b.id),
+  );
+  unfinished.sort((a, b) =>
+    a.due.localeCompare(b.due) ||
+    String(a.record.data.title).localeCompare(String(b.record.data.title)),
+  );
   // Both equipment views resolve the same authorized record by ID.
   // Index only current, same-organization equipment once. Keep the FIRST
   // matching record per ID, exactly like the previous records.find() calls,
