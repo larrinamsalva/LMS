@@ -3,7 +3,8 @@ import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
 import {
   sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
-  busiestRecordedDay, orderWorkloadDays, filterWorkloadDaysByType,
+  datesWithoutSavedActivity, busiestRecordedDay, orderWorkloadDays,
+  filterWorkloadDaysByType,
   summarizeFocusedWorkload, busiestFocusedDay, focusedRecordedItemCount,
   workloadWeekday, filterWorkloadDaysByCalendarDay, compareSevenDayWorkloadTotals,
   type WorkloadActivityType, type WorkloadCalendarDayFilter,
@@ -123,6 +124,9 @@ export function DailyOperations({
     (module) => module.id === "equipment",
   );
   const weeklyTotals = summarizeSevenDayWorkload(nextSevenDays, equipmentEnabled);
+  // Show dates without recorded starts/due items from the full authorized
+  // window, independent of UI date-card filters or sort order.
+  const noSavedActivityDays = datesWithoutSavedActivity(nextSevenDays, equipmentEnabled);
   // Optional adjacent comparisons use the same authorized business snapshot.
   // Previous: delta = current minus previous. Following: delta = following
   // minus current. Neither direction uses screen-only date filters.
@@ -526,6 +530,31 @@ export function DailyOperations({
               ) : (
                 <p className="muted">No saved upcoming activity to highlight this week.</p>
               )}
+            </div>
+            <div
+              className="daily-workload-no-saved-activity"
+              role="group"
+              aria-label="Dates with no saved activity"
+            >
+              <p>
+                <strong>{noSavedActivityDays.length} of {nextSevenDays.length}
+                  {" "}dates with no saved activity</strong>
+              </p>
+              {noSavedActivityDays.length ? (
+                <p className="muted">
+                  No saved appointment starts, unfinished work due
+                  {equipmentEnabled ? ", or inspections" : ""} on:{" "}
+                  {noSavedActivityDays.map((day) => day.date).join(", ")}.
+                </p>
+              ) : (
+                <p className="muted">
+                  Every date in this window has at least one saved activity item.
+                </p>
+              )}
+              <p className="muted">
+                No saved activity does not confirm staff, space or equipment
+                availability. Check schedules before planning.
+              </p>
             </div>
             <button
               type="button"
