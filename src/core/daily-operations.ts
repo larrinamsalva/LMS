@@ -150,16 +150,30 @@ export function summarizeDailyOperations(snapshot: DailySource, zone: string, da
       String(a.record.data.name).localeCompare(String(b.record.data.name)) ||
       a.record.id.localeCompare(b.record.id),
     );
+  // Classify the same sorted, authorized due-work rows once instead of
+  // filtering them separately for each read-only Operations panel.
+  // Each branch retains the exact YYYY-MM-DD lexical comparison rules,
+  // existing relative order, and original record references.
+  const dueToday: DueWork[] = [];
+  const overdue: DueWork[] = [];
+  const upcoming: DueWork[] = [];
+  for (const item of unfinished) {
+    if (item.due === date) {
+      dueToday.push(item);
+    } else if (item.due < date) {
+      overdue.push(item);
+    } else if (item.due > date && item.due <= upcomingThrough) {
+      upcoming.push(item);
+    }
+  }
   return {
     date,
     appointments,
     upcomingAppointments,
-    dueToday: unfinished.filter((item) => item.due === date),
-    overdue: unfinished.filter((item) => item.due < date),
+    dueToday,
+    overdue,
     needsScheduling,
-    upcoming: unfinished.filter(
-      (item) => item.due > date && item.due <= upcomingThrough,
-    ),
+    upcoming,
     upcomingThrough,
     equipment,
     upcomingEquipmentInspections,
