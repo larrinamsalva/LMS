@@ -23,8 +23,7 @@ import {
   adjacentOperationsDate,
   weeklyOperationsDate,
   operationsToday,
-  OPERATIONS_DATE_MIN,
-  OPERATIONS_DATE_MAX,
+  isReviewableOperationsDate,
 } from "../core/daily-operations-dates";
 
 
@@ -101,7 +100,7 @@ export function DailyOperations({
     // Keep temporary date-input edits as before, but never navigate to a
     // complete date outside the picker bounds through any shortcut/card.
     if (/^\d{4}-\d{2}-\d{2}$/.test(next) &&
-        (next < OPERATIONS_DATE_MIN || next > OPERATIONS_DATE_MAX)) return;
+        !isReviewableOperationsDate(next)) return;
     setDate(next);
     setVisible(initialVisible());
   }
@@ -137,8 +136,7 @@ export function DailyOperations({
     nextSevenDays, equipmentEnabled,
   );
   const earliestReviewableRecordedDay = earliestRecordedDay &&
-    earliestRecordedDay.date >= OPERATIONS_DATE_MIN &&
-    earliestRecordedDay.date <= OPERATIONS_DATE_MAX
+    isReviewableOperationsDate(earliestRecordedDay.date)
       ? earliestRecordedDay : null;
   // Show dates without recorded starts/due items from the full authorized
   // window, independent of UI date-card filters or sort order.
@@ -146,7 +144,7 @@ export function DailyOperations({
   // Date navigation must honor the same bounds as the Operations date input.
   // Dates in the seven-day outlook can extend beyond that input's maximum.
   const firstReviewableNoActivityDate = noSavedActivityDays.find(
-    (day) => day.date >= OPERATIONS_DATE_MIN && day.date <= OPERATIONS_DATE_MAX,
+    (day) => isReviewableOperationsDate(day.date),
   )?.date ?? null;
   // Optional adjacent comparisons use the same authorized business snapshot.
   // Previous: delta = current minus previous. Following: delta = following
@@ -211,6 +209,9 @@ export function DailyOperations({
     effectiveActivityType !== "all" || calendarDayFilter !== "all";
   // Always use the complete seven-day window, even when filtered on screen.
   const peakDay = busiestRecordedDay(nextSevenDays, equipmentEnabled);
+  const reviewablePeakDay = peakDay && isReviewableOperationsDate(peakDay.date);
+  const reviewableFocusedPeak = focusedPeak &&
+    isReviewableOperationsDate(focusedPeak.date);
   function downloadDailyPlan() {
     // Build only from the current business's authorized in-memory summary.
     // No API calls, record mutations, or separate demo sessions are involved.
@@ -594,14 +595,20 @@ export function DailyOperations({
                       ) : null}
                     </span>
                   </p>
-                  <button
-                    type="button"
-                    className="secondary"
-                    aria-label={"Review busiest recorded day " + peakDay.date}
-                    onClick={() => selectDate(peakDay.date)}
-                  >
-                    Review {peakDay.date}
-                  </button>
+                  {reviewablePeakDay ? (
+                    <button
+                      type="button"
+                      className="secondary"
+                      aria-label={"Review busiest recorded day " + peakDay.date}
+                      onClick={() => selectDate(peakDay.date)}
+                    >
+                      Review {peakDay.date}
+                    </button>
+                  ) : (
+                    <p className="muted">
+                      This date is outside the supported Operations date range.
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="muted">No saved upcoming activity to highlight this week.</p>
@@ -844,14 +851,20 @@ export function DailyOperations({
                     ) : null}
                   </span>
                 </p>
-                <button
-                  type="button"
-                  className="secondary"
-                  aria-label={"Review top selected activity day " + focusedPeak.date}
-                  onClick={() => selectDate(focusedPeak.date)}
-                >
-                  Review {focusedPeak.date}
-                </button>
+                {reviewableFocusedPeak ? (
+                  <button
+                    type="button"
+                    className="secondary"
+                    aria-label={"Review top selected activity day " + focusedPeak.date}
+                    onClick={() => selectDate(focusedPeak.date)}
+                  >
+                    Review {focusedPeak.date}
+                  </button>
+                ) : (
+                  <p className="muted">
+                    This date is outside the supported Operations date range.
+                  </p>
+                )}
               </div>
             )}
             {displayedDays.length === 0 && (noSavedActivityOnly ||
@@ -873,8 +886,7 @@ export function DailyOperations({
             )}
             <div className="daily-workload-grid">
               {displayedDays.map((day) => {
-                const reviewable = day.date >= OPERATIONS_DATE_MIN &&
-                  day.date <= OPERATIONS_DATE_MAX;
+                const reviewable = isReviewableOperationsDate(day.date);
                 return (
                   <button
                     key={day.date}
