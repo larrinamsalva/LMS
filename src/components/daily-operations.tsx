@@ -566,7 +566,11 @@ export function DailyOperations({
                 staffing, resource capacity or confirmed availability.
                 All seven dates stay visible even when the date cards are filtered.
               </p>
-              <ol className="daily-activity-bar-list">
+              <ol
+                className="daily-activity-bar-list"
+                tabIndex={0}
+                aria-label="Saved item counts by date; scroll horizontally to view all seven days"
+              >
                 {activityBars.map((bar) => (
                   <li
                     key={bar.date}
