@@ -98,13 +98,16 @@ export function summarizeSevenDayWorkload(
  * Display-only seven-day relative saved-record activity bars.
  * The tallest bar is 100% of the busiest saved COUNT in this snapshot,
  * not percent utilization, available capacity, duration or staffing.
+ * The optional category is a chart-only view, never a filter of input dates.
  * Preserve every supplied day and its order without changing inputs.
  */
 export function recordedActivityBars(
   days: readonly DailyWorkload[],
   includeInspections: boolean,
+  activityType: WorkloadActivityType = "all",
 ): { date: string; savedItems: number; relativePercent: number }[] {
-  const counts = days.map((day) => recordedItemCount(day, includeInspections));
+  const counts = days.map((day) =>
+    focusedRecordedItemCount(day, includeInspections, activityType));
   let largest = 0;
   for (const count of counts) if (count > largest) largest = count;
   return days.map((day, index) => ({
