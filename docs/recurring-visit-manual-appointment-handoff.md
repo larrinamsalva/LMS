@@ -59,12 +59,18 @@ specific proposed visit date without retyping the date.
   rejects unrelated dates and invalid/out-of-range plans,
   and proves that no time, resource, customer or work fields
   are manufactured.
-- The existing no-login Playwright scheduling suite adds
-  a separate test for **both** businesses, confirming the
-  date-only form handoff, empty start/end/title,
-  accessible note, phone fit and accessibility,
-  zero writes after opening/cancelling, and no stale
-  date when starting a normal new appointment.
+- The existing no-login Playwright scheduling scenario exercises the
+  handoff **inside its existing fictional session** for both businesses,
+  confirming the actual business-specific form heading
+  ("Add maintenance appointment" / "Add cleaning appointment"),
+  blank start/end/title, the date-only note, no saved-record writes
+  after cancelling, no stale date when opening a normal new
+  appointment, and existing phone-fit/accessibility checks.
+- Do not create an additional demo session solely for this regression:
+  the independent browser runtimes have a fixed 24-session limit.
+  The first browser run exceeded that limit and also assumed the
+  wrong generic form heading. Preserve the security limit; fix test
+  session reuse and exact expected heading, not the demo's capacity.
 - Retain all previous recurrence count, DST, UI, Engine
   and database regression checks.
 
