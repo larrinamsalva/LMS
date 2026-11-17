@@ -169,7 +169,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(chartScroll).toHaveAttribute(
     "aria-label", "Saved item counts by date; scroll horizontally to view all seven days",
   );
-  const barItems = chartScroll.locator("> li");
+  const barItems = chartScroll.locator(":scope > li");
   await expect(barItems).toHaveCount(7);
   await expect(barItems.first()).toHaveAttribute(
     "aria-label", "2035-02-27: 0 saved items",
