@@ -120,6 +120,31 @@ export function recordedActivityBars(
 }
 
 /**
+ * A date's share of the selected chart category's SAVED items in the same
+ * full business-local window. This is distinct from `relativePercent`,
+ * which scales bars against the largest saved count on one day.
+ *
+ * These display-only labels do not indicate staffing, effort, utilization
+ * or confirmed booking/resource availability. Display precision is one
+ * decimal place; a tiny positive share never appears as zero.
+ * Reuse the already-authorized/filtered chart bars instead of querying data.
+ */
+export function recordedActivityWeekShares(
+  bars: readonly { date: string; savedItems: number }[],
+): { date: string; savedItems: number; shareLabel: string }[] {
+  const total = bars.reduce((sum, bar) => sum + bar.savedItems, 0);
+  return bars.map(({ date, savedItems }) => {
+    let shareLabel = "0%";
+    if (total > 0 && savedItems > 0) {
+      shareLabel = savedItems * 1000 < total
+        ? "<0.1%"
+        : (Math.round((savedItems / total) * 1000) / 10).toFixed(1) + "%";
+    }
+    return { date, savedItems, shareLabel };
+  });
+}
+
+/**
  * Exact per-type saved counts behind the full seven-day chart.
  * Business-local day ordering is supplied by the authorized workload;
  * inspections are excluded when Equipment is not enabled.
