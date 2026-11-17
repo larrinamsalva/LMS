@@ -194,6 +194,16 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(breakdownRows.first()).toContainText("Appointments: 0");
   await expect(breakdownRows.first()).toContainText("Unfinished work due: 0");
   await expect(breakdownRows.first()).toContainText("Total saved items: 0");
+  // The chart peak belongs only to its own category and authorized seven days.
+  const chartPeak = activityChart.getByRole("group", {
+    name: "Highest chart activity", exact: true,
+  });
+  await expect(chartPeak).toContainText(
+    "No saved saved items on these seven dates.",
+  );
+  await expect(chartPeak.getByRole("button", {
+    name: /Review highest chart activity day/,
+  })).toHaveCount(0);
   // The chart-only category control leaves all seven dates in view.
   const chartCategory = activityChart.getByLabel("Chart activity to show", {
     exact: true,
@@ -302,10 +312,27 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   );
   await chartCategory.selectOption("work");
   const focusedChartBeforeFiltering = await barItems.allTextContents();
+  const chartPeakReview = chartPeak.getByRole("button", {
+    name: /Review highest chart activity day/,
+  });
+  await expect(chartPeakReview).toBeVisible();
+  const chartPeakDate = (await chartPeakReview.getAttribute("aria-label") ?? "")
+    .split(" ").at(-1) ?? "";
+  expect(chartPeakDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  await expect(chartPeak).toContainText(
+    "Highest selected chart count: " + chartPeakDate,
+  );
   // Date-card filters must not secretly affect the separate chart focus.
   await operations.getByLabel("Activity to show", { exact: true })
     .selectOption("appointments");
   expect(await barItems.allTextContents()).toEqual(focusedChartBeforeFiltering);
+  await expect(chartPeakReview).toHaveAttribute(
+    "aria-label", "Review highest chart activity day " + chartPeakDate,
+  );
+  await chartPeakReview.click();
+  await expect(operationsDate).toHaveValue(chartPeakDate);
+  // Restore the known week after chart navigation for existing regression checks.
+  await operationsDate.fill("2026-11-05");
   await operations.getByLabel("Activity to show", { exact: true })
     .selectOption("all");
   await chartCategory.selectOption("all");
