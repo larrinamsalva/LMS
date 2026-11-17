@@ -10,7 +10,7 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
-import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
+import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
 import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
@@ -144,6 +144,23 @@ export function Schedule({
     onClearAppointmentFocus?.();
     setArchived(false);
     setDate(selected);
+  }
+  function downloadPlannedDatesCsv() {
+    // Regenerate the current bounded date-only series at click time; never
+    // read customer, work, resource or appointment records for this export.
+    const csv = recurringVisitPreviewCsv(
+      previewStartDate, previewIntervalWeeks, previewCount,
+    );
+    const blobUrl = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = `lms-visit-preview-${previewStartDate}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
   }
   return (
     <section className="panel" aria-labelledby="schedule-heading">
@@ -288,6 +305,21 @@ export function Schedule({
                 spanning midnight. Status counts explain the saved records;
                 zero or cancelled counts never confirm staff or resource availability.
               </p>
+              <div className="recurring-visit-export">
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={downloadPlannedDatesCsv}
+                >
+                  Download planned dates CSV
+                </button>
+                <p className="muted">
+                  Export contains only proposed dates, visit numbers, and the
+                  repeat interval. No bookings, customer details, or resource
+                  availability are included.
+                </p>
+              </div>
               <p className="recurring-visit-review-state" aria-live="polite">
                 {reviewedVisitPosition === null
                   ? "Agenda date is not one of the proposed visit dates. Use the navigation buttons to review a planned visit."
