@@ -11,7 +11,7 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, type VisitFrequencyWeeks } from "../core/recurring-visit-preview";
-import { savedAppointmentsOnPlannedDates } from "../core/recurring-visit-saved-appointments";
+import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -103,13 +103,13 @@ export function Schedule({
   // A local-only recurrence sketch follows the current Schedule date.
   // It never calls onAdd/onEdit or checks/confirms resource availability.
   let plannedVisitDates: string[] = [];
-  let savedCountByPlannedDate: ReturnType<typeof savedAppointmentsOnPlannedDates> = [];
+  let savedCountByPlannedDate: ReturnType<typeof savedAppointmentStatusesOnPlannedDates> = [];
   let previewError = "";
   try {
     plannedVisitDates = previewRecurringVisitDates(
       previewStartDate, previewIntervalWeeks, previewCount,
     );
-    savedCountByPlannedDate = savedAppointmentsOnPlannedDates(
+    savedCountByPlannedDate = savedAppointmentStatusesOnPlannedDates(
       plannedVisitDates, appointments, zone,
     );
   } catch (error) {
@@ -249,7 +249,8 @@ export function Schedule({
               <p className="muted">
                 Counts show saved non-archived appointments on each calendar
                 date, including cancelled and completed records and visits
-                spanning midnight. Zero does not mean a resource is available.
+                spanning midnight. Status counts explain the saved records;
+                zero or cancelled counts never confirm staff or resource availability.
               </p>
               <ol className="recurring-visit-dates" aria-label="Planned visit dates">
                 {plannedVisitDates.map((visitDate, index) => (
@@ -265,12 +266,25 @@ export function Schedule({
                       non-archived {savedCountByPlannedDate[index].savedAppointments === 1
                         ? "appointment" : "appointments"}
                     </span>
+                    <span
+                      id={visitCountLabelId + "-status-" + index}
+                      className="recurring-visit-status-counts"
+                    >
+                      Saved statuses: Scheduled {savedCountByPlannedDate[index].scheduled}
+                      {" · "}In progress {savedCountByPlannedDate[index].inProgress}
+                      {" · "}Completed {savedCountByPlannedDate[index].completed}
+                      {" · "}Cancelled {savedCountByPlannedDate[index].cancelled}
+                      {savedCountByPlannedDate[index].other > 0 && (
+                        <>{" · "}Other {savedCountByPlannedDate[index].other}</>
+                      )}
+                    </span>
                     <button
                       type="button"
                       className="secondary"
                       disabled={busy}
                       aria-label={"Review planned visit " + (index + 1) + " on " + visitDate}
-                      aria-describedby={visitCountLabelId + "-" + index}
+                      aria-describedby={visitCountLabelId + "-" + index +
+                        " " + visitCountLabelId + "-status-" + index}
                       onClick={() => {
                         // A visit review is read-only; preserve previewStartDate
                         // and clear any prior focus/archive-only agenda view.
