@@ -647,7 +647,7 @@ export function DailyOperations({
                   </>
                 ) : (
                   <p className="muted">
-                    No saved {chartActivityPlural} on these seven dates.
+                    No {chartActivityPlural} on these seven dates.
                   </p>
                 )}
                 <p className="muted">
