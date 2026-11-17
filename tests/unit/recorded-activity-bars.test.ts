@@ -171,3 +171,61 @@ it("uses only the authorized business-local seven-day summary over DST and leap 
   expect(leapBars[2]).toEqual({ date: "2028-02-29", savedItems: 1, relativePercent: 100 });
   expect({ records, states }).toEqual(original);
 });
+
+it("compares each chart-only category against independent exact 720-day counts", () => {
+  const days: DailyWorkload[] = Array.from({ length: 720 }, (_, i) => ({
+    date: new Date(Date.UTC(2026, 0, i + 1)).toISOString().slice(0, 10),
+    appointments: i % 7 === 0 ? i + 1 : 0,
+    unfinishedWork: i % 11 === 0 ? i + 2 : 0,
+    inspections: i % 13 === 0 ? i + 3 : 0,
+  }));
+  const before = structuredClone(days);
+  const reversed = [...days].reverse();
+  for (const input of [days, reversed, [], days.slice(0, 7)]) {
+    for (const enabled of [true, false]) {
+      for (const category of ["all", "appointments", "work", "inspections"] as const) {
+        const selectedCounts = input.map((day) => {
+          if (category === "appointments") return day.appointments;
+          if (category === "work") return day.unfinishedWork;
+          if (category === "inspections") return enabled ? day.inspections : 0;
+          return day.appointments + day.unfinishedWork +
+            (enabled ? day.inspections : 0);
+        });
+        const largest = Math.max(0, ...selectedCounts);
+        const bars = recordedActivityBars(input, enabled, category);
+        expect(bars).toEqual(input.map((day, index) => ({
+          date: day.date,
+          savedItems: selectedCounts[index],
+          relativePercent: largest > 0 && selectedCounts[index] > 0
+            ? Math.max(1, Math.round(100 * selectedCounts[index] / largest)) : 0,
+        })));
+        expect(bars).toHaveLength(input.length);
+      }
+    }
+  }
+  expect(recordedActivityBars(days, true)).toEqual(
+    recordedActivityBars(days, true, "all"),
+  );
+  expect(days).toEqual(before);
+});
+
+it("keeps all seven dates and zero height when a selected category has no records", () => {
+  const days: DailyWorkload[] = [
+    { date: "2026-11-06", appointments: 4, unfinishedWork: 0, inspections: 2 },
+    { date: "2026-11-07", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-08", appointments: 1, unfinishedWork: 0, inspections: 3 },
+    { date: "2026-11-09", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-10", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-11", appointments: 0, unfinishedWork: 0, inspections: 0 },
+    { date: "2026-11-12", appointments: 0, unfinishedWork: 0, inspections: 0 },
+  ];
+  expect(recordedActivityBars(days, true, "work")).toEqual(
+    days.map((day) => ({ date: day.date, savedItems: 0, relativePercent: 0 })),
+  );
+  expect(recordedActivityBars(days, false, "inspections")).toEqual(
+    days.map((day) => ({ date: day.date, savedItems: 0, relativePercent: 0 })),
+  );
+  expect(recordedActivityBars(days, true, "inspections")[2]).toEqual({
+    date: "2026-11-08", savedItems: 3, relativePercent: 100,
+  });
+});
