@@ -1906,6 +1906,41 @@ legend {
   font-size: 12px;
   overflow-wrap: anywhere;
 }
+/* Optional exact chart breakdown: readable on phones without horizontal
+   scrolling, new chart colors, or any booking/capacity implications. */
+.daily-activity-breakdown { margin-top: 12px; }
+.daily-activity-breakdown summary {
+  width: fit-content;
+  max-width: 100%;
+  padding: 7px 0;
+  font-weight: 650;
+  color: var(--text);
+  cursor: pointer;
+}
+.daily-activity-breakdown > p { margin: 6px 0 12px; }
+.daily-activity-breakdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  gap: 8px;
+}
+.daily-activity-breakdown-list li {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.daily-activity-breakdown-total { font-weight: 650; }
 @media (max-width: 640px) {
   .daily-workload-activity-chart { padding: 10px; }
   .daily-activity-bar-list { gap: 7px; }

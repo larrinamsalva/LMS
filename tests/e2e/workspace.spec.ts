@@ -182,6 +182,18 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(activityChart).toContainText(
     "not work hours, staffing, resource capacity or confirmed availability",
   );
+  const breakdownDetails = activityChart.locator(".daily-activity-breakdown");
+  const breakdownRows = breakdownDetails.locator(".daily-activity-breakdown-list > li");
+  await expect(breakdownDetails).not.toHaveAttribute("open", "");
+  // A native <summary> is keyboard accessible and avoids a second horizontal
+  // scroll region on phones; reveal the exact category numbers on demand.
+  await breakdownDetails.locator("summary").click();
+  await expect(breakdownDetails).toHaveAttribute("open", "");
+  await expect(breakdownRows).toHaveCount(7);
+  await expect(breakdownRows.first()).toContainText("2035-02-27");
+  await expect(breakdownRows.first()).toContainText("Appointments: 0");
+  await expect(breakdownRows.first()).toContainText("Unfinished work due: 0");
+  await expect(breakdownRows.first()).toContainText("Total saved items: 0");
   // The chart-only category control leaves all seven dates in view.
   const chartCategory = activityChart.getByLabel("Chart activity to show", {
     exact: true,
@@ -298,6 +310,19 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     .selectOption("all");
   await chartCategory.selectOption("all");
   expect(await barItems.allTextContents()).toEqual(fullChartBeforeFiltering);
+  // The expanded breakdown is anchored to the canonical full seven dates.
+  await expect(breakdownRows).toHaveCount(7);
+  const firstSavedCount = Number(
+    (await barItems.first().getAttribute("aria-label") ?? "")
+      .match(/: (\d+) saved items?/)?.[1],
+  );
+  expect(firstSavedCount).toBeGreaterThan(0);
+  await expect(breakdownRows.first()).toContainText(
+    "Total saved items: " + firstSavedCount,
+  );
+  await expect(breakdownRows.first()).toContainText("Appointments:");
+  await expect(breakdownRows.first()).toContainText("Unfinished work due:");
+  const fullBreakdownBeforeFiltering = await breakdownRows.allTextContents();
   await expect(earliestRecorded).toContainText(
     "First saved activity: 2026-11-06",
   );
@@ -358,6 +383,8 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   // Filtering date cards must not misrepresent the full-window chart.
   await expect(barItems).toHaveCount(7);
   expect(await barItems.allTextContents()).toEqual(fullChartBeforeFiltering);
+  expect(await breakdownRows.allTextContents())
+    .toEqual(fullBreakdownBeforeFiltering);
   const quietCards = await dateCards.count();
   expect(quietCards).toBeLessThan(7);
   await expect(dateCards.getByText("2026-11-06", { exact: true }))
