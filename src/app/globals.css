@@ -1141,6 +1141,14 @@ legend {
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
+.recurring-visit-status-counts {
+  display: block;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
 /* Review is a navigation shortcut, never an automatic booking action. */
 .recurring-visit-dates button {
   min-width: 0;
