@@ -475,3 +475,78 @@ test("DST repeats require a choice, gaps are refused and a saved occurrence surv
     ).violations,
   ).toEqual([]);
 });
+
+
+test("recurring visit date handoff prepares a manual unsaved appointment in both businesses", async ({
+  page,
+}) => {
+  await start(page);
+  for (const industry of ["property", "cleaning"] as const) {
+    await page.getByLabel("Business workspace", { exact: true }).selectOption({
+      label: industry === "property" ? "Property Manager" : "Cleaning Company",
+    });
+    const organizationId = await page.getByLabel("Business workspace", {
+      exact: true,
+    }).inputValue();
+    const before = await page.request.get(
+      "/api/demo?organizationId=" + organizationId,
+    ).then((response) => response.json());
+
+    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+    await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
+    const planner = page.getByRole("region", {
+      name: "Repeating visit planner", exact: true,
+    });
+    await planner.locator("summary").click();
+    const visitActions = planner.getByRole("button", {
+      name: /Prepare appointment for planned visit /,
+    });
+    await expect(visitActions).toHaveCount(4);
+    await planner.getByRole("button", {
+      name: "Prepare appointment for planned visit 2 on 2026-11-13",
+      exact: true,
+    }).click();
+    await expect(page.getByRole("heading", {
+      name: "Add appointment", exact: true,
+    })).toBeVisible();
+    await expect(page.getByRole("status").filter({
+      hasText: "Planned visit date: 2026-11-13",
+    })).toContainText("Only the date was carried");
+    const appointmentDate = page.locator(
+      ".appointment-fields input[type='date']",
+    );
+    await expect(appointmentDate).toHaveCount(1);
+    await expect(appointmentDate).toHaveValue("2026-11-13");
+    await expect(appointmentDate).toHaveAttribute("readonly", "");
+    await expect(page.getByLabel("Start time *", { exact: true })).toHaveValue("");
+    await expect(page.getByLabel("End time *", { exact: true })).toHaveValue("");
+    await expect(page.getByLabel("Appointment title *", {
+      exact: true,
+    })).toHaveValue("");
+    await fits(page);
+    expect((await new AxeBuilder({ page }).withTags([
+      "wcag2a", "wcag2aa", "wcag21aa",
+    ]).analyze()).violations).toEqual([]);
+
+    // Opening, editing no fields, and cancelling must not save a booking.
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    const afterCancel = await page.request.get(
+      "/api/demo?organizationId=" + organizationId,
+    ).then((response) => response.json());
+    expect(afterCancel.workspace.records).toEqual(before.workspace.records);
+
+    // The normal Add appointment path must not inherit the previous
+    // planned-date handoff from a cancelled editor.
+    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+    await page.getByRole("button", {
+      name: "+ Add appointment", exact: true,
+    }).click();
+    await expect(page.locator(".appointment-fields input[type='date']"))
+      .toHaveValue("");
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    const afterNormalAdd = await page.request.get(
+      "/api/demo?organizationId=" + organizationId,
+    ).then((response) => response.json());
+    expect(afterNormalAdd.workspace.records).toEqual(before.workspace.records);
+  }
+});
