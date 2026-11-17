@@ -116,6 +116,31 @@ export function recordedActivityBars(
   }));
 }
 
+/**
+ * Exact per-type saved counts behind the full seven-day chart.
+ * Business-local day ordering is supplied by the authorized workload;
+ * inspections are excluded when Equipment is not enabled.
+ * This is not occupancy, resource availability or staff capacity.
+ */
+export function savedActivityTypeBreakdown(
+  days: readonly DailyWorkload[],
+  includeInspections: boolean,
+): { date: string; appointments: number; unfinishedWork: number;
+  inspections: number; savedItems: number }[] {
+  return days.map((day) => {
+    const appointments = day.appointments;
+    const unfinishedWork = day.unfinishedWork;
+    const inspections = includeInspections ? day.inspections : 0;
+    return {
+      date: day.date,
+      appointments,
+      unfinishedWork,
+      inspections,
+      savedItems: appointments + unfinishedWork + inspections,
+    };
+  });
+}
+
 /** The activity-only display filter uses exactly the same definition as totals. */
 export function visibleWorkloadDays(
   days: readonly DailyWorkload[],
