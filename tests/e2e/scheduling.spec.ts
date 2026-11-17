@@ -241,6 +241,39 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: /Review planned visit /,
     })).toHaveCount(6);
     const anchoredVisitLabels = await visitLabels.allTextContents();
+    const previousPlanned = planner.getByRole("button", {
+      name: "Previous planned visit", exact: true,
+    });
+    const nextPlanned = planner.getByRole("button", {
+      name: "Next planned visit", exact: true,
+    });
+    // Review shortcuts are independent of recurrence anchor and booking.
+    await expect(previousPlanned).toBeDisabled();
+    await nextPlanned.click();
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue("2026-12-04");
+    await expect(previousPlanned).toBeEnabled();
+    await previousPlanned.click();
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue("2026-11-06");
+    await expect(previousPlanned).toBeDisabled();
+    expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
+
+    // A row review and the next/previous buttons use the same read-only
+    // navigation, including the last-date boundary (no wrap or booking).
+    await planner.getByRole("button", {
+      name: "Review planned visit 6 on 2027-03-26",
+      exact: true,
+    }).click();
+    await expect(nextPlanned).toBeDisabled();
+    await previousPlanned.click();
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue("2027-02-26");
+    await nextPlanned.click();
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue("2027-03-26");
+    expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
+
     await planner.getByRole("button", {
       name: "Review planned visit 4 on 2027-01-29",
       exact: true,
@@ -264,6 +297,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(plannedDates).toHaveCount(0);
     await expect(savedCounts).toHaveCount(0);
     await expect(savedStatuses).toHaveCount(0);
+    await expect(previousPlanned).toHaveCount(0);
+    await expect(nextPlanned).toHaveCount(0);
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
     await expect(plannedDates).toHaveCount(6);
     await fits(page);

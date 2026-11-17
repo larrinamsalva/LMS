@@ -1097,6 +1097,26 @@ legend {
   border-radius: 6px;
   overflow-wrap: anywhere;
 }
+.recurring-visit-navigation {
+  margin: 12px 0;
+  min-width: 0;
+  color: var(--text);
+}
+.recurring-visit-navigation p {
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+.recurring-visit-navigation-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.recurring-visit-navigation-actions button {
+  min-height: 44px;
+  min-width: min(100%, 180px);
+  flex: 1 1 180px;
+  white-space: normal;
+}
 .recurring-visit-controls {
   display: flex;
   gap: 10px 16px;

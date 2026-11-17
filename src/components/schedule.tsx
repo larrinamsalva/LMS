@@ -10,7 +10,7 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
-import { previewRecurringVisitDates, plannedVisitAppointmentDraft, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
+import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
 import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
@@ -134,6 +134,15 @@ export function Schedule({
     );
   } catch (error) {
     previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
+  }
+  const previousPlannedDate = adjacentPlannedVisitDate(plannedVisitDates, date, "previous");
+  const nextPlannedDate = adjacentPlannedVisitDate(plannedVisitDates, date, "next");
+  function reviewPlannedDate(selected: string) {
+    // Review is intentionally read-only. Navigating between proposed
+    // dates never re-anchors the recurrence or reserves any resource.
+    onClearAppointmentFocus?.();
+    setArchived(false);
+    setDate(selected);
   }
   return (
     <section className="panel" aria-labelledby="schedule-heading">
@@ -278,6 +287,34 @@ export function Schedule({
                 spanning midnight. Status counts explain the saved records;
                 zero or cancelled counts never confirm staff or resource availability.
               </p>
+              <div className="recurring-visit-navigation" aria-label="Navigate planned visit dates">
+                <p className="muted">
+                  Agenda date: <time dateTime={date}>{date}</time>. Move through
+                  proposed dates without changing the plan or booking a visit.
+                </p>
+                <div className="recurring-visit-navigation-actions">
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy || !previousPlannedDate}
+                    onClick={() => {
+                      if (previousPlannedDate) reviewPlannedDate(previousPlannedDate);
+                    }}
+                  >
+                    Previous planned visit
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy || !nextPlannedDate}
+                    onClick={() => {
+                      if (nextPlannedDate) reviewPlannedDate(nextPlannedDate);
+                    }}
+                  >
+                    Next planned visit
+                  </button>
+                </div>
+              </div>
               <ol className="recurring-visit-dates" aria-label="Planned visit dates">
                 {plannedVisitDates.map((visitDate, index) => (
                   <li key={visitDate}>
@@ -311,13 +348,7 @@ export function Schedule({
                       aria-label={"Review planned visit " + (index + 1) + " on " + visitDate}
                       aria-describedby={visitCountLabelId + "-" + index +
                         " " + visitCountLabelId + "-status-" + index}
-                      onClick={() => {
-                        // A visit review is read-only; preserve previewStartDate
-                        // and clear any prior focus/archive-only agenda view.
-                        onClearAppointmentFocus?.();
-                        setArchived(false);
-                        setDate(visitDate);
-                      }}
+                      onClick={() => reviewPlannedDate(visitDate)}
                     >
                       Review {visitDate}
                     </button>
