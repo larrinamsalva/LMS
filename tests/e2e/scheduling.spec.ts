@@ -188,10 +188,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(savedStatuses.first()).toContainText("Cancelled ");
     const savedStatusSummary = await savedStatuses.first().textContent();
     const sumFirstStatuses = [...(savedStatusSummary ?? "").matchAll(
-      /(?:Scheduled|In progress|Completed|Cancelled|Other) (\\d+)/g,
+      /(?:Scheduled|In progress|Completed|Cancelled|Other) (\d+)/g,
     )].reduce((sum, match) => sum + Number(match[1]), 0);
     const firstTotal = Number(
-      (await savedCounts.first().textContent() ?? "").match(/Already saved: (\\d+)/)?.[1],
+      (await savedCounts.first().textContent() ?? "").match(/Already saved: (\d+)/)?.[1],
     );
     expect(sumFirstStatuses).toBe(firstTotal);
     // A freshly created appointment must contribute, but the fictional
