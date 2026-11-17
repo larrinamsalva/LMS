@@ -1837,6 +1837,27 @@ legend {
 }
 .daily-workload-activity-chart p { margin: 0 0 8px; }
 .daily-workload-activity-chart p.muted { font-size: 13px; }
+.daily-activity-chart-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 10px 0;
+}
+.daily-activity-chart-filter label { font-weight: 600; }
+.daily-activity-chart-filter select {
+  min-height: 44px;
+  max-width: 100%;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+}
+.daily-activity-chart-filter select:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
 .daily-activity-bar-list {
   display: grid;
   grid-template-columns: repeat(7, minmax(78px, 1fr));
