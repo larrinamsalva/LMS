@@ -117,3 +117,24 @@ export function plannedVisitReviewPosition(
   const index = plannedDates.indexOf(agendaDate);
   return index < 0 ? null : index + 1;
 }
+
+/**
+ * Export an UNSAVED recurring-date preview as machine-readable CSV.
+ * All variable cells come from our strict date-only generator or bounded
+ * integers, so no arbitrary input/PII/formula can enter the CSV.
+ * Exports do not book, reserve, or imply staff/resource availability.
+ */
+export function recurringVisitPreviewCsv(
+  startDate: string,
+  everyWeeks: VisitFrequencyWeeks,
+  occurrences: number,
+): string {
+  const dates = previewRecurringVisitDates(startDate, everyWeeks, occurrences);
+  const rows = [
+    "Visit,Proposed date,Repeat every (weeks),Note",
+    ...dates.map((date, index) =>
+      `${index + 1},${date},${everyWeeks},Preview only - no appointment booked by export`,
+    ),
+  ];
+  return rows.join("\r\n") + "\r\n";
+}
