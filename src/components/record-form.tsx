@@ -194,6 +194,15 @@ export function RecordForm({
           that zone reinterprets the entered clock times.
         </p>
       )}
+      {entity.id === "appointments" && !record && initialData?.scheduled_date && (
+        <p className="muted" role="status">
+          Planned visit date: <strong>{String(initialData.scheduled_date)}</strong>.
+          Only the date was carried into this unsaved appointment form.
+          Choose customer, work, resource and exact start/end times.
+          Changing the start date updates the scheduled date; booking
+          validation and resource conflict checks still apply.
+        </p>
+      )}
       {record && entity.id === "appointments" && (
         <p className="muted">
           Customer, work and site stay linked to this history. For different
