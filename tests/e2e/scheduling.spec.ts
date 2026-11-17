@@ -178,6 +178,17 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "Visit 1: 2026-11-06", "Visit 2: 2026-11-13",
       "Visit 3: 2026-11-20", "Visit 4: 2026-11-27",
     ]);
+    const savedCounts = plannedDates.locator(".recurring-visit-saved-count");
+    await expect(savedCounts).toHaveCount(4);
+    await expect(savedCounts.first()).toHaveText(
+      "Already saved: 1 non-archived appointment",
+    );
+    await expect(savedCounts.nth(1)).toHaveText(
+      "Already saved: 0 non-archived appointments",
+    );
+    await expect(plannedDates.first().getByRole("button", {
+      name: "Review planned visit 1 on 2026-11-06", exact: true,
+    })).toHaveAttribute("aria-describedby", await savedCounts.first().getAttribute("id"));
     await planner.getByLabel("Repeat visits", { exact: true })
       .selectOption("2");
     await expect(visitLabels).toHaveText([
@@ -194,6 +205,13 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await planner.getByLabel("Repeat visits", { exact: true })
       .selectOption("4");
     await expect(plannedDates.nth(1)).toContainText("2026-12-04");
+    await expect(savedCounts).toHaveCount(6);
+    await expect(savedCounts.first()).toHaveText(
+      "Already saved: 1 non-archived appointment",
+    );
+    await expect(savedCounts.nth(1)).toHaveText(
+      "Already saved: 0 non-archived appointments",
+    );
     await expect(planner).toContainText(
       "Preview only — no appointments are created",
     );
@@ -210,6 +228,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(page.getByLabel("Schedule date", { exact: true }))
       .toHaveValue("2027-01-29");
     expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
+    await expect(savedCounts.first()).toHaveText(
+      "Already saved: 1 non-archived appointment",
+    );
     await expect(page.getByRole("status").filter({
       hasText: "appointments on 2027-01-29",
     })).toBeVisible();
@@ -222,6 +243,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "on or before 2100-12-31",
     );
     await expect(plannedDates).toHaveCount(0);
+    await expect(savedCounts).toHaveCount(0);
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
     await expect(plannedDates).toHaveCount(6);
     await fits(page);
