@@ -2,42 +2,79 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "./engine";
 import { instant } from "./time";
 
+type ScopedAppointment = Pick<WorkspaceRecord, "entity" | "archived" | "data">;
+export type PlannedDateAppointmentStatuses = {
+  date: string;
+  savedAppointments: number;
+  scheduled: number;
+  inProgress: number;
+  completed: number;
+  cancelled: number;
+  other: number;
+};
+
 /**
- * Count already-saved, NON-ARCHIVED appointments overlapping each proposed
- * business-local calendar date. Includes cancelled/completed saved records,
- * matching the default Schedule agenda's inclusive status presentation.
- * An appointment spanning midnight counts on BOTH dates.
+ * Counts each already-authorized, non-archived saved appointment overlapping
+ * each proposed business-local date, including midnight-spanning records.
+ * Breakdown statuses match the saved record verbatim; unknown retained values
+ * are disclosed as "other" rather than silently counted as scheduled.
  *
- * Input records must be from the caller's already-authorized workspace.
- * No resource allocation, capacity, availability, timeslot validation,
- * cross-organization reads, writes or booking decisions are performed.
+ * It is read-only; these counts NEVER imply availability, resource safety,
+ * capacity or booking permission. No cross-organization data is queried.
  */
-export function savedAppointmentsOnPlannedDates(
+export function savedAppointmentStatusesOnPlannedDates(
   dates: readonly string[],
-  authorizedAppointments: readonly Pick<WorkspaceRecord, "entity" | "archived" | "data">[],
+  authorizedAppointments: readonly ScopedAppointment[],
   zone: string,
-): { date: string; savedAppointments: number }[] {
-  // Parse once per saved record so a twelve-date preview stays bounded.
-  // Invalid saved timestamps are ignored, not treated as reliable evidence.
-  const intervals: { start: bigint; end: bigint }[] = [];
+): PlannedDateAppointmentStatuses[] {
+  // Parse each valid instant only once across the entire bounded preview.
+  // Corrupt/zero-length intervals cannot contribute to any count.
+  const intervals: { start: bigint; end: bigint; status: unknown }[] = [];
   for (const appointment of authorizedAppointments) {
     if (appointment.entity !== "appointments" || appointment.archived) continue;
     try {
       const start = instant(String(appointment.data.start)).epochNanoseconds;
       const end = instant(String(appointment.data.end)).epochNanoseconds;
-      if (end > start) intervals.push({ start, end });
+      if (end > start) intervals.push({
+        start, end, status: appointment.data.status,
+      });
     } catch {
-      // Defensive rendering of a partially corrupted read-only snapshot.
+      // A corrupt saved record is not evidence of a valid booking interval.
     }
   }
   return dates.map((date) => {
-    const startDay = Temporal.PlainDate.from(date);
-    const start = startDay.toZonedDateTime(zone).epochNanoseconds;
-    const end = startDay.add({ days: 1 }).toZonedDateTime(zone).epochNanoseconds;
-    let savedAppointments = 0;
+    const day = Temporal.PlainDate.from(date);
+    const start = day.toZonedDateTime(zone).epochNanoseconds;
+    const end = day.add({ days: 1 }).toZonedDateTime(zone).epochNanoseconds;
+    const counts: PlannedDateAppointmentStatuses = {
+      date, savedAppointments: 0, scheduled: 0, inProgress: 0,
+      completed: 0, cancelled: 0, other: 0,
+    };
     for (const interval of intervals) {
-      if (interval.start < end && interval.end > start) savedAppointments++;
+      if (interval.start >= end || interval.end <= start) continue;
+      counts.savedAppointments++;
+      switch (interval.status) {
+        case "Scheduled": counts.scheduled++; break;
+        case "In progress": counts.inProgress++; break;
+        case "Completed": counts.completed++; break;
+        case "Cancelled": counts.cancelled++; break;
+        default: counts.other++; break;
+      }
     }
-    return { date, savedAppointments };
+    return counts;
   });
+}
+
+/**
+ * Backward-compatible total view for existing saved-count consumers.
+ * Use the SAME source calculation as the status breakdown; no separate
+ * exclusion policy or altered archived/cancelled/overnight semantics.
+ */
+export function savedAppointmentsOnPlannedDates(
+  dates: readonly string[],
+  authorizedAppointments: readonly ScopedAppointment[],
+  zone: string,
+): { date: string; savedAppointments: number }[] {
+  return savedAppointmentStatusesOnPlannedDates(dates, authorizedAppointments, zone)
+    .map(({ date, savedAppointments }) => ({ date, savedAppointments }));
 }
