@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { Temporal } from "@js-temporal/polyfill";
 import {
   previewRecurringVisitDates,
+  plannedVisitAppointmentDraft,
   type VisitFrequencyWeeks,
 } from "../../src/core/recurring-visit-preview";
 
@@ -83,4 +84,24 @@ it("remains deterministic and bounded across 720 fictional starts and all suppor
     }
   }
   expect(starts).toEqual(originalStarts);
+});
+
+it("prepares only the selected preview date; refuses unrelated or invalid draft dates", () => {
+  const before = "2026-11-06";
+  const selected = plannedVisitAppointmentDraft(before, 2, 4, "2026-12-04");
+  expect(selected).toEqual({ scheduled_date: "2026-12-04" });
+  expect(Object.keys(selected)).toEqual(["scheduled_date"]);
+  expect(selected).not.toHaveProperty("start");
+  expect(selected).not.toHaveProperty("end");
+  expect(selected).not.toHaveProperty("customer");
+  expect(selected).not.toHaveProperty("resource");
+  expect(selected).not.toHaveProperty("work");
+  for (const unplanned of ["2026-11-13", "2026-11-27", "2026-12-31", "", "2026-12-04T09:00"]) {
+    expect(() => plannedVisitAppointmentDraft(before, 2, 4, unplanned))
+      .toThrow(/date from the current recurring visit preview/);
+  }
+  expect(() => plannedVisitAppointmentDraft("2100-12-31", 4, 12, "2100-12-31"))
+    .toThrow(/on or before 2100-12-31/);
+  expect(() => plannedVisitAppointmentDraft("2026-11-06", 3 as VisitFrequencyWeeks, 4, "2026-11-06"))
+    .toThrow(/Choose weekly/);
 });
