@@ -10,7 +10,7 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
-import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
+import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
 import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
@@ -135,6 +135,7 @@ export function Schedule({
   } catch (error) {
     previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
   }
+  const reviewedVisitPosition = plannedVisitReviewPosition(plannedVisitDates, date);
   const previousPlannedDate = adjacentPlannedVisitDate(plannedVisitDates, date, "previous");
   const nextPlannedDate = adjacentPlannedVisitDate(plannedVisitDates, date, "next");
   function reviewPlannedDate(selected: string) {
@@ -287,6 +288,13 @@ export function Schedule({
                 spanning midnight. Status counts explain the saved records;
                 zero or cancelled counts never confirm staff or resource availability.
               </p>
+              <p className="recurring-visit-review-state" aria-live="polite">
+                {reviewedVisitPosition === null
+                  ? "Agenda date is not one of the proposed visit dates. Use the navigation buttons to review a planned visit."
+                  : "Currently reviewing planned visit " + reviewedVisitPosition +
+                    " of " + plannedVisitDates.length + ": " + date +
+                    ". This is a calendar view, not a booking confirmation."}
+              </p>
               <div className="recurring-visit-navigation" aria-label="Navigate planned visit dates">
                 <p className="muted">
                   Agenda date: <time dateTime={date}>{date}</time>. Move through
@@ -317,10 +325,19 @@ export function Schedule({
               </div>
               <ol className="recurring-visit-dates" aria-label="Planned visit dates">
                 {plannedVisitDates.map((visitDate, index) => (
-                  <li key={visitDate}>
+                  <li
+                    key={visitDate}
+                    className={visitDate === date ? "recurring-visit-is-reviewed" : undefined}
+                    aria-current={visitDate === date ? "date" : undefined}
+                  >
                     <span className="recurring-visit-date-text">
                       Visit {index + 1}: <time dateTime={visitDate}>{visitDate}</time>
                     </span>
+                    {visitDate === date && (
+                      <span className="recurring-visit-current-label">
+                        Currently reviewing
+                      </span>
+                    )}
                     <span
                       id={visitCountLabelId + "-" + index}
                       className="recurring-visit-saved-count"
