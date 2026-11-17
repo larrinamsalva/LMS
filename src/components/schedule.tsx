@@ -10,7 +10,7 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
-import { previewRecurringVisitDates, type VisitFrequencyWeeks } from "../core/recurring-visit-preview";
+import { previewRecurringVisitDates, plannedVisitAppointmentDraft, type VisitFrequencyWeeks } from "../core/recurring-visit-preview";
 import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
@@ -37,6 +37,7 @@ export function Schedule({
   canWrite,
   busy,
   onAdd,
+  onPrepareAppointment,
   onEdit,
   onArchive,
 }: {
@@ -58,6 +59,8 @@ export function Schedule({
   canWrite: boolean;
   busy: boolean;
   onAdd: () => void;
+  /** Date-only handoff into the existing manually saved appointment editor. */
+  onPrepareAppointment: (date: string) => void;
   onEdit: (record: WorkspaceRecord) => void;
   onArchive: (record: WorkspaceRecord) => void;
 }) {
@@ -295,6 +298,27 @@ export function Schedule({
                     >
                       Review {visitDate}
                     </button>
+                      <button
+                      type="button"
+                      className="secondary"
+                      disabled={!canWrite || busy}
+                      aria-label={"Prepare appointment for planned visit " + (index + 1) + " on " + visitDate}
+                      aria-describedby={visitCountLabelId + "-" + index +
+                        " " + visitCountLabelId + "-status-" + index}
+                      onClick={() => {
+                        // Recheck membership in the current validated series.
+                        // This passes only one date; booking still uses the
+                        // ordinary required fields and final conflict checks.
+                        onPrepareAppointment(
+                          plannedVisitAppointmentDraft(
+                            previewStartDate, previewIntervalWeeks,
+                            previewCount, visitDate,
+                          ).scheduled_date,
+                        );
+                      }}
+                    >
+                      Prepare appointment
+                    </button>
                   </li>
                 ))}
               </ol>
@@ -303,8 +327,10 @@ export function Schedule({
           <p className="recurring-visit-warning">
             Preview only — no appointments are created, reserved or checked for
             conflicts, staff availability, equipment readiness or booking slots.
-            Book each visit separately through Add appointment; each booking
-            must pass its existing validation and resource conflict checks.
+            Choose Prepare appointment to carry a selected date into the
+            normal manual appointment form. You must still choose exact
+            times, customer, work and resources and save each appointment
+            separately with existing authorization and conflict checks.
           </p>
         </details>
       </section>
