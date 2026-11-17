@@ -163,7 +163,13 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   const activityChart = operations.getByRole("group", {
     name: "Seven-day saved activity distribution", exact: true,
   });
-  const barItems = activityChart.locator(".daily-activity-bar-list > li");
+  const chartScroll = activityChart.locator(".daily-activity-bar-list");
+  // Horizontal mobile scroll must be keyboard-focusable and labeled.
+  await expect(chartScroll).toHaveAttribute("tabindex", "0");
+  await expect(chartScroll).toHaveAttribute(
+    "aria-label", "Saved item counts by date; scroll horizontally to view all seven days",
+  );
+  const barItems = chartScroll.locator("> li");
   await expect(barItems).toHaveCount(7);
   await expect(barItems.first()).toHaveAttribute(
     "aria-label", "2035-02-27: 0 saved items",
