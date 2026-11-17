@@ -1089,6 +1089,14 @@ legend {
   padding: 5px 0;
 }
 .recurring-visit-planner details > p { margin: 9px 0; }
+.recurring-visit-return {
+  padding: 10px 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
 .recurring-visit-controls {
   display: flex;
   gap: 10px 16px;
