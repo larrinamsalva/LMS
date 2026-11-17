@@ -4,6 +4,7 @@ import {
   previewRecurringVisitDates,
   plannedVisitAppointmentDraft,
   validateRecurringVisitReturnPlan,
+  adjacentPlannedVisitDate,
   type VisitFrequencyWeeks,
 } from "../../src/core/recurring-visit-preview";
 
@@ -139,4 +140,45 @@ it("validates and copies only a transient recurrence return route", () => {
   expect(() => validateRecurringVisitReturnPlan({
     ...input, startDate: "2100-12-31", selectedDate: "2100-12-31",
   })).toThrow(/on or before 2100-12-31/);
+});
+
+it("finds nearest preceding/following proposed date without changing the plan", () => {
+  for (const interval of [1, 2, 4] as const) {
+    const dates = Object.freeze(previewRecurringVisitDates("2026-11-06", interval, 6));
+    const untouched = [...dates];
+    for (let index = 0; index < dates.length; index++) {
+      expect(adjacentPlannedVisitDate(dates, dates[index], "previous"))
+        .toBe(index === 0 ? null : dates[index - 1]);
+      expect(adjacentPlannedVisitDate(dates, dates[index], "next"))
+        .toBe(index === dates.length - 1 ? null : dates[index + 1]);
+    }
+    expect(adjacentPlannedVisitDate(dates, "2020-01-01", "previous")).toBeNull();
+    expect(adjacentPlannedVisitDate(dates, "2020-01-01", "next")).toBe(dates[0]);
+    expect(adjacentPlannedVisitDate(dates, "2100-12-31", "previous"))
+      .toBe(dates[dates.length - 1]);
+    expect(adjacentPlannedVisitDate(dates, "2100-12-31", "next")).toBeNull();
+    expect(adjacentPlannedVisitDate(dates, "2026-11-07", "previous"))
+      .toBe(dates[0]);
+    expect(adjacentPlannedVisitDate(dates, "2026-11-07", "next"))
+      .toBe(dates[1]);
+    expect(dates).toEqual(untouched);
+  }
+  expect(adjacentPlannedVisitDate([], "2026-11-06", "previous")).toBeNull();
+  expect(adjacentPlannedVisitDate([], "2026-11-06", "next")).toBeNull();
+});
+
+it("keeps adjacent navigation date-only and deterministic across DST and year boundaries", () => {
+  for (const start of ["2026-03-01", "2026-10-25", "2026-12-25", "2028-02-29"]) {
+    for (const interval of [1, 2, 4] as const) {
+      const dates = previewRecurringVisitDates(start, interval, 12);
+      let current = dates[0];
+      for (let i = 1; i < dates.length; i++) {
+        const next = adjacentPlannedVisitDate(dates, current, "next");
+        expect(next).toBe(dates[i]);
+        expect(next).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        current = next!;
+      }
+      expect(adjacentPlannedVisitDate(dates, current, "next")).toBeNull();
+    }
+  }
 });
