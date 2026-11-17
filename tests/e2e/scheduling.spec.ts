@@ -277,6 +277,48 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(savedAfterPreview.workspace.records)
       .toEqual(savedBeforePreview.workspace.records);
 
+    // Exercise a date-only handoff in THIS existing two-business session.
+    // A separate test would exhaust the demo's fixed 24-session limit
+    // on the final HTTP boundary test. No production caps are changed.
+    const preparedDate = "2026-12-04";
+    await planner.getByRole("button", {
+      name: "Prepare appointment for planned visit 2 on " + preparedDate,
+      exact: true,
+    }).click();
+    await expect(page.getByRole("heading", {
+      name: industry === "property"
+        ? "Add maintenance appointment"
+        : "Add cleaning appointment",
+      exact: true,
+    })).toBeVisible();
+    await expect(page.getByRole("status").filter({
+      hasText: "Planned visit date: " + preparedDate,
+    })).toContainText("Only the date was carried");
+    const prefilledDay = page.locator(".appointment-fields input[type='date']");
+    await expect(prefilledDay).toHaveCount(1);
+    await expect(prefilledDay).toHaveValue(preparedDate);
+    await expect(prefilledDay).toHaveAttribute("readonly", "");
+    await expect(page.getByLabel("Start time *", { exact: true })).toHaveValue("");
+    await expect(page.getByLabel("End time *", { exact: true })).toHaveValue("");
+    await expect(page.getByLabel("Appointment title *", { exact: true }))
+      .toHaveValue("");
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    expect((await page.request.get(
+      "/api/demo?organizationId=" + previewOrganization,
+    ).then((response) => response.json())).workspace.records)
+      .toEqual(savedBeforePreview.workspace.records);
+
+    // A normal Add appointment must not inherit the cancelled preview.
+    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+    await page.getByRole("button", { name: "+ Add appointment", exact: true }).click();
+    await expect(page.locator(".appointment-fields input[type='date']"))
+      .toHaveValue("");
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    expect((await page.request.get(
+      "/api/demo?organizationId=" + previewOrganization,
+    ).then((response) => response.json())).workspace.records)
+      .toEqual(savedBeforePreview.workspace.records);
+
     // Verify the seven-day appointment outlook from the previous business day
     // using this existing demo session, then hand off the actual start date.
     await page.getByRole("button", {
@@ -475,3 +517,4 @@ test("DST repeats require a choice, gaps are refused and a saved occurrence surv
     ).violations,
   ).toEqual([]);
 });
+

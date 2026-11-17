@@ -709,11 +709,13 @@ export function Workspace({
                 equipmentStates={workspace!.equipmentStates}
                 equipmentCheckouts={workspace!.equipmentCheckouts}
                 busy={busy}
-                onAdd={() => {
-                  setSelected("appointments");
-                  setView("records");
-                  setEditor("new");
-                  setArchive(null);
+                onAdd={() => openRecord("appointments")}
+                onPrepareAppointment={(selectedDate) => {
+                  // Date-only handoff from the current organization's
+                  // validated preview; no appointment is saved here.
+                  if (!canWrite || busy) return;
+                  openRecord("appointments");
+                  setInitialData({ scheduled_date: selectedDate });
                 }}
                 onEdit={(record) => {
                   setSelected("appointments");
