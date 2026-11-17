@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
 import {
   sevenDayWorkload, summarizeSevenDayWorkload, recordedActivityBars,
+  recordedActivityWeekShares,
   savedActivityTypeBreakdown,
   visibleWorkloadDays,
   datesWithoutSavedActivity, earliestRecordedActivityDay,
@@ -86,6 +87,7 @@ export function DailyOperations({
   onEquipment: (record?: WorkspaceRecord) => void;
 }) {
   const zone = workspace.config.document.timeZone ?? "UTC";
+  const shareDescriptionPrefix = useId();
   const [date, setDate] = useState(() => localDate(new Date().toISOString(), zone));
   const [visible, setVisible] = useState(initialVisible);
   const [activityOnly, setActivityOnly] = useState(false);
@@ -144,6 +146,7 @@ export function DailyOperations({
   const activityBars = recordedActivityBars(
     nextSevenDays, equipmentEnabled, effectiveChartActivityType,
   );
+  const activityShares = recordedActivityWeekShares(activityBars);
   // Full per-type disclosure stays independent of the chart-only focus.
   const activityBreakdown = savedActivityTypeBreakdown(nextSevenDays, equipmentEnabled);
   const chartActivitySingular = effectiveChartActivityType === "appointments"
@@ -613,6 +616,10 @@ export function DailyOperations({
                 staffing, resource capacity or confirmed availability.
                 All seven dates stay visible even when the date cards are filtered.
               </p>
+              <p className="muted">
+                Share of week shows the portion of selected saved items on each date,
+                not the bar height or available capacity. Percentages are rounded.
+              </p>
               <div
                 className="daily-activity-chart-peak"
                 role="group"
@@ -660,11 +667,12 @@ export function DailyOperations({
                 tabIndex={0}
                 aria-label="Saved item counts by date; scroll horizontally to view all seven days"
               >
-                {activityBars.map((bar) => (
+                {activityBars.map((bar, index) => (
                   <li
                     key={bar.date}
                     aria-label={bar.date + ": " + bar.savedItems + " " +
                       (bar.savedItems === 1 ? chartActivitySingular : chartActivityPlural)}
+                    aria-describedby={shareDescriptionPrefix + "-" + index}
                   >
                     <strong className="daily-activity-bar-count">
                       {bar.savedItems}
@@ -676,6 +684,12 @@ export function DailyOperations({
                       />
                     </span>
                     <span className="daily-activity-bar-date">{bar.date}</span>
+                    <span
+                      id={shareDescriptionPrefix + "-" + index}
+                      className="daily-activity-bar-week-share"
+                    >
+                      Share of week: {activityShares[index].shareLabel}
+                    </span>
                   </li>
                 ))}
               </ol>
