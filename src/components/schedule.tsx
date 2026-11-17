@@ -70,6 +70,9 @@ export function Schedule({
       ? localDate(String(first.data.start), zone)
       : Temporal.Now.zonedDateTimeISO(zone).toPlainDate().toString();
   });
+  // Keep the planned series fixed when reviewing one of its later dates.
+  // Direct date-picker and previous/next actions explicitly re-anchor it.
+  const [previewStartDate, setPreviewStartDate] = useState(() => date);
   const [archived, setArchived] = useState(false);
   const [previewIntervalWeeks, setPreviewIntervalWeeks] = useState<VisitFrequencyWeeks>(1);
   const [previewCount, setPreviewCount] = useState(4);
@@ -100,7 +103,9 @@ export function Schedule({
   let plannedVisitDates: string[] = [];
   let previewError = "";
   try {
-    plannedVisitDates = previewRecurringVisitDates(date, previewIntervalWeeks, previewCount);
+    plannedVisitDates = previewRecurringVisitDates(
+      previewStartDate, previewIntervalWeeks, previewCount,
+    );
   } catch (error) {
     previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
   }
@@ -145,7 +150,9 @@ export function Schedule({
           disabled={!date || busy}
           onClick={() => {
             onClearAppointmentFocus?.();
-            setDate(shiftDate(date, -1));
+            const prior = shiftDate(date, -1);
+            setDate(prior);
+            setPreviewStartDate(prior);
           }}
         >
           Previous day
@@ -159,6 +166,7 @@ export function Schedule({
             onChange={(e) => {
               onClearAppointmentFocus?.();
               setDate(e.target.value);
+              setPreviewStartDate(e.target.value);
             }}
           />
         </div>
@@ -167,7 +175,9 @@ export function Schedule({
           disabled={!date || busy}
           onClick={() => {
             onClearAppointmentFocus?.();
-            setDate(shiftDate(date, 1));
+            const following = shiftDate(date, 1);
+            setDate(following);
+            setPreviewStartDate(following);
           }}
         >
           Next day
@@ -191,6 +201,9 @@ export function Schedule({
             Plan dates for recurring cleaning or maintenance using the Schedule
             date above as the first visit. This preview uses business-local
             calendar dates in <strong>{zone}</strong>, without times or resources.
+            Reviewing a preview date only navigates the agenda; the planned
+            series stays anchored until you change the Schedule date directly
+            or use Previous day or Next day.
           </p>
           <div className="recurring-visit-controls">
             <label>
@@ -230,7 +243,24 @@ export function Schedule({
               <ol className="recurring-visit-dates" aria-label="Planned visit dates">
                 {plannedVisitDates.map((visitDate, index) => (
                   <li key={visitDate}>
-                    Visit {index + 1}: <time dateTime={visitDate}>{visitDate}</time>
+                    <span className="recurring-visit-date-text">
+                      Visit {index + 1}: <time dateTime={visitDate}>{visitDate}</time>
+                    </span>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy}
+                      aria-label={"Review planned visit " + (index + 1) + " on " + visitDate}
+                      onClick={() => {
+                        // A visit review is read-only; preserve previewStartDate
+                        // and clear any prior focus/archive-only agenda view.
+                        onClearAppointmentFocus?.();
+                        setArchived(false);
+                        setDate(visitDate);
+                      }}
+                    >
+                      Review {visitDate}
+                    </button>
                   </li>
                 ))}
               </ol>

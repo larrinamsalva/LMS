@@ -1122,6 +1122,10 @@ legend {
 }
 .recurring-visit-dates li {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   padding: 8px;
   overflow-wrap: anywhere;
   border: 1px solid var(--border);
@@ -1129,6 +1133,14 @@ legend {
   border-radius: 6px;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+}
+/* Review is a navigation shortcut, never an automatic booking action. */
+.recurring-visit-dates button {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .recurring-visit-warning {
   font-size: 13px;
