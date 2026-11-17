@@ -5,12 +5,12 @@ import {
   type EquipmentReservation,
 } from "../core/equipment-reservations";
 import type { EquipmentState, EquipmentCheckout } from "../core/equipment";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
-import { previewRecurringVisitDates, plannedVisitAppointmentDraft, type VisitFrequencyWeeks } from "../core/recurring-visit-preview";
+import { previewRecurringVisitDates, plannedVisitAppointmentDraft, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
 import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
@@ -32,6 +32,7 @@ export function Schedule({
   equipmentCheckouts,
   zone,
   initialDate,
+  initialRecurringPlan,
   focusedAppointmentId,
   onClearAppointmentFocus,
   canWrite,
@@ -53,6 +54,8 @@ export function Schedule({
   zone: string;
   /** Optional business-local date chosen from Daily Operations. */
   initialDate?: string;
+  /** One-time transient return context after a prepared appointment was saved or cancelled. */
+  initialRecurringPlan?: RecurringVisitReturnPlan;
   /** Optional current-organization record ID from Daily Operations. */
   focusedAppointmentId?: string | null;
   onClearAppointmentFocus?: () => void;
@@ -60,12 +63,20 @@ export function Schedule({
   busy: boolean;
   onAdd: () => void;
   /** Date-only handoff into the existing manually saved appointment editor. */
-  onPrepareAppointment: (date: string) => void;
+  onPrepareAppointment: (plan: RecurringVisitReturnPlan) => void;
   onEdit: (record: WorkspaceRecord) => void;
   onArchive: (record: WorkspaceRecord) => void;
 }) {
   const appointments = records.filter((r) => r.entity === "appointments");
   const visitCountLabelId = useId();
+  const recurringDetailsRef = useRef<HTMLDetailsElement>(null);
+  // Open the resumed plan on entry without controlling the native details
+  // open state, so keyboard/pointer users can still collapse it afterward.
+  useEffect(() => {
+    if (initialRecurringPlan && recurringDetailsRef.current) {
+      recurringDetailsRef.current.open = true;
+    }
+  }, [initialRecurringPlan]);
   const [date, setDate] = useState(() => {
     // A one-time date handoff affects this calendar view only, not stored
     // appointment dates or the business's own time zone.
@@ -77,10 +88,16 @@ export function Schedule({
   });
   // Keep the planned series fixed when reviewing one of its later dates.
   // Direct date-picker and previous/next actions explicitly re-anchor it.
-  const [previewStartDate, setPreviewStartDate] = useState(() => date);
+  const [previewStartDate, setPreviewStartDate] = useState(
+    () => initialRecurringPlan?.startDate ?? date,
+  );
   const [archived, setArchived] = useState(false);
-  const [previewIntervalWeeks, setPreviewIntervalWeeks] = useState<VisitFrequencyWeeks>(1);
-  const [previewCount, setPreviewCount] = useState(4);
+  const [previewIntervalWeeks, setPreviewIntervalWeeks] = useState<VisitFrequencyWeeks>(
+    () => initialRecurringPlan?.everyWeeks ?? 1,
+  );
+  const [previewCount, setPreviewCount] = useState(
+    () => initialRecurringPlan?.occurrences ?? 4,
+  );
   let rows: WorkspaceRecord[] = [];
   try {
     const day = Temporal.PlainDate.from(date),
@@ -204,8 +221,14 @@ export function Schedule({
         </label>
       </div>
       <section className="recurring-visit-planner" role="region" aria-label="Repeating visit planner">
-        <details>
+        <details ref={recurringDetailsRef}>
           <summary>Preview repeating visit dates (no bookings)</summary>
+          {initialRecurringPlan && (
+            <p role="status" className="recurring-visit-return">
+              Back to your unsaved recurring visit plan. You can review or
+              prepare another date. Nothing is automatically booked.
+            </p>
+          )}
           <p className="muted">
             Plan dates for recurring cleaning or maintenance using the Schedule
             date above as the first visit. This preview uses business-local
@@ -309,12 +332,16 @@ export function Schedule({
                         // Recheck membership in the current validated series.
                         // This passes only one date; booking still uses the
                         // ordinary required fields and final conflict checks.
-                        onPrepareAppointment(
-                          plannedVisitAppointmentDraft(
-                            previewStartDate, previewIntervalWeeks,
-                            previewCount, visitDate,
-                          ).scheduled_date,
-                        );
+                        const dateOnly = plannedVisitAppointmentDraft(
+                          previewStartDate, previewIntervalWeeks,
+                          previewCount, visitDate,
+                        ).scheduled_date;
+                        onPrepareAppointment({
+                          startDate: previewStartDate,
+                          everyWeeks: previewIntervalWeeks,
+                          occurrences: previewCount,
+                          selectedDate: dateOnly,
+                        });
                       }}
                     >
                       Prepare appointment

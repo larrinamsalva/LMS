@@ -66,3 +66,22 @@ export function plannedVisitAppointmentDraft(
   }
   return { scheduled_date: selectedDate };
 }
+
+
+/** A transient, date-only UI return route. No customer, resource, or draft data. */
+export type RecurringVisitReturnPlan = {
+  startDate: string;
+  everyWeeks: VisitFrequencyWeeks;
+  occurrences: number;
+  selectedDate: string;
+};
+
+/** Validate the return route against the same bounded preview as preparation. */
+export function validateRecurringVisitReturnPlan(
+  plan: RecurringVisitReturnPlan,
+): RecurringVisitReturnPlan {
+  plannedVisitAppointmentDraft(
+    plan.startDate, plan.everyWeeks, plan.occurrences, plan.selectedDate,
+  );
+  return { ...plan };
+}

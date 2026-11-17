@@ -307,9 +307,88 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "/api/demo?organizationId=" + previewOrganization,
     ).then((response) => response.json())).workspace.records)
       .toEqual(savedBeforePreview.workspace.records);
+    // Cancelling restores the exact same six-date four-week plan, open,
+    // with the chosen review date selected, without an additional session.
+    const restoredPlanner = page.getByRole("region", {
+      name: "Repeating visit planner", exact: true,
+    });
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue(preparedDate);
+    await expect(restoredPlanner.locator("details")).toHaveAttribute("open", "");
+    await expect(restoredPlanner).toContainText("Back to your unsaved recurring visit plan.");
+    await expect(restoredPlanner.getByLabel("Repeat visits", { exact: true }))
+      .toHaveValue("4");
+    await expect(restoredPlanner.getByLabel("Number of preview visits", {
+      exact: true,
+    })).toHaveValue("6");
+    const restoredDates = restoredPlanner.getByRole("list", {
+      name: "Planned visit dates", exact: true,
+    }).locator(".recurring-visit-date-text");
+    await expect(restoredDates).toHaveText(anchoredVisitLabels);
+    // A second date can be prepared immediately from the resumed series.
+    await restoredPlanner.getByRole("button", {
+      name: "Prepare appointment for planned visit 3 on 2027-01-01",
+      exact: true,
+    }).click();
+    await expect(page.locator(".appointment-fields input[type='date']"))
+      .toHaveValue("2027-01-01");
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue("2027-01-01");
+    await expect(page.getByRole("region", {
+      name: "Repeating visit planner", exact: true,
+    }).getByRole("list", {
+      name: "Planned visit dates", exact: true,
+    }).locator(".recurring-visit-date-text")).toHaveText(anchoredVisitLabels);
 
-    // A normal Add appointment must not inherit the cancelled preview.
-    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+    // A successful explicit SINGLE appointment save also returns to the
+    // same plan, with the updated count. Nothing in the plan bulk-books.
+    const nextVisitDate = "2027-01-29";
+    await page.getByRole("region", {
+      name: "Repeating visit planner", exact: true,
+    }).getByRole("button", {
+      name: "Prepare appointment for planned visit 4 on " + nextVisitDate,
+      exact: true,
+    }).click();
+    await page.getByLabel("Appointment title *", { exact: true })
+      .fill("Schedule " + industry + " recurring manual visit");
+    await page.getByLabel("Customer *", { exact: true })
+      .selectOption({ label: customer });
+    await page.getByLabel(
+      industry === "cleaning" ? "Cleaning job *" : "Maintenance request *",
+      { exact: true },
+    ).selectOption({ label: work });
+    await page.getByLabel(
+      industry === "cleaning"
+        ? "Assigned crew / resource *"
+        : "Assigned worker / resource *",
+      { exact: true },
+    ).selectOption({ label: resource });
+    await page.getByLabel("Start time *", { exact: true })
+      .fill(nextVisitDate + "T10:00");
+    await page.getByLabel("End time *", { exact: true })
+      .fill(nextVisitDate + "T11:00");
+    await save(page);
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue(nextVisitDate);
+    const savedRoutePlanner = page.getByRole("region", {
+      name: "Repeating visit planner", exact: true,
+    });
+    await expect(savedRoutePlanner.locator("details")).toHaveAttribute("open", "");
+    await expect(savedRoutePlanner.getByRole("list", {
+      name: "Planned visit dates", exact: true,
+    }).locator(".recurring-visit-date-text")).toHaveText(anchoredVisitLabels);
+    await expect(savedRoutePlanner.getByRole("list", {
+      name: "Planned visit dates", exact: true,
+    }).locator("li").nth(3).locator(".recurring-visit-saved-count"))
+      .toContainText(/Already saved: [1-9]\d* non-archived appointment/);
+    const savedAfterExplicitBooking = await page.request.get(
+      "/api/demo?organizationId=" + previewOrganization,
+    ).then((response) => response.json());
+    expect(savedAfterExplicitBooking.workspace.records.length)
+      .toBe(savedBeforePreview.workspace.records.length + 1);
+
+    // Normal Add opens a blank date and does NOT inherit the old plan.
     await page.getByRole("button", { name: "+ Add appointment", exact: true }).click();
     await expect(page.locator(".appointment-fields input[type='date']"))
       .toHaveValue("");
@@ -317,7 +396,15 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect((await page.request.get(
       "/api/demo?organizationId=" + previewOrganization,
     ).then((response) => response.json())).workspace.records)
-      .toEqual(savedBeforePreview.workspace.records);
+      .toEqual(savedAfterExplicitBooking.workspace.records);
+    // Ordinary cancelled Add remains on Records; it must not carry
+    // a phantom return route into future navigation.
+    await expect(page.getByRole("heading", {
+      name: industry === "cleaning"
+        ? "Cleaning appointments"
+        : "Maintenance appointments",
+      exact: true,
+    })).toBeVisible();
 
     // Verify the seven-day appointment outlook from the previous business day
     // using this existing demo session, then hand off the actual start date.

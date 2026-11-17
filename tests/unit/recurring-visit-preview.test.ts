@@ -3,6 +3,7 @@ import { Temporal } from "@js-temporal/polyfill";
 import {
   previewRecurringVisitDates,
   plannedVisitAppointmentDraft,
+  validateRecurringVisitReturnPlan,
   type VisitFrequencyWeeks,
 } from "../../src/core/recurring-visit-preview";
 
@@ -104,4 +105,38 @@ it("prepares only the selected preview date; refuses unrelated or invalid draft 
     .toThrow(/on or before 2100-12-31/);
   expect(() => plannedVisitAppointmentDraft("2026-11-06", 3 as VisitFrequencyWeeks, 4, "2026-11-06"))
     .toThrow(/Choose weekly/);
+});
+
+it("validates and copies only a transient recurrence return route", () => {
+  const input = Object.freeze({
+    startDate: "2026-11-06",
+    everyWeeks: 4 as const,
+    occurrences: 6,
+    selectedDate: "2027-01-01",
+  });
+  const restored = validateRecurringVisitReturnPlan(input);
+  expect(restored).toEqual(input);
+  expect(restored).not.toBe(input);
+  expect(Object.keys(restored)).toEqual([
+    "startDate", "everyWeeks", "occurrences", "selectedDate",
+  ]);
+  expect(restored).not.toHaveProperty("start");
+  expect(restored).not.toHaveProperty("end");
+  expect(restored).not.toHaveProperty("resource");
+  expect(restored).not.toHaveProperty("customer");
+  expect(restored).not.toHaveProperty("appointment");
+  for (const date of ["2026-11-13", "2027-01-02", "", "2100-12-31"]) {
+    expect(() => validateRecurringVisitReturnPlan({
+      ...input, selectedDate: date,
+    })).toThrow(/date from the current recurring visit preview/);
+  }
+  expect(() => validateRecurringVisitReturnPlan({
+    ...input, occurrences: 13,
+  })).toThrow(/between 2 and 12/);
+  expect(() => validateRecurringVisitReturnPlan({
+    ...input, everyWeeks: 3 as VisitFrequencyWeeks,
+  })).toThrow(/Choose weekly/);
+  expect(() => validateRecurringVisitReturnPlan({
+    ...input, startDate: "2100-12-31", selectedDate: "2100-12-31",
+  })).toThrow(/on or before 2100-12-31/);
 });
