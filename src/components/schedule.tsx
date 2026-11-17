@@ -5,7 +5,7 @@ import {
   type EquipmentReservation,
 } from "../core/equipment-reservations";
 import type { EquipmentState, EquipmentCheckout } from "../core/equipment";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
@@ -69,6 +69,14 @@ export function Schedule({
 }) {
   const appointments = records.filter((r) => r.entity === "appointments");
   const visitCountLabelId = useId();
+  const recurringDetailsRef = useRef<HTMLDetailsElement>(null);
+  // Open the resumed plan on entry without controlling the native details
+  // open state, so keyboard/pointer users can still collapse it afterward.
+  useEffect(() => {
+    if (initialRecurringPlan && recurringDetailsRef.current) {
+      recurringDetailsRef.current.open = true;
+    }
+  }, [initialRecurringPlan]);
   const [date, setDate] = useState(() => {
     // A one-time date handoff affects this calendar view only, not stored
     // appointment dates or the business's own time zone.
@@ -213,7 +221,7 @@ export function Schedule({
         </label>
       </div>
       <section className="recurring-visit-planner" role="region" aria-label="Repeating visit planner">
-        <details defaultOpen={Boolean(initialRecurringPlan)}>
+        <details ref={recurringDetailsRef}>
           <summary>Preview repeating visit dates (no bookings)</summary>
           {initialRecurringPlan && (
             <p role="status" className="recurring-visit-return">
