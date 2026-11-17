@@ -3,7 +3,7 @@ import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
 import {
   sevenDayWorkload, summarizeSevenDayWorkload, recordedActivityBars,
-  recordedActivityWeekShares,
+  recordedActivityWeekShares, recordedActivityDailyChanges,
   savedActivityTypeBreakdown,
   visibleWorkloadDays,
   datesWithoutSavedActivity, earliestRecordedActivityDay,
@@ -147,6 +147,7 @@ export function DailyOperations({
     nextSevenDays, equipmentEnabled, effectiveChartActivityType,
   );
   const activityShares = recordedActivityWeekShares(activityBars);
+  const activityChanges = recordedActivityDailyChanges(activityBars);
   // Full per-type disclosure stays independent of the chart-only focus.
   const activityBreakdown = savedActivityTypeBreakdown(nextSevenDays, equipmentEnabled);
   const chartActivitySingular = effectiveChartActivityType === "appointments"
@@ -662,6 +663,11 @@ export function DailyOperations({
                   work hours or confirmed availability.
                 </p>
               </div>
+              <p className="muted">
+                Change vs prior date compares selected saved-record counts with the
+                preceding chart date. It does not indicate a schedule change,
+                urgency, working hours or available capacity.
+              </p>
               <ol
                 className="daily-activity-bar-list"
                 tabIndex={0}
@@ -672,7 +678,8 @@ export function DailyOperations({
                     key={bar.date}
                     aria-label={bar.date + ": " + bar.savedItems + " " +
                       (bar.savedItems === 1 ? chartActivitySingular : chartActivityPlural)}
-                    aria-describedby={shareDescriptionPrefix + "-" + index}
+                    aria-describedby={shareDescriptionPrefix + "-" + index +
+                      " " + shareDescriptionPrefix + "-change-" + index}
                   >
                     <strong className="daily-activity-bar-count">
                       {bar.savedItems}
@@ -689,6 +696,12 @@ export function DailyOperations({
                       className="daily-activity-bar-week-share"
                     >
                       Share of week: {activityShares[index].shareLabel}
+                    </span>
+                    <span
+                      id={shareDescriptionPrefix + "-change-" + index}
+                      className="daily-activity-bar-day-change"
+                    >
+                      {activityChanges[index].changeLabel}
                     </span>
                   </li>
                 ))}

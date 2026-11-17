@@ -145,6 +145,28 @@ export function recordedActivityWeekShares(
 }
 
 /**
+ * Daily differences in SAVED counts for the chart's selected activity type.
+ * Each value compares with the immediately preceding date in the supplied
+ * canonical seven-day sequence. The first date has no prior chart baseline.
+ * This is a historical/saved-record display cue, NOT a change to a schedule,
+ * staffing, urgency, capacity, or bookable appointments. Never mutates input.
+ */
+export function recordedActivityDailyChanges(
+  bars: readonly { date: string; savedItems: number }[],
+): { date: string; savedItems: number; change: number | null; changeLabel: string }[] {
+  return bars.map((bar, index) => {
+    const change = index === 0 ? null : bar.savedItems - bars[index - 1].savedItems;
+    return {
+      date: bar.date,
+      savedItems: bar.savedItems,
+      change,
+      changeLabel: change === null ? "First date in view"
+        : "Change vs prior date: " + (change > 0 ? "+" : "") + change,
+    };
+  });
+}
+
+/**
  * Exact per-type saved counts behind the full seven-day chart.
  * Business-local day ordering is supplied by the authorized workload;
  * inspections are excluded when Equipment is not enabled.
