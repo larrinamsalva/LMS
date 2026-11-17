@@ -173,19 +173,20 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const plannedDates = planner.getByRole("list", {
       name: "Planned visit dates", exact: true,
     }).locator("li");
-    await expect(plannedDates).toHaveText([
+    const visitLabels = plannedDates.locator(".recurring-visit-date-text");
+    await expect(visitLabels).toHaveText([
       "Visit 1: 2026-11-06", "Visit 2: 2026-11-13",
       "Visit 3: 2026-11-20", "Visit 4: 2026-11-27",
     ]);
     await planner.getByLabel("Repeat visits", { exact: true })
       .selectOption("2");
-    await expect(plannedDates).toHaveText([
+    await expect(visitLabels).toHaveText([
       "Visit 1: 2026-11-06", "Visit 2: 2026-11-20",
       "Visit 3: 2026-12-04", "Visit 4: 2026-12-18",
     ]);
     await planner.getByLabel("Number of preview visits", { exact: true })
       .selectOption("6");
-    await expect(plannedDates).toHaveText([
+    await expect(visitLabels).toHaveText([
       "Visit 1: 2026-11-06", "Visit 2: 2026-11-20",
       "Visit 3: 2026-12-04", "Visit 4: 2026-12-18",
       "Visit 5: 2027-01-01", "Visit 6: 2027-01-15",
@@ -196,6 +197,25 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(planner).toContainText(
       "Preview only — no appointments are created",
     );
+    // Every candidate has an accessible, non-writing agenda navigation
+    // shortcut. Navigating to a later visit must NOT shift the preview anchor.
+    await expect(plannedDates.getByRole("button", {
+      name: /Review planned visit /,
+    })).toHaveCount(6);
+    const anchoredVisitLabels = await visitLabels.allTextContents();
+    await planner.getByRole("button", {
+      name: "Review planned visit 4 on 2027-02-26",
+      exact: true,
+    }).click();
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue("2027-02-26");
+    expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
+    await expect(page.getByRole("status").filter({
+      hasText: "appointments on 2027-02-26",
+    })).toBeVisible();
+    // A deliberate change to the date picker now becomes the first visit.
+    await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
+    await expect(visitLabels.first()).toHaveText("Visit 1: 2026-11-06");
     // Do not silently return partial plans if the last date is out of range.
     await page.getByLabel("Schedule date", { exact: true }).fill("2100-12-25");
     await expect(planner.getByRole("status")).toContainText(
