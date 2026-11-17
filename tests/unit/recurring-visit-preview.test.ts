@@ -5,6 +5,7 @@ import {
   plannedVisitAppointmentDraft,
   validateRecurringVisitReturnPlan,
   adjacentPlannedVisitDate,
+  plannedVisitReviewPosition,
   type VisitFrequencyWeeks,
 } from "../../src/core/recurring-visit-preview";
 
@@ -179,6 +180,41 @@ it("keeps adjacent navigation date-only and deterministic across DST and year bo
         current = next!;
       }
       expect(adjacentPlannedVisitDate(dates, current, "next")).toBeNull();
+    }
+  }
+});
+
+it("reports only the currently reviewed preview-date position, never booking progress", () => {
+  const all = Object.freeze(previewRecurringVisitDates("2026-11-06", 4, 6));
+  const snapshot = [...all];
+  expect(all).toEqual([
+    "2026-11-06", "2026-12-04", "2027-01-01",
+    "2027-01-29", "2027-02-26", "2027-03-26",
+  ]);
+  for (let index = 0; index < all.length; index++) {
+    expect(plannedVisitReviewPosition(all, all[index])).toBe(index + 1);
+  }
+  for (const notPlanned of [
+    "", "2026-11-07", "2026-11-13", "2026-12-31",
+    "2027-03-27", "2026-11-06T10:00",
+  ]) {
+    expect(plannedVisitReviewPosition(all, notPlanned)).toBeNull();
+  }
+  expect(plannedVisitReviewPosition([], all[0])).toBeNull();
+  expect(all).toEqual(snapshot);
+});
+
+it("finds the exact reviewed position across all three intervals and DST/leap days", () => {
+  for (const start of ["2026-03-01", "2026-10-25", "2028-02-29", "2026-12-25"]) {
+    for (const weeks of [1, 2, 4] as const) {
+      const dates = Object.freeze(previewRecurringVisitDates(start, weeks, 12));
+      for (const [index, date] of dates.entries()) {
+        expect(plannedVisitReviewPosition(dates, date)).toBe(index + 1);
+      }
+      expect(plannedVisitReviewPosition(dates, dates[0] + "T00:00"))
+        .toBeNull();
+      expect(plannedVisitReviewPosition(dates, "2100-12-31"))
+        .toBeNull();
     }
   }
 });

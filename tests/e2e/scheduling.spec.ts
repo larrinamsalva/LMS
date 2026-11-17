@@ -178,6 +178,16 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "Visit 1: 2026-11-06", "Visit 2: 2026-11-13",
       "Visit 3: 2026-11-20", "Visit 4: 2026-11-27",
     ]);
+    // The agenda initially reviews the first date of the four-week
+    // preview. UI focus is NOT saved/completed/available booking status.
+    const reviewedState = planner.locator(".recurring-visit-review-state");
+    await expect(reviewedState)
+      .toContainText("Currently reviewing planned visit 1 of 4: 2026-11-06");
+    await expect(plannedDates.filter({ has: page.locator(".recurring-visit-current-label") }))
+      .toHaveCount(1);
+    await expect(plannedDates.first()).toHaveAttribute("aria-current", "date");
+    await expect(plannedDates.filter({ has: page.locator(".recurring-visit-current-label") }).first())
+      .toContainText("Currently reviewing");
     const savedCounts = plannedDates.locator(".recurring-visit-saved-count");
     const savedStatuses = plannedDates.locator(".recurring-visit-status-counts");
     await expect(savedCounts).toHaveCount(4);
@@ -248,10 +258,18 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Next planned visit", exact: true,
     });
     // Review shortcuts are independent of recurrence anchor and booking.
+    await expect(reviewedState)
+      .toContainText("Currently reviewing planned visit 1 of 6: 2026-11-06");
+    await expect(planner.locator(".recurring-visit-dates li[aria-current='date']")).toHaveCount(1);
     await expect(previousPlanned).toBeDisabled();
     await nextPlanned.click();
     await expect(page.getByLabel("Schedule date", { exact: true }))
       .toHaveValue("2026-12-04");
+    await expect(reviewedState)
+      .toContainText("Currently reviewing planned visit 2 of 6: 2026-12-04");
+    await expect(plannedDates.nth(1)).toHaveAttribute("aria-current", "date");
+    await expect(plannedDates.first()).not.toHaveAttribute("aria-current", "date");
+    await expect(planner.locator(".recurring-visit-dates li[aria-current='date']")).toHaveCount(1);
     await expect(previousPlanned).toBeEnabled();
     await previousPlanned.click();
     await expect(page.getByLabel("Schedule date", { exact: true }))
@@ -265,6 +283,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Review planned visit 6 on 2027-03-26",
       exact: true,
     }).click();
+    await expect(reviewedState)
+      .toContainText("Currently reviewing planned visit 6 of 6: 2027-03-26");
+    await expect(plannedDates.last()).toHaveAttribute("aria-current", "date");
+    await expect(planner.locator(".recurring-visit-dates li[aria-current='date']")).toHaveCount(1);
     await expect(nextPlanned).toBeDisabled();
     await previousPlanned.click();
     await expect(page.getByLabel("Schedule date", { exact: true }))
@@ -297,6 +319,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(plannedDates).toHaveCount(0);
     await expect(savedCounts).toHaveCount(0);
     await expect(savedStatuses).toHaveCount(0);
+    await expect(planner.locator(".recurring-visit-review-state")).toHaveCount(0);
     await expect(previousPlanned).toHaveCount(0);
     await expect(nextPlanned).toHaveCount(0);
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
@@ -351,6 +374,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       .toHaveValue(preparedDate);
     await expect(restoredPlanner.locator("details")).toHaveAttribute("open", "");
     await expect(restoredPlanner).toContainText("Back to your unsaved recurring visit plan.");
+    await expect(restoredPlanner.locator(".recurring-visit-review-state"))
+      .toContainText("Currently reviewing planned visit 2 of 6: 2026-12-04");
+    await expect(restoredPlanner.locator(".recurring-visit-dates li[aria-current='date']"))
+      .toHaveCount(1);
     await expect(restoredPlanner.getByLabel("Repeat visits", { exact: true }))
       .toHaveValue("4");
     await expect(restoredPlanner.getByLabel("Number of preview visits", {
@@ -410,6 +437,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Repeating visit planner", exact: true,
     });
     await expect(savedRoutePlanner.locator("details")).toHaveAttribute("open", "");
+    await expect(savedRoutePlanner.locator(".recurring-visit-review-state"))
+      .toContainText("Currently reviewing planned visit 4 of 6: 2027-01-29");
     await expect(savedRoutePlanner.getByRole("list", {
       name: "Planned visit dates", exact: true,
     }).locator(".recurring-visit-date-text")).toHaveText(anchoredVisitLabels);
