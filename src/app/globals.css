@@ -1848,6 +1848,11 @@ legend {
   overflow-x: auto;
   max-width: 100%;
 }
+.daily-activity-bar-list:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+  border-radius: 5px;
+}
 .daily-activity-bar-list li {
   min-width: 0;
   display: flex;
