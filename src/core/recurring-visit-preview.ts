@@ -105,3 +105,15 @@ export function adjacentPlannedVisitDate(
   }
   return null;
 }
+
+/**
+ * One-based position of the currently reviewed agenda date in the
+ * already-validated preview. An arbitrary agenda date is not a visit.
+ * This reports UI focus, NOT saved/completed/available appointment status.
+ */
+export function plannedVisitReviewPosition(
+  plannedDates: readonly string[], agendaDate: string,
+): number | null {
+  const index = plannedDates.indexOf(agendaDate);
+  return index < 0 ? null : index + 1;
+}
