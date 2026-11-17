@@ -10,6 +10,7 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
+import { previewRecurringVisitDates, type VisitFrequencyWeeks } from "../core/recurring-visit-preview";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -70,6 +71,8 @@ export function Schedule({
       : Temporal.Now.zonedDateTimeISO(zone).toPlainDate().toString();
   });
   const [archived, setArchived] = useState(false);
+  const [previewIntervalWeeks, setPreviewIntervalWeeks] = useState<VisitFrequencyWeeks>(1);
+  const [previewCount, setPreviewCount] = useState(4);
   let rows: WorkspaceRecord[] = [];
   try {
     const day = Temporal.PlainDate.from(date),
@@ -91,6 +94,15 @@ export function Schedule({
       );
   } catch {
     /* An incomplete date input has no results. */
+  }
+  // A local-only recurrence sketch follows the current Schedule date.
+  // It never calls onAdd/onEdit or checks/confirms resource availability.
+  let plannedVisitDates: string[] = [];
+  let previewError = "";
+  try {
+    plannedVisitDates = previewRecurringVisitDates(date, previewIntervalWeeks, previewCount);
+  } catch (error) {
+    previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
   }
   return (
     <section className="panel" aria-labelledby="schedule-heading">
@@ -172,6 +184,64 @@ export function Schedule({
           Show archived appointments
         </label>
       </div>
+      <section className="recurring-visit-planner" role="region" aria-label="Repeating visit planner">
+        <details>
+          <summary>Preview repeating visit dates (no bookings)</summary>
+          <p className="muted">
+            Plan dates for recurring cleaning or maintenance using the Schedule
+            date above as the first visit. This preview uses business-local
+            calendar dates in <strong>{zone}</strong>, without times or resources.
+          </p>
+          <div className="recurring-visit-controls">
+            <label>
+              Repeat visits
+              <select
+                value={previewIntervalWeeks}
+                onChange={(event) =>
+                  setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks)}
+              >
+                <option value={1}>Every week</option>
+                <option value={2}>Every two weeks</option>
+                <option value={4}>Every four weeks (not monthly)</option>
+              </select>
+            </label>
+            <label>
+              Number of preview visits
+              <select
+                value={previewCount}
+                onChange={(event) => setPreviewCount(Number(event.target.value))}
+              >
+                {[2, 4, 6, 8, 12].map((count) => (
+                  <option key={count} value={count}>{count} dates</option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {previewError ? (
+            <p role="status">{previewError}</p>
+          ) : (
+            <>
+              <p className="muted" aria-live="polite">
+                Previewing {plannedVisitDates.length} visit dates starting on{" "}
+                {plannedVisitDates[0]}.
+              </p>
+              <ol className="recurring-visit-dates" aria-label="Planned visit dates">
+                {plannedVisitDates.map((visitDate, index) => (
+                  <li key={visitDate}>
+                    Visit {index + 1}: <time dateTime={visitDate}>{visitDate}</time>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+          <p className="recurring-visit-warning">
+            Preview only — no appointments are created, reserved or checked for
+            conflicts, staff availability, equipment readiness or booking slots.
+            Book each visit separately through Add appointment; each booking
+            must pass its existing validation and resource conflict checks.
+          </p>
+        </details>
+      </section>
       <p role="status">
         {rows.length} {rows.length === 1 ? "appointment" : "appointments"} on{" "}
         {date || "the selected date"}
