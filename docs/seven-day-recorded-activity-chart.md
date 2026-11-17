@@ -37,9 +37,13 @@ appointment duration, room capacity, service urgency or equipment safety.
   smaller than 1% stays visible at 1% minimum, with exact count still
   displayed; zero saved items have zero-height bars.
 - The chart's narrow-screen layout scrolls horizontally instead
-  of truncating the seven calendar dates. It uses the existing
-  theme's background, border, text and accent variables for
-  high-contrast light/dark display.
+  of truncating the seven calendar dates. The scroll list is
+  keyboard-focusable (Tab), carries a descriptive accessible label
+  and has a visible high-contrast focus outline, allowing keyboard
+  users to scroll it. This explicitly protects the installed demo's
+  mobile/tablet accessibility checks.
+- The chart uses the existing theme's background, border, text and
+  accent variables for high-contrast light/dark display.
 - The chart has no hidden interactive booking/navigation behavior.
   Existing keyboard-accessible date-card and review buttons remain
   the controls for navigating to a particular date.
