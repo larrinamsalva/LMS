@@ -189,9 +189,11 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(savedCounts.nth(1)).toHaveText(
       /^Already saved: \d+ non-archived appointments?$/,
     );
+    const savedCountId = await savedCounts.first().getAttribute("id");
+    expect(savedCountId).toBeTruthy();
     await expect(plannedDates.first().getByRole("button", {
       name: "Review planned visit 1 on 2026-11-06", exact: true,
-    })).toHaveAttribute("aria-describedby", await savedCounts.first().getAttribute("id"));
+    })).toHaveAttribute("aria-describedby", savedCountId!);
     await planner.getByLabel("Repeat visits", { exact: true })
       .selectOption("2");
     await expect(visitLabels).toHaveText([
