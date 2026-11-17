@@ -1097,6 +1097,25 @@ legend {
   border-radius: 6px;
   overflow-wrap: anywhere;
 }
+.recurring-visit-export {
+  margin: 12px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+}
+.recurring-visit-export button {
+  min-height: 44px;
+  min-width: min(100%, 210px);
+  max-width: 100%;
+  white-space: normal;
+}
+.recurring-visit-export p {
+  margin: 0;
+  flex: 1 1 230px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .recurring-visit-review-state {
   padding: 8px 12px;
   border-left: 4px solid var(--accent);
