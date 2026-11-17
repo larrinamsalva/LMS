@@ -1936,6 +1936,13 @@ legend {
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
+/* Selected saved-record changes are text, not an alert or utilization signal. */
+.daily-activity-bar-day-change {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
 /* Optional exact chart breakdown: readable on phones without horizontal
    scrolling, new chart colors, or any booking/capacity implications. */
 .daily-activity-breakdown { margin-top: 12px; }
