@@ -298,7 +298,7 @@ export function Schedule({
                     >
                       Review {visitDate}
                     </button>
-                      <button
+                    <button
                       type="button"
                       className="secondary"
                       disabled={!canWrite || busy}
