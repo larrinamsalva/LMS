@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { readFile } from "node:fs/promises";
 async function start(page: Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "Explore the working demo" }).click();
@@ -170,6 +171,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Repeating visit planner", exact: true,
     });
     await planner.locator("summary").click();
+    const exportButton = planner.getByRole("button", {
+      name: "Download planned dates CSV", exact: true,
+    });
+    await expect(exportButton).toBeVisible();
     const plannedDates = planner.getByRole("list", {
       name: "Planned visit dates", exact: true,
     }).locator("li");
@@ -250,6 +255,23 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(plannedDates.getByRole("button", {
       name: /Review planned visit /,
     })).toHaveCount(6);
+    // Export is local, date-only and never books or exports customer data.
+    const [previewDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      exportButton.click(),
+    ]);
+    expect(previewDownload.suggestedFilename())
+      .toBe("lms-visit-preview-2026-11-06.csv");
+    const previewCsv = await readFile(await previewDownload.path(), "utf8");
+    const previewRows = previewCsv.trimEnd().split("\r\n");
+    expect(previewRows).toHaveLength(7);
+    expect(previewRows).toContain(
+      "2,2026-12-04,4,Preview only - no appointment booked by export",
+    );
+    expect(previewRows[0]).toBe("Visit,Proposed date,Repeat every (weeks),Note");
+    expect(previewCsv).not.toContain(customer);
+    expect(previewCsv).not.toContain(work);
+    expect(previewCsv).not.toContain(resource);
     const anchoredVisitLabels = await visitLabels.allTextContents();
     const previousPlanned = planner.getByRole("button", {
       name: "Previous planned visit", exact: true,
@@ -320,6 +342,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(savedCounts).toHaveCount(0);
     await expect(savedStatuses).toHaveCount(0);
     await expect(planner.locator(".recurring-visit-review-state")).toHaveCount(0);
+    await expect(exportButton).toHaveCount(0);
     await expect(previousPlanned).toHaveCount(0);
     await expect(nextPlanned).toHaveCount(0);
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
