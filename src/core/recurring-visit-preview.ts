@@ -48,3 +48,21 @@ export function previewRecurringVisitDates(
   }
   return dates;
 }
+
+/**
+ * Prepare ONLY the date field for a single manual appointment draft, and
+ * only when it belongs to the current validated plan. No time, resource,
+ * customer, work link, reservation or save operation is invented.
+ */
+export function plannedVisitAppointmentDraft(
+  startDate: string,
+  everyWeeks: VisitFrequencyWeeks,
+  occurrences: number,
+  selectedDate: string,
+): { scheduled_date: string } {
+  const dates = previewRecurringVisitDates(startDate, everyWeeks, occurrences);
+  if (!dates.includes(selectedDate)) {
+    throw new RangeError("Choose a date from the current recurring visit preview.");
+  }
+  return { scheduled_date: selectedDate };
+}
