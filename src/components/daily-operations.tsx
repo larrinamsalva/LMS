@@ -3,6 +3,7 @@ import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
 import {
   sevenDayWorkload, summarizeSevenDayWorkload, recordedActivityBars,
+  savedActivityTypeBreakdown,
   visibleWorkloadDays,
   datesWithoutSavedActivity, earliestRecordedActivityDay,
   busiestRecordedDay, orderWorkloadDays,
@@ -137,6 +138,7 @@ export function DailyOperations({
   // The full seven-day graphic never follows screen-only category or date
   // filters; its vertical bars are saved-record counts, not utilization.
   const activityBars = recordedActivityBars(nextSevenDays, equipmentEnabled);
+  const activityBreakdown = savedActivityTypeBreakdown(nextSevenDays, equipmentEnabled);
   // Earliest saved-activity date is a canonical full-window review cue.
   // Independent of card filters and display sort; never claim capacity.
   const earliestRecordedDay = earliestRecordedActivityDay(
@@ -590,6 +592,28 @@ export function DailyOperations({
                   </li>
                 ))}
               </ol>
+              <details className="daily-activity-breakdown">
+                <summary>Show saved activity types by date</summary>
+                <p className="muted">
+                  Exact saved records only. These totals are not staff workload
+                  hours, resource capacity or confirmed availability.
+                </p>
+                <ul className="daily-activity-breakdown-list">
+                  {activityBreakdown.map((day) => (
+                    <li key={day.date}>
+                      <strong>{day.date}</strong>
+                      <span>Appointments: {day.appointments}</span>
+                      <span>Unfinished work due: {day.unfinishedWork}</span>
+                      {equipmentEnabled && (
+                        <span>Equipment inspections: {day.inspections}</span>
+                      )}
+                      <span className="daily-activity-breakdown-total">
+                        Total saved items: {day.savedItems}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
             </div>
             <div
               className="daily-workload-first-recorded"
