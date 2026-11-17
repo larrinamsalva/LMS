@@ -1072,6 +1072,71 @@ legend {
   }
 }
 
+/* Repeating visit planning is DATE-ONLY and read-only, not a booking form.
+   Use existing high-contrast theme variables and keyboard-native controls. */
+.recurring-visit-planner {
+  min-width: 0;
+  margin: 12px 0 20px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-alt);
+}
+.recurring-visit-planner summary {
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 650;
+  padding: 5px 0;
+}
+.recurring-visit-planner details > p { margin: 9px 0; }
+.recurring-visit-controls {
+  display: flex;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+.recurring-visit-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 200px;
+  min-width: 0;
+  font-weight: 600;
+}
+.recurring-visit-controls select {
+  min-height: 44px;
+  width: 100%;
+  max-width: 100%;
+  padding: 8px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.recurring-visit-dates {
+  margin: 9px 0;
+  padding-left: 26px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 9px;
+}
+.recurring-visit-dates li {
+  min-width: 0;
+  padding: 8px;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 6px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.recurring-visit-warning {
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 /* The same agenda works with touch, narrow screens and either accessible theme. */
 .schedule-toolbar {
   display: flex;
