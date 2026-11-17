@@ -2,7 +2,8 @@ import { useState } from "react";
 import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { summarizeDailyOperations } from "../core/daily-operations";
 import {
-  sevenDayWorkload, summarizeSevenDayWorkload, visibleWorkloadDays,
+  sevenDayWorkload, summarizeSevenDayWorkload, recordedActivityBars,
+  visibleWorkloadDays,
   datesWithoutSavedActivity, earliestRecordedActivityDay,
   busiestRecordedDay, orderWorkloadDays,
   filterWorkloadDaysByType,
@@ -133,6 +134,9 @@ export function DailyOperations({
     (module) => module.id === "equipment",
   );
   const weeklyTotals = summarizeSevenDayWorkload(nextSevenDays, equipmentEnabled);
+  // The full seven-day graphic never follows screen-only category or date
+  // filters; its vertical bars are saved-record counts, not utilization.
+  const activityBars = recordedActivityBars(nextSevenDays, equipmentEnabled);
   // Earliest saved-activity date is a canonical full-window review cue.
   // Independent of card filters and display sort; never claim capacity.
   const earliestRecordedDay = earliestRecordedActivityDay(
@@ -550,6 +554,42 @@ export function DailyOperations({
                 <span className="metric-label">Days with saved activity</span>
                 <strong>{weeklyTotals.daysWithActivity} of {weeklyTotals.daysInWindow}</strong>
               </div>
+            </div>
+            <div
+              className="daily-workload-activity-chart"
+              role="group"
+              aria-label="Seven-day saved activity distribution"
+            >
+              <p><strong>Saved activity by date</strong></p>
+              <p className="muted">
+                Each bar compares saved item counts within this week, not work hours,
+                staffing, resource capacity or confirmed availability.
+                All seven dates stay visible even when the date cards are filtered.
+              </p>
+              <ol
+                className="daily-activity-bar-list"
+                tabIndex={0}
+                aria-label="Saved item counts by date; scroll horizontally to view all seven days"
+              >
+                {activityBars.map((bar) => (
+                  <li
+                    key={bar.date}
+                    aria-label={bar.date + ": " + bar.savedItems +
+                      (bar.savedItems === 1 ? " saved item" : " saved items")}
+                  >
+                    <strong className="daily-activity-bar-count">
+                      {bar.savedItems}
+                    </strong>
+                    <span className="daily-activity-bar-track" aria-hidden="true">
+                      <span
+                        className="daily-activity-bar-fill"
+                        style={{ height: bar.relativePercent + "%" }}
+                      />
+                    </span>
+                    <span className="daily-activity-bar-date">{bar.date}</span>
+                  </li>
+                ))}
+              </ol>
             </div>
             <div
               className="daily-workload-first-recorded"
