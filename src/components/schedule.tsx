@@ -196,6 +196,7 @@ export function Schedule({
             <label>
               Repeat visits
               <select
+                aria-label="Repeat visits"
                 value={previewIntervalWeeks}
                 onChange={(event) =>
                   setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks)}
@@ -208,6 +209,7 @@ export function Schedule({
             <label>
               Number of preview visits
               <select
+                aria-label="Number of preview visits"
                 value={previewCount}
                 onChange={(event) => setPreviewCount(Number(event.target.value))}
               >
