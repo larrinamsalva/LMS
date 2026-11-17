@@ -260,7 +260,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // Review shortcuts are independent of recurrence anchor and booking.
     await expect(reviewedState)
       .toContainText("Currently reviewing planned visit 1 of 6: 2026-11-06");
-    await expect(plannedDates.locator("[aria-current='date']")).toHaveCount(1);
+    await expect(planner.locator(".recurring-visit-dates li[aria-current='date']")).toHaveCount(1);
     await expect(previousPlanned).toBeDisabled();
     await nextPlanned.click();
     await expect(page.getByLabel("Schedule date", { exact: true }))
@@ -269,7 +269,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       .toContainText("Currently reviewing planned visit 2 of 6: 2026-12-04");
     await expect(plannedDates.nth(1)).toHaveAttribute("aria-current", "date");
     await expect(plannedDates.first()).not.toHaveAttribute("aria-current", "date");
-    await expect(plannedDates.locator("[aria-current='date']")).toHaveCount(1);
+    await expect(planner.locator(".recurring-visit-dates li[aria-current='date']")).toHaveCount(1);
     await expect(previousPlanned).toBeEnabled();
     await previousPlanned.click();
     await expect(page.getByLabel("Schedule date", { exact: true }))
@@ -286,7 +286,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(reviewedState)
       .toContainText("Currently reviewing planned visit 6 of 6: 2027-03-26");
     await expect(plannedDates.last()).toHaveAttribute("aria-current", "date");
-    await expect(plannedDates.locator("[aria-current='date']")).toHaveCount(1);
+    await expect(planner.locator(".recurring-visit-dates li[aria-current='date']")).toHaveCount(1);
     await expect(nextPlanned).toBeDisabled();
     await previousPlanned.click();
     await expect(page.getByLabel("Schedule date", { exact: true }))
