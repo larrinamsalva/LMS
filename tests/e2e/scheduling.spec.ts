@@ -158,6 +158,63 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
     const card = page.getByRole("article", { name: title, exact: true });
     await expect(card).toBeVisible();
+
+    // Recurring plans are date-only; previewing must not create bookings or
+    // bypass the existing one-appointment resource/conflict validation.
+    const previewOrganization = await page
+      .getByLabel("Business workspace", { exact: true }).inputValue();
+    const savedBeforePreview = await page.request
+      .get("/api/demo?organizationId=" + previewOrganization)
+      .then((response) => response.json());
+    const planner = page.getByRole("region", {
+      name: "Repeating visit planner", exact: true,
+    });
+    await planner.locator("summary").click();
+    const plannedDates = planner.getByRole("list", {
+      name: "Planned visit dates", exact: true,
+    }).locator("li");
+    await expect(plannedDates).toHaveText([
+      "Visit 1: 2026-11-06", "Visit 2: 2026-11-13",
+      "Visit 3: 2026-11-20", "Visit 4: 2026-11-27",
+    ]);
+    await planner.getByLabel("Repeat visits", { exact: true })
+      .selectOption("2");
+    await expect(plannedDates).toHaveText([
+      "Visit 1: 2026-11-06", "Visit 2: 2026-11-20",
+      "Visit 3: 2026-12-04", "Visit 4: 2026-12-18",
+    ]);
+    await planner.getByLabel("Number of preview visits", { exact: true })
+      .selectOption("6");
+    await expect(plannedDates).toHaveText([
+      "Visit 1: 2026-11-06", "Visit 2: 2026-11-20",
+      "Visit 3: 2026-12-04", "Visit 4: 2026-12-18",
+      "Visit 5: 2027-01-01", "Visit 6: 2027-01-15",
+    ]);
+    await planner.getByLabel("Repeat visits", { exact: true })
+      .selectOption("4");
+    await expect(plannedDates.nth(1)).toContainText("2026-12-04");
+    await expect(planner).toContainText(
+      "Preview only — no appointments are created",
+    );
+    // Do not silently return partial plans if the last date is out of range.
+    await page.getByLabel("Schedule date", { exact: true }).fill("2100-12-25");
+    await expect(planner.getByRole("status")).toContainText(
+      "on or before 2100-12-31",
+    );
+    await expect(plannedDates).toHaveCount(0);
+    await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
+    await expect(plannedDates).toHaveCount(6);
+    await fits(page);
+    expect(
+      (await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations,
+    ).toEqual([]);
+    const savedAfterPreview = await page.request
+      .get("/api/demo?organizationId=" + previewOrganization)
+      .then((response) => response.json());
+    expect(savedAfterPreview.workspace.records)
+      .toEqual(savedBeforePreview.workspace.records);
+
     // Verify the seven-day appointment outlook from the previous business day
     // using this existing demo session, then hand off the actual start date.
     await page.getByRole("button", {
