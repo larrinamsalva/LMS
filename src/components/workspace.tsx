@@ -13,6 +13,7 @@ import type { WorkspaceRecord, WorkspaceSnapshot } from "../core/engine";
 import { BuildPlanStudio } from "./buildplan-studio";
 import { Inventory } from "./inventory";
 import { Schedule, relatedLabel } from "./schedule";
+import { validateRecurringVisitReturnPlan, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
 import { DailyOperations } from "./daily-operations";
 import { Workforce } from "./workforce";
 import { recordWriteRoles } from "../core/permissions";
@@ -85,6 +86,14 @@ export function Workspace({
     | "equipment"
   >("records");
   const [scheduleStartDate, setScheduleStartDate] = useState<string | null>(null);
+  // Volatile, organization-scoped return route while the single manual
+  // appointment form is open; never persisted or shared across workspaces.
+  const [pendingRecurringPlan, setPendingRecurringPlan] = useState<
+    (RecurringVisitReturnPlan & { organizationId: string }) | null
+  >(null);
+  const [resumedRecurringPlan, setResumedRecurringPlan] = useState<
+    (RecurringVisitReturnPlan & { organizationId: string }) | null
+  >(null);
   const [focusedAppointmentId, setFocusedAppointmentId] = useState<string | null>(null);
   const [invoiceAction, setInvoiceAction] = useState<{
     record: WorkspaceRecord;
@@ -162,6 +171,9 @@ export function Workspace({
       );
       setView("records");
       setScheduleStartDate(null);
+      setPendingRecurringPlan(null);
+      setResumedRecurringPlan(null);
+      setInitialData(undefined);
       setFocusedAppointmentId(null);
       setSelected("customers");
       setQuery("");
@@ -216,6 +228,8 @@ export function Workspace({
     : false;
   const Editor = entity?.id === "estimates" ? EstimateForm : RecordForm;
   function openRecord(entityId: string, record?: WorkspaceRecord) {
+    setPendingRecurringPlan(null);
+    setResumedRecurringPlan(null);
     setFocusedRecordId(null);
     setFocusedEquipmentId(null);
     setInitialData(undefined);
@@ -235,10 +249,36 @@ export function Workspace({
     archiveOperation.current = crypto.randomUUID();
     setError("");
   }
+  function returnToPreparedRecurringPlan(
+    candidate: (RecurringVisitReturnPlan & { organizationId: string }) | null,
+  ) {
+    setPendingRecurringPlan(null);
+    setInitialData(undefined);
+    if (!candidate || candidate.organizationId !== workspace?.organizationId) {
+      setResumedRecurringPlan(null);
+      return;
+    }
+    // Defensively verify the entire proposed series again. This handoff
+    // never creates an appointment or authorizes any future booking.
+    try {
+      const plan = validateRecurringVisitReturnPlan(candidate);
+      setResumedRecurringPlan({ ...plan, organizationId: candidate.organizationId });
+      setScheduleStartDate(plan.selectedDate);
+      setFocusedAppointmentId(null);
+      setEditor(null);
+      setArchive(null);
+      setView("schedule");
+    } catch {
+      setResumedRecurringPlan(null);
+    }
+  }
   function changeView(next: typeof view, entityId?: string) {
     // Navigating from the sidebar starts an ordinary calendar; only the
     // explicit Daily Operations action brings its chosen day across.
     if (next === "schedule") setScheduleStartDate(null);
+    setPendingRecurringPlan(null);
+    setResumedRecurringPlan(null);
+    setInitialData(undefined);
     setFocusedAppointmentId(null);
     setView(next);
     if (entityId) setSelected(entityId);
@@ -695,6 +735,11 @@ export function Workspace({
                 records={workspace!.records}
                 zone={config!.timeZone ?? "UTC"}
                 initialDate={scheduleStartDate ?? undefined}
+                initialRecurringPlan={
+                  resumedRecurringPlan?.organizationId === workspace!.organizationId
+                    ? resumedRecurringPlan
+                    : undefined
+                }
                 focusedAppointmentId={focusedAppointmentId}
                 onClearAppointmentFocus={() => setFocusedAppointmentId(null)}
                 canWrite={canWrite}
@@ -710,12 +755,16 @@ export function Workspace({
                 equipmentCheckouts={workspace!.equipmentCheckouts}
                 busy={busy}
                 onAdd={() => openRecord("appointments")}
-                onPrepareAppointment={(selectedDate) => {
-                  // Date-only handoff from the current organization's
-                  // validated preview; no appointment is saved here.
+                onPrepareAppointment={(candidate) => {
+                  // Record only the bounded, date-only plan in volatile UI state;
+                  // existing appointment creation still owns all required fields.
                   if (!canWrite || busy) return;
+                  const plan = validateRecurringVisitReturnPlan(candidate);
                   openRecord("appointments");
-                  setInitialData({ scheduled_date: selectedDate });
+                  setPendingRecurringPlan({
+                    ...plan, organizationId: workspace!.organizationId,
+                  });
+                  setInitialData({ scheduled_date: plan.selectedDate });
                 }}
                 onEdit={(record) => {
                   setSelected("appointments");
@@ -1303,8 +1352,11 @@ export function Workspace({
                     record={editor === "new" ? undefined : editor}
                     busy={busy}
                     onCancel={() => {
+                      const resume = entity.id === "appointments" && editor === "new"
+                        ? pendingRecurringPlan : null;
                       setEditor(null);
                       setError("");
+                      returnToPreparedRecurringPlan(resume);
                     }}
                     onSave={async (
                       recordData: RecordData,
@@ -1330,7 +1382,10 @@ export function Workspace({
                         },
                         "Record saved.",
                       );
+                      const resume = entity.id === "appointments" && editor === "new"
+                        ? pendingRecurringPlan : null;
                       setEditor(null);
+                      returnToPreparedRecurringPlan(resume);
                       if (entity.module === "inventory") setView("inventory");
                       if (entity.id === "equipment") setView("equipment");
                       if (entity.id === "estimates") setView("estimates");
