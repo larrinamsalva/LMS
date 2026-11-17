@@ -199,7 +199,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     name: "Highest chart activity", exact: true,
   });
   await expect(chartPeak).toContainText(
-    "No saved saved items on these seven dates.",
+    "No saved items on these seven dates.",
   );
   await expect(chartPeak.getByRole("button", {
     name: /Review highest chart activity day/,
