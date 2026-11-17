@@ -178,14 +178,24 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     "aria-label", "2035-03-05: 0 saved items",
   );
   await expect(barItems.locator(".daily-activity-bar-week-share")).toHaveCount(7);
+  const dayChanges = barItems.locator(".daily-activity-bar-day-change");
+  await expect(dayChanges).toHaveCount(7);
+  await expect(dayChanges.first()).toHaveText("First date in view");
+  await expect(dayChanges.nth(1)).toHaveText("Change vs prior date: 0");
+  await expect(dayChanges.last()).toHaveText("Change vs prior date: 0");
   await expect(barItems.first()).toContainText("Share of week: 0%");
   await expect(barItems.last()).toContainText("Share of week: 0%");
-  const shareDescriptor = await barItems.first().getAttribute("aria-describedby");
-  expect(shareDescriptor).toBeTruthy();
+  const chartDescriptions = (await barItems.first().getAttribute("aria-describedby") ?? "")
+    .split(" ");
+  expect(chartDescriptions).toHaveLength(2);
   await expect(barItems.first().locator(".daily-activity-bar-week-share"))
-    .toHaveAttribute("id", shareDescriptor!);
+    .toHaveAttribute("id", chartDescriptions[0]);
+  await expect(dayChanges.first()).toHaveAttribute("id", chartDescriptions[1]);
   await expect(activityChart).toContainText(
     "Share of week shows the portion of selected saved items on each date",
+  );
+  await expect(activityChart).toContainText(
+    "Change vs prior date compares selected saved-record counts",
   );
   await expect(activityChart.locator(".daily-activity-bar-fill"))
     .toHaveCount(7);
@@ -316,6 +326,18 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   );
   const fullChartBeforeFiltering = await barItems.allTextContents();
   const weekShareLabels = barItems.locator(".daily-activity-bar-week-share");
+  await expect(dayChanges).toHaveCount(7);
+  await expect(dayChanges.first()).toHaveText("First date in view");
+  // Compare visible deltas with exact current versus preceding saved counts.
+  const chartCounts = await barItems.evaluateAll((items) => items.map((item) =>
+    Number(item.querySelector(".daily-activity-bar-count")?.textContent ?? "0"),
+  ));
+  const shownChanges = await dayChanges.allTextContents();
+  for (let index = 1; index < chartCounts.length; index++) {
+    const delta = chartCounts[index] - chartCounts[index - 1];
+    expect(shownChanges[index]).toContain("Change vs prior date: " +
+      (delta > 0 ? "+" : "") + delta);
+  }
   await expect(weekShareLabels).toHaveCount(7);
   await expect(weekShareLabels.first()).not.toContainText("Share of week: 0%");
   await chartCategory.selectOption("appointments");
@@ -325,6 +347,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   );
   await chartCategory.selectOption("work");
   const focusedChartBeforeFiltering = await barItems.allTextContents();
+  const focusedChangeLabels = await dayChanges.allTextContents();
   const focusedShareLabels = await weekShareLabels.allTextContents();
   expect(focusedShareLabels).toHaveLength(7);
   const chartPeakReview = chartPeak.getByRole("button", {
@@ -342,6 +365,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     .selectOption("appointments");
   expect(await barItems.allTextContents()).toEqual(focusedChartBeforeFiltering);
   expect(await weekShareLabels.allTextContents()).toEqual(focusedShareLabels);
+  expect(await dayChanges.allTextContents()).toEqual(focusedChangeLabels);
   await expect(chartPeakReview).toHaveAttribute(
     "aria-label", "Review highest chart activity day " + chartPeakDate,
   );
