@@ -182,6 +182,23 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(activityChart).toContainText(
     "not work hours, staffing, resource capacity or confirmed availability",
   );
+  // The chart-only category control leaves all seven dates in view.
+  const chartCategory = activityChart.getByLabel("Chart activity to show", {
+    exact: true,
+  });
+  await expect(chartCategory).toHaveValue("all");
+  await chartCategory.selectOption("work");
+  await expect(barItems).toHaveCount(7);
+  await expect(barItems.first()).toHaveAttribute(
+    "aria-label", "2035-02-27: 0 unfinished work items",
+  );
+  await expect(activityChart).toContainText(
+    "Showing 0 unfinished work items across all seven dates.",
+  );
+  await chartCategory.selectOption("all");
+  await expect(barItems.first()).toHaveAttribute(
+    "aria-label", "2035-02-27: 0 saved items",
+  );
   const noActivity = operations.getByRole("group", {
     name: "Dates with no saved activity", exact: true,
   });
@@ -266,6 +283,21 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     "aria-label", /2026-11-06: [1-9]\d* saved items?/,
   );
   const fullChartBeforeFiltering = await barItems.allTextContents();
+  await chartCategory.selectOption("appointments");
+  await expect(barItems).toHaveCount(7);
+  await expect(barItems.first()).toHaveAttribute(
+    "aria-label", /2026-11-06: \\d+ appointment starts?/,
+  );
+  await chartCategory.selectOption("work");
+  const focusedChartBeforeFiltering = await barItems.allTextContents();
+  // Date-card filters must not secretly affect the separate chart focus.
+  await operations.getByLabel("Activity to show", { exact: true })
+    .selectOption("appointments");
+  expect(await barItems.allTextContents()).toEqual(focusedChartBeforeFiltering);
+  await operations.getByLabel("Activity to show", { exact: true })
+    .selectOption("all");
+  await chartCategory.selectOption("all");
+  expect(await barItems.allTextContents()).toEqual(fullChartBeforeFiltering);
   await expect(earliestRecorded).toContainText(
     "First saved activity: 2026-11-06",
   );
