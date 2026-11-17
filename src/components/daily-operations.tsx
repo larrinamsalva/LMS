@@ -93,6 +93,8 @@ export function DailyOperations({
   const [comparisonDirection, setComparisonDirection] =
     useState<"none" | "previous" | "following">("none");
   const [activityType, setActivityType] = useState<WorkloadActivityType>("all");
+  // The chart has its own category selection, independent of date-card filters.
+  const [chartActivityType, setChartActivityType] = useState<WorkloadActivityType>("all");
   const [calendarDayFilter, setCalendarDayFilter] =
     useState<WorkloadCalendarDayFilter>("all");
   const previousDay = adjacentOperationsDate(date, -1);
@@ -134,9 +136,22 @@ export function DailyOperations({
     (module) => module.id === "equipment",
   );
   const weeklyTotals = summarizeSevenDayWorkload(nextSevenDays, equipmentEnabled);
-  // The full seven-day graphic never follows screen-only category or date
-  // filters; its vertical bars are saved-record counts, not utilization.
-  const activityBars = recordedActivityBars(nextSevenDays, equipmentEnabled);
+  // The chart always preserves all seven authorized dates. Its own category
+  // controls only which saved records are counted within each date.
+  const effectiveChartActivityType = !equipmentEnabled && chartActivityType === "inspections"
+    ? "all" : chartActivityType;
+  const activityBars = recordedActivityBars(
+    nextSevenDays, equipmentEnabled, effectiveChartActivityType,
+  );
+  const chartActivitySingular = effectiveChartActivityType === "appointments"
+    ? "appointment start" : effectiveChartActivityType === "work"
+      ? "unfinished work item" : effectiveChartActivityType === "inspections"
+        ? "equipment inspection" : "saved item";
+  const chartActivityPlural = effectiveChartActivityType === "appointments"
+    ? "appointment starts" : effectiveChartActivityType === "work"
+      ? "unfinished work items" : effectiveChartActivityType === "inspections"
+        ? "equipment inspections" : "saved items";
+  const chartSavedTotal = activityBars.reduce((sum, bar) => sum + bar.savedItems, 0);
   // Earliest saved-activity date is a canonical full-window review cue.
   // Independent of card filters and display sort; never claim capacity.
   const earliestRecordedDay = earliestRecordedActivityDay(
@@ -561,6 +576,28 @@ export function DailyOperations({
               aria-label="Seven-day saved activity distribution"
             >
               <p><strong>Saved activity by date</strong></p>
+              <div className="daily-activity-chart-filter">
+                <label htmlFor="daily-workload-chart-activity-type">
+                  Chart activity to show
+                </label>
+                <select
+                  id="daily-workload-chart-activity-type"
+                  value={effectiveChartActivityType}
+                  onChange={(event) =>
+                    setChartActivityType(event.target.value as WorkloadActivityType)}
+                >
+                  <option value="all">All saved activity</option>
+                  <option value="appointments">Appointment starts</option>
+                  <option value="work">Unfinished work due</option>
+                  {equipmentEnabled && (
+                    <option value="inspections">Equipment inspections</option>
+                  )}
+                </select>
+              </div>
+              <p className="muted" aria-live="polite">
+                Showing {chartSavedTotal} {chartSavedTotal === 1
+                  ? chartActivitySingular : chartActivityPlural} across all seven dates.
+              </p>
               <p className="muted">
                 Each bar compares saved item counts within this week, not work hours,
                 staffing, resource capacity or confirmed availability.
@@ -574,8 +611,8 @@ export function DailyOperations({
                 {activityBars.map((bar) => (
                   <li
                     key={bar.date}
-                    aria-label={bar.date + ": " + bar.savedItems +
-                      (bar.savedItems === 1 ? " saved item" : " saved items")}
+                    aria-label={bar.date + ": " + bar.savedItems + " " +
+                      (bar.savedItems === 1 ? chartActivitySingular : chartActivityPlural)}
                   >
                     <strong className="daily-activity-bar-count">
                       {bar.savedItems}
