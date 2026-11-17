@@ -341,6 +341,53 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Planned visit dates", exact: true,
     }).locator(".recurring-visit-date-text")).toHaveText(anchoredVisitLabels);
 
+    // A successful explicit SINGLE appointment save also returns to the
+    // same plan, with the updated count. Nothing in the plan bulk-books.
+    const nextVisitDate = "2027-01-29";
+    await page.getByRole("region", {
+      name: "Repeating visit planner", exact: true,
+    }).getByRole("button", {
+      name: "Prepare appointment for planned visit 4 on " + nextVisitDate,
+      exact: true,
+    }).click();
+    await page.getByLabel("Appointment title *", { exact: true })
+      .fill("Schedule " + industry + " recurring manual visit");
+    await page.getByLabel("Customer *", { exact: true })
+      .selectOption({ label: customer });
+    await page.getByLabel(
+      industry === "cleaning" ? "Cleaning job *" : "Maintenance request *",
+      { exact: true },
+    ).selectOption({ label: work });
+    await page.getByLabel(
+      industry === "cleaning"
+        ? "Assigned crew / resource *"
+        : "Assigned worker / resource *",
+      { exact: true },
+    ).selectOption({ label: resource });
+    await page.getByLabel("Start time *", { exact: true })
+      .fill(nextVisitDate + "T10:00");
+    await page.getByLabel("End time *", { exact: true })
+      .fill(nextVisitDate + "T11:00");
+    await save(page);
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue(nextVisitDate);
+    const savedRoutePlanner = page.getByRole("region", {
+      name: "Repeating visit planner", exact: true,
+    });
+    await expect(savedRoutePlanner.locator("details")).toHaveAttribute("open", "");
+    await expect(savedRoutePlanner.getByRole("list", {
+      name: "Planned visit dates", exact: true,
+    }).locator(".recurring-visit-date-text")).toHaveText(anchoredVisitLabels);
+    await expect(savedRoutePlanner.getByRole("list", {
+      name: "Planned visit dates", exact: true,
+    }).locator("li").nth(3).locator(".recurring-visit-saved-count"))
+      .toContainText(/Already saved: [1-9]\d* non-archived appointment/);
+    const savedAfterExplicitBooking = await page.request.get(
+      "/api/demo?organizationId=" + previewOrganization,
+    ).then((response) => response.json());
+    expect(savedAfterExplicitBooking.workspace.records.length)
+      .toBe(savedBeforePreview.workspace.records.length + 1);
+
     // Normal Add opens a blank date and does NOT inherit the old plan.
     await page.getByRole("button", { name: "+ Add appointment", exact: true }).click();
     await expect(page.locator(".appointment-fields input[type='date']"))
@@ -349,7 +396,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect((await page.request.get(
       "/api/demo?organizationId=" + previewOrganization,
     ).then((response) => response.json())).workspace.records)
-      .toEqual(savedBeforePreview.workspace.records);
+      .toEqual(savedAfterExplicitBooking.workspace.records);
     // Ordinary cancelled Add remains on Records; it must not carry
     // a phantom return route into future navigation.
     await expect(page.getByRole("heading", {
