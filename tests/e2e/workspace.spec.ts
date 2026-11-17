@@ -177,6 +177,16 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await expect(barItems.last()).toHaveAttribute(
     "aria-label", "2035-03-05: 0 saved items",
   );
+  await expect(barItems.locator(".daily-activity-bar-week-share")).toHaveCount(7);
+  await expect(barItems.first()).toContainText("Share of week: 0%");
+  await expect(barItems.last()).toContainText("Share of week: 0%");
+  const shareDescriptor = await barItems.first().getAttribute("aria-describedby");
+  expect(shareDescriptor).toBeTruthy();
+  await expect(barItems.first().locator(".daily-activity-bar-week-share"))
+    .toHaveAttribute("id", shareDescriptor!);
+  await expect(activityChart).toContainText(
+    "Share of week shows the portion of selected saved items on each date",
+  );
   await expect(activityChart.locator(".daily-activity-bar-fill"))
     .toHaveCount(7);
   await expect(activityChart).toContainText(
@@ -305,6 +315,9 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
     "aria-label", /2026-11-06: [1-9]\d* saved items?/,
   );
   const fullChartBeforeFiltering = await barItems.allTextContents();
+  const weekShareLabels = barItems.locator(".daily-activity-bar-week-share");
+  await expect(weekShareLabels).toHaveCount(7);
+  await expect(weekShareLabels.first()).not.toContainText("Share of week: 0%");
   await chartCategory.selectOption("appointments");
   await expect(barItems).toHaveCount(7);
   await expect(barItems.first()).toHaveAttribute(
@@ -312,6 +325,8 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   );
   await chartCategory.selectOption("work");
   const focusedChartBeforeFiltering = await barItems.allTextContents();
+  const focusedShareLabels = await weekShareLabels.allTextContents();
+  expect(focusedShareLabels).toHaveLength(7);
   const chartPeakReview = chartPeak.getByRole("button", {
     name: /Review highest chart activity day/,
   });
@@ -326,6 +341,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await operations.getByLabel("Activity to show", { exact: true })
     .selectOption("appointments");
   expect(await barItems.allTextContents()).toEqual(focusedChartBeforeFiltering);
+  expect(await weekShareLabels.allTextContents()).toEqual(focusedShareLabels);
   await expect(chartPeakReview).toHaveAttribute(
     "aria-label", "Review highest chart activity day " + chartPeakDate,
   );

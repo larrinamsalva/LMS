@@ -1929,6 +1929,13 @@ legend {
   font-size: 12px;
   overflow-wrap: anywhere;
 }
+/* The labeled per-date share uses text and never changes bar proportions. */
+.daily-activity-bar-week-share {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
 /* Optional exact chart breakdown: readable on phones without horizontal
    scrolling, new chart colors, or any booking/capacity implications. */
 .daily-activity-breakdown { margin-top: 12px; }
