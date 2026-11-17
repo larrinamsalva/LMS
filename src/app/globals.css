@@ -1858,6 +1858,29 @@ legend {
   outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
+/* Chart-only navigation stays readable and tappable on mobile. */
+.daily-activity-chart-peak {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  min-width: 0;
+  padding: 9px 0;
+}
+.daily-activity-chart-peak p {
+  flex: 1 1 240px;
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.daily-activity-chart-peak button {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+}
+@media (max-width: 640px) {
+  .daily-activity-chart-peak button { width: 100%; }
+}
 .daily-activity-bar-list {
   display: grid;
   grid-template-columns: repeat(7, minmax(78px, 1fr));
