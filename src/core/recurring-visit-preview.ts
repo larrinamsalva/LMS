@@ -85,3 +85,23 @@ export function validateRecurringVisitReturnPlan(
   );
   return { ...plan };
 }
+
+/**
+ * Find the nearest proposed date STRICTLY before/after the agenda date.
+ * Dates come from previewRecurringVisitDates: unique, sorted, canonical
+ * YYYY-MM-DD strings. A return of null means there is no date in that
+ * direction. This is agenda navigation, not availability or booking.
+ */
+export function adjacentPlannedVisitDate(
+  plannedDates: readonly string[],
+  agendaDate: string,
+  direction: "previous" | "next",
+): string | null {
+  if (direction === "next") {
+    return plannedDates.find((plannedDate) => plannedDate > agendaDate) ?? null;
+  }
+  for (let index = plannedDates.length - 1; index >= 0; index--) {
+    if (plannedDates[index] < agendaDate) return plannedDates[index];
+  }
+  return null;
+}
