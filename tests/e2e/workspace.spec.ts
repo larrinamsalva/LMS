@@ -286,7 +286,7 @@ test("shared workspace creates, edits, archives, restores and isolates two busin
   await chartCategory.selectOption("appointments");
   await expect(barItems).toHaveCount(7);
   await expect(barItems.first()).toHaveAttribute(
-    "aria-label", /2026-11-06: \\d+ appointment starts?/,
+    "aria-label", /2026-11-06: \d+ appointment starts?/,
   );
   await chartCategory.selectOption("work");
   const focusedChartBeforeFiltering = await barItems.allTextContents();
