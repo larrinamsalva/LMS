@@ -155,6 +155,13 @@ export function DailyOperations({
       ? "unfinished work items" : effectiveChartActivityType === "inspections"
         ? "equipment inspections" : "saved items";
   const chartSavedTotal = activityBars.reduce((sum, bar) => sum + bar.savedItems, 0);
+  // The peak uses the chart's own category, not the separate date-card filter.
+  // A saved-record peak never indicates bookable time or resource capacity.
+  const chartPeak = busiestFocusedDay(
+    nextSevenDays, equipmentEnabled, effectiveChartActivityType,
+  );
+  const reviewableChartPeak = chartPeak &&
+    isReviewableOperationsDate(chartPeak.date);
   // Earliest saved-activity date is a canonical full-window review cue.
   // Independent of card filters and display sort; never claim capacity.
   const earliestRecordedDay = earliestRecordedActivityDay(
@@ -606,6 +613,48 @@ export function DailyOperations({
                 staffing, resource capacity or confirmed availability.
                 All seven dates stay visible even when the date cards are filtered.
               </p>
+              <div
+                className="daily-activity-chart-peak"
+                role="group"
+                aria-label="Highest chart activity"
+              >
+                {chartPeak ? (
+                  <>
+                    <p>
+                      <strong>Highest selected chart count: {chartPeak.date}</strong>
+                      <span className="muted">
+                        {" "}· {chartPeak.matchingItems} {chartPeak.matchingItems === 1
+                          ? chartActivitySingular : chartActivityPlural}
+                        {chartPeak.tiedDates > 1 ? (
+                          <> · {chartPeak.tiedDates} dates tied (earliest shown)</>
+                        ) : null}
+                      </span>
+                    </p>
+                    {reviewableChartPeak ? (
+                      <button
+                        type="button"
+                        className="secondary"
+                        aria-label={"Review highest chart activity day " + chartPeak.date}
+                        onClick={() => selectDate(chartPeak.date)}
+                      >
+                        Review {chartPeak.date}
+                      </button>
+                    ) : (
+                      <p className="muted">
+                        This date is outside the supported Operations date range.
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="muted">
+                    No saved {chartActivityPlural} on these seven dates.
+                  </p>
+                )}
+                <p className="muted">
+                  Chart peaks reflect saved-record counts, not urgency, staffing,
+                  work hours or confirmed availability.
+                </p>
+              </div>
               <ol
                 className="daily-activity-bar-list"
                 tabIndex={0}
