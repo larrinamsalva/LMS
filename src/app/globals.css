@@ -1097,6 +1097,14 @@ legend {
   border-radius: 6px;
   overflow-wrap: anywhere;
 }
+.recurring-visit-review-state {
+  padding: 8px 12px;
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
 .recurring-visit-navigation {
   margin: 12px 0;
   min-width: 0;
@@ -1161,6 +1169,16 @@ legend {
   border-radius: 6px;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+}
+.recurring-visit-dates li.recurring-visit-is-reviewed {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  background: var(--surface-alt);
+}
+.recurring-visit-current-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
 }
 .recurring-visit-saved-count {
   color: var(--text);
