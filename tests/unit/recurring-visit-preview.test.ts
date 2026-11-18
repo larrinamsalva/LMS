@@ -8,6 +8,7 @@ import {
   plannedVisitReviewPosition,
   recurringVisitPreviewCsv,
   plannedVisitWeekday,
+  recurringVisitPreviewText,
   type VisitFrequencyWeeks,
 } from "../../src/core/recurring-visit-preview";
 
@@ -316,4 +317,54 @@ it("rejects malformed weekday labels rather than inferring a timezone or clock",
   ]) {
     expect(() => plannedVisitWeekday(invalid)).toThrow(RangeError);
   }
+});
+
+it("copies a plain-text proposal with exact weekday/date and explicit unbooked warning", () => {
+  const text = recurringVisitPreviewText("2026-11-06", 4, 6);
+  expect(text).toBe([
+    "LMS proposed recurring visit dates - NOT BOOKED",
+    "Starts: 2026-11-06 | Repeat: every four weeks (not monthly) | Proposed visits: 6",
+    "Business-local calendar dates (no appointment times or availability):",
+    "1. Friday, 2026-11-06 - proposed only",
+    "2. Friday, 2026-12-04 - proposed only",
+    "3. Friday, 2027-01-01 - proposed only",
+    "4. Friday, 2027-01-29 - proposed only",
+    "5. Friday, 2027-02-26 - proposed only",
+    "6. Friday, 2027-03-26 - proposed only",
+    "Planning preview only. Copying does not book visits, reserve resources, or confirm staff availability.",
+  ].join("\n"));
+  for (const prohibited of ["customer", "address", "employee", "job title", "amount", "booking ID"]) {
+    expect(text.toLowerCase()).not.toContain(prohibited.toLowerCase());
+  }
+});
+
+it("copies full validated dates across supported intervals, DST and leap days", () => {
+  for (const start of ["2026-03-01", "2026-10-25", "2028-02-29", "2026-12-25"]) {
+    for (const weeks of [1, 2, 4] as const) {
+      const dates = previewRecurringVisitDates(start, weeks, 12);
+      const text = recurringVisitPreviewText(start, weeks, 12);
+      const rows = text.split("\n");
+      expect(rows).toHaveLength(16);
+      expect(rows[0]).toContain("NOT BOOKED");
+      expect(rows[2]).toContain("no appointment times or availability");
+      expect(rows.at(-1)).toContain("does not book visits");
+      for (const [index, date] of dates.entries()) {
+        expect(rows[index + 3]).toBe(
+          `${index + 1}. ${plannedVisitWeekday(date).weekday}, ${date} - proposed only`,
+        );
+      }
+    }
+  }
+});
+
+it("rejects invalid or overflowing copy proposals without partially formatted output", () => {
+  for (const bad of ["", "2026-02-30", "2026-1-01", "2101-01-01", "2026-11-06T09:00"]) {
+    expect(() => recurringVisitPreviewText(bad, 1, 4)).toThrow(RangeError);
+  }
+  expect(() => recurringVisitPreviewText("2100-12-31", 4, 12))
+    .toThrow(/on or before 2100-12-31/);
+  expect(() => recurringVisitPreviewText("2026-11-06", 3 as VisitFrequencyWeeks, 4))
+    .toThrow(/Choose weekly/);
+  expect(() => recurringVisitPreviewText("2026-11-06", 1, 13))
+    .toThrow(/between 2 and 12/);
 });

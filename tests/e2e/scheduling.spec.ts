@@ -174,7 +174,11 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const exportButton = planner.getByRole("button", {
       name: "Download planned dates CSV", exact: true,
     });
+    const copyButton = planner.getByRole("button", {
+      name: "Copy planned dates", exact: true,
+    });
     await expect(exportButton).toBeVisible();
+    await expect(copyButton).toBeVisible();
     const plannedDates = planner.getByRole("list", {
       name: "Planned visit dates", exact: true,
     }).locator("li");
@@ -278,6 +282,53 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(previewCsv).not.toContain(customer);
     expect(previewCsv).not.toContain(work);
     expect(previewCsv).not.toContain(resource);
+    // Stub the browser clipboard transport in THIS existing session:
+    // assert exactly what would be copied without requiring the runner
+    // to grant clipboard permissions, and never create an extra demo.
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText: async (text: string) => {
+            document.documentElement.dataset.previewCopiedText = text;
+          },
+        },
+      });
+    });
+    await copyButton.click();
+    const copyFeedback = planner.locator(".recurring-visit-copy-feedback");
+    await expect(copyFeedback)
+      .toHaveText("Proposed dates copied. Nothing was booked or reserved.");
+    const copiedText = await page.evaluate(
+      () => document.documentElement.dataset.previewCopiedText ?? "",
+    );
+    expect(copiedText).toContain(
+      "LMS proposed recurring visit dates - NOT BOOKED",
+    );
+    expect(copiedText).toContain(
+      "2. Friday, 2026-12-04 - proposed only",
+    );
+    expect(copiedText.split("\n")).toHaveLength(10);
+    expect(copiedText).not.toContain(customer);
+    expect(copiedText).not.toContain(work);
+    expect(copiedText).not.toContain(resource);
+    // Denied permissions must not falsely show Copy succeeded.
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText: async () => { throw new Error("Denied"); },
+        },
+      });
+    });
+    await copyButton.click();
+    await expect(copyFeedback)
+      .toContainText("Could not copy dates. Clipboard access may be blocked");
+    // Copy feedback is specific to this exact recurrence rule; altering
+    // it cannot leave a stale Copied/Failed message on another plan.
+    await planner.getByLabel("Repeat visits", { exact: true }).selectOption("2");
+    await expect(copyFeedback).toHaveCount(0);
+    await planner.getByLabel("Repeat visits", { exact: true }).selectOption("4");
     const anchoredVisitLabels = await visitLabels.allTextContents();
     const previousPlanned = planner.getByRole("button", {
       name: "Previous planned visit", exact: true,
@@ -350,6 +401,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(savedStatuses).toHaveCount(0);
     await expect(planner.locator(".recurring-visit-review-state")).toHaveCount(0);
     await expect(exportButton).toHaveCount(0);
+    await expect(copyButton).toHaveCount(0);
+    await expect(copyFeedback).toHaveCount(0);
     await expect(previousPlanned).toHaveCount(0);
     await expect(nextPlanned).toHaveCount(0);
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
