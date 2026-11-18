@@ -10,6 +10,7 @@ import {
   plannedVisitWeekday,
   recurringVisitPreviewText,
   recurringVisitPlanOverview,
+  edgePlannedVisitDate,
   type VisitFrequencyWeeks,
 } from "../../src/core/recurring-visit-preview";
 
@@ -429,4 +430,22 @@ it("never returns a partial overview for invalid or overflowing proposals", () =
     .toThrow(/Choose weekly/);
   expect(() => recurringVisitPlanOverview("2026-11-06", 1, 1))
     .toThrow(/between 2 and 12/);
+});
+
+it("jumps only to first or last proposed date without mutating the preview", () => {
+  for (const start of ["2026-03-01", "2026-10-25", "2028-02-29", "2026-12-25"]) {
+    for (const weeks of [1, 2, 4] as const) {
+      for (const count of [2, 4, 6, 8, 12]) {
+        const dates = Object.freeze(previewRecurringVisitDates(start, weeks, count));
+        const before = [...dates];
+        expect(edgePlannedVisitDate(dates, "first")).toBe(dates[0]);
+        expect(edgePlannedVisitDate(dates, "last")).toBe(dates[dates.length - 1]);
+        expect(dates).toEqual(before);
+      }
+    }
+  }
+  expect(edgePlannedVisitDate([], "first")).toBeNull();
+  expect(edgePlannedVisitDate([], "last")).toBeNull();
+  expect(edgePlannedVisitDate(["2026-11-06"], "first")).toBe("2026-11-06");
+  expect(edgePlannedVisitDate(["2026-11-06"], "last")).toBe("2026-11-06");
 });
