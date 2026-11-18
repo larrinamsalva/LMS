@@ -350,11 +350,19 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const nextPlanned = planner.getByRole("button", {
       name: "Next planned visit", exact: true,
     });
+    const firstPlanned = planner.getByRole("button", {
+      name: "First planned visit", exact: true,
+    });
+    const lastPlanned = planner.getByRole("button", {
+      name: "Last planned visit", exact: true,
+    });
     // Review shortcuts are independent of recurrence anchor and booking.
     await expect(reviewedState)
       .toContainText("Currently reviewing planned visit 1 of 6: 2026-11-06");
     await expect(planner.locator(".recurring-visit-dates li[aria-current='date']")).toHaveCount(1);
     await expect(previousPlanned).toBeDisabled();
+    await expect(firstPlanned).toBeDisabled();
+    await expect(lastPlanned).toBeEnabled();
     await nextPlanned.click();
     await expect(page.getByLabel("Schedule date", { exact: true }))
       .toHaveValue("2026-12-04");
@@ -364,10 +372,31 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(plannedDates.first()).not.toHaveAttribute("aria-current", "date");
     await expect(planner.locator(".recurring-visit-dates li[aria-current='date']")).toHaveCount(1);
     await expect(previousPlanned).toBeEnabled();
+    await expect(firstPlanned).toBeEnabled();
     await previousPlanned.click();
     await expect(page.getByLabel("Schedule date", { exact: true }))
       .toHaveValue("2026-11-06");
     await expect(previousPlanned).toBeDisabled();
+    await expect(firstPlanned).toBeDisabled();
+    expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
+
+    // Edge jumps use the exact same agenda-review pathway as individual
+    // cards and Previous/Next, never changing the first proposed date.
+    await lastPlanned.click();
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue("2027-03-26");
+    await expect(reviewedState)
+      .toContainText("Currently reviewing planned visit 6 of 6: 2027-03-26");
+    await expect(lastPlanned).toBeDisabled();
+    await expect(firstPlanned).toBeEnabled();
+    await expect(nextPlanned).toBeDisabled();
+    await firstPlanned.click();
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue("2026-11-06");
+    await expect(firstPlanned).toBeDisabled();
+    await expect(lastPlanned).toBeEnabled();
+    await expect(planner.locator(".recurring-visit-dates li[aria-current='date']"))
+      .toHaveCount(1);
     expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
 
     // A row review and the next/previous buttons use the same read-only
@@ -420,6 +449,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(copyFeedback).toHaveCount(0);
     await expect(previousPlanned).toHaveCount(0);
     await expect(nextPlanned).toHaveCount(0);
+    await expect(firstPlanned).toHaveCount(0);
+    await expect(lastPlanned).toHaveCount(0);
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
     await expect(plannedDates).toHaveCount(6);
     await fits(page);
