@@ -10,7 +10,7 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
-import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
+import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitPlanOverview, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
 import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
@@ -134,6 +134,7 @@ export function Schedule({
   // It never calls onAdd/onEdit or checks/confirms resource availability.
   let plannedVisitDates: string[] = [];
   let savedCountByPlannedDate: ReturnType<typeof savedAppointmentStatusesOnPlannedDates> = [];
+  let planOverview: ReturnType<typeof recurringVisitPlanOverview> | null = null;
   let previewError = "";
   try {
     plannedVisitDates = previewRecurringVisitDates(
@@ -141,6 +142,9 @@ export function Schedule({
     );
     savedCountByPlannedDate = savedAppointmentStatusesOnPlannedDates(
       plannedVisitDates, appointments, zone,
+    );
+    planOverview = recurringVisitPlanOverview(
+      previewStartDate, previewIntervalWeeks, previewCount,
     );
   } catch (error) {
     previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
@@ -328,6 +332,51 @@ export function Schedule({
                 Previewing {plannedVisitDates.length} visit dates starting on{" "}
                 {plannedVisitDates[0]}.
               </p>
+              {planOverview && (
+                <section
+                  className="recurring-visit-overview"
+                  aria-label="Proposed visit overview"
+                >
+                  <h3>Plan at a glance — proposed only</h3>
+                  <dl>
+                    <div>
+                      <dt>Proposed visits</dt>
+                      <dd>{planOverview.proposedVisits}</dd>
+                    </div>
+                    <div>
+                      <dt>Weekday dates</dt>
+                      <dd>{planOverview.weekdayDates}</dd>
+                    </div>
+                    <div>
+                      <dt>Weekend dates</dt>
+                      <dd>{planOverview.weekendDates}</dd>
+                    </div>
+                    <div>
+                      <dt>First proposed date</dt>
+                      <dd>
+                        {plannedVisitWeekday(planOverview.firstDate).weekday}{" "}
+                        <time dateTime={planOverview.firstDate}>{planOverview.firstDate}</time>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Last proposed date</dt>
+                      <dd>
+                        {plannedVisitWeekday(planOverview.lastDate).weekday}{" "}
+                        <time dateTime={planOverview.lastDate}>{planOverview.lastDate}</time>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>First-to-last span</dt>
+                      <dd>{planOverview.spanWeeks} calendar weeks</dd>
+                    </div>
+                  </dl>
+                  <p>
+                    This is a date-only proposal, not a count of booked
+                    appointments. Weekend labels do not establish staffing
+                    or availability.
+                  </p>
+                </section>
+              )}
               <p className="muted">
                 Counts show saved non-archived appointments on each calendar
                 date, including cancelled and completed records and visits

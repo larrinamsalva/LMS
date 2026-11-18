@@ -186,3 +186,33 @@ export function recurringVisitPreviewText(
     "Planning preview only. Copying does not book visits, reserve resources, or confirm staff availability.",
   ].join("\n");
 }
+
+/**
+ * A read-only summary of a bounded, UNSAVED recurring date proposal.
+ * All numbers come from strictly validated business-local calendar dates.
+ * Weekday/weekend counts are only calendar classifications, not an
+ * availability check, actual booking tally, or staffing promise.
+ */
+export function recurringVisitPlanOverview(
+  startDate: string,
+  everyWeeks: VisitFrequencyWeeks,
+  occurrences: number,
+): {
+  proposedVisits: number;
+  weekdayDates: number;
+  weekendDates: number;
+  firstDate: string;
+  lastDate: string;
+  spanWeeks: number;
+} {
+  const dates = previewRecurringVisitDates(startDate, everyWeeks, occurrences);
+  const weekendDates = dates.filter((date) => plannedVisitWeekday(date).isWeekend).length;
+  return {
+    proposedVisits: dates.length,
+    weekdayDates: dates.length - weekendDates,
+    weekendDates,
+    firstDate: dates[0],
+    lastDate: dates[dates.length - 1],
+    spanWeeks: (dates.length - 1) * everyWeeks,
+  };
+}
