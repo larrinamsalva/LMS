@@ -1194,6 +1194,14 @@ legend {
   box-shadow: inset 0 0 0 2px var(--accent);
   background: var(--surface-alt);
 }
+.recurring-visit-weekday {
+  display: block;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
 .recurring-visit-current-label {
   font-size: 12px;
   font-weight: 700;

@@ -138,3 +138,26 @@ export function recurringVisitPreviewCsv(
   ];
   return rows.join("\r\n") + "\r\n";
 }
+
+/**
+ * Label one canonical proposed business-local date without timezone
+ * conversion or implying that an appointment has been booked.
+ * Temporal.PlainDate.dayOfWeek is ISO Monday=1 through Sunday=7.
+ */
+export function plannedVisitWeekday(date: string): {
+  weekday: string;
+  isWeekend: boolean;
+} {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new RangeError("Expected a complete ISO calendar date.");
+  }
+  const day = Temporal.PlainDate.from(date, { overflow: "reject" });
+  const labels = [
+    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+    "Saturday", "Sunday",
+  ] as const;
+  return {
+    weekday: labels[day.dayOfWeek - 1],
+    isWeekend: day.dayOfWeek === 6 || day.dayOfWeek === 7,
+  };
+}

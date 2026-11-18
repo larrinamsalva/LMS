@@ -10,7 +10,7 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
-import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
+import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
 import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
@@ -364,6 +364,12 @@ export function Schedule({
                   >
                     <span className="recurring-visit-date-text">
                       Visit {index + 1}: <time dateTime={visitDate}>{visitDate}</time>
+                    </span>
+                    <span className="recurring-visit-weekday">
+                      {plannedVisitWeekday(visitDate).weekday}
+                      {plannedVisitWeekday(visitDate).isWeekend && (
+                        <> · Weekend — verify staffing before booking</>
+                      )}
                     </span>
                     {visitDate === date && (
                       <span className="recurring-visit-current-label">

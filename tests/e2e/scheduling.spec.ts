@@ -179,6 +179,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Planned visit dates", exact: true,
     }).locator("li");
     const visitLabels = plannedDates.locator(".recurring-visit-date-text");
+    const weekdays = plannedDates.locator(".recurring-visit-weekday");
+    await expect(weekdays).toHaveText([
+      "Friday", "Friday", "Friday", "Friday",
+    ]);
     await expect(visitLabels).toHaveText([
       "Visit 1: 2026-11-06", "Visit 2: 2026-11-13",
       "Visit 3: 2026-11-20", "Visit 4: 2026-11-27",
@@ -231,6 +235,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "Visit 1: 2026-11-06", "Visit 2: 2026-11-20",
       "Visit 3: 2026-12-04", "Visit 4: 2026-12-18",
     ]);
+    await expect(weekdays).toHaveText(["Friday", "Friday", "Friday", "Friday"]);
     await planner.getByLabel("Number of preview visits", { exact: true })
       .selectOption("6");
     await expect(visitLabels).toHaveText([
@@ -243,6 +248,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(plannedDates.nth(1)).toContainText("2026-12-04");
     await expect(savedCounts).toHaveCount(6);
     await expect(savedStatuses).toHaveCount(6);
+    await expect(weekdays).toHaveText(Array.from({ length: 6 }, () => "Friday"));
     await expect(savedCounts.first()).toHaveText(firstSavedLabel ?? "");
     await expect(savedCounts.nth(1)).toHaveText(
       /^Already saved: \d+ non-archived appointments?$/,
@@ -339,6 +345,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "on or before 2100-12-31",
     );
     await expect(plannedDates).toHaveCount(0);
+    await expect(weekdays).toHaveCount(0);
     await expect(savedCounts).toHaveCount(0);
     await expect(savedStatuses).toHaveCount(0);
     await expect(planner.locator(".recurring-visit-review-state")).toHaveCount(0);
@@ -352,6 +359,14 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       (await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze()).violations,
     ).toEqual([]);
+    // Deliberately re-anchor to a Saturday: weekend labels are a
+    // planning cue, never a closure or availability assertion.
+    await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-07");
+    await expect(weekdays.first())
+      .toHaveText("Saturday · Weekend — verify staffing before booking");
+    await expect(weekdays).toHaveCount(6);
+    await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
+    await expect(weekdays).toHaveText(Array.from({ length: 6 }, () => "Friday"));
     const savedAfterPreview = await page.request
       .get("/api/demo?organizationId=" + previewOrganization)
       .then((response) => response.json());
