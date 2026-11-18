@@ -1116,6 +1116,15 @@ legend {
   min-width: 0;
   overflow-wrap: anywhere;
 }
+.recurring-visit-copy-feedback {
+  margin: 6px 0 12px;
+  padding: 8px 12px;
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
 .recurring-visit-review-state {
   padding: 8px 12px;
   border-left: 4px solid var(--accent);
