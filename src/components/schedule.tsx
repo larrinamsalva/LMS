@@ -10,7 +10,7 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
-import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitPlanOverview, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
+import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
 import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
@@ -150,6 +150,8 @@ export function Schedule({
     previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
   }
   const reviewedVisitPosition = plannedVisitReviewPosition(plannedVisitDates, date);
+  const firstPlannedDate = edgePlannedVisitDate(plannedVisitDates, "first");
+  const lastPlannedDate = edgePlannedVisitDate(plannedVisitDates, "last");
   const previousPlannedDate = adjacentPlannedVisitDate(plannedVisitDates, date, "previous");
   const nextPlannedDate = adjacentPlannedVisitDate(plannedVisitDates, date, "next");
   function reviewPlannedDate(selected: string) {
@@ -429,6 +431,16 @@ export function Schedule({
                   <button
                     type="button"
                     className="secondary"
+                    disabled={busy || !firstPlannedDate || date === firstPlannedDate}
+                    onClick={() => {
+                      if (firstPlannedDate) reviewPlannedDate(firstPlannedDate);
+                    }}
+                  >
+                    First planned visit
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
                     disabled={busy || !previousPlannedDate}
                     onClick={() => {
                       if (previousPlannedDate) reviewPlannedDate(previousPlannedDate);
@@ -445,6 +457,16 @@ export function Schedule({
                     }}
                   >
                     Next planned visit
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy || !lastPlannedDate || date === lastPlannedDate}
+                    onClick={() => {
+                      if (lastPlannedDate) reviewPlannedDate(lastPlannedDate);
+                    }}
+                  >
+                    Last planned visit
                   </button>
                 </div>
               </div>
