@@ -10,7 +10,7 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
-import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
+import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
 import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
@@ -98,6 +98,16 @@ export function Schedule({
   const [previewCount, setPreviewCount] = useState(
     () => initialRecurringPlan?.occurrences ?? 4,
   );
+  // Feedback is keyed to the exact transient plan. If a rule or anchor
+  // changes before or after a clipboard promise, stale "Copied" text
+  // never describes the newly selected proposed dates.
+  const [copyFeedback, setCopyFeedback] = useState<{
+    planKey: string;
+    kind: "copied" | "failed";
+  } | null>(null);
+  const planKey = `${previewStartDate}/${previewIntervalWeeks}/${previewCount}`;
+  const visibleCopyFeedback = copyFeedback?.planKey === planKey
+    ? copyFeedback.kind : null;
   let rows: WorkspaceRecord[] = [];
   try {
     const day = Temporal.PlainDate.from(date),
@@ -144,6 +154,25 @@ export function Schedule({
     onClearAppointmentFocus?.();
     setArchived(false);
     setDate(selected);
+  }
+  async function copyPlannedDates() {
+    const selectedPlanKey = planKey;
+    try {
+      // Revalidate the exact bounded proposal on click. Never copy
+      // persisted appointments or arbitrary user-entered record fields.
+      const text = recurringVisitPreviewText(
+        previewStartDate, previewIntervalWeeks, previewCount,
+      );
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard is unavailable.");
+      }
+      await navigator.clipboard.writeText(text);
+      setCopyFeedback({ planKey: selectedPlanKey, kind: "copied" });
+    } catch {
+      // No false success on denied permission, insecure origins, or
+      // unsupported clipboard APIs. CSV download remains available.
+      setCopyFeedback({ planKey: selectedPlanKey, kind: "failed" });
+    }
   }
   function downloadPlannedDatesCsv() {
     // Regenerate the current bounded date-only series at click time; never
@@ -314,12 +343,27 @@ export function Schedule({
                 >
                   Download planned dates CSV
                 </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
+                  onClick={() => void copyPlannedDates()}
+                >
+                  Copy planned dates
+                </button>
                 <p className="muted">
-                  Export contains only proposed dates, visit numbers, and the
-                  repeat interval. No bookings, customer details, or resource
-                  availability are included.
+                  Download a CSV or copy a plain-text proposal with dates and
+                  weekdays. Neither action creates bookings, includes customer
+                  details, or confirms resource availability.
                 </p>
               </div>
+              {visibleCopyFeedback && (
+                <p className="recurring-visit-copy-feedback" role="status">
+                  {visibleCopyFeedback === "copied"
+                    ? "Proposed dates copied. Nothing was booked or reserved."
+                    : "Could not copy dates. Clipboard access may be blocked; use Download planned dates CSV instead."}
+                </p>
+              )}
               <p className="recurring-visit-review-state" aria-live="polite">
                 {reviewedVisitPosition === null
                   ? "Agenda date is not one of the proposed visit dates. Use the navigation buttons to review a planned visit."
