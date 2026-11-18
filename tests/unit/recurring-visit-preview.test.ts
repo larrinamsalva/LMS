@@ -6,6 +6,7 @@ import {
   validateRecurringVisitReturnPlan,
   adjacentPlannedVisitDate,
   plannedVisitReviewPosition,
+  recurringVisitPreviewCsv,
   type VisitFrequencyWeeks,
 } from "../../src/core/recurring-visit-preview";
 
@@ -217,4 +218,49 @@ it("finds the exact reviewed position across all three intervals and DST/leap da
         .toBeNull();
     }
   }
+});
+
+it("exports only the exact bounded recurring visit dates as a CSV planning preview", () => {
+  const result = recurringVisitPreviewCsv("2026-11-06", 4, 6);
+  const lines = result.trimEnd().split("\r\n");
+  expect(lines).toEqual([
+    "Visit,Proposed date,Repeat every (weeks),Note",
+    "1,2026-11-06,4,Preview only - no appointment booked by export",
+    "2,2026-12-04,4,Preview only - no appointment booked by export",
+    "3,2027-01-01,4,Preview only - no appointment booked by export",
+    "4,2027-01-29,4,Preview only - no appointment booked by export",
+    "5,2027-02-26,4,Preview only - no appointment booked by export",
+    "6,2027-03-26,4,Preview only - no appointment booked by export",
+  ]);
+  expect(result).toBe(lines.join("\r\n") + "\r\n");
+  expect(result).not.toMatch(/customer|resource|equipment|worker|appointment title|status/i);
+  expect(result.split("\r\n")).toHaveLength(8);
+});
+
+it("exports canonical dates over DST, leap years and year changes without writes", () => {
+  for (const start of ["2026-03-01", "2026-10-25", "2028-02-29", "2026-12-25"]) {
+    for (const weeks of [1, 2, 4] as const) {
+      const original = previewRecurringVisitDates(start, weeks, 12);
+      const csv = recurringVisitPreviewCsv(start, weeks, 12);
+      const rows = csv.trimEnd().split("\r\n").slice(1);
+      expect(rows).toHaveLength(12);
+      expect(rows.map((row) => row.split(",")[1])).toEqual(original);
+      expect(rows.every((row, index) =>
+        row.startsWith(String(index + 1) + "," + original[index] + "," + weeks + ","),
+      )).toBe(true);
+      expect(previewRecurringVisitDates(start, weeks, 12)).toEqual(original);
+    }
+  }
+});
+
+it("rejects invalid CSV plans instead of exporting partial or out-of-range dates", () => {
+  for (const invalid of ["", "2026-02-30", "2101-01-01", "2026-11-06T09:00"]) {
+    expect(() => recurringVisitPreviewCsv(invalid, 1, 4)).toThrow(RangeError);
+  }
+  expect(() => recurringVisitPreviewCsv("2100-12-31", 4, 12))
+    .toThrow(/on or before 2100-12-31/);
+  expect(() => recurringVisitPreviewCsv("2026-11-06", 3 as VisitFrequencyWeeks, 4))
+    .toThrow(/Choose weekly/);
+  expect(() => recurringVisitPreviewCsv("2026-11-06", 1, 13))
+    .toThrow(/between 2 and 12/);
 });
