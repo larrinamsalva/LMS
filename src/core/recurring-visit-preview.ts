@@ -161,3 +161,28 @@ export function plannedVisitWeekday(date: string): {
     isWeekend: day.dayOfWeek === 6 || day.dayOfWeek === 7,
   };
 }
+
+/**
+ * Plain-text sharing of a bounded, UNSAVED recurring date preview.
+ * No customer, work, resource, time or saved-appointment fields are read.
+ * Dates are business-local PlainDates, not UTC instants or booked slots.
+ */
+export function recurringVisitPreviewText(
+  startDate: string,
+  everyWeeks: VisitFrequencyWeeks,
+  occurrences: number,
+): string {
+  const dates = previewRecurringVisitDates(startDate, everyWeeks, occurrences);
+  const frequency = everyWeeks === 1
+    ? "every week"
+    : everyWeeks === 2 ? "every two weeks" : "every four weeks (not monthly)";
+  return [
+    "LMS proposed recurring visit dates - NOT BOOKED",
+    `Starts: ${dates[0]} | Repeat: ${frequency} | Proposed visits: ${dates.length}`,
+    "Business-local calendar dates (no appointment times or availability):",
+    ...dates.map((date, index) =>
+      `${index + 1}. ${plannedVisitWeekday(date).weekday}, ${date} - proposed only`,
+    ),
+    "Planning preview only. Copying does not book visits, reserve resources, or confirm staff availability.",
+  ].join("\n");
+}
