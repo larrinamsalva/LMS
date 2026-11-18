@@ -9,6 +9,7 @@ import {
   recurringVisitPreviewCsv,
   plannedVisitWeekday,
   recurringVisitPreviewText,
+  recurringVisitPlanOverview,
   type VisitFrequencyWeeks,
 } from "../../src/core/recurring-visit-preview";
 
@@ -366,5 +367,66 @@ it("rejects invalid or overflowing copy proposals without partially formatted ou
   expect(() => recurringVisitPreviewText("2026-11-06", 3 as VisitFrequencyWeeks, 4))
     .toThrow(/Choose weekly/);
   expect(() => recurringVisitPreviewText("2026-11-06", 1, 13))
+    .toThrow(/between 2 and 12/);
+});
+
+it("summarizes an unbooked four-week plan with truthful calendar counts and span", () => {
+  expect(recurringVisitPlanOverview("2026-11-06", 4, 6)).toEqual({
+    proposedVisits: 6,
+    weekdayDates: 6,
+    weekendDates: 0,
+    firstDate: "2026-11-06",
+    lastDate: "2027-03-26",
+    spanWeeks: 20,
+  });
+  expect(recurringVisitPlanOverview("2026-11-07", 4, 6)).toEqual({
+    proposedVisits: 6,
+    weekdayDates: 0,
+    weekendDates: 6,
+    firstDate: "2026-11-07",
+    lastDate: "2027-03-27",
+    spanWeeks: 20,
+  });
+  expect(recurringVisitPlanOverview("2026-11-08", 1, 2)).toEqual({
+    proposedVisits: 2,
+    weekdayDates: 0,
+    weekendDates: 2,
+    firstDate: "2026-11-08",
+    lastDate: "2026-11-15",
+    spanWeeks: 1,
+  });
+});
+
+it("summarizes each supported recurrence across DST, leap and year boundaries without side effects", () => {
+  for (const start of ["2026-03-01", "2026-10-25", "2028-02-29", "2026-12-25"]) {
+    for (const weeks of [1, 2, 4] as const) {
+      for (const count of [2, 4, 6, 8, 12]) {
+        const dates = previewRecurringVisitDates(start, weeks, count);
+        const before = [...dates];
+        const result = recurringVisitPlanOverview(start, weeks, count);
+        const weekends = dates.filter((date) => plannedVisitWeekday(date).isWeekend).length;
+        expect(result).toEqual({
+          proposedVisits: count,
+          weekdayDates: count - weekends,
+          weekendDates: weekends,
+          firstDate: dates[0],
+          lastDate: dates[count - 1],
+          spanWeeks: (count - 1) * weeks,
+        });
+        expect(dates).toEqual(before);
+      }
+    }
+  }
+});
+
+it("never returns a partial overview for invalid or overflowing proposals", () => {
+  for (const start of ["", "2026-1-01", "2026-02-30", "2019-12-31", "2101-01-01"]) {
+    expect(() => recurringVisitPlanOverview(start, 1, 4)).toThrow(RangeError);
+  }
+  expect(() => recurringVisitPlanOverview("2100-12-31", 4, 12))
+    .toThrow(/on or before 2100-12-31/);
+  expect(() => recurringVisitPlanOverview("2026-11-06", 3 as VisitFrequencyWeeks, 4))
+    .toThrow(/Choose weekly/);
+  expect(() => recurringVisitPlanOverview("2026-11-06", 1, 1))
     .toThrow(/between 2 and 12/);
 });
