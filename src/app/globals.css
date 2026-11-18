@@ -1097,6 +1097,50 @@ legend {
   border-radius: 6px;
   overflow-wrap: anywhere;
 }
+.recurring-visit-overview {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  min-width: 0;
+}
+.recurring-visit-overview h3 {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 16px;
+}
+.recurring-visit-overview dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.recurring-visit-overview dl > div {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+}
+.recurring-visit-overview dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+.recurring-visit-overview dd {
+  margin: 3px 0 0;
+  color: var(--text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.recurring-visit-overview p {
+  margin: 10px 0 0;
+  color: var(--text);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
 .recurring-visit-export {
   margin: 12px 0;
   display: flex;
