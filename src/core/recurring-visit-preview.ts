@@ -216,3 +216,18 @@ export function recurringVisitPlanOverview(
     spanWeeks: (dates.length - 1) * everyWeeks,
   };
 }
+
+/**
+ * Pick the first/last DATE from an existing validated, ascending preview.
+ * Returns null for an invalid/empty series, which hides the jump controls
+ * in Schedule. This is agenda navigation, NEVER a booking.
+ */
+export function edgePlannedVisitDate(
+  plannedDates: readonly string[],
+  edge: "first" | "last",
+): string | null {
+  if (!plannedDates.length) return null;
+  return edge === "first"
+    ? plannedDates[0]
+    : plannedDates[plannedDates.length - 1];
+}
