@@ -179,6 +179,16 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     });
     await expect(exportButton).toBeVisible();
     await expect(copyButton).toBeVisible();
+    const overview = planner.getByRole("region", {
+      name: "Proposed visit overview", exact: true,
+    });
+    await expect(overview).toContainText("Plan at a glance — proposed only");
+    await expect(overview.locator("dd")).toHaveText([
+      "4", "4", "0",
+      "Friday 2026-11-06", "Friday 2026-11-27", "3 calendar weeks",
+    ]);
+    await expect(overview)
+      .toContainText("not a count of booked appointments");
     const plannedDates = planner.getByRole("list", {
       name: "Planned visit dates", exact: true,
     }).locator("li");
@@ -253,6 +263,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(savedCounts).toHaveCount(6);
     await expect(savedStatuses).toHaveCount(6);
     await expect(weekdays).toHaveText(Array.from({ length: 6 }, () => "Friday"));
+    await expect(overview.locator("dd")).toHaveText([
+      "6", "6", "0",
+      "Friday 2026-11-06", "Friday 2027-03-26", "20 calendar weeks",
+    ]);
     await expect(savedCounts.first()).toHaveText(firstSavedLabel ?? "");
     await expect(savedCounts.nth(1)).toHaveText(
       /^Already saved: \d+ non-archived appointments?$/,
@@ -396,6 +410,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "on or before 2100-12-31",
     );
     await expect(plannedDates).toHaveCount(0);
+    await expect(overview).toHaveCount(0);
     await expect(weekdays).toHaveCount(0);
     await expect(savedCounts).toHaveCount(0);
     await expect(savedStatuses).toHaveCount(0);
@@ -418,8 +433,16 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(weekdays.first())
       .toHaveText("Saturday · Weekend — verify staffing before booking");
     await expect(weekdays).toHaveCount(6);
+    await expect(overview.locator("dd")).toHaveText([
+      "6", "0", "6",
+      "Saturday 2026-11-07", "Saturday 2027-03-27", "20 calendar weeks",
+    ]);
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
     await expect(weekdays).toHaveText(Array.from({ length: 6 }, () => "Friday"));
+    await expect(overview.locator("dd")).toHaveText([
+      "6", "6", "0",
+      "Friday 2026-11-06", "Friday 2027-03-26", "20 calendar weeks",
+    ]);
     const savedAfterPreview = await page.request
       .get("/api/demo?organizationId=" + previewOrganization)
       .then((response) => response.json());
@@ -478,6 +501,12 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Planned visit dates", exact: true,
     }).locator(".recurring-visit-date-text");
     await expect(restoredDates).toHaveText(anchoredVisitLabels);
+    await expect(restoredPlanner.getByRole("region", {
+      name: "Proposed visit overview", exact: true,
+    }).locator("dd")).toHaveText([
+      "6", "6", "0",
+      "Friday 2026-11-06", "Friday 2027-03-26", "20 calendar weeks",
+    ]);
     // A second date can be prepared immediately from the resumed series.
     await restoredPlanner.getByRole("button", {
       name: "Prepare appointment for planned visit 3 on 2027-01-01",
