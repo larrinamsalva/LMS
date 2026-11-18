@@ -7,6 +7,7 @@ import {
   adjacentPlannedVisitDate,
   plannedVisitReviewPosition,
   recurringVisitPreviewCsv,
+  plannedVisitWeekday,
   type VisitFrequencyWeeks,
 } from "../../src/core/recurring-visit-preview";
 
@@ -263,4 +264,56 @@ it("rejects invalid CSV plans instead of exporting partial or out-of-range dates
     .toThrow(/Choose weekly/);
   expect(() => recurringVisitPreviewCsv("2026-11-06", 1, 13))
     .toThrow(/between 2 and 12/);
+});
+
+it("labels all seven weekdays on canonical business-local dates", () => {
+  const dates = [
+    "2026-11-16", "2026-11-17", "2026-11-18", "2026-11-19",
+    "2026-11-20", "2026-11-21", "2026-11-22",
+  ];
+  const expected = [
+    "Monday", "Tuesday", "Wednesday", "Thursday",
+    "Friday", "Saturday", "Sunday",
+  ];
+  for (let index = 0; index < dates.length; index++) {
+    expect(plannedVisitWeekday(dates[index])).toEqual({
+      weekday: expected[index],
+      isWeekend: index >= 5,
+    });
+  }
+});
+
+it("keeps weekday labels stable across DST, leap days, and calendar years", () => {
+  const cases = [
+    ["2026-03-07", "Saturday", true],
+    ["2026-03-08", "Sunday", true],
+    ["2026-03-09", "Monday", false],
+    ["2026-10-31", "Saturday", true],
+    ["2026-11-01", "Sunday", true],
+    ["2026-11-02", "Monday", false],
+    ["2028-02-29", "Tuesday", false],
+    ["2026-12-31", "Thursday", false],
+    ["2027-01-01", "Friday", false],
+    ["2100-12-31", "Friday", false],
+  ] as const;
+  for (const [date, weekday, isWeekend] of cases) {
+    expect(plannedVisitWeekday(date)).toEqual({ weekday, isWeekend });
+  }
+  for (const start of ["2026-03-01", "2026-10-25", "2028-02-29", "2026-12-25"]) {
+    for (const weeks of [1, 2, 4] as const) {
+      const dates = previewRecurringVisitDates(start, weeks, 12);
+      const first = plannedVisitWeekday(dates[0]);
+      expect(dates.map((date) => plannedVisitWeekday(date)))
+        .toEqual(Array.from({ length: 12 }, () => first));
+    }
+  }
+});
+
+it("rejects malformed weekday labels rather than inferring a timezone or clock", () => {
+  for (const invalid of [
+    "", "2026-1-01", "2026-02-30", "2026-00-10",
+    "2026-11-06T00:00", "2026-11-06Z",
+  ]) {
+    expect(() => plannedVisitWeekday(invalid)).toThrow(RangeError);
+  }
 });
