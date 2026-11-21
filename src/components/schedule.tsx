@@ -69,6 +69,7 @@ export function Schedule({
 }) {
   const appointments = records.filter((r) => r.entity === "appointments");
   const visitCountLabelId = useId();
+  const plannedJumpId = useId();
   const recurringDetailsRef = useRef<HTMLDetailsElement>(null);
   // Open the resumed plan on entry without controlling the native details
   // open state, so keyboard/pointer users can still collapse it afterward.
@@ -427,6 +428,31 @@ export function Schedule({
                   Agenda date: <time dateTime={date}>{date}</time>. Move through
                   proposed dates without changing the plan or booking a visit.
                 </p>
+                <div className="recurring-visit-jump">
+                  <label htmlFor={plannedJumpId}>Jump to planned visit</label>
+                  <select
+                    id={plannedJumpId}
+                    value={reviewedVisitPosition === null ? "" : date}
+                    disabled={busy}
+                    onChange={(event) => {
+                      const selected = event.target.value;
+                      // Accept only a date in this exact validated preview.
+                      // This changes agenda focus, never the series anchor
+                      // or a booking/resource assignment.
+                      if (plannedVisitReviewPosition(plannedVisitDates, selected) !== null) {
+                        reviewPlannedDate(selected);
+                      }
+                    }}
+                  >
+                    <option value="">Choose a proposed visit</option>
+                    {plannedVisitDates.map((visitDate, index) => (
+                      <option key={visitDate} value={visitDate}>
+                        Visit {index + 1} — {plannedVisitWeekday(visitDate).weekday}, {visitDate}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="muted">Select any proposed date to review its agenda. No appointment is booked.</p>
+                </div>
                 <div className="recurring-visit-navigation-actions">
                   <button
                     type="button"
