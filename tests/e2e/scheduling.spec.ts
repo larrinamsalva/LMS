@@ -356,6 +356,34 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const lastPlanned = planner.getByRole("button", {
       name: "Last planned visit", exact: true,
     });
+    const jumpToPlanned = planner.getByLabel("Jump to planned visit", { exact: true });
+    await expect(jumpToPlanned).toHaveValue("2026-11-06");
+    await expect(jumpToPlanned.locator("option")).toHaveCount(7);
+    await expect(jumpToPlanned.locator("option").nth(3))
+      .toHaveText("Visit 3 — Friday, 2027-01-01");
+    // A direct jump reviews the selected agenda day, never mutates
+    // the plan's anchor, interval, or any previously saved record.
+    await jumpToPlanned.selectOption("2027-01-01");
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue("2027-01-01");
+    await expect(reviewedState)
+      .toContainText("Currently reviewing planned visit 3 of 6: 2027-01-01");
+    await expect(plannedDates.nth(2)).toHaveAttribute("aria-current", "date");
+    expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
+    // When the agenda is not included in the newly selected rule,
+    // show a placeholder; do not pick/claim a booked date implicitly.
+    await planner.getByLabel("Repeat visits", { exact: true }).selectOption("1");
+    await expect(jumpToPlanned).toHaveValue("");
+    await expect(reviewedState).toContainText(
+      "Agenda date is not one of the proposed visit dates",
+    );
+    await expect(planner.locator(".recurring-visit-dates li[aria-current='date']"))
+      .toHaveCount(0);
+    await planner.getByLabel("Repeat visits", { exact: true }).selectOption("4");
+    await expect(jumpToPlanned).toHaveValue("2027-01-01");
+    await firstPlanned.click();
+    await expect(jumpToPlanned).toHaveValue("2026-11-06");
+    expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
     // Review shortcuts are independent of recurrence anchor and booking.
     await expect(reviewedState)
       .toContainText("Currently reviewing planned visit 1 of 6: 2026-11-06");
@@ -449,6 +477,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(copyFeedback).toHaveCount(0);
     await expect(previousPlanned).toHaveCount(0);
     await expect(nextPlanned).toHaveCount(0);
+    await expect(jumpToPlanned).toHaveCount(0);
     await expect(firstPlanned).toHaveCount(0);
     await expect(lastPlanned).toHaveCount(0);
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
@@ -532,6 +561,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Planned visit dates", exact: true,
     }).locator(".recurring-visit-date-text");
     await expect(restoredDates).toHaveText(anchoredVisitLabels);
+    await expect(restoredPlanner.getByLabel("Jump to planned visit", { exact: true }))
+      .toHaveValue("2026-12-04");
     await expect(restoredPlanner.getByRole("region", {
       name: "Proposed visit overview", exact: true,
     }).locator("dd")).toHaveText([
