@@ -1213,6 +1213,40 @@ legend {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+.recurring-visit-selected {
+  padding: 12px;
+  margin: 12px 0;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.recurring-visit-selected h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  color: var(--text);
+}
+.recurring-visit-selected p {
+  margin: 5px 0 8px;
+  overflow-wrap: anywhere;
+}
+.recurring-visit-selected .recurring-visit-selected-date {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.recurring-visit-selected-count,
+.recurring-visit-selected-statuses {
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+.recurring-visit-selected button {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  margin-top: 6px;
+}
 .recurring-visit-navigation-actions {
   display: flex;
   flex-wrap: wrap;
