@@ -381,6 +381,12 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       .toHaveCount(0);
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("4");
     await expect(jumpToPlanned).toHaveValue("2027-01-01");
+    await planner.getByLabel("Number of preview visits", { exact: true })
+      .selectOption("12");
+    await expect(jumpToPlanned.locator("option")).toHaveCount(13);
+    await planner.getByLabel("Number of preview visits", { exact: true })
+      .selectOption("6");
+    await expect(jumpToPlanned.locator("option")).toHaveCount(7);
     await firstPlanned.click();
     await expect(jumpToPlanned).toHaveValue("2026-11-06");
     expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
