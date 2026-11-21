@@ -1186,6 +1186,33 @@ legend {
   margin: 0 0 8px;
   overflow-wrap: anywhere;
 }
+.recurring-visit-jump {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0;
+  min-width: 0;
+  max-width: 100%;
+}
+.recurring-visit-jump label {
+  color: var(--text);
+  font-weight: 650;
+}
+.recurring-visit-jump select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 8px 10px;
+}
+.recurring-visit-jump p {
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
 .recurring-visit-navigation-actions {
   display: flex;
   flex-wrap: wrap;
