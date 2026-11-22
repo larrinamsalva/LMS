@@ -132,6 +132,19 @@ it("validates and copies only a transient recurrence return route", () => {
   expect(restored).not.toHaveProperty("resource");
   expect(restored).not.toHaveProperty("customer");
   expect(restored).not.toHaveProperty("appointment");
+  // Optional presentation-only return state survives validation; the
+  // original legacy route still has no added fields.
+  const compactInput = Object.freeze({ ...input, compactPreview: true });
+  expect(validateRecurringVisitReturnPlan(compactInput))
+    .toEqual({ ...input, compactPreview: true });
+  expect(compactInput).toEqual({ ...input, compactPreview: true });
+  expect(validateRecurringVisitReturnPlan({ ...input, compactPreview: false }))
+    .toEqual({ ...input, compactPreview: false });
+  for (const invalid of ["true", "false", 1, 0, null, {}, []]) {
+    expect(() => validateRecurringVisitReturnPlan({
+      ...input, compactPreview: invalid as boolean,
+    })).toThrow(/Compact view must be a true or false/);
+  }
   for (const date of ["2026-11-13", "2027-01-02", "", "2100-12-31"]) {
     expect(() => validateRecurringVisitReturnPlan({
       ...input, selectedDate: date,
