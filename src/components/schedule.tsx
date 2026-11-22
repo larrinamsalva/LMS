@@ -70,6 +70,7 @@ export function Schedule({
   const appointments = records.filter((r) => r.entity === "appointments");
   const visitCountLabelId = useId();
   const plannedJumpId = useId();
+  const reviewedNoteId = useId();
   const recurringDetailsRef = useRef<HTMLDetailsElement>(null);
   // Open the resumed plan on entry without controlling the native details
   // open state, so keyboard/pointer users can still collapse it afterward.
@@ -116,6 +117,9 @@ export function Schedule({
     reviewKey: string;
     kind: "copied" | "failed";
   } | null>(null);
+  // Transient, per-reviewed-date display only. No browser storage,
+  // appointment write, clipboard access or automatic booking.
+  const [visibleNoteKey, setVisibleNoteKey] = useState<string | null>(null);
   const planKey = `${previewStartDate}/${previewIntervalWeeks}/${previewCount}`;
   const visibleCopyFeedback = copyFeedback?.planKey === planKey
     ? copyFeedback.kind : null;
@@ -164,6 +168,7 @@ export function Schedule({
   const reviewedPlannedDate = reviewedVisitPosition === null
     ? null : plannedVisitDates[reviewedVisitPosition - 1];
   const reviewKey = `${planKey}/${reviewedPlannedDate ?? ""}`;
+  const isNotePreviewVisible = reviewedPlannedDate !== null && visibleNoteKey === reviewKey;
   const visibleReviewCopyFeedback = reviewedPlannedDate &&
     reviewCopyFeedback?.reviewKey === reviewKey
     ? reviewCopyFeedback.kind : null;
@@ -179,6 +184,7 @@ export function Schedule({
     onClearAppointmentFocus?.();
     setArchived(false);
     setReviewCopyFeedback(null);
+    setVisibleNoteKey(null);
     setDate(selected);
   }
   function preparePlannedDate(visitDate: string) {
@@ -314,6 +320,7 @@ export function Schedule({
           onClick={() => {
             onClearAppointmentFocus?.();
             const prior = shiftDate(date, -1);
+            setVisibleNoteKey(null);
             setDate(prior);
             setPreviewStartDate(prior);
           }}
@@ -328,6 +335,7 @@ export function Schedule({
             value={date}
             onChange={(e) => {
               onClearAppointmentFocus?.();
+              setVisibleNoteKey(null);
               setDate(e.target.value);
               setPreviewStartDate(e.target.value);
             }}
@@ -339,6 +347,7 @@ export function Schedule({
           onClick={() => {
             onClearAppointmentFocus?.();
             const following = shiftDate(date, 1);
+            setVisibleNoteKey(null);
             setDate(following);
             setPreviewStartDate(following);
           }}
@@ -380,8 +389,12 @@ export function Schedule({
               <select
                 aria-label="Repeat visits"
                 value={previewIntervalWeeks}
-                onChange={(event) =>
-                  setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks)}
+                onChange={(event) => {
+                  // A new recurrence rule always closes an opened note,
+                  // even if someone later restores the previous rule.
+                  setVisibleNoteKey(null);
+                  setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
+                }}
               >
                 <option value={1}>Every week</option>
                 <option value={2}>Every two weeks</option>
@@ -393,7 +406,12 @@ export function Schedule({
               <select
                 aria-label="Number of preview visits"
                 value={previewCount}
-                onChange={(event) => setPreviewCount(Number(event.target.value))}
+                onChange={(event) => {
+                  // Never resurrect a previously opened note after changing
+                  // the number of proposed visits back and forth.
+                  setVisibleNoteKey(null);
+                  setPreviewCount(Number(event.target.value));
+                }}
               >
                 {[2, 4, 6, 8, 12].map((count) => (
                   <option key={count} value={count}>{count} dates</option>
@@ -582,11 +600,44 @@ export function Schedule({
                     >
                       Download reviewed visit TXT
                     </button>
+                    <button
+                      type="button"
+                      className="secondary"
+                      aria-expanded={isNotePreviewVisible}
+                      onClick={() => setVisibleNoteKey(isNotePreviewVisible ? null : reviewKey)}
+                    >
+                      {isNotePreviewVisible ? "Hide visit note" : "Preview visit note"}
+                    </button>
+                    {isNotePreviewVisible && (
+                      <div
+                        id={reviewedNoteId + "-wrapper"}
+                        className="recurring-visit-note-preview"
+                      >
+                        <label htmlFor={reviewedNoteId}>
+                          Selectable proposed visit note — NOT BOOKED
+                        </label>
+                        <textarea
+                          id={reviewedNoteId}
+                          aria-label="Selectable proposed visit note — NOT BOOKED"
+                          readOnly
+                          rows={4}
+                          spellCheck={false}
+                          value={recurringVisitReviewedText(
+                            previewStartDate, previewIntervalWeeks,
+                            previewCount, reviewedPlannedDate,
+                          )}
+                        />
+                        <p className="muted">
+                          Read-only: select the text or long-press on a phone
+                          to copy it manually. This is not a booked visit.
+                        </p>
+                      </div>
+                    )}
                     {visibleReviewCopyFeedback && (
                       <p className="recurring-visit-reviewed-copy-feedback" role="status">
                         {visibleReviewCopyFeedback === "copied"
                           ? "Selected proposed visit copied. Nothing was booked."
-                          : "Could not copy selected visit. Clipboard access may be blocked; use Download reviewed visit TXT instead."}
+                          : "Could not copy selected visit. Clipboard access may be blocked; use Download reviewed visit TXT or Preview visit note instead."}
                       </p>
                     )}
                   </section>

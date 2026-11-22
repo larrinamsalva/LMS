@@ -1248,6 +1248,38 @@ legend {
   margin-top: 6px;
   margin-right: 8px;
 }
+.recurring-visit-note-preview {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  margin: 12px 0 6px;
+}
+.recurring-visit-note-preview label {
+  color: var(--text);
+  font-weight: 650;
+}
+.recurring-visit-note-preview textarea {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 120px;
+  max-width: 100%;
+  resize: vertical;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  background: var(--surface-alt);
+  font: inherit;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  white-space: pre-wrap;
+}
+.recurring-visit-note-preview p {
+  margin: 0;
+  font-size: 13px;
+}
 .recurring-visit-selected .recurring-visit-reviewed-copy-feedback {
   margin: 10px 0 0;
   padding: 8px 10px;

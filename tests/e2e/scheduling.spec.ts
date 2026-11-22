@@ -204,6 +204,28 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const reviewDownloadButton = reviewedDetails.getByRole("button", {
       name: "Download reviewed visit TXT", exact: true,
     });
+    const previewVisitNote = reviewedDetails.getByRole("button", {
+      name: "Preview visit note", exact: true,
+    });
+    const selectableNote = reviewedDetails.getByRole("textbox", {
+      name: "Selectable proposed visit note — NOT BOOKED", exact: true,
+    });
+    await expect(previewVisitNote).toHaveAttribute("aria-expanded", "false");
+    await expect(selectableNote).toHaveCount(0);
+    await previewVisitNote.click();
+    await expect(selectableNote).toBeVisible();
+    await expect(selectableNote).toHaveAttribute("readonly", "");
+    await expect(selectableNote).toHaveValue([
+      "LMS proposed visit 1 of 4 - NOT BOOKED",
+      "Friday, 2026-11-06 (business-local date; no time)",
+      "Planning note only. No appointment, staff or equipment is booked or confirmed.",
+    ].join("\n"));
+    await expect(reviewedDetails).toContainText("long-press on a phone");
+    await reviewedDetails.getByRole("button", {
+      name: "Hide visit note", exact: true,
+    }).click();
+    await expect(selectableNote).toHaveCount(0);
+    await expect(previewVisitNote).toHaveAttribute("aria-expanded", "false");
     await expect(reviewCopyButton).toBeEnabled();
     await expect(reviewDownloadButton).toBeEnabled();
     // The download is local and uses the same already-validated text
@@ -458,6 +480,17 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(selectedText).not.toContain(work);
     expect(selectedText).not.toContain(resource);
     expect(selectedText).not.toContain("Saved on this date:");
+    await previewVisitNote.click();
+    await expect(selectableNote).toHaveValue(selectedText);
+    await expect(selectableNote).toHaveAttribute("readonly", "");
+    await expect(previewVisitNote).toHaveCount(0);
+    await expect(reviewedDetails.getByRole("button", {
+      name: "Hide visit note", exact: true,
+    })).toHaveAttribute("aria-expanded", "true");
+    await expect(selectableNote).not.toHaveValue(/Saved on this date/);
+    expect(await selectableNote.inputValue()).not.toContain(customer);
+    expect(await selectableNote.inputValue()).not.toContain(work);
+    expect(await selectableNote.inputValue()).not.toContain(resource);
     const [singleDownload] = await Promise.all([
       page.waitForEvent("download"),
       reviewDownloadButton.click(),
@@ -484,7 +517,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(reviewedCopyFeedback)
       .toContainText("Could not copy selected visit. Clipboard access may be blocked");
     await expect(reviewedCopyFeedback)
-      .toContainText("use Download reviewed visit TXT instead");
+      .toContainText("use Download reviewed visit TXT or Preview visit note instead");
+    await expect(selectableNote).toHaveValue(selectedText);
     // The download remains available when clipboard copying is denied.
     const [permissionFallback] = await Promise.all([
       page.waitForEvent("download"),
@@ -501,6 +535,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("1");
     await expect(jumpToPlanned).toHaveValue("");
     await expect(reviewedDetails).toHaveCount(0);
+    await expect(selectableNote).toHaveCount(0);
+    await expect(previewVisitNote).toHaveCount(0);
     await expect(reviewCopyButton).toHaveCount(0);
     await expect(reviewDownloadButton).toHaveCount(0);
     await expect(reviewedState).toContainText(
@@ -511,8 +547,18 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("4");
     await expect(jumpToPlanned).toHaveValue("2027-01-01");
     await expect(reviewedDetails).toContainText("Reviewed visit 3 of 6");
+    await expect(previewVisitNote).toHaveAttribute("aria-expanded", "false");
+    // Regression: reverting an excluded recurrence rule must not
+    // silently resurrect the previously opened note on the same date.
+    await expect(selectableNote).toHaveCount(0);
+    await previewVisitNote.click();
+    expect(await selectableNote.inputValue()).toContain("NOT BOOKED");
     await planner.getByLabel("Number of preview visits", { exact: true })
       .selectOption("12");
+    // Changing the number of proposed visits also closes the note,
+    // rather than keeping its stale 3-of-6 header on a 12-date plan.
+    await expect(previewVisitNote).toHaveAttribute("aria-expanded", "false");
+    await expect(selectableNote).toHaveCount(0);
     await expect(jumpToPlanned.locator("option")).toHaveCount(13);
     await expect(reviewedDetails).toContainText("Reviewed visit 3 of 12");
     // In a 12-visit plan, compact view hides only repeated cards;
@@ -521,6 +567,12 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(plannedDates).toHaveCount(0);
     await expect(reviewCopyButton).toBeVisible();
     await expect(reviewDownloadButton).toBeVisible();
+    await previewVisitNote.click();
+    await expect(selectableNote).toHaveValue([
+      "LMS proposed visit 3 of 12 - NOT BOOKED",
+      "Friday, 2027-01-01 (business-local date; no time)",
+      "Planning note only. No appointment, staff or equipment is booked or confirmed.",
+    ].join("\n"));
     await expect(reviewedDetails.getByRole("button", {
       name: "Prepare currently reviewed visit 3 on 2027-01-01",
       exact: true,
@@ -529,6 +581,12 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(tenthDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     await jumpToPlanned.selectOption(tenthDate!);
     await expect(reviewedDetails).toContainText("Reviewed visit 10 of 12");
+    await expect(selectableNote).toHaveCount(0);
+    await expect(previewVisitNote).toHaveAttribute("aria-expanded", "false");
+    await previewVisitNote.click();
+    const tenthNote = await selectableNote.inputValue();
+    expect(tenthNote).toContain("LMS proposed visit 10 of 12 - NOT BOOKED");
+    expect(tenthNote).toContain(tenthDate!);
     await expect(page.getByLabel("Schedule date", { exact: true }))
       .toHaveValue(tenthDate!);
     await expect(plannedDates).toHaveCount(0);
@@ -622,6 +680,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // A deliberate change to the date picker now becomes the first visit.
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
     await expect(visitLabels.first()).toHaveText("Visit 1: 2026-11-06");
+    // Regression: changing the calendar anchor closes a previous
+    // on-screen note. Returning to the original date must not revive it.
+    await previewVisitNote.click();
+    expect(await selectableNote.inputValue()).toContain("NOT BOOKED");
     // Do not silently return partial plans if the last date is out of range.
     await page.getByLabel("Schedule date", { exact: true }).fill("2100-12-25");
     await expect(planner.getByRole("status")).toContainText(
@@ -631,6 +693,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(compactView).toHaveCount(0);
     await expect(overview).toHaveCount(0);
     await expect(reviewedDetails).toHaveCount(0);
+    await expect(selectableNote).toHaveCount(0);
+    await expect(previewVisitNote).toHaveCount(0);
     await expect(reviewCopyButton).toHaveCount(0);
     await expect(reviewDownloadButton).toHaveCount(0);
     await expect(weekdays).toHaveCount(0);
@@ -647,6 +711,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(lastPlanned).toHaveCount(0);
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
     await expect(plannedDates).toHaveCount(6);
+    await expect(previewVisitNote).toHaveAttribute("aria-expanded", "false");
+    await expect(selectableNote).toHaveCount(0);
     await fits(page);
     expect(
       (await new AxeBuilder({ page })
