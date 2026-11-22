@@ -10,7 +10,7 @@ import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
-import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
+import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
 import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
@@ -112,6 +112,10 @@ export function Schedule({
     planKey: string;
     kind: "copied" | "failed";
   } | null>(null);
+  const [reviewCopyFeedback, setReviewCopyFeedback] = useState<{
+    reviewKey: string;
+    kind: "copied" | "failed";
+  } | null>(null);
   const planKey = `${previewStartDate}/${previewIntervalWeeks}/${previewCount}`;
   const visibleCopyFeedback = copyFeedback?.planKey === planKey
     ? copyFeedback.kind : null;
@@ -159,6 +163,10 @@ export function Schedule({
   const reviewedVisitPosition = plannedVisitReviewPosition(plannedVisitDates, date);
   const reviewedPlannedDate = reviewedVisitPosition === null
     ? null : plannedVisitDates[reviewedVisitPosition - 1];
+  const reviewKey = `${planKey}/${reviewedPlannedDate ?? ""}`;
+  const visibleReviewCopyFeedback = reviewedPlannedDate &&
+    reviewCopyFeedback?.reviewKey === reviewKey
+    ? reviewCopyFeedback.kind : null;
   const reviewedDateStatuses = reviewedVisitPosition === null
     ? null : savedCountByPlannedDate[reviewedVisitPosition - 1] ?? null;
   const firstPlannedDate = edgePlannedVisitDate(plannedVisitDates, "first");
@@ -170,6 +178,7 @@ export function Schedule({
     // dates never re-anchors the recurrence or reserves any resource.
     onClearAppointmentFocus?.();
     setArchived(false);
+    setReviewCopyFeedback(null);
     setDate(selected);
   }
   function preparePlannedDate(visitDate: string) {
@@ -186,6 +195,25 @@ export function Schedule({
       selectedDate,
       compactPreview,
     });
+  }
+  async function copyReviewedVisit() {
+    const selectedDate = reviewedPlannedDate;
+    const selectedReviewKey = reviewKey;
+    if (!selectedDate) return;
+    try {
+      // Re-validate exact membership in the current bounded date-only
+      // series; never inspect the saved appointments shown in the panel.
+      const text = recurringVisitReviewedText(
+        previewStartDate, previewIntervalWeeks, previewCount, selectedDate,
+      );
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard is unavailable.");
+      }
+      await navigator.clipboard.writeText(text);
+      setReviewCopyFeedback({ reviewKey: selectedReviewKey, kind: "copied" });
+    } catch {
+      setReviewCopyFeedback({ reviewKey: selectedReviewKey, kind: "failed" });
+    }
   }
   async function copyPlannedDates() {
     const selectedPlanKey = planKey;
@@ -517,6 +545,21 @@ export function Schedule({
                     >
                       Prepare this visit manually
                     </button>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy}
+                      onClick={() => void copyReviewedVisit()}
+                    >
+                      Copy reviewed visit
+                    </button>
+                    {visibleReviewCopyFeedback && (
+                      <p className="recurring-visit-reviewed-copy-feedback" role="status">
+                        {visibleReviewCopyFeedback === "copied"
+                          ? "Selected proposed visit copied. Nothing was booked."
+                          : "Could not copy selected visit. Clipboard access may be blocked; use Download planned dates CSV instead."}
+                      </p>
+                    )}
                   </section>
                 )}
                 <div className="recurring-visit-navigation-actions">

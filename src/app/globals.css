@@ -1246,6 +1246,15 @@ legend {
   max-width: 100%;
   white-space: normal;
   margin-top: 6px;
+  margin-right: 8px;
+}
+.recurring-visit-selected .recurring-visit-reviewed-copy-feedback {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  color: var(--text);
+  background: var(--surface-alt);
+  border-left: 4px solid var(--accent);
+  overflow-wrap: anywhere;
 }
 .recurring-visit-navigation-actions {
   display: flex;

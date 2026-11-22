@@ -242,3 +242,24 @@ export function edgePlannedVisitDate(
     ? plannedDates[0]
     : plannedDates[plannedDates.length - 1];
 }
+
+/**
+ * Copy exactly ONE currently selected date from a validated UNSAVED plan.
+ * Never inspect saved appointments or export any organization, customer,
+ * work, resource, or booking records. Membership is rechecked on click.
+ */
+export function recurringVisitReviewedText(
+  startDate: string,
+  everyWeeks: VisitFrequencyWeeks,
+  occurrences: number,
+  selectedDate: string,
+): string {
+  const dates = previewRecurringVisitDates(startDate, everyWeeks, occurrences);
+  plannedVisitAppointmentDraft(startDate, everyWeeks, occurrences, selectedDate);
+  const position = dates.indexOf(selectedDate) + 1;
+  return [
+    `LMS proposed visit ${position} of ${dates.length} - NOT BOOKED`,
+    `${plannedVisitWeekday(selectedDate).weekday}, ${selectedDate} (business-local date; no time)`,
+    "Planning note only. No appointment, staff or equipment is booked or confirmed.",
+  ].join("\n");
+}
