@@ -164,7 +164,18 @@ export function cancelledOnlySavedDateCount(
 export function cancelledOnlySavedDateList(
   statuses: readonly PlannedDateAppointmentStatuses[],
 ): string[] {
-  return statuses.filter((row) =>
-    row.savedAppointments > 0 && row.savedAppointments === row.cancelled,
-  ).map((row) => row.date);
+  return statuses.filter(isCancelledOnlySavedDate).map((row) => row.date);
+}
+
+/**
+ * Classify a single already-authorized business-local proposed date.
+ * Cancelled-only means at least one SAVED non-archived appointment
+ * exists and every saved appointment on that date is Cancelled.
+ * It never means available, rescheduled, or booked by this proposal.
+ */
+export function isCancelledOnlySavedDate(
+  status: PlannedDateAppointmentStatuses,
+): boolean {
+  return status.savedAppointments > 0 &&
+    status.cancelled === status.savedAppointments;
 }
