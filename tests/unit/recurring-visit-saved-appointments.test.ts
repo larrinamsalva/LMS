@@ -8,6 +8,7 @@ import {
   cancelledOnlySavedDateList,
   isCancelledOnlySavedDate,
   hasNoSavedAppointmentsOnPlannedDate,
+  noSavedProposedDateList,
   nextProposedDateBySavedCoverage,
   previousProposedDateBySavedCoverage,
 } from "../../src/core/recurring-visit-saved-appointments";
@@ -470,4 +471,54 @@ it("no-saved date classifier respects business-local overnight boundaries, not U
   expect(statuses.map(hasNoSavedAppointmentsOnPlannedDate))
     .toEqual([false, false, true]);
   expect(savedDateCoverage(statuses)).toEqual({ withSaved: 2, withoutSaved: 1 });
+});
+
+it("lists only proposed dates with no non-archived saved appointments in original order", () => {
+  const dates = previewRecurringVisitDates("2026-11-06", 1, 6);
+  const records = [
+    appointment("2026-11-06T10:00:00Z", "2026-11-06T11:00:00Z", false, "Scheduled"),
+    appointment("2026-11-13T10:00:00Z", "2026-11-13T11:00:00Z", true, "Cancelled"),
+    appointment("2026-11-20T10:00:00Z", "2026-11-20T11:00:00Z", false, "Cancelled"),
+    appointment("2026-11-27T10:00:00Z", "2026-11-27T11:00:00Z", false, "Other"),
+    appointment("corrupt", "2026-12-04T11:00:00Z", false, "Scheduled"),
+    otherRecord(),
+  ];
+  const savedBefore = structuredClone(records);
+  const rows = savedAppointmentStatusesOnPlannedDates(dates, records, "UTC");
+  const originalRows = structuredClone(rows);
+  expect(rows.map((r) => r.savedAppointments)).toEqual([1, 0, 1, 1, 0, 0]);
+  expect(noSavedProposedDateList(rows)).toEqual([
+    "2026-11-13", "2026-12-04", "2026-12-11",
+  ]);
+  expect(noSavedProposedDateList(rows).length).toBe(savedDateCoverage(rows).withoutSaved);
+  expect(noSavedProposedDateList(rows).map((d) => plannedVisitReviewPosition(dates, d)))
+    .toEqual([2, 5, 6]);
+  expect(noSavedProposedDateList([])).toEqual([]);
+  expect(noSavedProposedDateList([...rows].reverse())).toEqual([
+    "2026-12-11", "2026-12-04", "2026-11-13",
+  ]);
+  expect(cancelledOnlySavedDateList(rows)).toEqual(["2026-11-20"]);
+  expect(records).toEqual(savedBefore);
+  expect(rows).toEqual(originalRows);
+  expect(dates).toHaveLength(6);
+});
+
+it("no-saved date list respects local overnight overlap and all/none extremes", () => {
+  const localDates = ["2026-11-06", "2026-11-07", "2026-11-08"];
+  const overnightRecords = [
+    appointment("2026-11-07T06:30:00Z", "2026-11-07T08:15:00Z", false, "Cancelled"),
+  ];
+  const rows = savedAppointmentStatusesOnPlannedDates(
+    localDates, overnightRecords, "America/Los_Angeles",
+  );
+  expect(noSavedProposedDateList(rows)).toEqual(["2026-11-08"]);
+  expect(noSavedProposedDateList(savedAppointmentStatusesOnPlannedDates(
+    localDates, [], "America/Los_Angeles",
+  ))).toEqual(localDates);
+  const allSaved = localDates.map((date) =>
+    appointment(date + "T17:00:00Z", date + "T18:00:00Z"),
+  );
+  expect(noSavedProposedDateList(savedAppointmentStatusesOnPlannedDates(
+    localDates, allSaved, "UTC",
+  ))).toEqual([]);
 });

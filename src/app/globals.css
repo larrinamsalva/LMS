@@ -1174,14 +1174,16 @@ legend {
   background: var(--surface);
   overflow-wrap: anywhere;
 }
-.recurring-visit-coverage .recurring-visit-cancelled-list-toggle {
+.recurring-visit-coverage .recurring-visit-cancelled-list-toggle,
+.recurring-visit-coverage .recurring-visit-no-saved-list-toggle {
   min-height: 44px;
   max-width: 100%;
   white-space: normal;
   text-align: left;
   margin: 6px 0;
 }
-.recurring-visit-cancelled-list {
+.recurring-visit-cancelled-list,
+.recurring-visit-no-saved-list {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -1189,14 +1191,16 @@ legend {
   color: var(--text);
   min-width: 0;
 }
-.recurring-visit-cancelled-list ul {
+.recurring-visit-cancelled-list ul,
+.recurring-visit-no-saved-list ul {
   display: grid;
   list-style: none;
   gap: 8px;
   margin: 8px 0 0;
   padding: 0;
 }
-.recurring-visit-cancelled-list li {
+.recurring-visit-cancelled-list li,
+.recurring-visit-no-saved-list li {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1205,32 +1209,38 @@ legend {
   padding: 6px 0;
   border-top: 1px solid var(--border);
 }
-.recurring-visit-cancelled-date-info {
+.recurring-visit-cancelled-date-info,
+.recurring-visit-no-saved-date-info {
   display: grid;
   gap: 3px;
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.recurring-visit-cancelled-position {
+.recurring-visit-cancelled-position,
+.recurring-visit-no-saved-position {
   color: var(--text);
   font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.recurring-visit-cancelled-list time {
+.recurring-visit-cancelled-list time,
+.recurring-visit-no-saved-list time {
   color: var(--text);
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
-.recurring-visit-cancelled-list li.recurring-visit-cancelled-is-reviewed {
+.recurring-visit-cancelled-list li.recurring-visit-cancelled-is-reviewed,
+.recurring-visit-no-saved-list li.recurring-visit-no-saved-is-reviewed {
   border-left: 3px solid var(--accent);
   padding-left: 9px;
 }
-.recurring-visit-cancelled-current-label {
+.recurring-visit-cancelled-current-label,
+.recurring-visit-no-saved-current-label {
   font-weight: 700;
   color: var(--text);
 }
-.recurring-visit-cancelled-list li button {
+.recurring-visit-cancelled-list li button,
+.recurring-visit-no-saved-list li button {
   min-height: 44px;
   max-width: 100%;
   white-space: normal;

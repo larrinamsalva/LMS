@@ -191,3 +191,16 @@ export function hasNoSavedAppointmentsOnPlannedDate(
 ): boolean {
   return status.savedAppointments === 0;
 }
+
+/**
+ * Only proposed business-local dates with zero overlapping non-archived
+ * saved appointment records. Reuse existing authorized status rows:
+ * this list never certifies staff, equipment or calendar availability,
+ * never creates a booking, and does not expose saved record content.
+ */
+export function noSavedProposedDateList(
+  statuses: readonly PlannedDateAppointmentStatuses[],
+): string[] {
+  return statuses.filter(hasNoSavedAppointmentsOnPlannedDate)
+    .map((row) => row.date);
+}
