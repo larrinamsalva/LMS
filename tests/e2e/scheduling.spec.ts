@@ -204,6 +204,14 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const statusExportButton = planner.getByRole("button", {
       name: "Download saved-date review CSV", exact: true,
     });
+    const savedCsvCopyButton = planner.getByRole("button", {
+      name: "Copy saved-date review CSV", exact: true,
+    });
+    const savedCsvCopyFeedback = planner.locator(
+      ".recurring-visit-saved-review-csv-copy-feedback",
+    );
+    await expect(savedCsvCopyButton).toBeVisible();
+    await expect(savedCsvCopyFeedback).toHaveCount(0);
     await expect(statusExportButton).toBeVisible();
     await expect(exportButton).toBeVisible();
     await expect(copyButton).toBeVisible();
@@ -438,6 +446,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(overview).toContainText("Proposed visits");
     await expect(exportButton).toBeVisible();
     await expect(statusExportButton).toBeVisible();
+    await expect(savedCsvCopyButton).toBeVisible();
     await expect(copyButton).toBeVisible();
     await compactView.uncheck();
     await expect(plannedDates).toHaveCount(4);
@@ -909,6 +918,37 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(savedStatusCsv).not.toContain(work);
     expect(savedStatusCsv).not.toContain(resource);
     expect(savedStatusCsv).not.toContain("2026-11-06T");
+    // Copy is the same validated count CSV, including CRLF, header and
+    // NOT BOOKED label, without an additional test/demo session.
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async (text: string) => {
+          document.documentElement.dataset.savedReviewCsvClipboard = text;
+        } },
+      });
+    });
+    await savedCsvCopyButton.click();
+    await expect(savedCsvCopyFeedback).toHaveText(
+      "Saved-date review CSV copied. No visits were booked or confirmed.",
+    );
+    expect(await page.evaluate(() =>
+      document.documentElement.dataset.savedReviewCsvClipboard ?? "",
+    )).toBe(savedStatusCsv);
+    await expect(planner.locator(".recurring-visit-copy-feedback")).toHaveCount(0);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async () => { throw new Error("Denied"); } },
+      });
+    });
+    await savedCsvCopyButton.click();
+    await expect(savedCsvCopyFeedback).toContainText(
+      "Could not copy saved-date review CSV. Clipboard access may be blocked",
+    );
+    await expect(savedCsvCopyFeedback).toContainText(
+      "Download saved-date review CSV instead",
+    );
     // Stub the browser clipboard transport in THIS existing session:
     // assert exactly what would be copied without requiring the runner
     // to grant clipboard permissions, and never create an extra demo.
@@ -955,7 +995,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // it cannot leave a stale Copied/Failed message on another plan.
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("2");
     await expect(copyFeedback).toHaveCount(0);
+    await expect(savedCsvCopyFeedback).toHaveCount(0);
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("4");
+    await expect(savedCsvCopyFeedback).toHaveCount(0);
     const anchoredVisitLabels = await visitLabels.allTextContents();
     const previousPlanned = planner.getByRole("button", {
       name: "Previous planned visit", exact: true,
@@ -1346,6 +1388,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(planner.locator(".recurring-visit-review-state")).toHaveCount(0);
     await expect(exportButton).toHaveCount(0);
     await expect(statusExportButton).toHaveCount(0);
+    await expect(savedCsvCopyButton).toHaveCount(0);
+    await expect(savedCsvCopyFeedback).toHaveCount(0);
     await expect(copyButton).toHaveCount(0);
     await expect(copyFeedback).toHaveCount(0);
     await expect(previousPlanned).toHaveCount(0);
@@ -1630,6 +1674,31 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "lms-visit-saved-date-review-2026-11-06-NOT-BOOKED.csv",
     );
     const afterSaveReviewCsv = await readFile(await afterSaveCsvDownload.path(), "utf8");
+    const afterSaveCsvCopyButton = savedRoutePlanner.getByRole("button", {
+      name: "Copy saved-date review CSV", exact: true,
+    });
+    const afterSaveCsvCopyFeedback = savedRoutePlanner.locator(
+      ".recurring-visit-saved-review-csv-copy-feedback",
+    );
+    await expect(afterSaveCsvCopyFeedback).toHaveCount(0);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async (text: string) => {
+          document.documentElement.dataset.afterSaveReviewCsv = text;
+        } },
+      });
+    });
+    await afterSaveCsvCopyButton.click();
+    await expect(afterSaveCsvCopyFeedback).toHaveText(
+      "Saved-date review CSV copied. No visits were booked or confirmed.",
+    );
+    expect(await page.evaluate(() =>
+      document.documentElement.dataset.afterSaveReviewCsv ?? "",
+    )).toBe(afterSaveReviewCsv);
+    expect(afterSaveReviewCsv).not.toContain(customer);
+    expect(afterSaveReviewCsv).not.toContain(work);
+    expect(afterSaveReviewCsv).not.toContain(resource);
     const afterSaveReviewRows = afterSaveReviewCsv.trimEnd().split("\r\n");
     expect(afterSaveReviewRows).toHaveLength(7);
     const explicitSavedDateRow = afterSaveReviewRows[4].split(",");

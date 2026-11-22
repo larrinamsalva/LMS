@@ -114,6 +114,12 @@ export function Schedule({
     planKey: string;
     kind: "copied" | "failed";
   } | null>(null);
+  // Separate clipboard feedback for the date-level status CSV, never for
+  // the old date-only text or selected-visit status copy.
+  const [savedReviewCsvCopyFeedback, setSavedReviewCsvCopyFeedback] = useState<{
+    reviewCsvKey: string;
+    kind: "copied" | "failed";
+  } | null>(null);
   const [reviewCopyFeedback, setReviewCopyFeedback] = useState<{
     reviewKey: string;
     kind: "copied" | "failed";
@@ -176,6 +182,16 @@ export function Schedule({
   } catch (error) {
     previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
   }
+  // Each authorized proposed-date row contributes only canonical date and
+  // numeric aggregate status totals. A changed saved appointment hides old
+  // clipboard feedback even if the user keeps the same recurrence rules.
+  const savedReviewCsvKey = planKey + "|" + savedCountByPlannedDate.map((row) =>
+    [row.date, row.savedAppointments, row.scheduled, row.inProgress,
+      row.completed, row.cancelled, row.other].join(":"),
+  ).join("|");
+  const visibleSavedReviewCsvCopyFeedback =
+    savedReviewCsvCopyFeedback?.reviewCsvKey === savedReviewCsvKey
+      ? savedReviewCsvCopyFeedback.kind : null;
   const savedCoverage = savedDateCoverage(savedCountByPlannedDate);
   const cancelledOnlyDates = cancelledOnlySavedDateCount(savedCountByPlannedDate);
   const cancelledDateList = cancelledOnlySavedDateList(savedCountByPlannedDate);
@@ -285,6 +301,29 @@ export function Schedule({
     } catch {
       // Never claim success if the browser denies access or rejects copying.
       setStatusCopyFeedback({ statusKey: selectedStatusKey, kind: "failed" });
+    }
+  }
+  async function copySavedDateReviewCsv() {
+    const selectedReviewCsvKey = savedReviewCsvKey;
+    try {
+      // Use precisely the same fail-closed generator as the existing
+      // downloaded status CSV. Never copy raw appointment records.
+      const csv = recurringVisitSavedStatusCsv(
+        previewStartDate, previewIntervalWeeks, previewCount,
+        savedCountByPlannedDate,
+      );
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard is unavailable.");
+      }
+      await navigator.clipboard.writeText(csv);
+      setSavedReviewCsvCopyFeedback({
+        reviewCsvKey: selectedReviewCsvKey, kind: "copied",
+      });
+    } catch {
+      // A denied/missing clipboard API must not show false success.
+      setSavedReviewCsvCopyFeedback({
+        reviewCsvKey: selectedReviewCsvKey, kind: "failed",
+      });
     }
   }
   async function copyPlannedDates() {
@@ -432,6 +471,7 @@ export function Schedule({
     setStatusCopyFeedback(null);
             setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
+                  setSavedReviewCsvCopyFeedback(null);
             setDate(prior);
             setPreviewStartDate(prior);
           }}
@@ -451,6 +491,7 @@ export function Schedule({
     setStatusCopyFeedback(null);
               setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
+                  setSavedReviewCsvCopyFeedback(null);
               setDate(e.target.value);
               setPreviewStartDate(e.target.value);
             }}
@@ -467,6 +508,7 @@ export function Schedule({
     setStatusCopyFeedback(null);
             setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
+                  setSavedReviewCsvCopyFeedback(null);
             setDate(following);
             setPreviewStartDate(following);
           }}
@@ -516,6 +558,7 @@ export function Schedule({
     setStatusCopyFeedback(null);
                   setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
+                  setSavedReviewCsvCopyFeedback(null);
                   setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
                 }}
               >
@@ -537,6 +580,7 @@ export function Schedule({
     setStatusCopyFeedback(null);
                   setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
+                  setSavedReviewCsvCopyFeedback(null);
                   setPreviewCount(Number(event.target.value));
                 }}
               >
@@ -826,18 +870,34 @@ export function Schedule({
                   type="button"
                   className="secondary"
                   disabled={busy}
+                  onClick={() => void copySavedDateReviewCsv()}
+                >
+                  Copy saved-date review CSV
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
                   onClick={() => void copyPlannedDates()}
                 >
                   Copy planned dates
                 </button>
                 <p className="muted">
                   Download planned-date CSV or copy a plain-text proposal.
-                  The separate saved-date review CSV contains date-level counts
-                  and status categories only (no names or appointment times).
+                  Download or copy the separate saved-date review CSV with
+                  date-level counts and status categories only (no names
+                  or appointment times).
                   None of these actions creates bookings, includes customer
                   details, or confirms resource availability.
                 </p>
               </div>
+              {visibleSavedReviewCsvCopyFeedback && (
+                <p className="recurring-visit-saved-review-csv-copy-feedback" role="status">
+                  {visibleSavedReviewCsvCopyFeedback === "copied"
+                    ? "Saved-date review CSV copied. No visits were booked or confirmed."
+                    : "Could not copy saved-date review CSV. Clipboard access may be blocked; use Download saved-date review CSV instead."}
+                </p>
+              )}
               {visibleCopyFeedback && (
                 <p className="recurring-visit-copy-feedback" role="status">
                   {visibleCopyFeedback === "copied"

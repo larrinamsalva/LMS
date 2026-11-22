@@ -1278,7 +1278,8 @@ legend {
   min-width: 0;
   overflow-wrap: anywhere;
 }
-.recurring-visit-copy-feedback {
+.recurring-visit-copy-feedback,
+.recurring-visit-saved-review-csv-copy-feedback {
   margin: 6px 0 12px;
   padding: 8px 12px;
   border-left: 4px solid var(--accent);
