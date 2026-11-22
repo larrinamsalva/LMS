@@ -9,6 +9,7 @@ import {
   recurringVisitPreviewCsv,
   plannedVisitWeekday,
   recurringVisitPreviewText,
+  recurringVisitReviewedText,
   recurringVisitPlanOverview,
   edgePlannedVisitDate,
   type VisitFrequencyWeeks,
@@ -461,4 +462,55 @@ it("jumps only to first or last proposed date without mutating the preview", () 
   expect(edgePlannedVisitDate([], "last")).toBeNull();
   expect(edgePlannedVisitDate(["2026-11-06"], "first")).toBe("2026-11-06");
   expect(edgePlannedVisitDate(["2026-11-06"], "last")).toBe("2026-11-06");
+});
+
+it("copies only the currently selected date and a visible NOT BOOKED warning", () => {
+  const result = recurringVisitReviewedText("2026-11-06", 4, 6, "2027-01-01");
+  expect(result).toBe([
+    "LMS proposed visit 3 of 6 - NOT BOOKED",
+    "Friday, 2027-01-01 (business-local date; no time)",
+    "Planning note only. No appointment, staff or equipment is booked or confirmed.",
+  ].join("\n"));
+  expect(result).not.toContain("2026-11-06");
+  expect(result).not.toContain("2026-12-04");
+  expect(result).not.toContain("2027-01-29");
+  for (const privateField of ["customer", "address", "employee", "job title", "invoice", "amount", "booking ID"]) {
+    expect(result.toLowerCase()).not.toContain(privateField.toLowerCase());
+  }
+});
+
+it("copies just the chosen date through all supported bounded recurrence rules", () => {
+  for (const start of ["2026-03-01", "2026-10-25", "2028-02-29", "2026-12-25"]) {
+    for (const weeks of [1, 2, 4] as const) {
+      for (const count of [2, 4, 6, 8, 12]) {
+        const dates = previewRecurringVisitDates(start, weeks, count);
+        for (const index of [0, count - 1]) {
+          const selected = dates[index];
+          const copied = recurringVisitReviewedText(start, weeks, count, selected);
+          expect(copied.split("\n")).toEqual([
+            `LMS proposed visit ${index + 1} of ${count} - NOT BOOKED`,
+            `${plannedVisitWeekday(selected).weekday}, ${selected} (business-local date; no time)`,
+            "Planning note only. No appointment, staff or equipment is booked or confirmed.",
+          ]);
+        }
+      }
+    }
+  }
+});
+
+it("refuses to copy an off-plan, invalid or overflowing reviewed visit", () => {
+  for (const selected of ["2026-11-13", "2027-01-02", "", "2027-01-01T00:00"]) {
+    expect(() => recurringVisitReviewedText("2026-11-06", 4, 6, selected))
+      .toThrow(/date from the current recurring visit preview/);
+  }
+  for (const start of ["", "2026-02-30", "2101-01-01"]) {
+    expect(() => recurringVisitReviewedText(start, 1, 4, "2026-11-06"))
+      .toThrow(RangeError);
+  }
+  expect(() => recurringVisitReviewedText("2100-12-31", 4, 12, "2100-12-31"))
+    .toThrow(/on or before 2100-12-31/);
+  expect(() => recurringVisitReviewedText("2026-11-06", 3 as VisitFrequencyWeeks, 4, "2026-11-06"))
+    .toThrow(/Choose weekly/);
+  expect(() => recurringVisitReviewedText("2026-11-06", 1, 13, "2026-11-06"))
+    .toThrow(/between 2 and 12/);
 });
