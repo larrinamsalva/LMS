@@ -11,7 +11,7 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
-import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList } from "../core/recurring-visit-saved-appointments";
+import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList, isCancelledOnlySavedDate } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -737,6 +737,13 @@ export function Schedule({
                         <>{" · "}Other {reviewedDateStatuses.other}</>
                       )}
                     </p>
+                    {isCancelledOnlySavedDate(reviewedDateStatuses) && (
+                      <p className="recurring-visit-selected-cancelled-only">
+                        Only cancelled saved appointments on this date.
+                        This proposed visit is NOT BOOKED and availability
+                        is not confirmed.
+                      </p>
+                    )}
                     <p className="muted">
                       Counts include saved records on this calendar date, not
                       confirmed bookings for this proposal. They do not prove
@@ -916,6 +923,12 @@ export function Schedule({
                         <>{" · "}Other {savedCountByPlannedDate[index].other}</>
                       )}
                     </span>
+                    {isCancelledOnlySavedDate(savedCountByPlannedDate[index]) && (
+                      <span className="recurring-visit-card-cancelled-only">
+                        Only cancelled saved appointments — NOT BOOKED by
+                        this proposal; availability not confirmed.
+                      </span>
+                    )}
                     <button
                       type="button"
                       className="secondary"

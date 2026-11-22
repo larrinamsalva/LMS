@@ -6,6 +6,7 @@ import {
   savedDateCoverage,
   cancelledOnlySavedDateCount,
   cancelledOnlySavedDateList,
+  isCancelledOnlySavedDate,
   nextProposedDateBySavedCoverage,
   previousProposedDateBySavedCoverage,
 } from "../../src/core/recurring-visit-saved-appointments";
@@ -389,4 +390,42 @@ it("cancelled-only date rows keep the original visit ordinals when other propose
     expect(records).toEqual(before);
     expect(dates).toHaveLength(6);
   }
+});
+
+it("classifies a cancelled-only saved business-local date without treating empty or mixed days as cancelled-only", () => {
+  const dates = ["2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10"];
+  const records = [
+    appointment("2026-11-06T10:00:00Z", "2026-11-06T11:00:00Z", false, "Cancelled"),
+    appointment("2026-11-06T12:00:00Z", "2026-11-06T13:00:00Z", false, "Cancelled"),
+    appointment("2026-11-07T10:00:00Z", "2026-11-07T11:00:00Z", false, "Cancelled"),
+    appointment("2026-11-07T12:00:00Z", "2026-11-07T13:00:00Z", false, "Scheduled"),
+    appointment("2026-11-08T10:00:00Z", "2026-11-08T11:00:00Z", true, "Cancelled"),
+    appointment("2026-11-09T10:00:00Z", "2026-11-09T11:00:00Z", false, "Other"),
+    otherRecord(),
+  ];
+  const originalRecords = structuredClone(records);
+  const statuses = savedAppointmentStatusesOnPlannedDates(dates, records, "UTC");
+  const originalStatuses = structuredClone(statuses);
+  expect(statuses.map(isCancelledOnlySavedDate)).toEqual([
+    true, false, false, false, false,
+  ]);
+  expect(cancelledOnlySavedDateList(statuses)).toEqual(["2026-11-06"]);
+  expect(cancelledOnlySavedDateCount(statuses)).toBe(1);
+  expect(records).toEqual(originalRecords);
+  expect(statuses).toEqual(originalStatuses);
+  const overnight = savedAppointmentStatusesOnPlannedDates(
+    ["2026-11-06", "2026-11-07"],
+    [appointment("2026-11-07T06:30:00Z", "2026-11-07T08:15:00Z", false, "Cancelled")],
+    "America/Los_Angeles",
+  );
+  expect(overnight.map(isCancelledOnlySavedDate)).toEqual([true, true]);
+  expect(isCancelledOnlySavedDate({
+    date: "2026-11-11",
+    savedAppointments: 2,
+    scheduled: 0,
+    inProgress: 0,
+    completed: 0,
+    cancelled: 1,
+    other: 1,
+  })).toBe(false);
 });
