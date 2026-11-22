@@ -11,7 +11,7 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
-import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList, isCancelledOnlySavedDate, hasNoSavedAppointmentsOnPlannedDate } from "../core/recurring-visit-saved-appointments";
+import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList, isCancelledOnlySavedDate, hasNoSavedAppointmentsOnPlannedDate, noSavedProposedDateList } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -122,6 +122,7 @@ export function Schedule({
   const [visibleNoteKey, setVisibleNoteKey] = useState<string | null>(null);
   // Collapsed on entry and on every changed plan; never stored remotely.
   const [visibleCancelledListPlan, setVisibleCancelledListPlan] = useState<string | null>(null);
+  const [visibleNoSavedListPlan, setVisibleNoSavedListPlan] = useState<string | null>(null);
   const planKey = `${previewStartDate}/${previewIntervalWeeks}/${previewCount}`;
   const visibleCopyFeedback = copyFeedback?.planKey === planKey
     ? copyFeedback.kind : null;
@@ -169,7 +170,9 @@ export function Schedule({
   const savedCoverage = savedDateCoverage(savedCountByPlannedDate);
   const cancelledOnlyDates = cancelledOnlySavedDateCount(savedCountByPlannedDate);
   const cancelledDateList = cancelledOnlySavedDateList(savedCountByPlannedDate);
+  const noSavedDateList = noSavedProposedDateList(savedCountByPlannedDate);
   const isCancelledListVisible = cancelledDateList.length > 0 && visibleCancelledListPlan === planKey;
+  const isNoSavedListVisible = noSavedDateList.length > 0 && visibleNoSavedListPlan === planKey;
   // Both directions use the same authorized, bounded, date-only status
   // series and existing read-only agenda navigation. The counts never
   // claim availability, confirmation, or an appointment for this proposal.
@@ -343,6 +346,7 @@ export function Schedule({
             const prior = shiftDate(date, -1);
             setVisibleNoteKey(null);
             setVisibleCancelledListPlan(null);
+                  setVisibleNoSavedListPlan(null);
             setDate(prior);
             setPreviewStartDate(prior);
           }}
@@ -359,6 +363,7 @@ export function Schedule({
               onClearAppointmentFocus?.();
               setVisibleNoteKey(null);
               setVisibleCancelledListPlan(null);
+                  setVisibleNoSavedListPlan(null);
               setDate(e.target.value);
               setPreviewStartDate(e.target.value);
             }}
@@ -372,6 +377,7 @@ export function Schedule({
             const following = shiftDate(date, 1);
             setVisibleNoteKey(null);
             setVisibleCancelledListPlan(null);
+                  setVisibleNoSavedListPlan(null);
             setDate(following);
             setPreviewStartDate(following);
           }}
@@ -418,6 +424,7 @@ export function Schedule({
                   // even if someone later restores the previous rule.
                   setVisibleNoteKey(null);
                   setVisibleCancelledListPlan(null);
+                  setVisibleNoSavedListPlan(null);
                   setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
                 }}
               >
@@ -436,6 +443,7 @@ export function Schedule({
                   // the number of proposed visits back and forth.
                   setVisibleNoteKey(null);
                   setVisibleCancelledListPlan(null);
+                  setVisibleNoSavedListPlan(null);
                   setPreviewCount(Number(event.target.value));
                 }}
               >
@@ -569,6 +577,64 @@ export function Schedule({
                                 onClick={() => reviewPlannedDate(cancelledDate)}
                               >
                                 Review cancelled-only proposed date {cancelledDate}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="secondary recurring-visit-no-saved-list-toggle"
+                      aria-expanded={isNoSavedListVisible}
+                      disabled={busy || noSavedDateList.length === 0}
+                      onClick={() => setVisibleNoSavedListPlan(
+                        isNoSavedListVisible ? null : planKey,
+                      )}
+                    >
+                      {isNoSavedListVisible
+                        ? "Hide proposed dates without saved appointments"
+                        : `Show proposed dates without saved appointments (${noSavedDateList.length})`}
+                    </button>
+                    {isNoSavedListVisible && (
+                      <div className="recurring-visit-no-saved-list">
+                        <p>
+                          No non-archived saved appointments on these
+                          proposed calendar dates. These visits are
+                          NOT BOOKED, and staff or equipment
+                          availability has not been checked.
+                        </p>
+                        <ul aria-label="Proposed dates without saved appointments">
+                          {noSavedDateList.map((emptyDate) => (
+                            <li
+                              key={emptyDate}
+                              aria-current={emptyDate === date ? "date" : undefined}
+                              className={emptyDate === date
+                                ? "recurring-visit-no-saved-is-reviewed"
+                                : undefined}
+                            >
+                              <div className="recurring-visit-no-saved-date-info">
+                                <span className="recurring-visit-no-saved-position">
+                                  Proposed visit {plannedVisitReviewPosition(plannedVisitDates, emptyDate)}{" "}
+                                  of {plannedVisitDates.length}
+                                </span>
+                                <time dateTime={emptyDate}>
+                                  {plannedVisitWeekday(emptyDate).weekday}{" "}
+                                  {emptyDate}
+                                </time>
+                                {emptyDate === date && (
+                                  <span className="recurring-visit-no-saved-current-label">
+                                    Currently reviewing
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                type="button"
+                                className="secondary"
+                                disabled={busy || emptyDate === date}
+                                onClick={() => reviewPlannedDate(emptyDate)}
+                              >
+                                Review proposed date without saved appointments {emptyDate}
                               </button>
                             </li>
                           ))}
