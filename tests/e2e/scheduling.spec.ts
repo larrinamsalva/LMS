@@ -189,6 +189,15 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     ]);
     await expect(overview)
       .toContainText("not a count of booked appointments");
+    const reviewedDetails = planner.getByRole("region", {
+      name: "Reviewed proposed visit details", exact: true,
+    });
+    await expect(reviewedDetails).toContainText("Reviewed visit 1 of 4");
+    await expect(reviewedDetails.locator(".recurring-visit-selected-date"))
+      .toHaveText("Friday 2026-11-06");
+    await expect(reviewedDetails).toContainText(
+      "Counts include saved records on this calendar date",
+    );
     const plannedDates = planner.getByRole("list", {
       name: "Planned visit dates", exact: true,
     }).locator("li");
@@ -215,6 +224,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const savedStatuses = plannedDates.locator(".recurring-visit-status-counts");
     await expect(savedCounts).toHaveCount(4);
     await expect(savedStatuses).toHaveCount(4);
+    await expect(reviewedDetails.locator(".recurring-visit-selected-count"))
+      .toContainText("Saved on this date:");
+    await expect(reviewedDetails.locator(".recurring-visit-selected-statuses"))
+      .toHaveText(await savedStatuses.first().innerText());
     await expect(savedStatuses.first()).toContainText("Scheduled ");
     await expect(savedStatuses.first()).toContainText("In progress ");
     await expect(savedStatuses.first()).toContainText("Completed ");
@@ -358,6 +371,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     });
     const jumpToPlanned = planner.getByLabel("Jump to planned visit", { exact: true });
     await expect(jumpToPlanned).toHaveValue("2026-11-06");
+    await expect(reviewedDetails).toContainText("Reviewed visit 1 of 6");
     await expect(jumpToPlanned.locator("option")).toHaveCount(7);
     await expect(jumpToPlanned.locator("option").nth(3))
       .toHaveText("Visit 3 — Friday, 2027-01-01");
@@ -369,11 +383,17 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(reviewedState)
       .toContainText("Currently reviewing planned visit 3 of 6: 2027-01-01");
     await expect(plannedDates.nth(2)).toHaveAttribute("aria-current", "date");
+    await expect(reviewedDetails).toContainText("Reviewed visit 3 of 6");
+    await expect(reviewedDetails.locator(".recurring-visit-selected-date"))
+      .toHaveText("Friday 2027-01-01");
+    await expect(reviewedDetails.locator(".recurring-visit-selected-statuses"))
+      .toHaveText(await savedStatuses.nth(2).innerText());
     expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
     // When the agenda is not included in the newly selected rule,
     // show a placeholder; do not pick/claim a booked date implicitly.
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("1");
     await expect(jumpToPlanned).toHaveValue("");
+    await expect(reviewedDetails).toHaveCount(0);
     await expect(reviewedState).toContainText(
       "Agenda date is not one of the proposed visit dates",
     );
@@ -381,12 +401,15 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       .toHaveCount(0);
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("4");
     await expect(jumpToPlanned).toHaveValue("2027-01-01");
+    await expect(reviewedDetails).toContainText("Reviewed visit 3 of 6");
     await planner.getByLabel("Number of preview visits", { exact: true })
       .selectOption("12");
     await expect(jumpToPlanned.locator("option")).toHaveCount(13);
+    await expect(reviewedDetails).toContainText("Reviewed visit 3 of 12");
     await planner.getByLabel("Number of preview visits", { exact: true })
       .selectOption("6");
     await expect(jumpToPlanned.locator("option")).toHaveCount(7);
+    await expect(reviewedDetails).toContainText("Reviewed visit 3 of 6");
     await firstPlanned.click();
     await expect(jumpToPlanned).toHaveValue("2026-11-06");
     expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
@@ -417,6 +440,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // Edge jumps use the exact same agenda-review pathway as individual
     // cards and Previous/Next, never changing the first proposed date.
     await lastPlanned.click();
+    await expect(reviewedDetails).toContainText("Reviewed visit 6 of 6");
     await expect(page.getByLabel("Schedule date", { exact: true }))
       .toHaveValue("2027-03-26");
     await expect(reviewedState)
@@ -474,6 +498,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     );
     await expect(plannedDates).toHaveCount(0);
     await expect(overview).toHaveCount(0);
+    await expect(reviewedDetails).toHaveCount(0);
     await expect(weekdays).toHaveCount(0);
     await expect(savedCounts).toHaveCount(0);
     await expect(savedStatuses).toHaveCount(0);
@@ -519,8 +544,12 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // A separate test would exhaust the demo's fixed 24-session limit
     // on the final HTTP boundary test. No production caps are changed.
     const preparedDate = "2026-12-04";
-    await planner.getByRole("button", {
-      name: "Prepare appointment for planned visit 2 on " + preparedDate,
+    await jumpToPlanned.selectOption(preparedDate);
+    await expect(reviewedDetails).toContainText("Reviewed visit 2 of 6");
+    await expect(reviewedDetails.locator(".recurring-visit-selected-date"))
+      .toHaveText("Friday " + preparedDate);
+    await reviewedDetails.getByRole("button", {
+      name: "Prepare currently reviewed visit 2 on " + preparedDate,
       exact: true,
     }).click();
     await expect(page.getByRole("heading", {
@@ -556,6 +585,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(restoredPlanner).toContainText("Back to your unsaved recurring visit plan.");
     await expect(restoredPlanner.locator(".recurring-visit-review-state"))
       .toContainText("Currently reviewing planned visit 2 of 6: 2026-12-04");
+    await expect(restoredPlanner.getByRole("region", {
+      name: "Reviewed proposed visit details", exact: true,
+    })).toContainText("Reviewed visit 2 of 6");
     await expect(restoredPlanner.locator(".recurring-visit-dates li[aria-current='date']"))
       .toHaveCount(1);
     await expect(restoredPlanner.getByLabel("Repeat visits", { exact: true }))
@@ -627,6 +659,12 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(savedRoutePlanner.locator("details")).toHaveAttribute("open", "");
     await expect(savedRoutePlanner.locator(".recurring-visit-review-state"))
       .toContainText("Currently reviewing planned visit 4 of 6: 2027-01-29");
+    const afterSaveDetails = savedRoutePlanner.getByRole("region", {
+      name: "Reviewed proposed visit details", exact: true,
+    });
+    await expect(afterSaveDetails).toContainText("Reviewed visit 4 of 6");
+    await expect(afterSaveDetails.locator(".recurring-visit-selected-count"))
+      .toContainText(/Saved on this date: [1-9]\d* non-archived appointment/);
     await expect(savedRoutePlanner.getByRole("list", {
       name: "Planned visit dates", exact: true,
     }).locator(".recurring-visit-date-text")).toHaveText(anchoredVisitLabels);

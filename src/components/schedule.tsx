@@ -151,6 +151,10 @@ export function Schedule({
     previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
   }
   const reviewedVisitPosition = plannedVisitReviewPosition(plannedVisitDates, date);
+  const reviewedPlannedDate = reviewedVisitPosition === null
+    ? null : plannedVisitDates[reviewedVisitPosition - 1];
+  const reviewedDateStatuses = reviewedVisitPosition === null
+    ? null : savedCountByPlannedDate[reviewedVisitPosition - 1] ?? null;
   const firstPlannedDate = edgePlannedVisitDate(plannedVisitDates, "first");
   const lastPlannedDate = edgePlannedVisitDate(plannedVisitDates, "last");
   const previousPlannedDate = adjacentPlannedVisitDate(plannedVisitDates, date, "previous");
@@ -161,6 +165,20 @@ export function Schedule({
     onClearAppointmentFocus?.();
     setArchived(false);
     setDate(selected);
+  }
+  function preparePlannedDate(visitDate: string) {
+    // Both the selected-visit shortcut and each numbered row must use
+    // the same single-date validation and existing manual editor.
+    // A preview never creates a booked appointment or assigns resources.
+    const selectedDate = plannedVisitAppointmentDraft(
+      previewStartDate, previewIntervalWeeks, previewCount, visitDate,
+    ).scheduled_date;
+    onPrepareAppointment({
+      startDate: previewStartDate,
+      everyWeeks: previewIntervalWeeks,
+      occurrences: previewCount,
+      selectedDate,
+    });
   }
   async function copyPlannedDates() {
     const selectedPlanKey = planKey;
@@ -453,6 +471,47 @@ export function Schedule({
                   </select>
                   <p className="muted">Select any proposed date to review its agenda. No appointment is booked.</p>
                 </div>
+                {reviewedPlannedDate && reviewedDateStatuses && (
+                  <section
+                    className="recurring-visit-selected"
+                    aria-label="Reviewed proposed visit details"
+                  >
+                    <h3>Reviewed visit {reviewedVisitPosition} of {plannedVisitDates.length}</h3>
+                    <p className="recurring-visit-selected-date">
+                      {plannedVisitWeekday(reviewedPlannedDate).weekday}{" "}
+                      <time dateTime={reviewedPlannedDate}>{reviewedPlannedDate}</time>
+                    </p>
+                    <p className="recurring-visit-selected-count">
+                      Saved on this date: {reviewedDateStatuses.savedAppointments}{" "}
+                      non-archived {reviewedDateStatuses.savedAppointments === 1
+                        ? "appointment" : "appointments"}
+                    </p>
+                    <p className="recurring-visit-selected-statuses">
+                      Saved statuses: Scheduled {reviewedDateStatuses.scheduled}
+                      {" · "}In progress {reviewedDateStatuses.inProgress}
+                      {" · "}Completed {reviewedDateStatuses.completed}
+                      {" · "}Cancelled {reviewedDateStatuses.cancelled}
+                      {reviewedDateStatuses.other > 0 && (
+                        <>{" · "}Other {reviewedDateStatuses.other}</>
+                      )}
+                    </p>
+                    <p className="muted">
+                      Counts include saved records on this calendar date, not
+                      confirmed bookings for this proposal. They do not prove
+                      staff or equipment availability.
+                    </p>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={!canWrite || busy}
+                      aria-label={"Prepare currently reviewed visit " +
+                        reviewedVisitPosition + " on " + reviewedPlannedDate}
+                      onClick={() => preparePlannedDate(reviewedPlannedDate)}
+                    >
+                      Prepare this visit manually
+                    </button>
+                  </section>
+                )}
                 <div className="recurring-visit-navigation-actions">
                   <button
                     type="button"
@@ -555,21 +614,7 @@ export function Schedule({
                       aria-label={"Prepare appointment for planned visit " + (index + 1) + " on " + visitDate}
                       aria-describedby={visitCountLabelId + "-" + index +
                         " " + visitCountLabelId + "-status-" + index}
-                      onClick={() => {
-                        // Recheck membership in the current validated series.
-                        // This passes only one date; booking still uses the
-                        // ordinary required fields and final conflict checks.
-                        const dateOnly = plannedVisitAppointmentDraft(
-                          previewStartDate, previewIntervalWeeks,
-                          previewCount, visitDate,
-                        ).scheduled_date;
-                        onPrepareAppointment({
-                          startDate: previewStartDate,
-                          everyWeeks: previewIntervalWeeks,
-                          occurrences: previewCount,
-                          selectedDate: dateOnly,
-                        });
-                      }}
+                      onClick={() => preparePlannedDate(visitDate)}
                     >
                       Prepare appointment
                     </button>
