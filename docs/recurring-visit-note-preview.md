@@ -33,8 +33,10 @@ without requiring either browser API.
 - Selecting a different proposed visit via the existing dropdown,
   per-card Review, or First/Previous/Next/Last buttons closes the
   old note; opening Preview again shows the newly selected date.
-  Changing the recurrence, count or anchor also makes the existing
-  selected-key comparison refuse to show stale note text.
+  Changing the recurrence interval, proposed-visit count, or
+  business-local calendar anchor actively closes the note. Reverting
+  those controls to their previous values does not reopen a formerly
+  displayed note; the operator must explicitly click Preview again.
 - If the agenda date is not part of the valid current proposal,
   or the preview is invalid/overflowed, the entire focused-visit
   panel (and note toggle) is absent as before.
@@ -83,6 +85,14 @@ Playwright scheduling sessions (no new demo sessions):
   offers TXT/preview as fallbacks, without a false copy success.
 - Off-plan and overflowing plans hide the note and its toggle;
   restoring a valid plan keeps the preview collapsed by default.
+- Regression for the initial Browser failure: after an open note,
+  change the recurrence interval to exclude the selected agenda date,
+  then restore the old interval. Verify no note reappears. Open
+  the note again, change from six to twelve visits, verify it closes,
+  and open only on deliberate click.
+- Open a reviewed note, change the calendar anchor to an invalid
+  overflowing date, then restore the previous anchor. The note
+  remains closed; the user must choose Preview again.
 - In twelve-date Compact view the preview is usable; selecting
   date #10 closes the previous text and reopening shows #10,
   with the correct current agenda date.
