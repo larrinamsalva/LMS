@@ -1205,10 +1205,30 @@ legend {
   padding: 6px 0;
   border-top: 1px solid var(--border);
 }
+.recurring-visit-cancelled-date-info {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.recurring-visit-cancelled-position {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
 .recurring-visit-cancelled-list time {
   color: var(--text);
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+}
+.recurring-visit-cancelled-list li.recurring-visit-cancelled-is-reviewed {
+  border-left: 3px solid var(--accent);
+  padding-left: 9px;
+}
+.recurring-visit-cancelled-current-label {
+  font-weight: 700;
+  color: var(--text);
 }
 .recurring-visit-cancelled-list li button {
   min-height: 44px;
