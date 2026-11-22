@@ -236,6 +236,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const noSavedList = coverage.getByRole("list", {
       name: "Proposed dates without saved appointments", exact: true,
     });
+    // The NOT BOOKED / availability disclaimer is a sibling <p>
+    // above this <ul>, not part of the list's accessible text.
+    const noSavedListPanel = coverage.locator(".recurring-visit-no-saved-list");
     await expect(noSavedListToggle).toHaveAttribute("aria-expanded", "false");
     await expect(noSavedList).toHaveCount(0);
     await expect(cancelledListToggle).toHaveAttribute("aria-expanded", "false");
@@ -422,8 +425,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       );
       await noSavedListToggle.click();
       await expect(noSavedListToggle).toHaveAttribute("aria-expanded", "true");
-      await expect(noSavedList).toContainText("NOT BOOKED");
-      await expect(noSavedList).toContainText("availability has not been checked");
+      await expect(noSavedListPanel).toContainText("NOT BOOKED");
+      await expect(noSavedListPanel).toContainText("availability has not been checked");
       await expect(noSavedList.locator("time")).toHaveCount(fourNoSavedDates.length);
       expect(await noSavedList.locator("time").evaluateAll((nodes) =>
         nodes.map((node) => node.getAttribute("datetime")),
@@ -968,7 +971,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     if (compactNoSavedCount > 0) {
       await noSavedListToggle.click();
       await expect(noSavedList.locator("li")).toHaveCount(compactNoSavedCount);
-      await expect(noSavedList).toContainText("NOT BOOKED");
+      await expect(noSavedListPanel).toContainText("NOT BOOKED");
       const datesInNoSavedList = await noSavedList.locator("time").evaluateAll(
         (nodes) => nodes.map((node) => node.getAttribute("datetime")),
       );
