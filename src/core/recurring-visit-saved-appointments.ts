@@ -137,3 +137,22 @@ export function previousProposedDateBySavedCoverage(
   }
   return null;
 }
+
+/**
+ * Number of distinct proposed dates whose ONLY existing, non-archived
+ * saved appointments have the exact retained "Cancelled" status.
+ * A zero-record date does not qualify; nor does one containing any other
+ * status (Scheduled, In progress, Completed, or unknown Other).
+ *
+ * The shared date/status calculation already applies organization scope,
+ * archival rules, local-midnight overlap and interval validation. This
+ * helper reads only those existing bounded rows, never stored records
+ * directly and never makes an availability or booking claim.
+ */
+export function cancelledOnlySavedDateCount(
+  statuses: readonly PlannedDateAppointmentStatuses[],
+): number {
+  return statuses.filter((row) =>
+    row.savedAppointments > 0 && row.savedAppointments === row.cancelled,
+  ).length;
+}
