@@ -1166,6 +1166,20 @@ legend {
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
+.recurring-visit-coverage-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0 4px;
+}
+.recurring-visit-coverage-actions button {
+  min-height: 44px;
+  min-width: min(100%, 220px);
+  flex: 1 1 220px;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
 .recurring-visit-export {
   margin: 12px 0;
   display: flex;

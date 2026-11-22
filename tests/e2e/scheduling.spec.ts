@@ -199,6 +199,16 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     );
     const withSaved = coverage.locator(".recurring-visit-coverage-with-saved");
     const withoutSaved = coverage.locator(".recurring-visit-coverage-without-saved");
+    const reviewNextWithSaved = coverage.getByRole("button", {
+      name: "Review next proposed date with saved records", exact: true,
+    });
+    const reviewNextWithoutSaved = coverage.getByRole("button", {
+      name: "Review next proposed date without saved records", exact: true,
+    });
+    await expect(reviewNextWithSaved).toBeVisible();
+    await expect(reviewNextWithoutSaved).toBeVisible();
+    await expect(coverage).toContainText("without wrapping");
+    await expect(coverage).toContainText("do not check free time");
     const reviewedDetails = planner.getByRole("region", {
       name: "Reviewed proposed visit details", exact: true,
     });
@@ -359,6 +369,47 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(withSaved).toHaveText(String(sixSavedDateRows));
     await expect(withoutSaved).toHaveText(String(6 - sixSavedDateRows));
     await expect(coverage).toContainText("of 6 proposed dates");
+    // Verify the coverage shortcuts with real seeded saved-row counts,
+    // not assumptions about which fictional dates already contain data.
+    // Both shortcuts are strictly read-only and must not re-anchor
+    // the original four-week proposal.
+    const savedDateLabels = await savedCounts.allTextContents();
+    const proposedDateValues = await visitLabels.allTextContents();
+    const savedIndex = savedDateLabels.findIndex((label, index) =>
+      index > 0 && /^Already saved: [1-9]\d* non-archived/.test(label),
+    );
+    const withoutIndex = savedDateLabels.findIndex((label, index) =>
+      index > 0 && /^Already saved: 0 non-archived/.test(label),
+    );
+    for (const [shortcut, index] of [
+      [reviewNextWithSaved, savedIndex],
+      [reviewNextWithoutSaved, withoutIndex],
+    ] as const) {
+      if (index < 0) {
+        await expect(shortcut).toBeDisabled();
+      } else {
+        await expect(shortcut).toBeEnabled();
+        const expectedDate = proposedDateValues[index].split(": ")[1];
+        await shortcut.click();
+        await expect(page.getByLabel("Schedule date", { exact: true }))
+          .toHaveValue(expectedDate);
+        await expect(planner.locator(".recurring-visit-review-state"))
+          .toContainText(`planned visit ${index + 1} of 6: ${expectedDate}`);
+        await planner.getByLabel("Jump to planned visit", { exact: true })
+          .selectOption("2026-11-06");
+        await expect(page.getByLabel("Schedule date", { exact: true }))
+          .toHaveValue("2026-11-06");
+      }
+      expect(await visitLabels.allTextContents()).toEqual(proposedDateValues);
+    }
+    // The last visit has no strictly later proposed date in either
+    // group; the buttons must not silently loop back to the first.
+    await planner.getByLabel("Jump to planned visit", { exact: true })
+      .selectOption("2027-03-26");
+    await expect(reviewNextWithSaved).toBeDisabled();
+    await expect(reviewNextWithoutSaved).toBeDisabled();
+    await planner.getByLabel("Jump to planned visit", { exact: true })
+      .selectOption("2026-11-06");
     await expect(weekdays).toHaveText(Array.from({ length: 6 }, () => "Friday"));
     await expect(overview.locator("dd")).toHaveText([
       "6", "6", "0",
@@ -585,6 +636,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // navigation, current details and manual preparation remain usable.
     await compactView.check();
     await expect(plannedDates).toHaveCount(0);
+    await expect(reviewNextWithSaved).toBeVisible();
+    await expect(reviewNextWithoutSaved).toBeVisible();
     await expect(reviewCopyButton).toBeVisible();
     await expect(reviewDownloadButton).toBeVisible();
     await previewVisitNote.click();
@@ -713,6 +766,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(compactView).toHaveCount(0);
     await expect(overview).toHaveCount(0);
     await expect(coverage).toHaveCount(0);
+    await expect(reviewNextWithSaved).toHaveCount(0);
+    await expect(reviewNextWithoutSaved).toHaveCount(0);
     await expect(reviewedDetails).toHaveCount(0);
     await expect(selectableNote).toHaveCount(0);
     await expect(previewVisitNote).toHaveCount(0);
@@ -946,6 +1001,12 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(afterSaveCoverage).toContainText(
       "Neither count confirms proposed bookings",
     );
+    await expect(afterSaveCoverage.getByRole("button", {
+      name: "Review next proposed date with saved records", exact: true,
+    })).toBeVisible();
+    await expect(afterSaveCoverage.getByRole("button", {
+      name: "Review next proposed date without saved records", exact: true,
+    })).toBeVisible();
     const savedAfterExplicitBooking = await page.request.get(
       "/api/demo?organizationId=" + previewOrganization,
     ).then((response) => response.json());
