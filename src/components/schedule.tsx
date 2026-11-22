@@ -540,11 +540,28 @@ export function Schedule({
                         </p>
                         <ul aria-label="Cancelled-only proposed visit dates">
                           {cancelledDateList.map((cancelledDate) => (
-                            <li key={cancelledDate}>
-                              <time dateTime={cancelledDate}>
-                                {plannedVisitWeekday(cancelledDate).weekday}{" "}
-                                {cancelledDate}
-                              </time>
+                            <li
+                              key={cancelledDate}
+                              aria-current={cancelledDate === date ? "date" : undefined}
+                              className={cancelledDate === date
+                                ? "recurring-visit-cancelled-is-reviewed"
+                                : undefined}
+                            >
+                              <div className="recurring-visit-cancelled-date-info">
+                                <span className="recurring-visit-cancelled-position">
+                                  Proposed visit {plannedVisitReviewPosition(plannedVisitDates, cancelledDate)}{" "}
+                                  of {plannedVisitDates.length}
+                                </span>
+                                <time dateTime={cancelledDate}>
+                                  {plannedVisitWeekday(cancelledDate).weekday}{" "}
+                                  {cancelledDate}
+                                </time>
+                                {cancelledDate === date && (
+                                  <span className="recurring-visit-cancelled-current-label">
+                                    Currently reviewing
+                                  </span>
+                                )}
+                              </div>
                               <button
                                 type="button"
                                 className="secondary"
