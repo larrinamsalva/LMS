@@ -179,3 +179,15 @@ export function isCancelledOnlySavedDate(
   return status.savedAppointments > 0 &&
     status.cancelled === status.savedAppointments;
 }
+
+/**
+ * A proposed business-local date has no overlapping, non-archived
+ * saved appointment records in the current authorized organization.
+ * This is a record-presence check, NEVER staff/equipment availability
+ * or confirmation that the proposal has been booked.
+ */
+export function hasNoSavedAppointmentsOnPlannedDate(
+  status: PlannedDateAppointmentStatuses,
+): boolean {
+  return status.savedAppointments === 0;
+}
