@@ -11,7 +11,7 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
-import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount } from "../core/recurring-visit-saved-appointments";
+import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -120,6 +120,8 @@ export function Schedule({
   // Transient, per-reviewed-date display only. No browser storage,
   // appointment write, clipboard access or automatic booking.
   const [visibleNoteKey, setVisibleNoteKey] = useState<string | null>(null);
+  // Collapsed on entry and on every changed plan; never stored remotely.
+  const [visibleCancelledListPlan, setVisibleCancelledListPlan] = useState<string | null>(null);
   const planKey = `${previewStartDate}/${previewIntervalWeeks}/${previewCount}`;
   const visibleCopyFeedback = copyFeedback?.planKey === planKey
     ? copyFeedback.kind : null;
@@ -166,6 +168,8 @@ export function Schedule({
   }
   const savedCoverage = savedDateCoverage(savedCountByPlannedDate);
   const cancelledOnlyDates = cancelledOnlySavedDateCount(savedCountByPlannedDate);
+  const cancelledDateList = cancelledOnlySavedDateList(savedCountByPlannedDate);
+  const isCancelledListVisible = cancelledDateList.length > 0 && visibleCancelledListPlan === planKey;
   // Both directions use the same authorized, bounded, date-only status
   // series and existing read-only agenda navigation. The counts never
   // claim availability, confirmation, or an appointment for this proposal.
@@ -338,6 +342,7 @@ export function Schedule({
             onClearAppointmentFocus?.();
             const prior = shiftDate(date, -1);
             setVisibleNoteKey(null);
+            setVisibleCancelledListPlan(null);
             setDate(prior);
             setPreviewStartDate(prior);
           }}
@@ -353,6 +358,7 @@ export function Schedule({
             onChange={(e) => {
               onClearAppointmentFocus?.();
               setVisibleNoteKey(null);
+              setVisibleCancelledListPlan(null);
               setDate(e.target.value);
               setPreviewStartDate(e.target.value);
             }}
@@ -365,6 +371,7 @@ export function Schedule({
             onClearAppointmentFocus?.();
             const following = shiftDate(date, 1);
             setVisibleNoteKey(null);
+            setVisibleCancelledListPlan(null);
             setDate(following);
             setPreviewStartDate(following);
           }}
@@ -410,6 +417,7 @@ export function Schedule({
                   // A new recurrence rule always closes an opened note,
                   // even if someone later restores the previous rule.
                   setVisibleNoteKey(null);
+                  setVisibleCancelledListPlan(null);
                   setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
                 }}
               >
@@ -427,6 +435,7 @@ export function Schedule({
                   // Never resurrect a previously opened note after changing
                   // the number of proposed visits back and forth.
                   setVisibleNoteKey(null);
+                  setVisibleCancelledListPlan(null);
                   setPreviewCount(Number(event.target.value));
                 }}
               >
@@ -509,6 +518,46 @@ export function Schedule({
                       of {savedCoverage.withSaved} proposed dates with saved
                       records contain only cancelled, non-archived appointments.
                     </p>
+                    <button
+                      type="button"
+                      className="secondary recurring-visit-cancelled-list-toggle"
+                      aria-expanded={isCancelledListVisible}
+                      disabled={busy || cancelledDateList.length === 0}
+                      onClick={() => setVisibleCancelledListPlan(
+                        isCancelledListVisible ? null : planKey,
+                      )}
+                    >
+                      {isCancelledListVisible
+                        ? "Hide cancelled-only proposed dates"
+                        : `Show cancelled-only proposed dates (${cancelledDateList.length})`}
+                    </button>
+                    {isCancelledListVisible && (
+                      <div className="recurring-visit-cancelled-list">
+                        <p>
+                          Review-only proposed calendar dates with saved
+                          cancelled records. They are NOT BOOKED by this
+                          plan or confirmed available.
+                        </p>
+                        <ul aria-label="Cancelled-only proposed visit dates">
+                          {cancelledDateList.map((cancelledDate) => (
+                            <li key={cancelledDate}>
+                              <time dateTime={cancelledDate}>
+                                {plannedVisitWeekday(cancelledDate).weekday}{" "}
+                                {cancelledDate}
+                              </time>
+                              <button
+                                type="button"
+                                className="secondary"
+                                disabled={busy || cancelledDate === date}
+                                onClick={() => reviewPlannedDate(cancelledDate)}
+                              >
+                                Review cancelled-only proposed date {cancelledDate}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     <p>
                       Existing records may be unrelated to this proposal,
                       and cancelled records still count if not archived.

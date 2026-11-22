@@ -1174,6 +1174,47 @@ legend {
   background: var(--surface);
   overflow-wrap: anywhere;
 }
+.recurring-visit-coverage .recurring-visit-cancelled-list-toggle {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+  margin: 6px 0;
+}
+.recurring-visit-cancelled-list {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  min-width: 0;
+}
+.recurring-visit-cancelled-list ul {
+  display: grid;
+  list-style: none;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.recurring-visit-cancelled-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
+.recurring-visit-cancelled-list time {
+  color: var(--text);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.recurring-visit-cancelled-list li button {
+  min-height: 44px;
+  max-width: 100%;
+  white-space: normal;
+}
 .recurring-visit-coverage-actions {
   display: flex;
   flex-wrap: wrap;

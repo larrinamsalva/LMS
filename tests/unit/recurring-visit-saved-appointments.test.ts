@@ -5,6 +5,7 @@ import {
   savedAppointmentStatusesOnPlannedDates,
   savedDateCoverage,
   cancelledOnlySavedDateCount,
+  cancelledOnlySavedDateList,
   nextProposedDateBySavedCoverage,
   previousProposedDateBySavedCoverage,
 } from "../../src/core/recurring-visit-saved-appointments";
@@ -324,4 +325,47 @@ it("cancelled-only dates use the existing business-local overnight and DST bound
     [1, 1], [1, 1], [2, 1], [0, 0],
   ]);
   expect(cancelledOnlySavedDateCount(statuses)).toBe(2);
+});
+
+it("lists exactly cancelled-only saved dates in proposal order without leaking records", () => {
+  const dates = previewRecurringVisitDates("2026-11-06", 1, 6);
+  const records = [
+    appointment("2026-11-06T10:00:00Z", "2026-11-06T11:00:00Z", false, "Cancelled"),
+    appointment("2026-11-06T12:00:00Z", "2026-11-06T13:00:00Z", false, "Cancelled"),
+    appointment("2026-11-13T10:00:00Z", "2026-11-13T11:00:00Z", false, "Scheduled"),
+    appointment("2026-11-20T10:00:00Z", "2026-11-20T11:00:00Z", true, "Cancelled"),
+    appointment("2026-11-27T10:00:00Z", "2026-11-27T11:00:00Z", false, "Cancelled"),
+    appointment("2026-11-27T13:00:00Z", "2026-11-27T14:00:00Z", false, "Completed"),
+    appointment("2026-12-04T10:00:00Z", "2026-12-04T11:00:00Z", false, "Cancelled"),
+    appointment("garbled", "2026-12-11T11:00:00Z", false, "Cancelled"),
+    otherRecord(),
+  ];
+  const unchanged = structuredClone(records);
+  const statuses = savedAppointmentStatusesOnPlannedDates(dates, records, "UTC");
+  const snapshot = structuredClone(statuses);
+  expect(cancelledOnlySavedDateList(statuses)).toEqual([
+    "2026-11-06", "2026-12-04",
+  ]);
+  expect(cancelledOnlySavedDateCount(statuses))
+    .toBe(cancelledOnlySavedDateList(statuses).length);
+  expect(cancelledOnlySavedDateList([])).toEqual([]);
+  expect(records).toEqual(unchanged);
+  expect(statuses).toEqual(snapshot);
+  expect(dates).toEqual(previewRecurringVisitDates("2026-11-06", 1, 6));
+});
+
+it("cancelled-only date list respects local midnight overlaps and is empty on no-saved proposals", () => {
+  const dates = ["2026-11-06", "2026-11-07", "2026-11-08"];
+  const cancelled = [
+    appointment("2026-11-07T06:30:00Z", "2026-11-07T08:15:00Z", false, "Cancelled"),
+  ];
+  const statuses = savedAppointmentStatusesOnPlannedDates(
+    dates, cancelled, "America/Los_Angeles",
+  );
+  expect(cancelledOnlySavedDateList(statuses)).toEqual([
+    "2026-11-06", "2026-11-07",
+  ]);
+  expect(cancelledOnlySavedDateList(savedAppointmentStatusesOnPlannedDates(
+    dates, [], "America/Los_Angeles",
+  ))).toEqual([]);
 });

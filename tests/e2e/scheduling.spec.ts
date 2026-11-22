@@ -18,6 +18,20 @@ function cancelledOnlyCardCount(savedLabels: readonly string[], statusLabels: re
     return Number(total![1]) > 0 && Number(total![1]) === Number(cancelled![1]);
   }).length;
 }
+function cancelledOnlyCardDates(
+  savedLabels: readonly string[], statusLabels: readonly string[],
+  dates: readonly string[],
+): string[] {
+  expect(dates).toHaveLength(savedLabels.length);
+  expect(statusLabels).toHaveLength(savedLabels.length);
+  return dates.filter((_, index) => {
+    const total = savedLabels[index].match(/^Already saved: (\d+) non-archived/);
+    const cancelled = statusLabels[index].match(/Cancelled (\d+)/);
+    expect(total).not.toBeNull();
+    expect(cancelled).not.toBeNull();
+    return Number(total![1]) > 0 && Number(total![1]) === Number(cancelled![1]);
+  });
+}
 async function fits(page: Page) {
   expect(
     await page.evaluate(
@@ -210,6 +224,14 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const withSaved = coverage.locator(".recurring-visit-coverage-with-saved");
     const withoutSaved = coverage.locator(".recurring-visit-coverage-without-saved");
     const cancelledOnly = coverage.locator(".recurring-visit-coverage-cancelled-only-count");
+    const cancelledListToggle = coverage.getByRole("button", {
+      name: /^(Show|Hide) cancelled-only proposed dates/,
+    });
+    const cancelledList = coverage.getByRole("list", {
+      name: "Cancelled-only proposed visit dates", exact: true,
+    });
+    await expect(cancelledListToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(cancelledList).toHaveCount(0);
     await expect(coverage).toContainText("proposed dates with saved");
     await expect(coverage).toContainText("only cancelled, non-archived appointments");
     await expect(coverage).toContainText("cancelled-only count does not confirm");
@@ -335,6 +357,46 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(cancelledOnly).toHaveText(String(cancelledOnlyCardCount(
       await savedCounts.allTextContents(), await savedStatuses.allTextContents(),
     )));
+    // Only the date portion of each already-rendered, authorized card
+    // may appear in the read-only proposed cancelled-only list.
+    const cancelledFourDates = cancelledOnlyCardDates(
+      await savedCounts.allTextContents(), await savedStatuses.allTextContents(),
+      await plannedDates.locator(".recurring-visit-date-text time").allTextContents(),
+    );
+    if (cancelledFourDates.length === 0) {
+      await expect(cancelledListToggle).toBeDisabled();
+      await expect(cancelledList).toHaveCount(0);
+    } else {
+      await expect(cancelledListToggle).toBeEnabled();
+      await expect(cancelledListToggle).toHaveText(
+        `Show cancelled-only proposed dates (${cancelledFourDates.length})`,
+      );
+      await cancelledListToggle.click();
+      await expect(cancelledListToggle).toHaveAttribute("aria-expanded", "true");
+      await expect(cancelledList.locator("time")).toHaveCount(cancelledFourDates.length);
+      expect(await cancelledList.locator("time").evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("datetime")),
+      )).toEqual(cancelledFourDates);
+      const reviewCandidate = cancelledFourDates.find((value) => value !== "2026-11-06");
+      if (reviewCandidate) {
+        await cancelledList.getByRole("button", {
+          name: "Review cancelled-only proposed date " + reviewCandidate,
+          exact: true,
+        }).click();
+        await expect(page.getByLabel("Schedule date", { exact: true }))
+          .toHaveValue(reviewCandidate);
+        await planner.getByLabel("Jump to planned visit", { exact: true })
+          .selectOption("2026-11-06");
+      } else {
+        await expect(cancelledList.getByRole("button", {
+          name: "Review cancelled-only proposed date 2026-11-06",
+          exact: true,
+        })).toBeDisabled();
+      }
+      await cancelledListToggle.click();
+      await expect(cancelledList).toHaveCount(0);
+      await expect(cancelledListToggle).toHaveAttribute("aria-expanded", "false");
+    }
     await expect(reviewedDetails.locator(".recurring-visit-selected-count"))
       .toContainText("Saved on this date:");
     await expect(reviewedDetails.locator(".recurring-visit-selected-statuses"))
@@ -398,6 +460,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(cancelledOnly).toHaveText(String(cancelledOnlyCardCount(
       await savedCounts.allTextContents(), await savedStatuses.allTextContents(),
     )));
+    await expect(cancelledListToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(cancelledList).toHaveCount(0);
     await expect(coverage).toContainText("of 6 proposed dates");
     // Verify the coverage shortcuts with real seeded saved-row counts,
     // not assumptions about which fictional dates already contain data.
@@ -699,6 +763,19 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // navigation, current details and manual preparation remain usable.
     await compactView.check();
     await expect(plannedDates).toHaveCount(0);
+    await expect(cancelledListToggle).toBeVisible();
+    // Compact view hides numbered cards, not the optional cancelled-only
+    // list or the operator's ability to review its date-only proposals.
+    const compactCancelledCount = Number(await cancelledOnly.textContent());
+    if (compactCancelledCount > 0) {
+      await cancelledListToggle.click();
+      await expect(cancelledList.locator("li")).toHaveCount(compactCancelledCount);
+      await expect(cancelledList).toContainText("NOT BOOKED");
+      await cancelledListToggle.click();
+      await expect(cancelledList).toHaveCount(0);
+    } else {
+      await expect(cancelledListToggle).toBeDisabled();
+    }
     await expect(reviewPreviousWithSaved).toBeVisible();
     await expect(reviewPreviousWithoutSaved).toBeVisible();
     await expect(reviewNextWithSaved).toBeVisible();
@@ -832,6 +909,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(overview).toHaveCount(0);
     await expect(coverage).toHaveCount(0);
     await expect(cancelledOnly).toHaveCount(0);
+    await expect(cancelledListToggle).toHaveCount(0);
+    await expect(cancelledList).toHaveCount(0);
     await expect(reviewPreviousWithSaved).toHaveCount(0);
     await expect(reviewPreviousWithoutSaved).toHaveCount(0);
     await expect(reviewNextWithSaved).toHaveCount(0);
@@ -1071,6 +1150,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     }).locator(".recurring-visit-status-counts").allTextContents();
     await expect(afterSaveCoverage.locator(".recurring-visit-coverage-cancelled-only-count"))
       .toHaveText(String(cancelledOnlyCardCount(afterSaveLabels, afterSaveStatuses)));
+    await expect(afterSaveCoverage.getByRole("button", {
+      name: /^(Show|Hide) cancelled-only proposed dates/,
+    })).toBeVisible();
     await expect(afterSaveCoverage).toContainText(
       "Neither count confirms proposed bookings",
     );
