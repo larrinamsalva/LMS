@@ -1349,6 +1349,20 @@ legend {
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
 }
+.recurring-visit-selected .recurring-visit-selected-cancelled-only,
+.recurring-visit-card-cancelled-only {
+  display: block;
+  color: var(--text);
+  background: var(--surface-alt);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
 .recurring-visit-selected button {
   min-height: 44px;
   max-width: 100%;
