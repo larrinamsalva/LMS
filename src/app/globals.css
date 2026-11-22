@@ -1414,6 +1414,7 @@ legend {
   margin: 0;
   font-size: 13px;
 }
+.recurring-visit-selected .recurring-visit-reviewed-status-copy-feedback,
 .recurring-visit-selected .recurring-visit-reviewed-copy-feedback {
   margin: 10px 0 0;
   padding: 8px 10px;
