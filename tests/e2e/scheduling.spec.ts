@@ -363,6 +363,30 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       await savedCounts.allTextContents(), await savedStatuses.allTextContents(),
       await plannedDates.locator(".recurring-visit-date-text time").allTextContents(),
     );
+    const cancelledCardLabels = plannedDates.locator(".recurring-visit-card-cancelled-only");
+    const selectedCancelledLabel = reviewedDetails.locator(
+      ".recurring-visit-selected-cancelled-only",
+    );
+    await expect(cancelledCardLabels).toHaveCount(cancelledFourDates.length);
+    for (const [index, row] of (await plannedDates.all()).entries()) {
+      const dateOnCard = await row.locator(".recurring-visit-date-text time").innerText();
+      await expect(row.locator(".recurring-visit-card-cancelled-only")).toHaveCount(
+        cancelledFourDates.includes(dateOnCard) ? 1 : 0,
+      );
+    }
+    if (cancelledFourDates.length > 0) {
+      await expect(cancelledCardLabels.first()).toContainText(
+        "NOT BOOKED by this proposal; availability not confirmed",
+      );
+    }
+    await expect(selectedCancelledLabel).toHaveCount(
+      cancelledFourDates.includes("2026-11-06") ? 1 : 0,
+    );
+    if (cancelledFourDates.includes("2026-11-06")) {
+      await expect(selectedCancelledLabel).toContainText(
+        "This proposed visit is NOT BOOKED",
+      );
+    }
     if (cancelledFourDates.length === 0) {
       await expect(cancelledListToggle).toBeDisabled();
       await expect(cancelledList).toHaveCount(0);
@@ -404,6 +428,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
         }).click();
         await expect(page.getByLabel("Schedule date", { exact: true }))
           .toHaveValue(reviewCandidate);
+        await expect(selectedCancelledLabel).toContainText(
+          "This proposed visit is NOT BOOKED",
+        );
         await expect(currentCancelledRows).toHaveCount(1);
         await expect(currentCancelledRows).toContainText("Currently reviewing");
         await expect(currentCancelledRows.locator("time"))
@@ -414,6 +441,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
         })).toBeDisabled();
         await planner.getByLabel("Jump to planned visit", { exact: true })
           .selectOption("2026-11-06");
+        await expect(selectedCancelledLabel).toHaveCount(
+          cancelledFourDates.includes("2026-11-06") ? 1 : 0,
+        );
         await expect(currentCancelledRows).toHaveCount(
           cancelledFourDates.includes("2026-11-06") ? 1 : 0,
         );
@@ -490,6 +520,17 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(cancelledOnly).toHaveText(String(cancelledOnlyCardCount(
       await savedCounts.allTextContents(), await savedStatuses.allTextContents(),
     )));
+    await expect(cancelledCardLabels).toHaveCount(
+      cancelledOnlyCardCount(
+        await savedCounts.allTextContents(), await savedStatuses.allTextContents(),
+      ),
+    );
+    await expect(selectedCancelledLabel).toHaveCount(
+      cancelledOnlyCardDates(
+        await savedCounts.allTextContents(), await savedStatuses.allTextContents(),
+        await plannedDates.locator(".recurring-visit-date-text time").allTextContents(),
+      ).includes("2026-11-06") ? 1 : 0,
+    );
     await expect(cancelledListToggle).toHaveAttribute("aria-expanded", "false");
     await expect(cancelledList).toHaveCount(0);
     await expect(coverage).toContainText("of 6 proposed dates");
@@ -952,6 +993,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(compactView).toHaveCount(0);
     await expect(overview).toHaveCount(0);
     await expect(coverage).toHaveCount(0);
+    await expect(cancelledCardLabels).toHaveCount(0);
+    await expect(selectedCancelledLabel).toHaveCount(0);
     await expect(cancelledOnly).toHaveCount(0);
     await expect(cancelledListToggle).toHaveCount(0);
     await expect(cancelledList).toHaveCount(0);
@@ -1166,6 +1209,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(afterSaveDetails).toContainText("Reviewed visit 4 of 6");
     await expect(afterSaveDetails.locator(".recurring-visit-selected-count"))
       .toContainText(/Saved on this date: [1-9]\d* non-archived appointment/);
+    // The explicit manual Save created a Scheduled appointment; the
+    // selected date can no longer be classified as cancelled-only.
+    await expect(afterSaveDetails.locator(".recurring-visit-selected-cancelled-only"))
+      .toHaveCount(0);
     await expect(savedRoutePlanner.getByRole("list", {
       name: "Planned visit dates", exact: true,
     }).locator(".recurring-visit-date-text")).toHaveText(anchoredVisitLabels);
