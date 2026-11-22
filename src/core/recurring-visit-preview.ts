@@ -68,12 +68,17 @@ export function plannedVisitAppointmentDraft(
 }
 
 
-/** A transient, date-only UI return route. No customer, resource, or draft data. */
+/**
+ * A transient, organization-scoped UI return route. Besides the existing
+ * strictly validated calendar proposal, this may carry a boolean-only
+ * presentation preference; never customer, resource, or appointment data.
+ */
 export type RecurringVisitReturnPlan = {
   startDate: string;
   everyWeeks: VisitFrequencyWeeks;
   occurrences: number;
   selectedDate: string;
+  compactPreview?: boolean;
 };
 
 /** Validate the return route against the same bounded preview as preparation. */
@@ -83,6 +88,12 @@ export function validateRecurringVisitReturnPlan(
   plannedVisitAppointmentDraft(
     plan.startDate, plan.everyWeeks, plan.occurrences, plan.selectedDate,
   );
+  // Accept only boolean presentation state from the volatile return
+  // route. Legacy routes without it still return to the full list.
+  if (plan.compactPreview !== undefined &&
+      typeof plan.compactPreview !== "boolean") {
+    throw new RangeError("Compact view must be a true or false preference.");
+  }
   return { ...plan };
 }
 
