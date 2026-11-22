@@ -152,7 +152,19 @@ export function previousProposedDateBySavedCoverage(
 export function cancelledOnlySavedDateCount(
   statuses: readonly PlannedDateAppointmentStatuses[],
 ): number {
+  return cancelledOnlySavedDateList(statuses).length;
+}
+
+/**
+ * List only proposed calendar dates where every non-archived,
+ * already-saved appointment has status Cancelled. Empty dates
+ * never qualify. Preserve the exact input order from the validated
+ * business-local preview; no bookings, mutation or availability tests.
+ */
+export function cancelledOnlySavedDateList(
+  statuses: readonly PlannedDateAppointmentStatuses[],
+): string[] {
   return statuses.filter((row) =>
     row.savedAppointments > 0 && row.savedAppointments === row.cancelled,
-  ).length;
+  ).map((row) => row.date);
 }
