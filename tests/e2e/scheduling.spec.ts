@@ -198,6 +198,14 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(reviewedDetails).toContainText(
       "Counts include saved records on this calendar date",
     );
+    const reviewCopyButton = reviewedDetails.getByRole("button", {
+      name: "Copy reviewed visit", exact: true,
+    });
+    await expect(reviewCopyButton).toBeEnabled();
+    const reviewedCopyFeedback = reviewedDetails.locator(
+      ".recurring-visit-reviewed-copy-feedback",
+    );
+    await expect(reviewedCopyFeedback).toHaveCount(0);
     const plannedDates = planner.getByRole("list", {
       name: "Planned visit dates", exact: true,
     }).locator("li");
@@ -404,12 +412,56 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       .toHaveText("Friday 2027-01-01");
     await expect(reviewedDetails.locator(".recurring-visit-selected-statuses"))
       .toHaveText(await savedStatuses.nth(2).innerText());
+    // Single-date copy is entirely distinct from the existing whole-
+    // plan CSV/clipboard export; it never copies saved status counts.
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText: async (text: string) => {
+            document.documentElement.dataset.reviewedVisitCopiedText = text;
+          },
+        },
+      });
+    });
+    await reviewCopyButton.click();
+    await expect(reviewedCopyFeedback).toHaveText(
+      "Selected proposed visit copied. Nothing was booked.",
+    );
+    const selectedText = await page.evaluate(
+      () => document.documentElement.dataset.reviewedVisitCopiedText ?? "",
+    );
+    expect(selectedText).toBe([
+      "LMS proposed visit 3 of 6 - NOT BOOKED",
+      "Friday, 2027-01-01 (business-local date; no time)",
+      "Planning note only. No appointment, staff or equipment is booked or confirmed.",
+    ].join("\n"));
+    expect(selectedText).not.toContain(customer);
+    expect(selectedText).not.toContain(work);
+    expect(selectedText).not.toContain(resource);
+    expect(selectedText).not.toContain("Saved on this date:");
+    // Permission denial must show failure, not a false copied message.
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText: async () => { throw new Error("Denied"); },
+        },
+      });
+    });
+    await reviewCopyButton.click();
+    await expect(reviewedCopyFeedback)
+      .toContainText("Could not copy selected visit. Clipboard access may be blocked");
+    expect(await page.evaluate(
+      () => document.documentElement.dataset.reviewedVisitCopiedText ?? "",
+    )).toBe(selectedText);
     expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
     // When the agenda is not included in the newly selected rule,
     // show a placeholder; do not pick/claim a booked date implicitly.
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("1");
     await expect(jumpToPlanned).toHaveValue("");
     await expect(reviewedDetails).toHaveCount(0);
+    await expect(reviewCopyButton).toHaveCount(0);
     await expect(reviewedState).toContainText(
       "Agenda date is not one of the proposed visit dates",
     );
@@ -426,6 +478,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // navigation, current details and manual preparation remain usable.
     await compactView.check();
     await expect(plannedDates).toHaveCount(0);
+    await expect(reviewCopyButton).toBeVisible();
     await expect(reviewedDetails.getByRole("button", {
       name: "Prepare currently reviewed visit 3 on 2027-01-01",
       exact: true,
@@ -536,6 +589,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(compactView).toHaveCount(0);
     await expect(overview).toHaveCount(0);
     await expect(reviewedDetails).toHaveCount(0);
+    await expect(reviewCopyButton).toHaveCount(0);
     await expect(weekdays).toHaveCount(0);
     await expect(savedCounts).toHaveCount(0);
     await expect(savedStatuses).toHaveCount(0);
