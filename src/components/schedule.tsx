@@ -11,7 +11,7 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
-import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList, isCancelledOnlySavedDate, hasNoSavedAppointmentsOnPlannedDate, noSavedProposedDateList, recurringVisitSavedStatusCsv } from "../core/recurring-visit-saved-appointments";
+import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList, isCancelledOnlySavedDate, hasNoSavedAppointmentsOnPlannedDate, noSavedProposedDateList, recurringVisitSavedStatusCsv, recurringVisitReviewedSavedStatusText } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -280,6 +280,27 @@ export function Schedule({
     // The generated filename is safe: selectedDate is a strict
     // YYYY-MM-DD member of the validated proposed-date list.
     link.download = `lms-proposed-visit-${selectedDate}-NOT-BOOKED.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  }
+  function downloadReviewedSavedStatusText() {
+    const selectedDate = reviewedPlannedDate;
+    if (!selectedDate || !reviewedDateStatuses) return;
+    // Validate all authorized date/count rows and the selected date before
+    // exporting this read-only, one-date status summary. Never export
+    // appointment identities, staff/resource fields or times.
+    const text = recurringVisitReviewedSavedStatusText(
+      previewStartDate, previewIntervalWeeks, previewCount,
+      selectedDate, savedCountByPlannedDate,
+    );
+    const blobUrl = URL.createObjectURL(
+      new Blob([text + "\n"], { type: "text/plain;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = `lms-reviewed-visit-status-${selectedDate}-NOT-BOOKED.txt`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -877,6 +898,14 @@ export function Schedule({
                       onClick={downloadReviewedVisitText}
                     >
                       Download reviewed visit TXT
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy}
+                      onClick={downloadReviewedSavedStatusText}
+                    >
+                      Download reviewed visit status TXT
                     </button>
                     <button
                       type="button"
