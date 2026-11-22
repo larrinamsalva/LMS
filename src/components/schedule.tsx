@@ -11,7 +11,7 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
-import { savedAppointmentStatusesOnPlannedDates } from "../core/recurring-visit-saved-appointments";
+import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -164,6 +164,7 @@ export function Schedule({
   } catch (error) {
     previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
   }
+  const savedCoverage = savedDateCoverage(savedCountByPlannedDate);
   const reviewedVisitPosition = plannedVisitReviewPosition(plannedVisitDates, date);
   const reviewedPlannedDate = reviewedVisitPosition === null
     ? null : plannedVisitDates[reviewedVisitPosition - 1];
@@ -465,6 +466,33 @@ export function Schedule({
                       <dd>{planOverview.spanWeeks} calendar weeks</dd>
                     </div>
                   </dl>
+                  <div
+                    className="recurring-visit-coverage"
+                    role="group"
+                    aria-label="Saved appointment date coverage"
+                  >
+                    <h4>Saved records on proposed dates</h4>
+                    <p>
+                      <strong className="recurring-visit-coverage-with-saved">
+                        {savedCoverage.withSaved}
+                      </strong>{" "}
+                      of {plannedVisitDates.length} proposed dates contain
+                      at least one non-archived saved appointment.
+                    </p>
+                    <p>
+                      <strong className="recurring-visit-coverage-without-saved">
+                        {savedCoverage.withoutSaved}
+                      </strong>{" "}
+                      of {plannedVisitDates.length} proposed dates contain
+                      no non-archived saved appointment.
+                    </p>
+                    <p>
+                      Existing records may be unrelated to this proposal,
+                      and cancelled records still count if not archived.
+                      No saved records does not mean staff or equipment
+                      is available. Neither count confirms proposed bookings.
+                    </p>
+                  </div>
                   <p>
                     This is a date-only proposal, not a count of booked
                     appointments. Weekend labels do not establish staffing

@@ -1,6 +1,10 @@
 import { expect, it } from "vitest";
 import type { WorkspaceRecord } from "../../src/core/engine";
-import { savedAppointmentsOnPlannedDates } from "../../src/core/recurring-visit-saved-appointments";
+import {
+  savedAppointmentsOnPlannedDates,
+  savedAppointmentStatusesOnPlannedDates,
+  savedDateCoverage,
+} from "../../src/core/recurring-visit-saved-appointments";
 import { previewRecurringVisitDates } from "../../src/core/recurring-visit-preview";
 
 type SavedRecord = Pick<WorkspaceRecord, "entity" | "archived" | "data">;
@@ -109,4 +113,50 @@ it("stays deterministic over 720 fictional dates, including zero counts", () => 
     }
   }
   expect(records).toEqual(original);
+});
+
+it("summarizes distinct proposed dates with any non-archived saved record, not booked series", () => {
+  const dates = ["2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09"];
+  const records = [
+    appointment("2026-11-06T18:00:00Z", "2026-11-06T19:00:00Z"),
+    appointment("2026-11-06T20:00:00Z", "2026-11-06T21:00:00Z", false, "Completed"),
+    appointment("2026-11-07T06:30:00Z", "2026-11-07T08:15:00Z", false, "Cancelled"),
+    appointment("2026-11-08T18:00:00Z", "2026-11-08T19:00:00Z", true),
+    appointment("corrupt", "2026-11-10T18:00:00Z"),
+    otherRecord(),
+  ];
+  const original = structuredClone(records);
+  const statuses = savedAppointmentStatusesOnPlannedDates(
+    dates, records, "America/Los_Angeles",
+  );
+  // One date may contain multiple saved records, and one overnight
+  // record may overlap two dates. Both remain distinct calendar dates.
+  expect(statuses.map((row) => row.savedAppointments)).toEqual([3, 1, 0, 0]);
+  expect(savedDateCoverage(statuses)).toEqual({ withSaved: 2, withoutSaved: 2 });
+  expect(records).toEqual(original);
+  expect(dates).toEqual(["2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09"]);
+});
+
+it("saved date coverage is empty-safe and reports zero/complete mixes without booking claims", () => {
+  expect(savedDateCoverage([])).toEqual({ withSaved: 0, withoutSaved: 0 });
+  const dates = previewRecurringVisitDates("2026-11-06", 4, 6);
+  const noRecords = savedAppointmentStatusesOnPlannedDates(dates, [], "UTC");
+  expect(savedDateCoverage(noRecords)).toEqual({ withSaved: 0, withoutSaved: 6 });
+  const everyDate = dates.map((date) =>
+    appointment(date + "T10:00:00Z", date + "T11:00:00Z"),
+  );
+  const rows = savedAppointmentStatusesOnPlannedDates(dates, everyDate, "UTC");
+  expect(savedDateCoverage(rows)).toEqual({ withSaved: 6, withoutSaved: 0 });
+  const before = structuredClone(rows);
+  expect(savedDateCoverage([...rows].reverse()))
+    .toEqual({ withSaved: 6, withoutSaved: 0 });
+  expect(rows).toEqual(before);
+  // A cancelled, non-archived appointment still contributes to the
+  // same-date count, not to a proposed-series booking confirmation.
+  const cancelled = dates.map((date) =>
+    appointment(date + "T10:00:00Z", date + "T11:00:00Z", false, "Cancelled"),
+  );
+  expect(savedDateCoverage(savedAppointmentStatusesOnPlannedDates(
+    dates, cancelled, "UTC",
+  ))).toEqual({ withSaved: 6, withoutSaved: 0 });
 });
