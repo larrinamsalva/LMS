@@ -189,6 +189,16 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     ]);
     await expect(overview)
       .toContainText("not a count of booked appointments");
+    const coverage = overview.getByRole("group", {
+      name: "Saved appointment date coverage", exact: true,
+    });
+    await expect(coverage).toContainText("Saved records on proposed dates");
+    await expect(coverage).toContainText("Existing records may be unrelated");
+    await expect(coverage).toContainText(
+      "Neither count confirms proposed bookings",
+    );
+    const withSaved = coverage.locator(".recurring-visit-coverage-with-saved");
+    const withoutSaved = coverage.locator(".recurring-visit-coverage-without-saved");
     const reviewedDetails = planner.getByRole("region", {
       name: "Reviewed proposed visit details", exact: true,
     });
@@ -304,6 +314,11 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       (await savedCounts.first().textContent() ?? "").match(/Already saved: (\d+)/)?.[1],
     );
     expect(sumFirstStatuses).toBe(firstTotal);
+    const initialSavedDateRows = (await savedCounts.allTextContents())
+      .filter((text) => /^Already saved: [1-9]\d* non-archived/.test(text)).length;
+    await expect(withSaved).toHaveText(String(initialSavedDateRows));
+    await expect(withoutSaved).toHaveText(String(4 - initialSavedDateRows));
+    await expect(coverage).toContainText("of 4 proposed dates");
     // A freshly created appointment must contribute, but the fictional
     // seed may also contain other already-saved entries on that date.
     await expect(savedCounts.first()).toHaveText(
@@ -339,6 +354,11 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(plannedDates.nth(1)).toContainText("2026-12-04");
     await expect(savedCounts).toHaveCount(6);
     await expect(savedStatuses).toHaveCount(6);
+    const sixSavedDateRows = (await savedCounts.allTextContents())
+      .filter((text) => /^Already saved: [1-9]\d* non-archived/.test(text)).length;
+    await expect(withSaved).toHaveText(String(sixSavedDateRows));
+    await expect(withoutSaved).toHaveText(String(6 - sixSavedDateRows));
+    await expect(coverage).toContainText("of 6 proposed dates");
     await expect(weekdays).toHaveText(Array.from({ length: 6 }, () => "Friday"));
     await expect(overview.locator("dd")).toHaveText([
       "6", "6", "0",
@@ -692,6 +712,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(plannedDates).toHaveCount(0);
     await expect(compactView).toHaveCount(0);
     await expect(overview).toHaveCount(0);
+    await expect(coverage).toHaveCount(0);
     await expect(reviewedDetails).toHaveCount(0);
     await expect(selectableNote).toHaveCount(0);
     await expect(previewVisitNote).toHaveCount(0);
@@ -906,6 +927,25 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Planned visit dates", exact: true,
     }).locator("li").nth(3).locator(".recurring-visit-saved-count"))
       .toContainText(/Already saved: [1-9]\d* non-archived appointment/);
+    // Exactly one explicit manual appointment was saved. The overview
+    // must recompute date coverage from the same saved per-date rows.
+    const afterSaveCoverage = savedRoutePlanner.getByRole("group", {
+      name: "Saved appointment date coverage", exact: true,
+    });
+    const afterSaveLabels = await savedRoutePlanner.getByRole("list", {
+      name: "Planned visit dates", exact: true,
+    }).locator(".recurring-visit-saved-count").allTextContents();
+    expect(afterSaveLabels).toHaveLength(6);
+    const coveredAfterSave = afterSaveLabels.filter((text) =>
+      /^Already saved: [1-9]\d* non-archived/.test(text),
+    ).length;
+    await expect(afterSaveCoverage.locator(".recurring-visit-coverage-with-saved"))
+      .toHaveText(String(coveredAfterSave));
+    await expect(afterSaveCoverage.locator(".recurring-visit-coverage-without-saved"))
+      .toHaveText(String(6 - coveredAfterSave));
+    await expect(afterSaveCoverage).toContainText(
+      "Neither count confirms proposed bookings",
+    );
     const savedAfterExplicitBooking = await page.request.get(
       "/api/demo?organizationId=" + previewOrganization,
     ).then((response) => response.json());
