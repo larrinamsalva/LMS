@@ -552,7 +552,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // silently resurrect the previously opened note on the same date.
     await expect(selectableNote).toHaveCount(0);
     await previewVisitNote.click();
-    await expect(selectableNote).toContainText("NOT BOOKED");
+    expect(await selectableNote.inputValue()).toContain("NOT BOOKED");
     await planner.getByLabel("Number of preview visits", { exact: true })
       .selectOption("12");
     // Changing the number of proposed visits also closes the note,
@@ -683,7 +683,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // Regression: changing the calendar anchor closes a previous
     // on-screen note. Returning to the original date must not revive it.
     await previewVisitNote.click();
-    await expect(selectableNote).toContainText("NOT BOOKED");
+    expect(await selectableNote.inputValue()).toContain("NOT BOOKED");
     // Do not silently return partial plans if the last date is out of range.
     await page.getByLabel("Schedule date", { exact: true }).fill("2100-12-25");
     await expect(planner.getByRole("status")).toContainText(
