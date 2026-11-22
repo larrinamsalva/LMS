@@ -488,7 +488,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Hide visit note", exact: true,
     })).toHaveAttribute("aria-expanded", "true");
     await expect(selectableNote).not.toHaveValue(/Saved on this date/);
-    await expect(selectableNote).not.toHaveValue(new RegExp(customer.replace(/[.*+?^$\{\}()|[\]\\]/g, "\\$&")));
+    expect(await selectableNote.inputValue()).not.toContain(customer);
+    expect(await selectableNote.inputValue()).not.toContain(work);
+    expect(await selectableNote.inputValue()).not.toContain(resource);
     const [singleDownload] = await Promise.all([
       page.waitForEvent("download"),
       reviewDownloadButton.click(),
@@ -573,8 +575,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(selectableNote).toHaveCount(0);
     await expect(previewVisitNote).toHaveAttribute("aria-expanded", "false");
     await previewVisitNote.click();
-    await expect(selectableNote).toContainText("LMS proposed visit 10 of 12 - NOT BOOKED");
-    await expect(selectableNote).toContainText(tenthDate!);
+    const tenthNote = await selectableNote.inputValue();
+    expect(tenthNote).toContain("LMS proposed visit 10 of 12 - NOT BOOKED");
+    expect(tenthNote).toContain(tenthDate!);
     await expect(page.getByLabel("Schedule date", { exact: true }))
       .toHaveValue(tenthDate!);
     await expect(plannedDates).toHaveCount(0);
