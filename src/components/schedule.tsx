@@ -234,6 +234,27 @@ export function Schedule({
       setCopyFeedback({ planKey: selectedPlanKey, kind: "failed" });
     }
   }
+  function downloadReviewedVisitText() {
+    const selectedDate = reviewedPlannedDate;
+    if (!selectedDate) return;
+    // Use the exact same date-only, membership-validated text as the
+    // clipboard action. No saved-status, customer, or resource data.
+    const text = recurringVisitReviewedText(
+      previewStartDate, previewIntervalWeeks, previewCount, selectedDate,
+    );
+    const blobUrl = URL.createObjectURL(
+      new Blob([text + "\n"], { type: "text/plain;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    // The generated filename is safe: selectedDate is a strict
+    // YYYY-MM-DD member of the validated proposed-date list.
+    link.download = `lms-proposed-visit-${selectedDate}-NOT-BOOKED.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  }
   function downloadPlannedDatesCsv() {
     // Regenerate the current bounded date-only series at click time; never
     // read customer, work, resource or appointment records for this export.
@@ -553,11 +574,19 @@ export function Schedule({
                     >
                       Copy reviewed visit
                     </button>
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={busy}
+                      onClick={downloadReviewedVisitText}
+                    >
+                      Download reviewed visit TXT
+                    </button>
                     {visibleReviewCopyFeedback && (
                       <p className="recurring-visit-reviewed-copy-feedback" role="status">
                         {visibleReviewCopyFeedback === "copied"
                           ? "Selected proposed visit copied. Nothing was booked."
-                          : "Could not copy selected visit. Clipboard access may be blocked; use Download planned dates CSV instead."}
+                          : "Could not copy selected visit. Clipboard access may be blocked; use Download reviewed visit TXT instead."}
                       </p>
                     )}
                   </section>
