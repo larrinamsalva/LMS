@@ -201,6 +201,22 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const plannedDates = planner.getByRole("list", {
       name: "Planned visit dates", exact: true,
     }).locator("li");
+    const compactView = planner.getByRole("checkbox", {
+      name: "Compact view — hide date cards", exact: true,
+    });
+    await expect(compactView).not.toBeChecked();
+    await expect(plannedDates).toHaveCount(4);
+    await compactView.check();
+    await expect(plannedDates).toHaveCount(0);
+    await expect(planner.locator(".recurring-visit-compact-note"))
+      .toContainText("Date cards hidden for easier review");
+    await expect(reviewedDetails).toContainText("Reviewed visit 1 of 4");
+    await expect(overview).toContainText("Proposed visits");
+    await expect(exportButton).toBeVisible();
+    await expect(copyButton).toBeVisible();
+    await compactView.uncheck();
+    await expect(plannedDates).toHaveCount(4);
+    await expect(planner.locator(".recurring-visit-compact-note")).toHaveCount(0);
     const visitLabels = plannedDates.locator(".recurring-visit-date-text");
     const weekdays = plannedDates.locator(".recurring-visit-weekday");
     await expect(weekdays).toHaveText([
@@ -406,6 +422,26 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       .selectOption("12");
     await expect(jumpToPlanned.locator("option")).toHaveCount(13);
     await expect(reviewedDetails).toContainText("Reviewed visit 3 of 12");
+    // In a 12-visit plan, compact view hides only repeated cards;
+    // navigation, current details and manual preparation remain usable.
+    await compactView.check();
+    await expect(plannedDates).toHaveCount(0);
+    await expect(reviewedDetails.getByRole("button", {
+      name: "Prepare currently reviewed visit 3 on 2027-01-01",
+      exact: true,
+    })).toBeEnabled();
+    const tenthDate = await jumpToPlanned.locator("option").nth(10).getAttribute("value");
+    expect(tenthDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    await jumpToPlanned.selectOption(tenthDate!);
+    await expect(reviewedDetails).toContainText("Reviewed visit 10 of 12");
+    await expect(page.getByLabel("Schedule date", { exact: true }))
+      .toHaveValue(tenthDate!);
+    await expect(plannedDates).toHaveCount(0);
+    await compactView.uncheck();
+    await expect(plannedDates).toHaveCount(12);
+    await expect(plannedDates.nth(9)).toHaveAttribute("aria-current", "date");
+    await jumpToPlanned.selectOption("2027-01-01");
+    await expect(reviewedDetails).toContainText("Reviewed visit 3 of 12");
     await planner.getByLabel("Number of preview visits", { exact: true })
       .selectOption("6");
     await expect(jumpToPlanned.locator("option")).toHaveCount(7);
@@ -497,6 +533,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "on or before 2100-12-31",
     );
     await expect(plannedDates).toHaveCount(0);
+    await expect(compactView).toHaveCount(0);
     await expect(overview).toHaveCount(0);
     await expect(reviewedDetails).toHaveCount(0);
     await expect(weekdays).toHaveCount(0);

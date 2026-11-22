@@ -1282,6 +1282,40 @@ legend {
   border: 1px solid var(--border);
   border-radius: 6px;
 }
+.recurring-visit-compact-control {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 8px;
+  min-width: 0;
+  color: var(--text);
+}
+.recurring-visit-compact-control label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-weight: 650;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.recurring-visit-compact-control input {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  accent-color: var(--accent);
+}
+.recurring-visit-compact-control p {
+  margin: 0;
+  font-size: 13px;
+}
+.recurring-visit-compact-note {
+  border-left: 4px solid var(--accent);
+  background: var(--surface);
+  color: var(--text);
+  padding: 10px 12px;
+  margin: 8px 0 12px;
+  overflow-wrap: anywhere;
+}
 .recurring-visit-dates {
   margin: 9px 0;
   padding-left: 26px;

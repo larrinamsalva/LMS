@@ -99,6 +99,9 @@ export function Schedule({
   const [previewCount, setPreviewCount] = useState(
     () => initialRecurringPlan?.occurrences ?? 4,
   );
+  // Purely local presentation preference; a full list stays visible
+  // by default and the validated proposal never changes when toggled.
+  const [compactPreview, setCompactPreview] = useState(false);
   // Feedback is keyed to the exact transient plan. If a rule or anchor
   // changes before or after a clipboard promise, stale "Copied" text
   // never describes the newly selected proposed dates.
@@ -555,8 +558,30 @@ export function Schedule({
                   </button>
                 </div>
               </div>
-              <ol className="recurring-visit-dates" aria-label="Planned visit dates">
-                {plannedVisitDates.map((visitDate, index) => (
+              <div className="recurring-visit-compact-control">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={compactPreview}
+                    disabled={busy}
+                    onChange={(event) => setCompactPreview(event.target.checked)}
+                  />
+                  Compact view — hide date cards
+                </label>
+                <p className="muted">
+                  Hide only the long date-card list. The selected visit details,
+                  date picker, exports and manual preparation stay available.
+                </p>
+              </div>
+              {compactPreview ? (
+                <p className="recurring-visit-compact-note">
+                  Date cards hidden for easier review. Choose a visit above or
+                  uncheck Compact view to show all {plannedVisitDates.length} cards.
+                  Your proposed dates and saved appointments are unchanged.
+                </p>
+              ) : (
+                <ol className="recurring-visit-dates" aria-label="Planned visit dates">
+                  {plannedVisitDates.map((visitDate, index) => (
                   <li
                     key={visitDate}
                     className={visitDate === date ? "recurring-visit-is-reviewed" : undefined}
@@ -619,8 +644,9 @@ export function Schedule({
                       Prepare appointment
                     </button>
                   </li>
-                ))}
-              </ol>
+                  ))}
+                </ol>
+              )}
             </>
           )}
           <p className="recurring-visit-warning">
