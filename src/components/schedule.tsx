@@ -99,9 +99,12 @@ export function Schedule({
   const [previewCount, setPreviewCount] = useState(
     () => initialRecurringPlan?.occurrences ?? 4,
   );
-  // Purely local presentation preference; a full list stays visible
-  // by default and the validated proposal never changes when toggled.
-  const [compactPreview, setCompactPreview] = useState(false);
+  // Read-only presentation state returns only through the existing
+  // volatile, organization-scoped one-appointment route. Ordinary
+  // Schedule entry always starts with all date cards visible.
+  const [compactPreview, setCompactPreview] = useState(
+    () => initialRecurringPlan?.compactPreview === true,
+  );
   // Feedback is keyed to the exact transient plan. If a rule or anchor
   // changes before or after a clipboard promise, stale "Copied" text
   // never describes the newly selected proposed dates.
@@ -181,6 +184,7 @@ export function Schedule({
       everyWeeks: previewIntervalWeeks,
       occurrences: previewCount,
       selectedDate,
+      compactPreview,
     });
   }
   async function copyPlannedDates() {
