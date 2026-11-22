@@ -1166,6 +1166,14 @@ legend {
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
+.recurring-visit-coverage .recurring-visit-coverage-cancelled-only {
+  padding: 8px 10px;
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  color: var(--text);
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
 .recurring-visit-coverage-actions {
   display: flex;
   flex-wrap: wrap;
