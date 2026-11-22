@@ -118,6 +118,12 @@ export function Schedule({
     reviewKey: string;
     kind: "copied" | "failed";
   } | null>(null);
+  // Keep date-only copy feedback independent from status-count copying.
+  // Key it to the exact selected proposal AND currently displayed counts.
+  const [statusCopyFeedback, setStatusCopyFeedback] = useState<{
+    statusKey: string;
+    kind: "copied" | "failed";
+  } | null>(null);
   // Transient, per-reviewed-date display only. No browser storage,
   // appointment write, clipboard access or automatic booking.
   const [visibleNoteKey, setVisibleNoteKey] = useState<string | null>(null);
@@ -203,6 +209,14 @@ export function Schedule({
     ? reviewCopyFeedback.kind : null;
   const reviewedDateStatuses = reviewedVisitPosition === null
     ? null : savedCountByPlannedDate[reviewedVisitPosition - 1] ?? null;
+  const reviewedStatusKey = reviewedDateStatuses === null ? null
+    : [reviewKey, reviewedDateStatuses.savedAppointments,
+      reviewedDateStatuses.scheduled, reviewedDateStatuses.inProgress,
+      reviewedDateStatuses.completed, reviewedDateStatuses.cancelled,
+      reviewedDateStatuses.other].join("/");
+  const visibleStatusCopyFeedback = reviewedStatusKey !== null &&
+    statusCopyFeedback?.statusKey === reviewedStatusKey
+    ? statusCopyFeedback.kind : null;
   const firstPlannedDate = edgePlannedVisitDate(plannedVisitDates, "first");
   const lastPlannedDate = edgePlannedVisitDate(plannedVisitDates, "last");
   const previousPlannedDate = adjacentPlannedVisitDate(plannedVisitDates, date, "previous");
@@ -215,6 +229,7 @@ export function Schedule({
     setReviewCopyFeedback(null);
     setVisibleNoteKey(null);
     setVisibleStatusNoteKey(null);
+    setStatusCopyFeedback(null);
     setDate(selected);
   }
   function preparePlannedDate(visitDate: string) {
@@ -249,6 +264,27 @@ export function Schedule({
       setReviewCopyFeedback({ reviewKey: selectedReviewKey, kind: "copied" });
     } catch {
       setReviewCopyFeedback({ reviewKey: selectedReviewKey, kind: "failed" });
+    }
+  }
+  async function copyReviewedSavedStatus() {
+    const selectedDate = reviewedPlannedDate;
+    const selectedStatusKey = reviewedStatusKey;
+    if (!selectedDate || !selectedStatusKey || !reviewedDateStatuses) return;
+    try {
+      // Regenerate from the current authorized date/status totals using
+      // the same strict validator as TXT download and read-only preview.
+      const text = recurringVisitReviewedSavedStatusText(
+        previewStartDate, previewIntervalWeeks, previewCount, selectedDate,
+        savedCountByPlannedDate,
+      );
+      if (!navigator.clipboard?.writeText) {
+        throw new Error("Clipboard is unavailable.");
+      }
+      await navigator.clipboard.writeText(text);
+      setStatusCopyFeedback({ statusKey: selectedStatusKey, kind: "copied" });
+    } catch {
+      // Never claim success if the browser denies access or rejects copying.
+      setStatusCopyFeedback({ statusKey: selectedStatusKey, kind: "failed" });
     }
   }
   async function copyPlannedDates() {
@@ -393,6 +429,7 @@ export function Schedule({
             const prior = shiftDate(date, -1);
             setVisibleNoteKey(null);
     setVisibleStatusNoteKey(null);
+    setStatusCopyFeedback(null);
             setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
             setDate(prior);
@@ -411,6 +448,7 @@ export function Schedule({
               onClearAppointmentFocus?.();
               setVisibleNoteKey(null);
     setVisibleStatusNoteKey(null);
+    setStatusCopyFeedback(null);
               setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
               setDate(e.target.value);
@@ -426,6 +464,7 @@ export function Schedule({
             const following = shiftDate(date, 1);
             setVisibleNoteKey(null);
     setVisibleStatusNoteKey(null);
+    setStatusCopyFeedback(null);
             setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
             setDate(following);
@@ -474,6 +513,7 @@ export function Schedule({
                   // even if someone later restores the previous rule.
                   setVisibleNoteKey(null);
     setVisibleStatusNoteKey(null);
+    setStatusCopyFeedback(null);
                   setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
                   setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
@@ -494,6 +534,7 @@ export function Schedule({
                   // the number of proposed visits back and forth.
                   setVisibleNoteKey(null);
     setVisibleStatusNoteKey(null);
+    setStatusCopyFeedback(null);
                   setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
                   setPreviewCount(Number(event.target.value));
@@ -921,6 +962,14 @@ export function Schedule({
                     <button
                       type="button"
                       className="secondary"
+                      disabled={busy}
+                      onClick={() => void copyReviewedSavedStatus()}
+                    >
+                      Copy saved status summary
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary"
                       aria-expanded={isNotePreviewVisible}
                       onClick={() => setVisibleNoteKey(isNotePreviewVisible ? null : reviewKey)}
                     >
@@ -991,6 +1040,13 @@ export function Schedule({
                           equipment availability is not confirmed.
                         </p>
                       </div>
+                    )}
+                    {visibleStatusCopyFeedback && (
+                      <p className="recurring-visit-reviewed-status-copy-feedback" role="status">
+                        {visibleStatusCopyFeedback === "copied"
+                          ? "Saved status summary copied. No visit was booked or confirmed."
+                          : "Could not copy saved status summary. Clipboard access may be blocked; use Download reviewed visit status TXT or Preview saved status summary instead."}
+                      </p>
                     )}
                     {visibleReviewCopyFeedback && (
                       <p className="recurring-visit-reviewed-copy-feedback" role="status">
