@@ -955,7 +955,8 @@ export function Schedule({
                       type="button"
                       className="secondary"
                       aria-expanded={isStatusNotePreviewVisible}
-                      aria-controls={reviewedStatusNoteId + "-wrapper"}
+                      aria-controls={isStatusNotePreviewVisible
+                        ? reviewedStatusNoteId + "-wrapper" : undefined}
                       onClick={() => setVisibleStatusNoteKey(
                         isStatusNotePreviewVisible ? null : reviewKey,
                       )}
