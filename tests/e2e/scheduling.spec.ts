@@ -288,6 +288,14 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const reviewedStatusDownloadButton = reviewedDetails.getByRole("button", {
       name: "Download reviewed visit status TXT", exact: true,
     });
+    const statusCopyButton = reviewedDetails.getByRole("button", {
+      name: "Copy saved status summary", exact: true,
+    });
+    const statusCopyFeedback = reviewedDetails.locator(
+      ".recurring-visit-reviewed-status-copy-feedback",
+    );
+    await expect(statusCopyButton).toBeEnabled();
+    await expect(statusCopyFeedback).toHaveCount(0);
     const statusPreviewToggle = reviewedDetails.getByRole("button", {
       name: /^(Preview saved status summary|Hide saved status summary)$/,
     });
@@ -364,6 +372,39 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(initialSavedStatusText).not.toContain(work);
     expect(initialSavedStatusText).not.toContain(resource);
     expect(initialSavedStatusText).not.toContain("2026-11-06T");
+    // A successful clipboard action must contain exactly the same
+    // validated, privacy-safe text as the existing status TXT download.
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async (text: string) => {
+          document.documentElement.dataset.copiedStatusSummary = text;
+        } },
+      });
+    });
+    await statusCopyButton.click();
+    await expect(statusCopyFeedback).toHaveText(
+      "Saved status summary copied. No visit was booked or confirmed.",
+    );
+    expect(await page.evaluate(() =>
+      document.documentElement.dataset.copiedStatusSummary ?? "",
+    )).toBe(initialSavedStatusText.trimEnd());
+    await expect(reviewedDetails.locator(
+      ".recurring-visit-reviewed-copy-feedback",
+    )).toHaveCount(0);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async () => { throw new Error("Clipboard denied"); } },
+      });
+    });
+    await statusCopyButton.click();
+    await expect(statusCopyFeedback).toContainText(
+      "Could not copy saved status summary. Clipboard access may be blocked",
+    );
+    await expect(statusCopyFeedback).toContainText(
+      "Download reviewed visit status TXT or Preview saved status summary",
+    );
     // The new on-screen preview must match the validated, privacy-safe
     // downloaded TXT exactly, without a file or clipboard permission.
     await statusPreviewToggle.click();
@@ -1037,6 +1078,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(selectableNote).toHaveCount(0);
     await expect(previewVisitNote).toHaveCount(0);
     await expect(reviewCopyButton).toHaveCount(0);
+    await expect(statusCopyButton).toHaveCount(0);
+    await expect(statusCopyFeedback).toHaveCount(0);
     await expect(reviewDownloadButton).toHaveCount(0);
     await expect(reviewedStatusDownloadButton).toHaveCount(0);
     await expect(statusPreviewToggle).toHaveCount(0);
@@ -1133,6 +1176,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(reviewCopyButton).toBeVisible();
     await expect(reviewDownloadButton).toBeVisible();
     await expect(reviewedStatusDownloadButton).toBeVisible();
+    await expect(statusCopyButton).toBeVisible();
+    await expect(statusCopyFeedback).toHaveCount(0);
     await expect(statusPreviewToggle).toBeVisible();
     await statusPreviewToggle.click();
     await expect(statusPreviewToggle).toHaveAttribute("aria-expanded", "true");
@@ -1270,6 +1315,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(compactView).toHaveCount(0);
     await expect(overview).toHaveCount(0);
     await expect(coverage).toHaveCount(0);
+    await expect(statusCopyButton).toHaveCount(0);
+    await expect(statusCopyFeedback).toHaveCount(0);
     await expect(reviewedStatusDownloadButton).toHaveCount(0);
     await expect(statusPreviewToggle).toHaveCount(0);
     await expect(selectableStatusSummary).toHaveCount(0);
@@ -1290,6 +1337,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(selectableNote).toHaveCount(0);
     await expect(previewVisitNote).toHaveCount(0);
     await expect(reviewCopyButton).toHaveCount(0);
+    await expect(statusCopyButton).toHaveCount(0);
+    await expect(statusCopyFeedback).toHaveCount(0);
     await expect(reviewDownloadButton).toHaveCount(0);
     await expect(weekdays).toHaveCount(0);
     await expect(savedCounts).toHaveCount(0);
@@ -1514,6 +1563,31 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(afterSaveStatusText).not.toContain(customer);
     expect(afterSaveStatusText).not.toContain(work);
     expect(afterSaveStatusText).not.toContain(resource);
+    const afterSaveCopyButton = afterSaveDetails.getByRole("button", {
+      name: "Copy saved status summary", exact: true,
+    });
+    const afterSaveStatusFeedback = afterSaveDetails.locator(
+      ".recurring-visit-reviewed-status-copy-feedback",
+    );
+    await expect(afterSaveStatusFeedback).toHaveCount(0);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async (text: string) => {
+          document.documentElement.dataset.afterSaveCopiedStatus = text;
+        } },
+      });
+    });
+    await afterSaveCopyButton.click();
+    await expect(afterSaveStatusFeedback).toHaveText(
+      "Saved status summary copied. No visit was booked or confirmed.",
+    );
+    expect(await page.evaluate(() =>
+      document.documentElement.dataset.afterSaveCopiedStatus ?? "",
+    )).toBe(afterSaveStatusText.trimEnd());
+    expect(await page.evaluate(() =>
+      document.documentElement.dataset.afterSaveCopiedStatus ?? "",
+    )).not.toContain(customer);
     const afterSavePreviewToggle = afterSaveDetails.getByRole("button", {
       name: /^(Preview saved status summary|Hide saved status summary)$/,
     });
