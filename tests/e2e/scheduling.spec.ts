@@ -285,6 +285,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const reviewDownloadButton = reviewedDetails.getByRole("button", {
       name: "Download reviewed visit TXT", exact: true,
     });
+    const reviewedStatusDownloadButton = reviewedDetails.getByRole("button", {
+      name: "Download reviewed visit status TXT", exact: true,
+    });
     const previewVisitNote = reviewedDetails.getByRole("button", {
       name: "Preview visit note", exact: true,
     });
@@ -323,6 +326,36 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "Planning note only. No appointment, staff or equipment is booked or confirmed.",
       "",
     ].join("\n"));
+    await expect(reviewedStatusDownloadButton).toBeEnabled();
+    const [initialStatusDownload] = await Promise.all([
+      page.waitForEvent("download"), reviewedStatusDownloadButton.click(),
+    ]);
+    expect(initialStatusDownload.suggestedFilename()).toBe(
+      "lms-reviewed-visit-status-2026-11-06-NOT-BOOKED.txt",
+    );
+    const initialSavedStatusText = await readFile(await initialStatusDownload.path(), "utf8");
+    const initialSavedCount = (await reviewedDetails.locator(
+      ".recurring-visit-selected-count",
+    ).innerText()).match(/Saved on this date: (\d+) non-archived/)?.[1];
+    expect(initialSavedCount).toBeDefined();
+    const initialStatusCounts = await reviewedDetails.locator(
+      ".recurring-visit-selected-statuses",
+    ).innerText();
+    expect(initialSavedStatusText).toContain("LMS proposed visit 1 of 4 - NOT BOOKED");
+    expect(initialSavedStatusText).toContain(
+      "Existing non-archived saved appointments on date: " + initialSavedCount,
+    );
+    for (const label of ["Scheduled", "In progress", "Completed", "Cancelled", "Other"]) {
+      const numeric = initialStatusCounts.match(new RegExp(label + " (\\d+)"))?.[1] ?? "0";
+      expect(initialSavedStatusText).toContain(label + " " + numeric);
+    }
+    expect(initialSavedStatusText).toContain(
+      "No staff, equipment, or appointment availability is confirmed.",
+    );
+    expect(initialSavedStatusText).not.toContain(customer);
+    expect(initialSavedStatusText).not.toContain(work);
+    expect(initialSavedStatusText).not.toContain(resource);
+    expect(initialSavedStatusText).not.toContain("2026-11-06T");
     const reviewedCopyFeedback = reviewedDetails.locator(
       ".recurring-visit-reviewed-copy-feedback",
     );
@@ -980,6 +1013,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(previewVisitNote).toHaveCount(0);
     await expect(reviewCopyButton).toHaveCount(0);
     await expect(reviewDownloadButton).toHaveCount(0);
+    await expect(reviewedStatusDownloadButton).toHaveCount(0);
     await expect(reviewedState).toContainText(
       "Agenda date is not one of the proposed visit dates",
     );
@@ -1069,6 +1103,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(reviewNextWithoutSaved).toBeVisible();
     await expect(reviewCopyButton).toBeVisible();
     await expect(reviewDownloadButton).toBeVisible();
+    await expect(reviewedStatusDownloadButton).toBeVisible();
     await previewVisitNote.click();
     await expect(selectableNote).toHaveValue([
       "LMS proposed visit 3 of 12 - NOT BOOKED",
@@ -1195,6 +1230,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(compactView).toHaveCount(0);
     await expect(overview).toHaveCount(0);
     await expect(coverage).toHaveCount(0);
+    await expect(reviewedStatusDownloadButton).toHaveCount(0);
     await expect(noSavedListToggle).toHaveCount(0);
     await expect(noSavedList).toHaveCount(0);
     await expect(noSavedCardLabels).toHaveCount(0);
@@ -1414,6 +1450,28 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Reviewed proposed visit details", exact: true,
     });
     await expect(afterSaveDetails).toContainText("Reviewed visit 4 of 6");
+    const afterSaveReviewedStatus = afterSaveDetails.getByRole("button", {
+      name: "Download reviewed visit status TXT", exact: true,
+    });
+    const [afterSaveStatusDownload] = await Promise.all([
+      page.waitForEvent("download"), afterSaveReviewedStatus.click(),
+    ]);
+    expect(afterSaveStatusDownload.suggestedFilename()).toBe(
+      "lms-reviewed-visit-status-2027-01-29-NOT-BOOKED.txt",
+    );
+    const afterSaveStatusText = await readFile(await afterSaveStatusDownload.path(), "utf8");
+    expect(afterSaveStatusText).toContain("LMS proposed visit 4 of 6 - NOT BOOKED");
+    expect(afterSaveStatusText).toContain("Reviewed date: 2027-01-29");
+    expect(afterSaveStatusText).toContain("Saved-date classification: Has non-cancelled saved records");
+    const actualScheduled = (await afterSaveDetails.locator(
+      ".recurring-visit-selected-statuses",
+    ).innerText()).match(/Scheduled (\d+)/)?.[1];
+    expect(Number(actualScheduled)).toBeGreaterThanOrEqual(1);
+    expect(afterSaveStatusText).toContain("Saved statuses: Scheduled " + actualScheduled);
+    expect(afterSaveStatusText).toContain("No staff, equipment, or appointment availability is confirmed.");
+    expect(afterSaveStatusText).not.toContain(customer);
+    expect(afterSaveStatusText).not.toContain(work);
+    expect(afterSaveStatusText).not.toContain(resource);
     await expect(afterSaveDetails.locator(".recurring-visit-selected-count"))
       .toContainText(/Saved on this date: [1-9]\d* non-archived appointment/);
     // The explicit manual Save created a Scheduled appointment; the
