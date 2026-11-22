@@ -535,8 +535,8 @@ export function Schedule({
                       <div className="recurring-visit-cancelled-list">
                         <p>
                           Review-only proposed calendar dates with saved
-                          cancelled records. They are not booked by this plan
-                          or confirmed available.
+                          cancelled records. They are NOT BOOKED by this
+                          plan or confirmed available.
                         </p>
                         <ul aria-label="Cancelled-only proposed visit dates">
                           {cancelledDateList.map((cancelledDate) => (
