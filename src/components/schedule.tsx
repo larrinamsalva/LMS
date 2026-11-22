@@ -11,7 +11,7 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
-import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage } from "../core/recurring-visit-saved-appointments";
+import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -165,6 +165,7 @@ export function Schedule({
     previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
   }
   const savedCoverage = savedDateCoverage(savedCountByPlannedDate);
+  const cancelledOnlyDates = cancelledOnlySavedDateCount(savedCountByPlannedDate);
   // Both directions use the same authorized, bounded, date-only status
   // series and existing read-only agenda navigation. The counts never
   // claim availability, confirmation, or an appointment for this proposal.
@@ -501,11 +502,21 @@ export function Schedule({
                       of {plannedVisitDates.length} proposed dates contain
                       no non-archived saved appointment.
                     </p>
+                    <p className="recurring-visit-coverage-cancelled-only">
+                      <strong className="recurring-visit-coverage-cancelled-only-count">
+                        {cancelledOnlyDates}
+                      </strong>{" "}
+                      of {savedCoverage.withSaved} proposed dates with saved
+                      records contain only cancelled, non-archived appointments.
+                    </p>
                     <p>
                       Existing records may be unrelated to this proposal,
                       and cancelled records still count if not archived.
-                      No saved records does not mean staff or equipment
-                      is available. Neither count confirms proposed bookings.
+                      Dates with only cancelled records still count as dates
+                      with saved records. Neither a cancelled-only date nor
+                      an empty date proves staff or equipment is available.
+                      Neither count confirms proposed bookings. The
+                      cancelled-only count does not confirm any booking either.
                     </p>
                     <div className="recurring-visit-coverage-actions">
                       <button

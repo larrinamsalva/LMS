@@ -8,6 +8,16 @@ async function start(page: Page) {
     page.getByRole("heading", { name: "Cedar Grove Property" }),
   ).toBeVisible();
 }
+function cancelledOnlyCardCount(savedLabels: readonly string[], statusLabels: readonly string[]): number {
+  expect(statusLabels).toHaveLength(savedLabels.length);
+  return savedLabels.filter((label, index) => {
+    const total = label.match(/^Already saved: (\d+) non-archived/);
+    const cancelled = statusLabels[index].match(/Cancelled (\d+)/);
+    expect(total).not.toBeNull();
+    expect(cancelled).not.toBeNull();
+    return Number(total![1]) > 0 && Number(total![1]) === Number(cancelled![1]);
+  }).length;
+}
 async function fits(page: Page) {
   expect(
     await page.evaluate(
@@ -199,6 +209,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     );
     const withSaved = coverage.locator(".recurring-visit-coverage-with-saved");
     const withoutSaved = coverage.locator(".recurring-visit-coverage-without-saved");
+    const cancelledOnly = coverage.locator(".recurring-visit-coverage-cancelled-only-count");
+    await expect(coverage).toContainText("proposed dates with saved");
+    await expect(coverage).toContainText("only cancelled, non-archived appointments");
+    await expect(coverage).toContainText("cancelled-only count does not confirm");
     const reviewPreviousWithSaved = coverage.getByRole("button", {
       name: "Review previous proposed date with saved records", exact: true,
     });
@@ -318,6 +332,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const savedStatuses = plannedDates.locator(".recurring-visit-status-counts");
     await expect(savedCounts).toHaveCount(4);
     await expect(savedStatuses).toHaveCount(4);
+    await expect(cancelledOnly).toHaveText(String(cancelledOnlyCardCount(
+      await savedCounts.allTextContents(), await savedStatuses.allTextContents(),
+    )));
     await expect(reviewedDetails.locator(".recurring-visit-selected-count"))
       .toContainText("Saved on this date:");
     await expect(reviewedDetails.locator(".recurring-visit-selected-statuses"))
@@ -378,6 +395,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       .filter((text) => /^Already saved: [1-9]\d* non-archived/.test(text)).length;
     await expect(withSaved).toHaveText(String(sixSavedDateRows));
     await expect(withoutSaved).toHaveText(String(6 - sixSavedDateRows));
+    await expect(cancelledOnly).toHaveText(String(cancelledOnlyCardCount(
+      await savedCounts.allTextContents(), await savedStatuses.allTextContents(),
+    )));
     await expect(coverage).toContainText("of 6 proposed dates");
     // Verify the coverage shortcuts with real seeded saved-row counts,
     // not assumptions about which fictional dates already contain data.
@@ -811,6 +831,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(compactView).toHaveCount(0);
     await expect(overview).toHaveCount(0);
     await expect(coverage).toHaveCount(0);
+    await expect(cancelledOnly).toHaveCount(0);
     await expect(reviewPreviousWithSaved).toHaveCount(0);
     await expect(reviewPreviousWithoutSaved).toHaveCount(0);
     await expect(reviewNextWithSaved).toHaveCount(0);
@@ -1045,6 +1066,11 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       .toHaveText(String(coveredAfterSave));
     await expect(afterSaveCoverage.locator(".recurring-visit-coverage-without-saved"))
       .toHaveText(String(6 - coveredAfterSave));
+    const afterSaveStatuses = await savedRoutePlanner.getByRole("list", {
+      name: "Planned visit dates", exact: true,
+    }).locator(".recurring-visit-status-counts").allTextContents();
+    await expect(afterSaveCoverage.locator(".recurring-visit-coverage-cancelled-only-count"))
+      .toHaveText(String(cancelledOnlyCardCount(afterSaveLabels, afterSaveStatuses)));
     await expect(afterSaveCoverage).toContainText(
       "Neither count confirms proposed bookings",
     );

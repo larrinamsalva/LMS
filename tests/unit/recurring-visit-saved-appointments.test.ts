@@ -4,6 +4,7 @@ import {
   savedAppointmentsOnPlannedDates,
   savedAppointmentStatusesOnPlannedDates,
   savedDateCoverage,
+  cancelledOnlySavedDateCount,
   nextProposedDateBySavedCoverage,
   previousProposedDateBySavedCoverage,
 } from "../../src/core/recurring-visit-saved-appointments";
@@ -277,4 +278,50 @@ it("backward saved-date review handles empty, all-saved, all-empty and no-match 
     .toBe(dates[2]);
   expect(previousProposedDateBySavedCoverage(covered, dates[0], "with-saved"))
     .toBeNull();
+});
+
+it("counts dates with only cancelled non-archived records without conflating blank, mixed or other statuses", () => {
+  const dates = ["2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10", "2026-11-11"];
+  const records = [
+    appointment("2026-11-06T10:00:00Z", "2026-11-06T11:00:00Z", false, "Cancelled"),
+    appointment("2026-11-06T12:00:00Z", "2026-11-06T13:00:00Z", false, "Cancelled"),
+    appointment("2026-11-07T10:00:00Z", "2026-11-07T11:00:00Z", false, "Cancelled"),
+    appointment("2026-11-07T12:00:00Z", "2026-11-07T13:00:00Z", false, "Scheduled"),
+    appointment("2026-11-08T10:00:00Z", "2026-11-08T11:00:00Z", true, "Cancelled"),
+    appointment("2026-11-09T10:00:00Z", "2026-11-09T11:00:00Z", false, "Other"),
+    appointment("2026-11-10T10:00:00Z", "2026-11-10T11:00:00Z", false, "Completed"),
+    appointment("corrupt", "2026-11-11T11:00:00Z", false, "Cancelled"),
+    otherRecord(),
+  ];
+  const original = structuredClone(records);
+  const statuses = savedAppointmentStatusesOnPlannedDates(dates, records, "UTC");
+  expect(statuses.map((r) => [r.savedAppointments, r.cancelled])).toEqual([
+    [2, 2], [2, 1], [0, 0], [1, 0], [1, 0], [0, 0],
+  ]);
+  expect(cancelledOnlySavedDateCount(statuses)).toBe(1);
+  expect(savedDateCoverage(statuses)).toEqual({ withSaved: 4, withoutSaved: 2 });
+  expect(records).toEqual(original);
+  expect(dates).toEqual(["2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10", "2026-11-11"]);
+  expect(cancelledOnlySavedDateCount([...statuses].reverse())).toBe(1);
+  expect(cancelledOnlySavedDateCount([])).toBe(0);
+});
+
+it("cancelled-only dates use the existing business-local overnight and DST boundaries", () => {
+  const records = [
+    // Nov 6, 23:30 -> Nov 7, 00:15 Pacific: both dates count as cancelled-only.
+    appointment("2026-11-07T06:30:00Z", "2026-11-07T08:15:00Z", false, "Cancelled"),
+    // A completed appointment on Nov 7 removes Nov 7 from cancelled-only,
+    // but does not change the Nov 6 classification.
+    appointment("2026-11-07T18:00:00Z", "2026-11-07T19:00:00Z", false, "Completed"),
+    // The fall-back repeated hour on Nov 1 is 25 hours locally.
+    appointment("2026-11-01T08:30:00Z", "2026-11-01T09:15:00Z", false, "Cancelled"),
+  ];
+  const statuses = savedAppointmentStatusesOnPlannedDates(
+    ["2026-11-01", "2026-11-06", "2026-11-07", "2026-11-08"],
+    records, "America/Los_Angeles",
+  );
+  expect(statuses.map((row) => [row.savedAppointments, row.cancelled])).toEqual([
+    [1, 1], [1, 1], [2, 1], [0, 0],
+  ]);
+  expect(cancelledOnlySavedDateCount(statuses)).toBe(2);
 });
