@@ -1349,6 +1349,8 @@ legend {
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
 }
+.recurring-visit-selected .recurring-visit-selected-no-saved,
+.recurring-visit-card-no-saved,
 .recurring-visit-selected .recurring-visit-selected-cancelled-only,
 .recurring-visit-card-cancelled-only {
   display: block;

@@ -7,6 +7,7 @@ import {
   cancelledOnlySavedDateCount,
   cancelledOnlySavedDateList,
   isCancelledOnlySavedDate,
+  hasNoSavedAppointmentsOnPlannedDate,
   nextProposedDateBySavedCoverage,
   previousProposedDateBySavedCoverage,
 } from "../../src/core/recurring-visit-saved-appointments";
@@ -428,4 +429,45 @@ it("classifies a cancelled-only saved business-local date without treating empty
     cancelled: 1,
     other: 1,
   })).toBe(false);
+});
+
+it("recognizes zero non-archived saved appointments without inferring free resources", () => {
+  const dates = ["2026-11-06", "2026-11-07", "2026-11-08", "2026-11-09", "2026-11-10"];
+  const records = [
+    appointment("2026-11-06T10:00:00Z", "2026-11-06T11:00:00Z", false, "Scheduled"),
+    appointment("2026-11-07T10:00:00Z", "2026-11-07T11:00:00Z", false, "Cancelled"),
+    appointment("2026-11-08T10:00:00Z", "2026-11-08T11:00:00Z", true, "Cancelled"),
+    appointment("2026-11-09T10:00:00Z", "2026-11-09T11:00:00Z", false, "Other"),
+    appointment("garbled", "2026-11-10T11:00:00Z", false, "Scheduled"),
+    otherRecord(),
+  ];
+  const before = structuredClone(records);
+  const rows = savedAppointmentStatusesOnPlannedDates(dates, records, "UTC");
+  const snapshot = structuredClone(rows);
+  expect(rows.map(hasNoSavedAppointmentsOnPlannedDate))
+    .toEqual([false, false, true, false, true]);
+  expect(rows.map(isCancelledOnlySavedDate))
+    .toEqual([false, true, false, false, false]);
+  expect(savedDateCoverage(rows)).toEqual({ withSaved: 3, withoutSaved: 2 });
+  expect(rows).toEqual(snapshot);
+  expect(records).toEqual(before);
+  expect(hasNoSavedAppointmentsOnPlannedDate({
+    date: "2026-11-11", savedAppointments: 0, scheduled: 0,
+    inProgress: 0, completed: 0, cancelled: 0, other: 0,
+  })).toBe(true);
+  expect(rows.filter(hasNoSavedAppointmentsOnPlannedDate).map((row) => row.date))
+    .toEqual(["2026-11-08", "2026-11-10"]);
+});
+
+it("no-saved date classifier respects business-local overnight boundaries, not UTC date alone", () => {
+  const records = [
+    // Nov 6, 23:30 -> Nov 7, 00:15 Pacific: both days contain a saved entry.
+    appointment("2026-11-07T06:30:00Z", "2026-11-07T08:15:00Z", false, "Completed"),
+  ];
+  const statuses = savedAppointmentStatusesOnPlannedDates(
+    ["2026-11-06", "2026-11-07", "2026-11-08"], records, "America/Los_Angeles",
+  );
+  expect(statuses.map(hasNoSavedAppointmentsOnPlannedDate))
+    .toEqual([false, false, true]);
+  expect(savedDateCoverage(statuses)).toEqual({ withSaved: 2, withoutSaved: 1 });
 });

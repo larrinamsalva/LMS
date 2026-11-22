@@ -367,6 +367,42 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const selectedCancelledLabel = reviewedDetails.locator(
       ".recurring-visit-selected-cancelled-only",
     );
+    const noSavedCardLabels = plannedDates.locator(".recurring-visit-card-no-saved");
+    const selectedNoSavedLabel = reviewedDetails.locator(
+      ".recurring-visit-selected-no-saved",
+    );
+    const fourSavedTotals = await savedCounts.allTextContents();
+    const fourDateValues = await plannedDates.locator(".recurring-visit-date-text time")
+      .allTextContents();
+    const fourNoSavedDates = fourDateValues.filter((_, index) =>
+      /^Already saved: 0 non-archived/.test(fourSavedTotals[index]),
+    );
+    await expect(noSavedCardLabels).toHaveCount(fourNoSavedDates.length);
+    for (const row of await plannedDates.all()) {
+      const rowDate = await row.locator(".recurring-visit-date-text time").innerText();
+      await expect(row.locator(".recurring-visit-card-no-saved")).toHaveCount(
+        fourNoSavedDates.includes(rowDate) ? 1 : 0,
+      );
+    }
+    if (fourNoSavedDates.length > 0) {
+      await expect(noSavedCardLabels.first()).toContainText(
+        "NOT BOOKED by this proposal; availability not confirmed",
+      );
+    }
+    await expect(selectedNoSavedLabel).toHaveCount(
+      fourNoSavedDates.includes("2026-11-06") ? 1 : 0,
+    );
+    if (fourNoSavedDates.includes("2026-11-06")) {
+      await expect(selectedNoSavedLabel).toContainText(
+        "staff or equipment availability is not confirmed",
+      );
+    }
+    // Empty and cancelled-only are mutually exclusive classifications.
+    for (const row of await plannedDates.all()) {
+      expect(await row.locator(".recurring-visit-card-no-saved").count() +
+        await row.locator(".recurring-visit-card-cancelled-only").count())
+        .toBeLessThanOrEqual(1);
+    }
     await expect(cancelledCardLabels).toHaveCount(cancelledFourDates.length);
     for (const [index, row] of (await plannedDates.all()).entries()) {
       const dateOnCard = await row.locator(".recurring-visit-date-text time").innerText();
@@ -457,6 +493,22 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       await expect(cancelledList).toHaveCount(0);
       await expect(cancelledListToggle).toHaveAttribute("aria-expanded", "false");
     }
+    // A normal agenda review changes only the focused no-saved explanation,
+    // never the original recurring preview anchor or saved appointments.
+    const otherEmptyDate = fourNoSavedDates.find((d) => d !== "2026-11-06");
+    if (otherEmptyDate) {
+      await planner.getByLabel("Jump to planned visit", { exact: true })
+        .selectOption(otherEmptyDate);
+      await expect(selectedNoSavedLabel).toContainText(
+        "The proposed visit is NOT BOOKED",
+      );
+      await expect(selectedCancelledLabel).toHaveCount(0);
+      await planner.getByLabel("Jump to planned visit", { exact: true })
+        .selectOption("2026-11-06");
+      await expect(selectedNoSavedLabel).toHaveCount(
+        fourNoSavedDates.includes("2026-11-06") ? 1 : 0,
+      );
+    }
     await expect(reviewedDetails.locator(".recurring-visit-selected-count"))
       .toContainText("Saved on this date:");
     await expect(reviewedDetails.locator(".recurring-visit-selected-statuses"))
@@ -517,6 +569,14 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       .filter((text) => /^Already saved: [1-9]\d* non-archived/.test(text)).length;
     await expect(withSaved).toHaveText(String(sixSavedDateRows));
     await expect(withoutSaved).toHaveText(String(6 - sixSavedDateRows));
+    await expect(noSavedCardLabels).toHaveCount(6 - sixSavedDateRows);
+    const sixNoSavedDates = (await savedCounts.allTextContents())
+      .filter((text) => /^Already saved: 0 non-archived/.test(text)).length;
+    expect(sixNoSavedDates).toBe(6 - sixSavedDateRows);
+    await expect(selectedNoSavedLabel).toHaveCount(
+      /^Already saved: 0 non-archived/.test((await savedCounts.first().textContent()) ?? "")
+        ? 1 : 0,
+    );
     await expect(cancelledOnly).toHaveText(String(cancelledOnlyCardCount(
       await savedCounts.allTextContents(), await savedStatuses.allTextContents(),
     )));
@@ -834,6 +894,12 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // navigation, current details and manual preparation remain usable.
     await compactView.check();
     await expect(plannedDates).toHaveCount(0);
+    await expect(noSavedCardLabels).toHaveCount(0);
+    await expect(selectedNoSavedLabel).toHaveCount(
+      /Saved on this date: 0 non-archived/.test(
+        (await reviewedDetails.locator(".recurring-visit-selected-count").textContent()) ?? "",
+      ) ? 1 : 0,
+    );
     await expect(cancelledListToggle).toBeVisible();
     // Compact view hides numbered cards, not the optional cancelled-only
     // list or the operator's ability to review its date-only proposals.
@@ -993,6 +1059,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(compactView).toHaveCount(0);
     await expect(overview).toHaveCount(0);
     await expect(coverage).toHaveCount(0);
+    await expect(noSavedCardLabels).toHaveCount(0);
+    await expect(selectedNoSavedLabel).toHaveCount(0);
     await expect(cancelledCardLabels).toHaveCount(0);
     await expect(selectedCancelledLabel).toHaveCount(0);
     await expect(cancelledOnly).toHaveCount(0);
@@ -1212,6 +1280,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // The explicit manual Save created a Scheduled appointment; the
     // selected date can no longer be classified as cancelled-only.
     await expect(afterSaveDetails.locator(".recurring-visit-selected-cancelled-only"))
+      .toHaveCount(0);
+    await expect(afterSaveDetails.locator(".recurring-visit-selected-no-saved"))
       .toHaveCount(0);
     await expect(savedRoutePlanner.getByRole("list", {
       name: "Planned visit dates", exact: true,
