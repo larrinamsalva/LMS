@@ -582,6 +582,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // on the final HTTP boundary test. No production caps are changed.
     const preparedDate = "2026-12-04";
     await jumpToPlanned.selectOption(preparedDate);
+    await compactView.check();
+    await expect(plannedDates).toHaveCount(0);
+    await expect(compactView).toBeChecked();
     await expect(reviewedDetails).toContainText("Reviewed visit 2 of 6");
     await expect(reviewedDetails.locator(".recurring-visit-selected-date"))
       .toHaveText("Friday " + preparedDate);
@@ -620,6 +623,17 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       .toHaveValue(preparedDate);
     await expect(restoredPlanner.locator("details")).toHaveAttribute("open", "");
     await expect(restoredPlanner).toContainText("Back to your unsaved recurring visit plan.");
+    const restoredCompact = restoredPlanner.getByRole("checkbox", {
+      name: "Compact view — hide date cards", exact: true,
+    });
+    await expect(restoredCompact).toBeChecked();
+    await expect(restoredPlanner.getByRole("list", {
+      name: "Planned visit dates", exact: true,
+    })).toHaveCount(0);
+    await expect(restoredPlanner.getByRole("region", {
+      name: "Reviewed proposed visit details", exact: true,
+    })).toContainText("Reviewed visit 2 of 6");
+    await restoredCompact.uncheck();
     await expect(restoredPlanner.locator(".recurring-visit-review-state"))
       .toContainText("Currently reviewing planned visit 2 of 6: 2026-12-04");
     await expect(restoredPlanner.getByRole("region", {
@@ -663,10 +677,19 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // A successful explicit SINGLE appointment save also returns to the
     // same plan, with the updated count. Nothing in the plan bulk-books.
     const nextVisitDate = "2027-01-29";
-    await page.getByRole("region", {
+    const beforeSavePlanner = page.getByRole("region", {
       name: "Repeating visit planner", exact: true,
+    });
+    // Exercise the separate successful Save return while compact.
+    await beforeSavePlanner.getByRole("checkbox", {
+      name: "Compact view — hide date cards", exact: true,
+    }).check();
+    await beforeSavePlanner.getByLabel("Jump to planned visit", { exact: true })
+      .selectOption(nextVisitDate);
+    await beforeSavePlanner.getByRole("region", {
+      name: "Reviewed proposed visit details", exact: true,
     }).getByRole("button", {
-      name: "Prepare appointment for planned visit 4 on " + nextVisitDate,
+      name: "Prepare currently reviewed visit 4 on " + nextVisitDate,
       exact: true,
     }).click();
     await page.getByLabel("Appointment title *", { exact: true })
@@ -694,6 +717,17 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Repeating visit planner", exact: true,
     });
     await expect(savedRoutePlanner.locator("details")).toHaveAttribute("open", "");
+    const savedCompact = savedRoutePlanner.getByRole("checkbox", {
+      name: "Compact view — hide date cards", exact: true,
+    });
+    await expect(savedCompact).toBeChecked();
+    await expect(savedRoutePlanner.getByRole("list", {
+      name: "Planned visit dates", exact: true,
+    })).toHaveCount(0);
+    await expect(savedRoutePlanner.getByRole("region", {
+      name: "Reviewed proposed visit details", exact: true,
+    })).toContainText("Reviewed visit 4 of 6");
+    await savedCompact.uncheck();
     await expect(savedRoutePlanner.locator(".recurring-visit-review-state"))
       .toContainText("Currently reviewing planned visit 4 of 6: 2027-01-29");
     const afterSaveDetails = savedRoutePlanner.getByRole("region", {
