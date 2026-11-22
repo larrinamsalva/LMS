@@ -10,6 +10,7 @@ import {
   hasNoSavedAppointmentsOnPlannedDate,
   noSavedProposedDateList,
   recurringVisitSavedStatusCsv,
+  recurringVisitReviewedSavedStatusText,
   nextProposedDateBySavedCoverage,
   previousProposedDateBySavedCoverage,
 } from "../../src/core/recurring-visit-saved-appointments";
@@ -592,4 +593,74 @@ it("rejects mismatched, invalid or formula-like saved status input instead of ex
     )).toThrow();
   }
   expect(statuses.every((row) => row.savedAppointments === 0)).toBe(true);
+});
+
+it("exports only one proposed date's verified saved appointment status counts", () => {
+  const dates = previewRecurringVisitDates("2026-11-06", 2, 4);
+  const records = [
+    appointment(dates[0] + "T10:00:00Z", dates[0] + "T11:00:00Z", false, "Scheduled"),
+    appointment(dates[1] + "T10:00:00Z", dates[1] + "T11:00:00Z", false, "Cancelled"),
+    appointment(dates[1] + "T12:00:00Z", dates[1] + "T13:00:00Z", false, "Cancelled"),
+    appointment(dates[2] + "T10:00:00Z", dates[2] + "T11:00:00Z", true, "Scheduled"),
+    appointment(dates[3] + "T10:00:00Z", dates[3] + "T11:00:00Z", false, "External unknown"),
+    otherRecord(),
+  ];
+  const beforeRecords = structuredClone(records);
+  const statuses = savedAppointmentStatusesOnPlannedDates(dates, records, "UTC");
+  const beforeStatuses = structuredClone(statuses);
+  const cancelled = recurringVisitReviewedSavedStatusText(
+    "2026-11-06", 2, 4, dates[1], statuses,
+  );
+  expect(cancelled).toBe([
+    "LMS proposed visit 2 of 4 - NOT BOOKED",
+    `Reviewed date: ${dates[1]} (business-local calendar date; no appointment time)`,
+    "Existing non-archived saved appointments on date: 2",
+    "Saved statuses: Scheduled 0 | In progress 0 | Completed 0 | Cancelled 2 | Other 0",
+    "Saved-date classification: Cancelled-only saved records",
+    "These saved records are not bookings for this proposed recurring visit.",
+    "No staff, equipment, or appointment availability is confirmed.",
+  ].join("\n"));
+  const noSaved = recurringVisitReviewedSavedStatusText(
+    "2026-11-06", 2, 4, dates[2], statuses,
+  );
+  expect(noSaved).toContain("Existing non-archived saved appointments on date: 0");
+  expect(noSaved).toContain("Saved-date classification: No saved appointment records");
+  expect(noSaved).not.toContain("Cancelled-only saved records");
+  const other = recurringVisitReviewedSavedStatusText(
+    "2026-11-06", 2, 4, dates[3], statuses,
+  );
+  expect(other).toContain("Other 1");
+  expect(other).toContain("Saved-date classification: Has non-cancelled saved records");
+  expect(other).not.toContain("External unknown");
+  expect(cancelled).not.toContain("Customer");
+  expect(cancelled).not.toContain("resource");
+  expect(cancelled).not.toContain("T10:00");
+  expect(records).toEqual(beforeRecords);
+  expect(statuses).toEqual(beforeStatuses);
+});
+
+it("rejects a selected date outside the proposal and invalid full-plan status summaries", () => {
+  const rows = savedAppointmentStatusesOnPlannedDates(
+    ["2026-11-06", "2026-11-13"], [], "America/Los_Angeles",
+  );
+  const build = (date: string, statuses = rows) => recurringVisitReviewedSavedStatusText(
+    "2026-11-06", 1, 2, date, statuses,
+  );
+  expect(build("2026-11-06")).toContain("visit 1 of 2 - NOT BOOKED");
+  expect(() => build("2026-11-20")).toThrow();
+  expect(() => build("=SUM(1+1)")).toThrow();
+  expect(() => build("2026-11-06", rows.slice(0, 1))).toThrow();
+  expect(() => build("2026-11-06", [...rows].reverse())).toThrow();
+  expect(() => build("2026-11-06", [
+    { ...rows[0], cancelled: 0.5 }, rows[1],
+  ])).toThrow();
+  expect(() => build("2026-11-06", [
+    { ...rows[0], date: "2026-11-07" }, rows[1],
+  ])).toThrow();
+  expect(() => build("2026-11-06", [
+    { ...rows[0], scheduled: 1, savedAppointments: 0 }, rows[1],
+  ])).toThrow();
+  expect(() => recurringVisitReviewedSavedStatusText(
+    "2100-12-25", 4, 12, "2100-12-25", rows,
+  )).toThrow();
 });

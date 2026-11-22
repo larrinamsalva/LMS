@@ -223,6 +223,34 @@ export function recurringVisitSavedStatusCsv(
   occurrences: number,
   statuses: readonly PlannedDateAppointmentStatuses[],
 ): string {
+  const dates = validatedSavedDateProposal(
+    startDate, everyWeeks, occurrences, statuses,
+  );
+  const rows = [
+    "Visit,Proposed date,Existing non-archived saved appointments,Scheduled,In progress,Completed,Cancelled,Other,Saved-date classification,Note",
+  ];
+  statuses.forEach((row, index) => {
+    const classification = savedDateClassification(row);
+    rows.push([
+      index + 1, dates[index], row.savedAppointments,
+      row.scheduled, row.inProgress, row.completed, row.cancelled, row.other,
+      classification, "Proposal only - NOT BOOKED - availability not confirmed",
+    ].join(","));
+  });
+  return rows.join("\r\n") + "\r\n";
+}
+
+
+/**
+ * Strictly validate status rows against the exact bounded proposal; both
+ * full-CSV and single-date TXT exports use this same fail-closed guard.
+ */
+function validatedSavedDateProposal(
+  startDate: string,
+  everyWeeks: VisitFrequencyWeeks,
+  occurrences: number,
+  statuses: readonly PlannedDateAppointmentStatuses[],
+): string[] {
   const dates = previewRecurringVisitDates(startDate, everyWeeks, occurrences);
   if (statuses.length !== dates.length) {
     throw new RangeError("Saved-date counts do not match this proposed recurrence.");
@@ -231,9 +259,6 @@ export function recurringVisitSavedStatusCsv(
     "savedAppointments", "scheduled", "inProgress", "completed",
     "cancelled", "other",
   ];
-  const rows = [
-    "Visit,Proposed date,Existing non-archived saved appointments,Scheduled,In progress,Completed,Cancelled,Other,Saved-date classification,Note",
-  ];
   statuses.forEach((row, index) => {
     if (row.date !== dates[index] ||
       columns.some((key) => !Number.isSafeInteger(row[key]) || row[key] < 0) ||
@@ -241,16 +266,46 @@ export function recurringVisitSavedStatusCsv(
         row.other !== row.savedAppointments) {
       throw new RangeError("Invalid saved-date status summary for this proposal.");
     }
-    const classification = hasNoSavedAppointmentsOnPlannedDate(row)
-      ? "No saved appointment records"
-      : isCancelledOnlySavedDate(row)
-        ? "Cancelled-only saved records"
-        : "Has non-cancelled saved records";
-    rows.push([
-      index + 1, dates[index], row.savedAppointments,
-      row.scheduled, row.inProgress, row.completed, row.cancelled, row.other,
-      classification, "Proposal only - NOT BOOKED - availability not confirmed",
-    ].join(","));
   });
-  return rows.join("\r\n") + "\r\n";
+  return dates;
+}
+
+function savedDateClassification(row: PlannedDateAppointmentStatuses): string {
+  return hasNoSavedAppointmentsOnPlannedDate(row)
+    ? "No saved appointment records"
+    : isCancelledOnlySavedDate(row)
+      ? "Cancelled-only saved records"
+      : "Has non-cancelled saved records";
+}
+
+/**
+ * A one-date, unsaved proposed visit review note with ONLY existing
+ * date-level saved appointment count categories from the current
+ * authorized business organization. Does not export raw record values,
+ * customer/work names, staff/equipment, times or availability checks.
+ */
+export function recurringVisitReviewedSavedStatusText(
+  startDate: string,
+  everyWeeks: VisitFrequencyWeeks,
+  occurrences: number,
+  selectedDate: string,
+  statuses: readonly PlannedDateAppointmentStatuses[],
+): string {
+  const dates = validatedSavedDateProposal(
+    startDate, everyWeeks, occurrences, statuses,
+  );
+  const index = dates.indexOf(selectedDate);
+  if (index < 0) {
+    throw new RangeError("Selected calendar date is not in this proposed recurrence.");
+  }
+  const row = statuses[index];
+  return [
+    `LMS proposed visit ${index + 1} of ${dates.length} - NOT BOOKED`,
+    `Reviewed date: ${selectedDate} (business-local calendar date; no appointment time)`,
+    `Existing non-archived saved appointments on date: ${row.savedAppointments}`,
+    `Saved statuses: Scheduled ${row.scheduled} | In progress ${row.inProgress} | Completed ${row.completed} | Cancelled ${row.cancelled} | Other ${row.other}`,
+    `Saved-date classification: ${savedDateClassification(row)}`,
+    "These saved records are not bookings for this proposed recurring visit.",
+    "No staff, equipment, or appointment availability is confirmed.",
+  ].join("\n");
 }
