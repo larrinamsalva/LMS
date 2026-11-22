@@ -320,6 +320,7 @@ export function Schedule({
           onClick={() => {
             onClearAppointmentFocus?.();
             const prior = shiftDate(date, -1);
+            setVisibleNoteKey(null);
             setDate(prior);
             setPreviewStartDate(prior);
           }}
@@ -334,6 +335,7 @@ export function Schedule({
             value={date}
             onChange={(e) => {
               onClearAppointmentFocus?.();
+              setVisibleNoteKey(null);
               setDate(e.target.value);
               setPreviewStartDate(e.target.value);
             }}
@@ -345,6 +347,7 @@ export function Schedule({
           onClick={() => {
             onClearAppointmentFocus?.();
             const following = shiftDate(date, 1);
+            setVisibleNoteKey(null);
             setDate(following);
             setPreviewStartDate(following);
           }}
@@ -386,8 +389,12 @@ export function Schedule({
               <select
                 aria-label="Repeat visits"
                 value={previewIntervalWeeks}
-                onChange={(event) =>
-                  setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks)}
+                onChange={(event) => {
+                  // A new recurrence rule always closes an opened note,
+                  // even if someone later restores the previous rule.
+                  setVisibleNoteKey(null);
+                  setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
+                }}
               >
                 <option value={1}>Every week</option>
                 <option value={2}>Every two weeks</option>
@@ -399,7 +406,12 @@ export function Schedule({
               <select
                 aria-label="Number of preview visits"
                 value={previewCount}
-                onChange={(event) => setPreviewCount(Number(event.target.value))}
+                onChange={(event) => {
+                  // Never resurrect a previously opened note after changing
+                  // the number of proposed visits back and forth.
+                  setVisibleNoteKey(null);
+                  setPreviewCount(Number(event.target.value));
+                }}
               >
                 {[2, 4, 6, 8, 12].map((count) => (
                   <option key={count} value={count}>{count} dates</option>
