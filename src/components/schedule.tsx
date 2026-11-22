@@ -592,7 +592,6 @@ export function Schedule({
                       type="button"
                       className="secondary"
                       aria-expanded={isNotePreviewVisible}
-                      aria-controls={reviewedNoteId + "-wrapper"}
                       onClick={() => setVisibleNoteKey(isNotePreviewVisible ? null : reviewKey)}
                     >
                       {isNotePreviewVisible ? "Hide visit note" : "Preview visit note"}
