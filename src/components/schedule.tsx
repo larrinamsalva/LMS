@@ -11,7 +11,7 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
-import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList, isCancelledOnlySavedDate } from "../core/recurring-visit-saved-appointments";
+import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList, isCancelledOnlySavedDate, hasNoSavedAppointmentsOnPlannedDate } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -737,6 +737,13 @@ export function Schedule({
                         <>{" · "}Other {reviewedDateStatuses.other}</>
                       )}
                     </p>
+                    {hasNoSavedAppointmentsOnPlannedDate(reviewedDateStatuses) && (
+                      <p className="recurring-visit-selected-no-saved">
+                        No saved appointments on this calendar date.
+                        The proposed visit is NOT BOOKED, and staff or
+                        equipment availability is not confirmed.
+                      </p>
+                    )}
                     {isCancelledOnlySavedDate(reviewedDateStatuses) && (
                       <p className="recurring-visit-selected-cancelled-only">
                         Only cancelled saved appointments on this date.
@@ -923,6 +930,12 @@ export function Schedule({
                         <>{" · "}Other {savedCountByPlannedDate[index].other}</>
                       )}
                     </span>
+                    {hasNoSavedAppointmentsOnPlannedDate(savedCountByPlannedDate[index]) && (
+                      <span className="recurring-visit-card-no-saved">
+                        No saved appointments on this calendar date —
+                        NOT BOOKED by this proposal; availability not confirmed.
+                      </span>
+                    )}
                     {isCancelledOnlySavedDate(savedCountByPlannedDate[index]) && (
                       <span className="recurring-visit-card-cancelled-only">
                         Only cancelled saved appointments — NOT BOOKED by
