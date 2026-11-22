@@ -11,7 +11,7 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
-import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage } from "../core/recurring-visit-saved-appointments";
+import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -165,8 +165,15 @@ export function Schedule({
     previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
   }
   const savedCoverage = savedDateCoverage(savedCountByPlannedDate);
-  // Strictly later date-only review targets. Existing saved records are
-  // coverage context, never a booking or an availability check.
+  // Both directions use the same authorized, bounded, date-only status
+  // series and existing read-only agenda navigation. The counts never
+  // claim availability, confirmation, or an appointment for this proposal.
+  const previousDateWithSaved = previousProposedDateBySavedCoverage(
+    savedCountByPlannedDate, date, "with-saved",
+  );
+  const previousDateWithoutSaved = previousProposedDateBySavedCoverage(
+    savedCountByPlannedDate, date, "without-saved",
+  );
   const nextDateWithSaved = nextProposedDateBySavedCoverage(
     savedCountByPlannedDate, date, "with-saved",
   );
@@ -504,6 +511,26 @@ export function Schedule({
                       <button
                         type="button"
                         className="secondary"
+                        disabled={busy || !previousDateWithSaved}
+                        onClick={() => {
+                          if (previousDateWithSaved) reviewPlannedDate(previousDateWithSaved);
+                        }}
+                      >
+                        Review previous proposed date with saved records
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={busy || !previousDateWithoutSaved}
+                        onClick={() => {
+                          if (previousDateWithoutSaved) reviewPlannedDate(previousDateWithoutSaved);
+                        }}
+                      >
+                        Review previous proposed date without saved records
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
                         disabled={busy || !nextDateWithSaved}
                         onClick={() => {
                           if (nextDateWithSaved) reviewPlannedDate(nextDateWithSaved);
@@ -523,9 +550,10 @@ export function Schedule({
                       </button>
                     </div>
                     <p className="muted">
-                      Review only: jumps forward to the next matching proposed
-                      calendar date without wrapping. These shortcuts do not
-                      check free time, reserve anything, or book a visit.
+                      Review only: jumps backward or forward to the closest
+                      matching proposed calendar date without wrapping. These
+                      shortcuts do not check free time, reserve anything, or
+                      book a visit.
                     </p>
                   </div>
                   <p>

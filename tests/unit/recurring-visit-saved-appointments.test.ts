@@ -5,6 +5,7 @@ import {
   savedAppointmentStatusesOnPlannedDates,
   savedDateCoverage,
   nextProposedDateBySavedCoverage,
+  previousProposedDateBySavedCoverage,
 } from "../../src/core/recurring-visit-saved-appointments";
 import { previewRecurringVisitDates } from "../../src/core/recurring-visit-preview";
 
@@ -213,5 +214,67 @@ it("coverage review shortcuts handle empty, all-saved, no-saved and off-plan age
   expect(nextProposedDateBySavedCoverage(covered, dates[0], "with-saved"))
     .toBe(dates[1]);
   expect(nextProposedDateBySavedCoverage(covered, dates[3], "with-saved"))
+    .toBeNull();
+});
+
+it("reviews only the closest strictly earlier date with or without saved records", () => {
+  const dates = previewRecurringVisitDates("2026-11-06", 1, 6);
+  const records = [
+    appointment("2026-11-06T10:00:00Z", "2026-11-06T11:00:00Z"),
+    appointment("2026-11-20T10:00:00Z", "2026-11-20T11:00:00Z", false, "Completed"),
+    appointment("2026-11-27T10:00:00Z", "2026-11-27T11:00:00Z", false, "Cancelled"),
+    appointment("2026-11-13T10:00:00Z", "2026-11-13T11:00:00Z", true),
+    otherRecord(),
+  ];
+  const original = structuredClone(records);
+  const rows = savedAppointmentStatusesOnPlannedDates(dates, records, "UTC");
+  expect(rows.map((row) => row.savedAppointments)).toEqual([1, 0, 1, 1, 0, 0]);
+  const unchanged = structuredClone(rows);
+  expect(previousProposedDateBySavedCoverage(rows, "2026-11-27", "with-saved"))
+    .toBe("2026-11-20");
+  expect(previousProposedDateBySavedCoverage(rows, "2026-11-27", "without-saved"))
+    .toBe("2026-11-13");
+  expect(previousProposedDateBySavedCoverage(rows, "2026-12-11", "with-saved"))
+    .toBe("2026-11-27");
+  expect(previousProposedDateBySavedCoverage(rows, "2026-12-11", "without-saved"))
+    .toBe("2026-12-04");
+  expect(previousProposedDateBySavedCoverage(rows, "2026-11-20", "with-saved"))
+    .toBe("2026-11-06");
+  expect(previousProposedDateBySavedCoverage(rows, "2026-11-20", "without-saved"))
+    .toBe("2026-11-13");
+  // The first proposed visit never selects itself or wraps to the last.
+  expect(previousProposedDateBySavedCoverage(rows, "2026-11-06", "with-saved"))
+    .toBeNull();
+  expect(previousProposedDateBySavedCoverage(rows, "2026-11-06", "without-saved"))
+    .toBeNull();
+  // Off-plan agenda dates still permit only strictly earlier dates.
+  expect(previousProposedDateBySavedCoverage(rows, "2026-11-15", "with-saved"))
+    .toBe("2026-11-06");
+  expect(previousProposedDateBySavedCoverage(rows, "2026-11-15", "without-saved"))
+    .toBe("2026-11-13");
+  expect(rows).toEqual(unchanged);
+  expect(records).toEqual(original);
+});
+
+it("backward saved-date review handles empty, all-saved, all-empty and no-match inputs", () => {
+  const dates = previewRecurringVisitDates("2026-11-06", 4, 4);
+  expect(previousProposedDateBySavedCoverage([], dates[3], "with-saved"))
+    .toBeNull();
+  const empty = savedAppointmentStatusesOnPlannedDates(dates, [], "UTC");
+  expect(previousProposedDateBySavedCoverage(empty, dates[3], "with-saved"))
+    .toBeNull();
+  expect(previousProposedDateBySavedCoverage(empty, dates[3], "without-saved"))
+    .toBe(dates[2]);
+  expect(previousProposedDateBySavedCoverage(empty, dates[1], "without-saved"))
+    .toBe(dates[0]);
+  const records = dates.map((date) =>
+    appointment(date + "T10:00:00Z", date + "T11:00:00Z"),
+  );
+  const covered = savedAppointmentStatusesOnPlannedDates(dates, records, "UTC");
+  expect(previousProposedDateBySavedCoverage(covered, dates[3], "without-saved"))
+    .toBeNull();
+  expect(previousProposedDateBySavedCoverage(covered, dates[3], "with-saved"))
+    .toBe(dates[2]);
+  expect(previousProposedDateBySavedCoverage(covered, dates[0], "with-saved"))
     .toBeNull();
 });

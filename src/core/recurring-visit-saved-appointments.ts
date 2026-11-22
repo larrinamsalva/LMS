@@ -114,3 +114,26 @@ export function nextProposedDateBySavedCoverage(
       : row.savedAppointments === 0),
   )?.date ?? null;
 }
+
+/**
+ * Review the latest strictly EARLIER proposed date with/without existing
+ * saved records. Input is the same ascending, organization-scoped status
+ * series as the forward shortcut; no wrapping, resource availability
+ * checks, booking or mutation.
+ */
+export function previousProposedDateBySavedCoverage(
+  statuses: readonly PlannedDateAppointmentStatuses[],
+  agendaDate: string,
+  kind: "with-saved" | "without-saved",
+): string | null {
+  for (let index = statuses.length - 1; index >= 0; index--) {
+    const row = statuses[index];
+    if (row.date < agendaDate &&
+      (kind === "with-saved"
+        ? row.savedAppointments > 0
+        : row.savedAppointments === 0)) {
+      return row.date;
+    }
+  }
+  return null;
+}
