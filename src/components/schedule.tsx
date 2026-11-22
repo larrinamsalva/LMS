@@ -71,6 +71,7 @@ export function Schedule({
   const visitCountLabelId = useId();
   const plannedJumpId = useId();
   const reviewedNoteId = useId();
+  const reviewedStatusNoteId = useId();
   const recurringDetailsRef = useRef<HTMLDetailsElement>(null);
   // Open the resumed plan on entry without controlling the native details
   // open state, so keyboard/pointer users can still collapse it afterward.
@@ -120,6 +121,8 @@ export function Schedule({
   // Transient, per-reviewed-date display only. No browser storage,
   // appointment write, clipboard access or automatic booking.
   const [visibleNoteKey, setVisibleNoteKey] = useState<string | null>(null);
+  // Separate read-only status-note state: date-only sharing remains unchanged.
+  const [visibleStatusNoteKey, setVisibleStatusNoteKey] = useState<string | null>(null);
   // Collapsed on entry and on every changed plan; never stored remotely.
   const [visibleCancelledListPlan, setVisibleCancelledListPlan] = useState<string | null>(null);
   const [visibleNoSavedListPlan, setVisibleNoSavedListPlan] = useState<string | null>(null);
@@ -193,6 +196,8 @@ export function Schedule({
     ? null : plannedVisitDates[reviewedVisitPosition - 1];
   const reviewKey = `${planKey}/${reviewedPlannedDate ?? ""}`;
   const isNotePreviewVisible = reviewedPlannedDate !== null && visibleNoteKey === reviewKey;
+  const isStatusNotePreviewVisible = reviewedPlannedDate !== null &&
+    visibleStatusNoteKey === reviewKey;
   const visibleReviewCopyFeedback = reviewedPlannedDate &&
     reviewCopyFeedback?.reviewKey === reviewKey
     ? reviewCopyFeedback.kind : null;
@@ -209,6 +214,7 @@ export function Schedule({
     setArchived(false);
     setReviewCopyFeedback(null);
     setVisibleNoteKey(null);
+    setVisibleStatusNoteKey(null);
     setDate(selected);
   }
   function preparePlannedDate(visitDate: string) {
@@ -386,6 +392,7 @@ export function Schedule({
             onClearAppointmentFocus?.();
             const prior = shiftDate(date, -1);
             setVisibleNoteKey(null);
+    setVisibleStatusNoteKey(null);
             setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
             setDate(prior);
@@ -403,6 +410,7 @@ export function Schedule({
             onChange={(e) => {
               onClearAppointmentFocus?.();
               setVisibleNoteKey(null);
+    setVisibleStatusNoteKey(null);
               setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
               setDate(e.target.value);
@@ -417,6 +425,7 @@ export function Schedule({
             onClearAppointmentFocus?.();
             const following = shiftDate(date, 1);
             setVisibleNoteKey(null);
+    setVisibleStatusNoteKey(null);
             setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
             setDate(following);
@@ -464,6 +473,7 @@ export function Schedule({
                   // A new recurrence rule always closes an opened note,
                   // even if someone later restores the previous rule.
                   setVisibleNoteKey(null);
+    setVisibleStatusNoteKey(null);
                   setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
                   setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
@@ -483,6 +493,7 @@ export function Schedule({
                   // Never resurrect a previously opened note after changing
                   // the number of proposed visits back and forth.
                   setVisibleNoteKey(null);
+    setVisibleStatusNoteKey(null);
                   setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
                   setPreviewCount(Number(event.target.value));
@@ -937,6 +948,47 @@ export function Schedule({
                         <p className="muted">
                           Read-only: select the text or long-press on a phone
                           to copy it manually. This is not a booked visit.
+                        </p>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="secondary"
+                      aria-expanded={isStatusNotePreviewVisible}
+                      aria-controls={isStatusNotePreviewVisible
+                        ? reviewedStatusNoteId + "-wrapper" : undefined}
+                      onClick={() => setVisibleStatusNoteKey(
+                        isStatusNotePreviewVisible ? null : reviewKey,
+                      )}
+                    >
+                      {isStatusNotePreviewVisible
+                        ? "Hide saved status summary"
+                        : "Preview saved status summary"}
+                    </button>
+                    {isStatusNotePreviewVisible && (
+                      <div
+                        id={reviewedStatusNoteId + "-wrapper"}
+                        className="recurring-visit-note-preview"
+                      >
+                        <label htmlFor={reviewedStatusNoteId}>
+                          Selectable saved appointment status summary — NOT BOOKED
+                        </label>
+                        <textarea
+                          id={reviewedStatusNoteId}
+                          aria-label="Selectable saved appointment status summary — NOT BOOKED"
+                          readOnly
+                          rows={8}
+                          spellCheck={false}
+                          value={recurringVisitReviewedSavedStatusText(
+                            previewStartDate, previewIntervalWeeks, previewCount,
+                            reviewedPlannedDate, savedCountByPlannedDate,
+                          )}
+                        />
+                        <p className="muted">
+                          Read-only status counts, not customer details or
+                          appointment times. Select text or long-press on a phone
+                          to copy it manually. No visit is booked, and staff or
+                          equipment availability is not confirmed.
                         </p>
                       </div>
                     )}

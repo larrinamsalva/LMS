@@ -288,6 +288,14 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const reviewedStatusDownloadButton = reviewedDetails.getByRole("button", {
       name: "Download reviewed visit status TXT", exact: true,
     });
+    const statusPreviewToggle = reviewedDetails.getByRole("button", {
+      name: /^(Preview saved status summary|Hide saved status summary)$/,
+    });
+    const selectableStatusSummary = reviewedDetails.getByRole("textbox", {
+      name: "Selectable saved appointment status summary — NOT BOOKED", exact: true,
+    });
+    await expect(statusPreviewToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(selectableStatusSummary).toHaveCount(0);
     const previewVisitNote = reviewedDetails.getByRole("button", {
       name: "Preview visit note", exact: true,
     });
@@ -356,6 +364,19 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(initialSavedStatusText).not.toContain(work);
     expect(initialSavedStatusText).not.toContain(resource);
     expect(initialSavedStatusText).not.toContain("2026-11-06T");
+    // The new on-screen preview must match the validated, privacy-safe
+    // downloaded TXT exactly, without a file or clipboard permission.
+    await statusPreviewToggle.click();
+    await expect(statusPreviewToggle).toHaveAttribute("aria-expanded", "true");
+    await expect(selectableStatusSummary).toHaveAttribute("readonly", "");
+    await expect(selectableStatusSummary).toHaveValue(initialSavedStatusText.trimEnd());
+    expect(await selectableStatusSummary.inputValue()).not.toContain(customer);
+    expect(await selectableStatusSummary.inputValue()).not.toContain(work);
+    expect(await selectableStatusSummary.inputValue()).not.toContain(resource);
+    await expect(reviewedDetails).toContainText("long-press on a phone");
+    await statusPreviewToggle.click();
+    await expect(statusPreviewToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(selectableStatusSummary).toHaveCount(0);
     const reviewedCopyFeedback = reviewedDetails.locator(
       ".recurring-visit-reviewed-copy-feedback",
     );
@@ -1004,6 +1025,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       () => document.documentElement.dataset.reviewedVisitCopiedText ?? "",
     )).toBe(selectedText);
     expect(await visitLabels.allTextContents()).toEqual(anchoredVisitLabels);
+    // An expanded status summary must close on a changed recurrence and
+    // must not resurrect if the operator returns to the previous rule.
+    await statusPreviewToggle.click();
+    await expect(selectableStatusSummary).toBeVisible();
     // When the agenda is not included in the newly selected rule,
     // show a placeholder; do not pick/claim a booked date implicitly.
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("1");
@@ -1014,6 +1039,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(reviewCopyButton).toHaveCount(0);
     await expect(reviewDownloadButton).toHaveCount(0);
     await expect(reviewedStatusDownloadButton).toHaveCount(0);
+    await expect(statusPreviewToggle).toHaveCount(0);
+    await expect(selectableStatusSummary).toHaveCount(0);
     await expect(reviewedState).toContainText(
       "Agenda date is not one of the proposed visit dates",
     );
@@ -1022,6 +1049,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("4");
     await expect(jumpToPlanned).toHaveValue("2027-01-01");
     await expect(reviewedDetails).toContainText("Reviewed visit 3 of 6");
+    await expect(statusPreviewToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(selectableStatusSummary).toHaveCount(0);
     await expect(previewVisitNote).toHaveAttribute("aria-expanded", "false");
     // Regression: reverting an excluded recurrence rule must not
     // silently resurrect the previously opened note on the same date.
@@ -1104,6 +1133,17 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(reviewCopyButton).toBeVisible();
     await expect(reviewDownloadButton).toBeVisible();
     await expect(reviewedStatusDownloadButton).toBeVisible();
+    await expect(statusPreviewToggle).toBeVisible();
+    await statusPreviewToggle.click();
+    await expect(statusPreviewToggle).toHaveAttribute("aria-expanded", "true");
+    expect(await selectableStatusSummary.inputValue()).toContain(
+      "LMS proposed visit 3 of 12 - NOT BOOKED",
+    );
+    expect(await selectableStatusSummary.inputValue()).toContain(
+      "No staff, equipment, or appointment availability is confirmed.",
+    );
+    await statusPreviewToggle.click();
+    await expect(selectableStatusSummary).toHaveCount(0);
     await previewVisitNote.click();
     await expect(selectableNote).toHaveValue([
       "LMS proposed visit 3 of 12 - NOT BOOKED",
@@ -1231,6 +1271,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(overview).toHaveCount(0);
     await expect(coverage).toHaveCount(0);
     await expect(reviewedStatusDownloadButton).toHaveCount(0);
+    await expect(statusPreviewToggle).toHaveCount(0);
+    await expect(selectableStatusSummary).toHaveCount(0);
     await expect(noSavedListToggle).toHaveCount(0);
     await expect(noSavedList).toHaveCount(0);
     await expect(noSavedCardLabels).toHaveCount(0);
@@ -1472,6 +1514,17 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(afterSaveStatusText).not.toContain(customer);
     expect(afterSaveStatusText).not.toContain(work);
     expect(afterSaveStatusText).not.toContain(resource);
+    const afterSavePreviewToggle = afterSaveDetails.getByRole("button", {
+      name: /^(Preview saved status summary|Hide saved status summary)$/,
+    });
+    const afterSavePreviewText = afterSaveDetails.getByRole("textbox", {
+      name: "Selectable saved appointment status summary — NOT BOOKED", exact: true,
+    });
+    await expect(afterSavePreviewToggle).toHaveAttribute("aria-expanded", "false");
+    await afterSavePreviewToggle.click();
+    await expect(afterSavePreviewText).toHaveValue(afterSaveStatusText.trimEnd());
+    await afterSavePreviewToggle.click();
+    await expect(afterSavePreviewText).toHaveCount(0);
     await expect(afterSaveDetails.locator(".recurring-visit-selected-count"))
       .toContainText(/Saved on this date: [1-9]\d* non-archived appointment/);
     // The explicit manual Save created a Scheduled appointment; the
