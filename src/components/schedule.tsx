@@ -72,6 +72,7 @@ export function Schedule({
   const plannedJumpId = useId();
   const reviewedNoteId = useId();
   const reviewedStatusNoteId = useId();
+  const savedReviewCsvNoteId = useId();
   const recurringDetailsRef = useRef<HTMLDetailsElement>(null);
   // Open the resumed plan on entry without controlling the native details
   // open state, so keyboard/pointer users can still collapse it afterward.
@@ -138,6 +139,9 @@ export function Schedule({
   // Collapsed on entry and on every changed plan; never stored remotely.
   const [visibleCancelledListPlan, setVisibleCancelledListPlan] = useState<string | null>(null);
   const [visibleNoSavedListPlan, setVisibleNoSavedListPlan] = useState<string | null>(null);
+  // A selectable full-table preview is ephemeral, not an appointment or export.
+  const [visibleSavedReviewCsvPreviewKey, setVisibleSavedReviewCsvPreviewKey] =
+    useState<string | null>(null);
   const planKey = `${previewStartDate}/${previewIntervalWeeks}/${previewCount}`;
   const visibleCopyFeedback = copyFeedback?.planKey === planKey
     ? copyFeedback.kind : null;
@@ -192,6 +196,8 @@ export function Schedule({
   const visibleSavedReviewCsvCopyFeedback =
     savedReviewCsvCopyFeedback?.reviewCsvKey === savedReviewCsvKey
       ? savedReviewCsvCopyFeedback.kind : null;
+  const isSavedReviewCsvPreviewVisible = plannedVisitDates.length > 0 &&
+    visibleSavedReviewCsvPreviewKey === savedReviewCsvKey;
   const savedCoverage = savedDateCoverage(savedCountByPlannedDate);
   const cancelledOnlyDates = cancelledOnlySavedDateCount(savedCountByPlannedDate);
   const cancelledDateList = cancelledOnlySavedDateList(savedCountByPlannedDate);
@@ -472,6 +478,7 @@ export function Schedule({
             setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
+                  setVisibleSavedReviewCsvPreviewKey(null);
             setDate(prior);
             setPreviewStartDate(prior);
           }}
@@ -492,6 +499,7 @@ export function Schedule({
               setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
+                  setVisibleSavedReviewCsvPreviewKey(null);
               setDate(e.target.value);
               setPreviewStartDate(e.target.value);
             }}
@@ -509,6 +517,7 @@ export function Schedule({
             setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
+                  setVisibleSavedReviewCsvPreviewKey(null);
             setDate(following);
             setPreviewStartDate(following);
           }}
@@ -559,6 +568,7 @@ export function Schedule({
                   setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
+                  setVisibleSavedReviewCsvPreviewKey(null);
                   setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
                 }}
               >
@@ -581,6 +591,7 @@ export function Schedule({
                   setVisibleCancelledListPlan(null);
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
+                  setVisibleSavedReviewCsvPreviewKey(null);
                   setPreviewCount(Number(event.target.value));
                 }}
               >
@@ -877,6 +888,20 @@ export function Schedule({
                 <button
                   type="button"
                   className="secondary"
+                  aria-expanded={isSavedReviewCsvPreviewVisible}
+                  aria-controls={isSavedReviewCsvPreviewVisible
+                    ? savedReviewCsvNoteId + "-wrapper" : undefined}
+                  onClick={() => setVisibleSavedReviewCsvPreviewKey(
+                    isSavedReviewCsvPreviewVisible ? null : savedReviewCsvKey,
+                  )}
+                >
+                  {isSavedReviewCsvPreviewVisible
+                    ? "Hide saved-date review CSV preview"
+                    : "Preview saved-date review CSV"}
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
                   disabled={busy}
                   onClick={() => void copyPlannedDates()}
                 >
@@ -891,6 +916,33 @@ export function Schedule({
                   details, or confirms resource availability.
                 </p>
               </div>
+              {isSavedReviewCsvPreviewVisible && (
+                <div
+                  id={savedReviewCsvNoteId + "-wrapper"}
+                  className="recurring-visit-note-preview recurring-visit-full-csv-preview"
+                >
+                  <label htmlFor={savedReviewCsvNoteId}>
+                    Selectable saved-date review CSV — NOT BOOKED
+                  </label>
+                  <textarea
+                    id={savedReviewCsvNoteId}
+                    aria-label="Selectable saved-date review CSV — NOT BOOKED"
+                    readOnly
+                    rows={10}
+                    spellCheck={false}
+                    value={recurringVisitSavedStatusCsv(
+                      previewStartDate, previewIntervalWeeks, previewCount,
+                      savedCountByPlannedDate,
+                    )}
+                  />
+                  <p className="muted">
+                    Read-only proposed dates and saved status counts; no customer
+                    details or appointment times. Select or long-press text to
+                    copy manually. No visits are booked and availability is
+                    not confirmed.
+                  </p>
+                </div>
+              )}
               {visibleSavedReviewCsvCopyFeedback && (
                 <p className="recurring-visit-saved-review-csv-copy-feedback" role="status">
                   {visibleSavedReviewCsvCopyFeedback === "copied"
