@@ -1,6 +1,7 @@
 import { Temporal } from "@js-temporal/polyfill";
 import type { WorkspaceRecord } from "./engine";
 import { instant } from "./time";
+import { previewRecurringVisitDates, type VisitFrequencyWeeks } from "./recurring-visit-preview";
 
 type ScopedAppointment = Pick<WorkspaceRecord, "entity" | "archived" | "data">;
 export type PlannedDateAppointmentStatuses = {
@@ -203,4 +204,53 @@ export function noSavedProposedDateList(
 ): string[] {
   return statuses.filter(hasNoSavedAppointmentsOnPlannedDate)
     .map((row) => row.date);
+}
+
+/**
+ * Export an UNSAVED, strictly bounded recurring-date proposal together with
+ * date-level status counts already visible to the authorized organization.
+ *
+ * The input statuses MUST correspond exactly to the regenerated date-only
+ * proposal. Only fixed headers/labels, canonical ISO dates, and validated
+ * nonnegative safe integers can reach CSV cells: no saved record fields,
+ * appointment times, customer/resource names, or formula injection.
+ * A non-archived Cancelled record still counts as saved. An empty date
+ * is not an available slot and none of these dates is booked by export.
+ */
+export function recurringVisitSavedStatusCsv(
+  startDate: string,
+  everyWeeks: VisitFrequencyWeeks,
+  occurrences: number,
+  statuses: readonly PlannedDateAppointmentStatuses[],
+): string {
+  const dates = previewRecurringVisitDates(startDate, everyWeeks, occurrences);
+  if (statuses.length !== dates.length) {
+    throw new RangeError("Saved-date counts do not match this proposed recurrence.");
+  }
+  const columns: (keyof Omit<PlannedDateAppointmentStatuses, "date">)[] = [
+    "savedAppointments", "scheduled", "inProgress", "completed",
+    "cancelled", "other",
+  ];
+  const rows = [
+    "Visit,Proposed date,Existing non-archived saved appointments,Scheduled,In progress,Completed,Cancelled,Other,Saved-date classification,Note",
+  ];
+  statuses.forEach((row, index) => {
+    if (row.date !== dates[index] ||
+      columns.some((key) => !Number.isSafeInteger(row[key]) || row[key] < 0) ||
+      row.scheduled + row.inProgress + row.completed + row.cancelled +
+        row.other !== row.savedAppointments) {
+      throw new RangeError("Invalid saved-date status summary for this proposal.");
+    }
+    const classification = hasNoSavedAppointmentsOnPlannedDate(row)
+      ? "No saved appointment records"
+      : isCancelledOnlySavedDate(row)
+        ? "Cancelled-only saved records"
+        : "Has non-cancelled saved records";
+    rows.push([
+      index + 1, dates[index], row.savedAppointments,
+      row.scheduled, row.inProgress, row.completed, row.cancelled, row.other,
+      classification, "Proposal only - NOT BOOKED - availability not confirmed",
+    ].join(","));
+  });
+  return rows.join("\r\n") + "\r\n";
 }
