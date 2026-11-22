@@ -548,8 +548,17 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(jumpToPlanned).toHaveValue("2027-01-01");
     await expect(reviewedDetails).toContainText("Reviewed visit 3 of 6");
     await expect(previewVisitNote).toHaveAttribute("aria-expanded", "false");
+    // Regression: reverting an excluded recurrence rule must not
+    // silently resurrect the previously opened note on the same date.
+    await expect(selectableNote).toHaveCount(0);
+    await previewVisitNote.click();
+    await expect(selectableNote).toContainText("NOT BOOKED");
     await planner.getByLabel("Number of preview visits", { exact: true })
       .selectOption("12");
+    // Changing the number of proposed visits also closes the note,
+    // rather than keeping its stale 3-of-6 header on a 12-date plan.
+    await expect(previewVisitNote).toHaveAttribute("aria-expanded", "false");
+    await expect(selectableNote).toHaveCount(0);
     await expect(jumpToPlanned.locator("option")).toHaveCount(13);
     await expect(reviewedDetails).toContainText("Reviewed visit 3 of 12");
     // In a 12-visit plan, compact view hides only repeated cards;
@@ -671,6 +680,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     // A deliberate change to the date picker now becomes the first visit.
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
     await expect(visitLabels.first()).toHaveText("Visit 1: 2026-11-06");
+    // Regression: changing the calendar anchor closes a previous
+    // on-screen note. Returning to the original date must not revive it.
+    await previewVisitNote.click();
+    await expect(selectableNote).toContainText("NOT BOOKED");
     // Do not silently return partial plans if the last date is out of range.
     await page.getByLabel("Schedule date", { exact: true }).fill("2100-12-25");
     await expect(planner.getByRole("status")).toContainText(
@@ -698,6 +711,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(lastPlanned).toHaveCount(0);
     await page.getByLabel("Schedule date", { exact: true }).fill("2026-11-06");
     await expect(plannedDates).toHaveCount(6);
+    await expect(previewVisitNote).toHaveAttribute("aria-expanded", "false");
+    await expect(selectableNote).toHaveCount(0);
     await fits(page);
     expect(
       (await new AxeBuilder({ page })
