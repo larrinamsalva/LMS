@@ -9,6 +9,7 @@ import {
   isCancelledOnlySavedDate,
   hasNoSavedAppointmentsOnPlannedDate,
   noSavedProposedDateList,
+  recurringVisitSavedStatusCsv,
   nextProposedDateBySavedCoverage,
   previousProposedDateBySavedCoverage,
 } from "../../src/core/recurring-visit-saved-appointments";
@@ -521,4 +522,74 @@ it("no-saved date list respects local overnight overlap and all/none extremes", 
   expect(noSavedProposedDateList(savedAppointmentStatusesOnPlannedDates(
     localDates, allSaved, "UTC",
   ))).toEqual([]);
+});
+
+it("exports a validated, privacy-safe status-count CSV with original proposed visit numbers", () => {
+  const dates = previewRecurringVisitDates("2026-11-06", 2, 6);
+  const records = [
+    appointment(dates[0] + "T10:00:00Z", dates[0] + "T11:00:00Z", false, "Scheduled"),
+    appointment(dates[0] + "T13:00:00Z", dates[0] + "T14:00:00Z", false, "Cancelled"),
+    appointment(dates[1] + "T10:00:00Z", dates[1] + "T11:00:00Z", false, "Cancelled"),
+    appointment(dates[2] + "T10:00:00Z", dates[2] + "T11:00:00Z", true, "Completed"),
+    appointment(dates[3] + "T10:00:00Z", dates[3] + "T11:00:00Z", false, "Completed"),
+    appointment(dates[4] + "T10:00:00Z", dates[4] + "T11:00:00Z", false, "External status"),
+    otherRecord(),
+  ];
+  const originalRecords = structuredClone(records);
+  const statuses = savedAppointmentStatusesOnPlannedDates(dates, records, "UTC");
+  const originalStatuses = structuredClone(statuses);
+  const csv = recurringVisitSavedStatusCsv("2026-11-06", 2, 6, statuses);
+  const rows = csv.trimEnd().split("\r\n");
+  expect(rows).toHaveLength(7);
+  expect(rows[0]).toBe(
+    "Visit,Proposed date,Existing non-archived saved appointments,Scheduled,In progress,Completed,Cancelled,Other,Saved-date classification,Note",
+  );
+  expect(rows[1]).toBe(
+    "1,2026-11-06,2,1,0,0,1,0,Has non-cancelled saved records,Proposal only - NOT BOOKED - availability not confirmed",
+  );
+  expect(rows[2]).toBe(
+    `2,${dates[1]},1,0,0,0,1,0,Cancelled-only saved records,Proposal only - NOT BOOKED - availability not confirmed`,
+  );
+  expect(rows[3]).toBe(
+    `3,${dates[2]},0,0,0,0,0,0,No saved appointment records,Proposal only - NOT BOOKED - availability not confirmed`,
+  );
+  expect(rows[4]).toContain(`,1,0,0,1,0,0,Has non-cancelled saved records,`);
+  expect(rows[5]).toContain(`,1,0,0,0,0,1,Has non-cancelled saved records,`);
+  expect(rows[6]).toContain(`,0,0,0,0,0,0,No saved appointment records,`);
+  expect(csv.endsWith("\r\n")).toBe(true);
+  expect(csv).not.toContain("External status");
+  expect(csv).not.toContain("Customer");
+  expect(csv).not.toContain("resource");
+  expect(records).toEqual(originalRecords);
+  expect(statuses).toEqual(originalStatuses);
+});
+
+it("rejects mismatched, invalid or formula-like saved status input instead of exporting raw fields", () => {
+  const dates = previewRecurringVisitDates("2026-11-06", 1, 2);
+  const statuses = savedAppointmentStatusesOnPlannedDates(dates, [], "UTC");
+  expect(recurringVisitSavedStatusCsv("2026-11-06", 1, 2, statuses))
+    .toContain("No saved appointment records");
+  expect(() => recurringVisitSavedStatusCsv("2026-11-06", 1, 2, statuses.slice(0, 1)))
+    .toThrow();
+  expect(() => recurringVisitSavedStatusCsv("2026-11-06", 1, 2, [...statuses].reverse()))
+    .toThrow();
+  expect(() => recurringVisitSavedStatusCsv("2100-12-25", 4, 12, statuses))
+    .toThrow();
+  const invalidValues = [
+    { ...statuses[0], date: "=SUM(1+1)" },
+    { ...statuses[0], date: "2026-11-13" },
+    { ...statuses[0], savedAppointments: -1 },
+    { ...statuses[0], savedAppointments: Number.POSITIVE_INFINITY },
+    { ...statuses[0], savedAppointments: Number.NaN },
+    { ...statuses[0], cancelled: 0.5 },
+    { ...statuses[0], scheduled: Number.MAX_SAFE_INTEGER + 1 },
+    { ...statuses[0], savedAppointments: 1, scheduled: 0 },
+    { ...statuses[0], savedAppointments: 1, scheduled: 1, cancelled: 1 },
+  ];
+  for (const invalid of invalidValues) {
+    expect(() => recurringVisitSavedStatusCsv(
+      "2026-11-06", 1, 2, [invalid, statuses[1]],
+    )).toThrow();
+  }
+  expect(statuses.every((row) => row.savedAppointments === 0)).toBe(true);
 });

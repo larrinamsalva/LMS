@@ -11,7 +11,7 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
-import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList, isCancelledOnlySavedDate, hasNoSavedAppointmentsOnPlannedDate, noSavedProposedDateList } from "../core/recurring-visit-saved-appointments";
+import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList, isCancelledOnlySavedDate, hasNoSavedAppointmentsOnPlannedDate, noSavedProposedDateList, recurringVisitSavedStatusCsv } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -280,6 +280,26 @@ export function Schedule({
     // The generated filename is safe: selectedDate is a strict
     // YYYY-MM-DD member of the validated proposed-date list.
     link.download = `lms-proposed-visit-${selectedDate}-NOT-BOOKED.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  }
+  function downloadSavedDateReviewCsv() {
+    // The pure generator revalidates the exact bounded proposal and every
+    // numeric status count before allowing a local export. Only already
+    // visible, organization-scoped date/status totals leave the browser.
+    // This never books a date or exports customer, resource or time fields.
+    const csv = recurringVisitSavedStatusCsv(
+      previewStartDate, previewIntervalWeeks, previewCount,
+      savedCountByPlannedDate,
+    );
+    const blobUrl = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = `lms-visit-saved-date-review-${previewStartDate}-NOT-BOOKED.csv`;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -725,13 +745,23 @@ export function Schedule({
                   type="button"
                   className="secondary"
                   disabled={busy}
+                  onClick={downloadSavedDateReviewCsv}
+                >
+                  Download saved-date review CSV
+                </button>
+                <button
+                  type="button"
+                  className="secondary"
+                  disabled={busy}
                   onClick={() => void copyPlannedDates()}
                 >
                   Copy planned dates
                 </button>
                 <p className="muted">
-                  Download a CSV or copy a plain-text proposal with dates and
-                  weekdays. Neither action creates bookings, includes customer
+                  Download planned-date CSV or copy a plain-text proposal.
+                  The separate saved-date review CSV contains date-level counts
+                  and status categories only (no names or appointment times).
+                  None of these actions creates bookings, includes customer
                   details, or confirms resource availability.
                 </p>
               </div>

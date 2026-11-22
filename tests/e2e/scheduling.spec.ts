@@ -201,6 +201,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const copyButton = planner.getByRole("button", {
       name: "Copy planned dates", exact: true,
     });
+    const statusExportButton = planner.getByRole("button", {
+      name: "Download saved-date review CSV", exact: true,
+    });
+    await expect(statusExportButton).toBeVisible();
     await expect(exportButton).toBeVisible();
     await expect(copyButton).toBeVisible();
     const overview = planner.getByRole("region", {
@@ -338,6 +342,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(reviewedDetails).toContainText("Reviewed visit 1 of 4");
     await expect(overview).toContainText("Proposed visits");
     await expect(exportButton).toBeVisible();
+    await expect(statusExportButton).toBeVisible();
     await expect(copyButton).toBeVisible();
     await compactView.uncheck();
     await expect(plannedDates).toHaveCount(4);
@@ -765,6 +770,50 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(previewCsv).not.toContain(customer);
     expect(previewCsv).not.toContain(work);
     expect(previewCsv).not.toContain(resource);
+    // Export saved DATE and STATUS COUNTS only; verify that exported rows
+    // match the same authorized organization-scoped cards already on screen.
+    const [statusDownload] = await Promise.all([
+      page.waitForEvent("download"), statusExportButton.click(),
+    ]);
+    expect(statusDownload.suggestedFilename()).toBe(
+      "lms-visit-saved-date-review-2026-11-06-NOT-BOOKED.csv",
+    );
+    const savedStatusCsv = await readFile(await statusDownload.path(), "utf8");
+    const statusCsvRows = savedStatusCsv.trimEnd().split("\r\n");
+    expect(statusCsvRows).toHaveLength(7);
+    expect(statusCsvRows[0]).toBe(
+      "Visit,Proposed date,Existing non-archived saved appointments,Scheduled,In progress,Completed,Cancelled,Other,Saved-date classification,Note",
+    );
+    const savedCardTotals = await savedCounts.allTextContents();
+    const savedCardStatuses = await savedStatuses.allTextContents();
+    const savedCardDates = await plannedDates.locator(
+      ".recurring-visit-date-text time",
+    ).allTextContents();
+    for (let index = 0; index < savedCardDates.length; index++) {
+      const parts = statusCsvRows[index + 1].split(",");
+      expect(parts).toHaveLength(10);
+      const fromSavedCard = savedCardTotals[index].match(/Already saved: (\d+)/)?.[1];
+      expect(fromSavedCard).toBeDefined();
+      const countStatus = (name: string) => savedCardStatuses[index]
+        .match(new RegExp(name + " (\\d+)"))?.[1] ?? "0";
+      expect(parts.slice(0, 8)).toEqual([
+        String(index + 1), savedCardDates[index], fromSavedCard,
+        countStatus("Scheduled"), countStatus("In progress"),
+        countStatus("Completed"), countStatus("Cancelled"),
+        countStatus("Other"),
+      ]);
+      const classification = Number(fromSavedCard) === 0
+        ? "No saved appointment records"
+        : fromSavedCard === countStatus("Cancelled")
+          ? "Cancelled-only saved records"
+          : "Has non-cancelled saved records";
+      expect(parts[8]).toBe(classification);
+      expect(parts[9]).toBe("Proposal only - NOT BOOKED - availability not confirmed");
+    }
+    expect(savedStatusCsv).not.toContain(customer);
+    expect(savedStatusCsv).not.toContain(work);
+    expect(savedStatusCsv).not.toContain(resource);
+    expect(savedStatusCsv).not.toContain("2026-11-06T");
     // Stub the browser clipboard transport in THIS existing session:
     // assert exactly what would be copied without requiring the runner
     // to grant clipboard permissions, and never create an extra demo.
@@ -1169,6 +1218,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(savedStatuses).toHaveCount(0);
     await expect(planner.locator(".recurring-visit-review-state")).toHaveCount(0);
     await expect(exportButton).toHaveCount(0);
+    await expect(statusExportButton).toHaveCount(0);
     await expect(copyButton).toHaveCount(0);
     await expect(copyFeedback).toHaveCount(0);
     await expect(previousPlanned).toHaveCount(0);
@@ -1384,6 +1434,28 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const afterSaveCoverage = savedRoutePlanner.getByRole("group", {
       name: "Saved appointment date coverage", exact: true,
     });
+    const afterSaveStatusExport = savedRoutePlanner.getByRole("button", {
+      name: "Download saved-date review CSV", exact: true,
+    });
+    await expect(afterSaveStatusExport).toBeVisible();
+    const [afterSaveCsvDownload] = await Promise.all([
+      page.waitForEvent("download"), afterSaveStatusExport.click(),
+    ]);
+    expect(afterSaveCsvDownload.suggestedFilename()).toBe(
+      "lms-visit-saved-date-review-2026-11-06-NOT-BOOKED.csv",
+    );
+    const afterSaveReviewCsv = await readFile(await afterSaveCsvDownload.path(), "utf8");
+    const afterSaveReviewRows = afterSaveReviewCsv.trimEnd().split("\r\n");
+    expect(afterSaveReviewRows).toHaveLength(7);
+    const explicitSavedDateRow = afterSaveReviewRows[4].split(",");
+    expect(explicitSavedDateRow[0]).toBe("4");
+    expect(explicitSavedDateRow[1]).toBe("2027-01-29");
+    expect(Number(explicitSavedDateRow[3])).toBeGreaterThanOrEqual(1);
+    expect(explicitSavedDateRow[8]).toBe("Has non-cancelled saved records");
+    expect(explicitSavedDateRow[9]).toBe("Proposal only - NOT BOOKED - availability not confirmed");
+    expect(afterSaveReviewCsv).not.toContain(customer);
+    expect(afterSaveReviewCsv).not.toContain(work);
+    expect(afterSaveReviewCsv).not.toContain(resource);
     const afterSaveLabels = await savedRoutePlanner.getByRole("list", {
       name: "Planned visit dates", exact: true,
     }).locator(".recurring-visit-saved-count").allTextContents();
