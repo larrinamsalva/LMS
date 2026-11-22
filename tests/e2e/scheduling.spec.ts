@@ -207,10 +207,18 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const savedCsvCopyButton = planner.getByRole("button", {
       name: "Copy saved-date review CSV", exact: true,
     });
+    const savedCsvPreviewToggle = planner.getByRole("button", {
+      name: /^(Preview saved-date review CSV|Hide saved-date review CSV preview)$/,
+    });
+    const savedCsvPreviewTextarea = planner.getByRole("textbox", {
+      name: "Selectable saved-date review CSV — NOT BOOKED", exact: true,
+    });
     const savedCsvCopyFeedback = planner.locator(
       ".recurring-visit-saved-review-csv-copy-feedback",
     );
     await expect(savedCsvCopyButton).toBeVisible();
+    await expect(savedCsvPreviewToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(savedCsvPreviewTextarea).toHaveCount(0);
     await expect(savedCsvCopyFeedback).toHaveCount(0);
     await expect(statusExportButton).toBeVisible();
     await expect(exportButton).toBeVisible();
@@ -447,6 +455,14 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(exportButton).toBeVisible();
     await expect(statusExportButton).toBeVisible();
     await expect(savedCsvCopyButton).toBeVisible();
+    await expect(savedCsvPreviewToggle).toBeVisible();
+    await savedCsvPreviewToggle.click();
+    await expect(savedCsvPreviewToggle).toHaveAttribute("aria-expanded", "true");
+    await expect(savedCsvPreviewTextarea).toHaveAttribute("readonly", "");
+    await expect(savedCsvPreviewTextarea).toBeVisible();
+    await fits(page);
+    await savedCsvPreviewToggle.click();
+    await expect(savedCsvPreviewTextarea).toHaveCount(0);
     await expect(copyButton).toBeVisible();
     await compactView.uncheck();
     await expect(plannedDates).toHaveCount(4);
@@ -918,6 +934,21 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(savedStatusCsv).not.toContain(work);
     expect(savedStatusCsv).not.toContain(resource);
     expect(savedStatusCsv).not.toContain("2026-11-06T");
+    // HTML textarea inputValue normalizes CRLF to LF, but the underlying
+    // CSV formatter/download/copy preserves CRLF byte-for-byte.
+    await savedCsvPreviewToggle.click();
+    await expect(savedCsvPreviewToggle).toHaveAttribute("aria-expanded", "true");
+    await expect(savedCsvPreviewTextarea).toHaveValue(
+      savedStatusCsv.replace(/\r\n/g, "\n"),
+    );
+    expect(await savedCsvPreviewTextarea.inputValue()).not.toContain(customer);
+    expect(await savedCsvPreviewTextarea.inputValue()).not.toContain(work);
+    expect(await savedCsvPreviewTextarea.inputValue()).not.toContain(resource);
+    await expect(planner.locator(".recurring-visit-full-csv-preview"))
+      .toContainText("No visits are booked and availability is");
+    await savedCsvPreviewToggle.click();
+    await expect(savedCsvPreviewToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(savedCsvPreviewTextarea).toHaveCount(0);
     // Copy is the same validated count CSV, including CRLF, header and
     // NOT BOOKED label, without an additional test/demo session.
     await page.evaluate(() => {
@@ -993,11 +1024,17 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       .toContainText("Could not copy dates. Clipboard access may be blocked");
     // Copy feedback is specific to this exact recurrence rule; altering
     // it cannot leave a stale Copied/Failed message on another plan.
+    await savedCsvPreviewToggle.click();
+    await expect(savedCsvPreviewTextarea).toBeVisible();
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("2");
     await expect(copyFeedback).toHaveCount(0);
     await expect(savedCsvCopyFeedback).toHaveCount(0);
+    await expect(savedCsvPreviewToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(savedCsvPreviewTextarea).toHaveCount(0);
     await planner.getByLabel("Repeat visits", { exact: true }).selectOption("4");
     await expect(savedCsvCopyFeedback).toHaveCount(0);
+    await expect(savedCsvPreviewToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(savedCsvPreviewTextarea).toHaveCount(0);
     const anchoredVisitLabels = await visitLabels.allTextContents();
     const previousPlanned = planner.getByRole("button", {
       name: "Previous planned visit", exact: true,
@@ -1389,6 +1426,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(exportButton).toHaveCount(0);
     await expect(statusExportButton).toHaveCount(0);
     await expect(savedCsvCopyButton).toHaveCount(0);
+    await expect(savedCsvPreviewToggle).toHaveCount(0);
+    await expect(savedCsvPreviewTextarea).toHaveCount(0);
     await expect(savedCsvCopyFeedback).toHaveCount(0);
     await expect(copyButton).toHaveCount(0);
     await expect(copyFeedback).toHaveCount(0);
@@ -1674,6 +1713,19 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "lms-visit-saved-date-review-2026-11-06-NOT-BOOKED.csv",
     );
     const afterSaveReviewCsv = await readFile(await afterSaveCsvDownload.path(), "utf8");
+    const afterSavePreviewToggle = savedRoutePlanner.getByRole("button", {
+      name: /^(Preview saved-date review CSV|Hide saved-date review CSV preview)$/,
+    });
+    const afterSaveCsvPreview = savedRoutePlanner.getByRole("textbox", {
+      name: "Selectable saved-date review CSV — NOT BOOKED", exact: true,
+    });
+    await expect(afterSavePreviewToggle).toHaveAttribute("aria-expanded", "false");
+    await afterSavePreviewToggle.click();
+    await expect(afterSaveCsvPreview).toHaveValue(
+      afterSaveReviewCsv.replace(/\r\n/g, "\n"),
+    );
+    await afterSavePreviewToggle.click();
+    await expect(afterSaveCsvPreview).toHaveCount(0);
     const afterSaveCsvCopyButton = savedRoutePlanner.getByRole("button", {
       name: "Copy saved-date review CSV", exact: true,
     });
