@@ -515,7 +515,8 @@ export function Schedule({
                       Dates with only cancelled records still count as dates
                       with saved records. Neither a cancelled-only date nor
                       an empty date proves staff or equipment is available.
-                      None of these counts confirms proposed bookings.
+                      Neither count confirms proposed bookings. The
+                      cancelled-only count does not confirm any booking either.
                     </p>
                     <div className="recurring-visit-coverage-actions">
                       <button
