@@ -201,7 +201,25 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     const reviewCopyButton = reviewedDetails.getByRole("button", {
       name: "Copy reviewed visit", exact: true,
     });
+    const reviewDownloadButton = reviewedDetails.getByRole("button", {
+      name: "Download reviewed visit TXT", exact: true,
+    });
     await expect(reviewCopyButton).toBeEnabled();
+    await expect(reviewDownloadButton).toBeEnabled();
+    // The download is local and uses the same already-validated text
+    // as Copy, without requiring browser clipboard permissions.
+    const [initialReviewDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      reviewDownloadButton.click(),
+    ]);
+    expect(initialReviewDownload.suggestedFilename())
+      .toBe("lms-proposed-visit-2026-11-06-NOT-BOOKED.txt");
+    expect(await readFile(await initialReviewDownload.path(), "utf8")).toBe([
+      "LMS proposed visit 1 of 4 - NOT BOOKED",
+      "Friday, 2026-11-06 (business-local date; no time)",
+      "Planning note only. No appointment, staff or equipment is booked or confirmed.",
+      "",
+    ].join("\n"));
     const reviewedCopyFeedback = reviewedDetails.locator(
       ".recurring-visit-reviewed-copy-feedback",
     );
@@ -440,6 +458,19 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(selectedText).not.toContain(work);
     expect(selectedText).not.toContain(resource);
     expect(selectedText).not.toContain("Saved on this date:");
+    const [singleDownload] = await Promise.all([
+      page.waitForEvent("download"),
+      reviewDownloadButton.click(),
+    ]);
+    expect(singleDownload.suggestedFilename())
+      .toBe("lms-proposed-visit-2027-01-01-NOT-BOOKED.txt");
+    const downloadedText = await readFile(await singleDownload.path(), "utf8");
+    expect(downloadedText).toBe(selectedText + "\n");
+    expect(downloadedText).not.toContain(customer);
+    expect(downloadedText).not.toContain(work);
+    expect(downloadedText).not.toContain(resource);
+    expect(downloadedText).not.toContain("Saved on this date");
+    expect(downloadedText).not.toContain("2026-12-04");
     // Permission denial must show failure, not a false copied message.
     await page.evaluate(() => {
       Object.defineProperty(navigator, "clipboard", {
@@ -452,6 +483,15 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await reviewCopyButton.click();
     await expect(reviewedCopyFeedback)
       .toContainText("Could not copy selected visit. Clipboard access may be blocked");
+    await expect(reviewedCopyFeedback)
+      .toContainText("use Download reviewed visit TXT instead");
+    // The download remains available when clipboard copying is denied.
+    const [permissionFallback] = await Promise.all([
+      page.waitForEvent("download"),
+      reviewDownloadButton.click(),
+    ]);
+    expect(await readFile(await permissionFallback.path(), "utf8"))
+      .toBe(selectedText + "\n");
     expect(await page.evaluate(
       () => document.documentElement.dataset.reviewedVisitCopiedText ?? "",
     )).toBe(selectedText);
@@ -462,6 +502,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(jumpToPlanned).toHaveValue("");
     await expect(reviewedDetails).toHaveCount(0);
     await expect(reviewCopyButton).toHaveCount(0);
+    await expect(reviewDownloadButton).toHaveCount(0);
     await expect(reviewedState).toContainText(
       "Agenda date is not one of the proposed visit dates",
     );
@@ -479,6 +520,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await compactView.check();
     await expect(plannedDates).toHaveCount(0);
     await expect(reviewCopyButton).toBeVisible();
+    await expect(reviewDownloadButton).toBeVisible();
     await expect(reviewedDetails.getByRole("button", {
       name: "Prepare currently reviewed visit 3 on 2027-01-01",
       exact: true,
@@ -590,6 +632,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(overview).toHaveCount(0);
     await expect(reviewedDetails).toHaveCount(0);
     await expect(reviewCopyButton).toHaveCount(0);
+    await expect(reviewDownloadButton).toHaveCount(0);
     await expect(weekdays).toHaveCount(0);
     await expect(savedCounts).toHaveCount(0);
     await expect(savedStatuses).toHaveCount(0);
