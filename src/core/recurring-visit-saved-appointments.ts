@@ -94,3 +94,23 @@ export function savedDateCoverage(
   const withSaved = statuses.filter((row) => row.savedAppointments > 0).length;
   return { withSaved, withoutSaved: statuses.length - withSaved };
 }
+
+/**
+ * Find the next strictly later PROPOSED calendar date with or without an
+ * already saved, non-archived appointment. Input is the same ascending,
+ * unique and organization-scoped per-date status series shown on Schedule.
+ * No wrapping or skipping beyond the proposal; a null result disables
+ * the review shortcut. This is not a search for available booking slots.
+ */
+export function nextProposedDateBySavedCoverage(
+  statuses: readonly PlannedDateAppointmentStatuses[],
+  agendaDate: string,
+  kind: "with-saved" | "without-saved",
+): string | null {
+  return statuses.find((row) =>
+    row.date > agendaDate &&
+    (kind === "with-saved"
+      ? row.savedAppointments > 0
+      : row.savedAppointments === 0),
+  )?.date ?? null;
+}
