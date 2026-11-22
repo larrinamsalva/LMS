@@ -11,7 +11,7 @@ import type { WorkspaceRecord } from "../core/engine";
 import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
-import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage } from "../core/recurring-visit-saved-appointments";
+import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage } from "../core/recurring-visit-saved-appointments";
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -165,6 +165,14 @@ export function Schedule({
     previewError = error instanceof Error ? error.message : "Choose a valid schedule date.";
   }
   const savedCoverage = savedDateCoverage(savedCountByPlannedDate);
+  // Strictly later date-only review targets. Existing saved records are
+  // coverage context, never a booking or an availability check.
+  const nextDateWithSaved = nextProposedDateBySavedCoverage(
+    savedCountByPlannedDate, date, "with-saved",
+  );
+  const nextDateWithoutSaved = nextProposedDateBySavedCoverage(
+    savedCountByPlannedDate, date, "without-saved",
+  );
   const reviewedVisitPosition = plannedVisitReviewPosition(plannedVisitDates, date);
   const reviewedPlannedDate = reviewedVisitPosition === null
     ? null : plannedVisitDates[reviewedVisitPosition - 1];
@@ -491,6 +499,33 @@ export function Schedule({
                       and cancelled records still count if not archived.
                       No saved records does not mean staff or equipment
                       is available. Neither count confirms proposed bookings.
+                    </p>
+                    <div className="recurring-visit-coverage-actions">
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={busy || !nextDateWithSaved}
+                        onClick={() => {
+                          if (nextDateWithSaved) reviewPlannedDate(nextDateWithSaved);
+                        }}
+                      >
+                        Review next proposed date with saved records
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        disabled={busy || !nextDateWithoutSaved}
+                        onClick={() => {
+                          if (nextDateWithoutSaved) reviewPlannedDate(nextDateWithoutSaved);
+                        }}
+                      >
+                        Review next proposed date without saved records
+                      </button>
+                    </div>
+                    <p className="muted">
+                      Review only: jumps forward to the next matching proposed
+                      calendar date without wrapping. These shortcuts do not
+                      check free time, reserve anything, or book a visit.
                     </p>
                   </div>
                   <p>
