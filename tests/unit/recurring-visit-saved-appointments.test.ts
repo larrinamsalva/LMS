@@ -9,7 +9,7 @@ import {
   nextProposedDateBySavedCoverage,
   previousProposedDateBySavedCoverage,
 } from "../../src/core/recurring-visit-saved-appointments";
-import { previewRecurringVisitDates } from "../../src/core/recurring-visit-preview";
+import { previewRecurringVisitDates, plannedVisitReviewPosition } from "../../src/core/recurring-visit-preview";
 
 type SavedRecord = Pick<WorkspaceRecord, "entity" | "archived" | "data">;
 function appointment(
@@ -368,4 +368,25 @@ it("cancelled-only date list respects local midnight overlaps and is empty on no
   expect(cancelledOnlySavedDateList(savedAppointmentStatusesOnPlannedDates(
     dates, [], "America/Los_Angeles",
   ))).toEqual([]);
+});
+
+it("cancelled-only date rows keep the original visit ordinals when other proposed dates are filtered out", () => {
+  for (const interval of [1, 2, 4] as const) {
+    const dates = previewRecurringVisitDates("2026-11-06", interval, 6);
+    // Retained cancelled records occur only at original positions 2 and 5.
+    // Numbering must never be renumbered as 1 and 2 in the filtered list.
+    const records = [dates[1], dates[4]].map((date) =>
+      appointment(date + "T10:00:00Z", date + "T11:00:00Z", false, "Cancelled"),
+    );
+    const before = structuredClone(records);
+    const rows = savedAppointmentStatusesOnPlannedDates(dates, records, "UTC");
+    const filtered = cancelledOnlySavedDateList(rows);
+    expect(filtered).toEqual([dates[1], dates[4]]);
+    expect(filtered.map((date) => plannedVisitReviewPosition(dates, date)))
+      .toEqual([2, 5]);
+    expect(filtered.map((date) => `Proposed visit ${plannedVisitReviewPosition(dates, date)} of ${dates.length}`))
+      .toEqual(["Proposed visit 2 of 6", "Proposed visit 5 of 6"]);
+    expect(records).toEqual(before);
+    expect(dates).toHaveLength(6);
+  }
 });

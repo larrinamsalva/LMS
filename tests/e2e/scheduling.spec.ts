@@ -377,6 +377,25 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       expect(await cancelledList.locator("time").evaluateAll((nodes) =>
         nodes.map((node) => node.getAttribute("datetime")),
       )).toEqual(cancelledFourDates);
+      const allFourDates = await plannedDates.locator(".recurring-visit-date-text time")
+        .allTextContents();
+      await expect(cancelledList.locator(".recurring-visit-cancelled-position"))
+        .toHaveText(cancelledFourDates.map((value) =>
+          `Proposed visit ${allFourDates.indexOf(value) + 1} of 4`,
+        ));
+      // The currently reviewed date (if in the filtered list) is the
+      // sole selected row, with a visible and accessible state label.
+      const currentCancelledRows = cancelledList.locator('li[aria-current="date"]');
+      await expect(currentCancelledRows).toHaveCount(
+        cancelledFourDates.includes("2026-11-06") ? 1 : 0,
+      );
+      if (cancelledFourDates.includes("2026-11-06")) {
+        await expect(currentCancelledRows).toContainText("Currently reviewing");
+        await expect(currentCancelledRows.getByRole("button", {
+          name: "Review cancelled-only proposed date 2026-11-06",
+          exact: true,
+        })).toBeDisabled();
+      }
       const reviewCandidate = cancelledFourDates.find((value) => value !== "2026-11-06");
       if (reviewCandidate) {
         await cancelledList.getByRole("button", {
@@ -385,8 +404,19 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
         }).click();
         await expect(page.getByLabel("Schedule date", { exact: true }))
           .toHaveValue(reviewCandidate);
+        await expect(currentCancelledRows).toHaveCount(1);
+        await expect(currentCancelledRows).toContainText("Currently reviewing");
+        await expect(currentCancelledRows.locator("time"))
+          .toHaveAttribute("datetime", reviewCandidate);
+        await expect(currentCancelledRows.getByRole("button", {
+          name: "Review cancelled-only proposed date " + reviewCandidate,
+          exact: true,
+        })).toBeDisabled();
         await planner.getByLabel("Jump to planned visit", { exact: true })
           .selectOption("2026-11-06");
+        await expect(currentCancelledRows).toHaveCount(
+          cancelledFourDates.includes("2026-11-06") ? 1 : 0,
+        );
       } else {
         await expect(cancelledList.getByRole("button", {
           name: "Review cancelled-only proposed date 2026-11-06",
@@ -771,6 +801,20 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       await cancelledListToggle.click();
       await expect(cancelledList.locator("li")).toHaveCount(compactCancelledCount);
       await expect(cancelledList).toContainText("NOT BOOKED");
+      const compactDateTimes = await cancelledList.locator("time").evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("datetime")),
+      );
+      const allTwelveDates = await jumpToPlanned.locator("option").evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("value")).filter(Boolean),
+      );
+      // The first picker option is the empty "choose a visit" sentinel.
+      await expect(cancelledList.locator(".recurring-visit-cancelled-position"))
+        .toHaveText(compactDateTimes.map((date) =>
+          `Proposed visit ${allTwelveDates.indexOf(date) + 1} of 12`,
+        ));
+      await expect(cancelledList.locator('li[aria-current="date"]')).toHaveCount(
+        compactDateTimes.includes("2027-01-01") ? 1 : 0,
+      );
       await cancelledListToggle.click();
       await expect(cancelledList).toHaveCount(0);
     } else {
