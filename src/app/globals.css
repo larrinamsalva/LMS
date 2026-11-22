@@ -1141,6 +1141,31 @@ legend {
   font-size: 13px;
   overflow-wrap: anywhere;
 }
+.recurring-visit-coverage {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.recurring-visit-coverage h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.recurring-visit-coverage p {
+  margin: 6px 0;
+  line-height: 1.5;
+  color: var(--text);
+}
+.recurring-visit-coverage strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
 .recurring-visit-export {
   margin: 12px 0;
   display: flex;
