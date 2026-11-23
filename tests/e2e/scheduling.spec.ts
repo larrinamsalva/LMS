@@ -1713,18 +1713,18 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "lms-visit-saved-date-review-2026-11-06-NOT-BOOKED.csv",
     );
     const afterSaveReviewCsv = await readFile(await afterSaveCsvDownload.path(), "utf8");
-    const afterSavePreviewToggle = savedRoutePlanner.getByRole("button", {
+    const afterSaveCsvPreviewToggle = savedRoutePlanner.getByRole("button", {
       name: /^(Preview saved-date review CSV|Hide saved-date review CSV preview)$/,
     });
     const afterSaveCsvPreview = savedRoutePlanner.getByRole("textbox", {
       name: "Selectable saved-date review CSV — NOT BOOKED", exact: true,
     });
-    await expect(afterSavePreviewToggle).toHaveAttribute("aria-expanded", "false");
-    await afterSavePreviewToggle.click();
+    await expect(afterSaveCsvPreviewToggle).toHaveAttribute("aria-expanded", "false");
+    await afterSaveCsvPreviewToggle.click();
     await expect(afterSaveCsvPreview).toHaveValue(
       afterSaveReviewCsv.replace(/\r\n/g, "\n"),
     );
-    await afterSavePreviewToggle.click();
+    await afterSaveCsvPreviewToggle.click();
     await expect(afterSaveCsvPreview).toHaveCount(0);
     const afterSaveCsvCopyButton = savedRoutePlanner.getByRole("button", {
       name: "Copy saved-date review CSV", exact: true,
