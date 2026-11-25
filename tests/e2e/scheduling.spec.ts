@@ -950,6 +950,12 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Copy selected review rows", exact: true,
     });
     await expect(selectedRowsButton).toBeVisible();
+    const reviewSelectionCounter = planner.getByText(/^\d+ of \d+ visit rows selected$/);
+    const clearReviewSelectionButton = planner.getByRole("button", {
+      name: "Clear selection", exact: true,
+    });
+    const reviewRowTotal = savedStatusCsv.trimEnd().split("\r\n").length - 1;
+    await expect(reviewSelectionCounter).toHaveText(`0 of ${reviewRowTotal} visit rows selected`);
     await selectedRowsButton.click();
     await expect(planner.getByRole("status").filter({
       hasText: "Select text within one or more visit rows first.",
@@ -961,6 +967,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       element.focus();
       element.setSelectionRange(secondRowStart + 2, secondRowStart + 7);
     });
+    // Exercise keyboard selection as well as the select-all button.
+    await savedCsvPreviewTextarea.press("Shift+ArrowRight");
+    await expect(reviewSelectionCounter).toHaveText(`1 of ${reviewRowTotal} visit rows selected`);
     await page.evaluate(() => {
       Object.defineProperty(navigator, "clipboard", {
         configurable: true,
@@ -987,6 +996,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Select all visit rows", exact: true,
     });
     await selectAllRowsButton.click();
+    await expect(reviewSelectionCounter).toHaveText(
+      `${reviewRowTotal} of ${reviewRowTotal} visit rows selected`,
+    );
     const allVisitRowsSelectedText = await savedCsvPreviewTextarea.evaluate(
       (element: HTMLTextAreaElement) =>
         element.value.substring(element.selectionStart, element.selectionEnd),
@@ -1005,9 +1017,25 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(allRowsCopied).not.toContain(customer);
     expect(allRowsCopied).not.toContain(work);
     expect(allRowsCopied).not.toContain(resource);
+    await clearReviewSelectionButton.click();
+    await expect(reviewSelectionCounter).toHaveText(`0 of ${reviewRowTotal} visit rows selected`);
+    expect(await savedCsvPreviewTextarea.evaluate((element: HTMLTextAreaElement) =>
+      element.selectionStart === element.selectionEnd,
+    )).toBe(true);
+    await selectedRowsButton.click();
+    await expect(planner.getByRole("status").filter({
+      hasText: "Select text within one or more visit rows first.",
+    })).toBeVisible();
+    expect(await page.evaluate(() =>
+      (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
+    )).toBe(savedStatusCsv);
+    await selectAllRowsButton.click();
     await savedCsvPreviewToggle.click();
     await expect(savedCsvPreviewToggle).toHaveAttribute("aria-expanded", "false");
     await expect(savedCsvPreviewTextarea).toHaveCount(0);
+    await savedCsvPreviewToggle.click();
+    await expect(reviewSelectionCounter).toHaveText(`0 of ${reviewRowTotal} visit rows selected`);
+    await savedCsvPreviewToggle.click();
     // Copy is the same validated count CSV, including CRLF, header and
     // NOT BOOKED label, without an additional test/demo session.
     await page.evaluate(() => {
