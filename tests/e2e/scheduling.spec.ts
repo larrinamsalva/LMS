@@ -946,6 +946,42 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(await savedCsvPreviewTextarea.inputValue()).not.toContain(resource);
     await expect(planner.locator(".recurring-visit-full-csv-preview"))
       .toContainText("No visits are booked and availability is");
+    const selectedRowsButton = planner.getByRole("button", {
+      name: "Copy selected review rows", exact: true,
+    });
+    await expect(selectedRowsButton).toBeVisible();
+    await selectedRowsButton.click();
+    await expect(planner.getByRole("status").filter({
+      hasText: "Select text within one or more visit rows first.",
+    })).toBeVisible();
+    // Select only the second proposal row, without selecting headers or notes.
+    await savedCsvPreviewTextarea.evaluate((element: HTMLTextAreaElement) => {
+      const lines = element.value.split("\n");
+      const secondRowStart = lines[0].length + 1 + lines[1].length + 1;
+      element.focus();
+      element.setSelectionRange(secondRowStart + 2, secondRowStart + 7);
+    });
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async (value: string) => {
+          (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows = value;
+        } },
+      });
+    });
+    await selectedRowsButton.click();
+    await expect(planner.getByRole("status").filter({
+      hasText: "Selected review rows copied with column headers.",
+    })).toBeVisible();
+    const selectedCopy = await page.evaluate(() =>
+      (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
+    );
+    expect(selectedCopy).toContain(savedStatusCsv.split("\r\n")[0]);
+    expect(selectedCopy).toContain(savedStatusCsv.split("\r\n")[2]);
+    expect(selectedCopy).not.toContain(savedStatusCsv.split("\r\n")[1] + "\r\n");
+    expect(selectedCopy).not.toContain(customer);
+    expect(selectedCopy).not.toContain(work);
+    expect(selectedCopy).not.toContain(resource);
     await savedCsvPreviewToggle.click();
     await expect(savedCsvPreviewToggle).toHaveAttribute("aria-expanded", "false");
     await expect(savedCsvPreviewTextarea).toHaveCount(0);

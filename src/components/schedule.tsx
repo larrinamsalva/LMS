@@ -74,6 +74,7 @@ export function Schedule({
   const reviewedStatusNoteId = useId();
   const savedReviewCsvNoteId = useId();
   const recurringDetailsRef = useRef<HTMLDetailsElement>(null);
+  const savedReviewCsvTextareaRef = useRef<HTMLTextAreaElement>(null);
   // Open the resumed plan on entry without controlling the native details
   // open state, so keyboard/pointer users can still collapse it afterward.
   useEffect(() => {
@@ -142,6 +143,10 @@ export function Schedule({
   // A selectable full-table preview is ephemeral, not an appointment or export.
   const [visibleSavedReviewCsvPreviewKey, setVisibleSavedReviewCsvPreviewKey] =
     useState<string | null>(null);
+  const [selectedRowsCopyFeedback, setSelectedRowsCopyFeedback] = useState<{
+    reviewCsvKey: string;
+    kind: "copied" | "failed" | "empty";
+  } | null>(null);
   const planKey = `${previewStartDate}/${previewIntervalWeeks}/${previewCount}`;
   const visibleCopyFeedback = copyFeedback?.planKey === planKey
     ? copyFeedback.kind : null;
@@ -196,6 +201,9 @@ export function Schedule({
   const visibleSavedReviewCsvCopyFeedback =
     savedReviewCsvCopyFeedback?.reviewCsvKey === savedReviewCsvKey
       ? savedReviewCsvCopyFeedback.kind : null;
+  const visibleSelectedRowsCopyFeedback =
+    selectedRowsCopyFeedback?.reviewCsvKey === savedReviewCsvKey
+      ? selectedRowsCopyFeedback.kind : null;
   const isSavedReviewCsvPreviewVisible = plannedVisitDates.length > 0 &&
     visibleSavedReviewCsvPreviewKey === savedReviewCsvKey;
   const savedCoverage = savedDateCoverage(savedCountByPlannedDate);
@@ -330,6 +338,46 @@ export function Schedule({
       setSavedReviewCsvCopyFeedback({
         reviewCsvKey: selectedReviewCsvKey, kind: "failed",
       });
+    }
+  }
+  async function copySelectedSavedReviewRows() {
+    const reviewCsvKey = savedReviewCsvKey;
+    const textarea = savedReviewCsvTextareaRef.current;
+    if (!textarea || textarea.selectionStart === textarea.selectionEnd) {
+      setSelectedRowsCopyFeedback({ reviewCsvKey, kind: "empty" });
+      return;
+    }
+    try {
+      // Revalidate using the same date/count-only generator as the full CSV.
+      // Expand a text selection to whole lines; omit the header and disclaimer.
+      const csv = recurringVisitSavedStatusCsv(
+        previewStartDate, previewIntervalWeeks, previewCount,
+        savedCountByPlannedDate,
+      ).replace(/\r\n/g, "\n");
+      const lines = csv.split("\n");
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      let offset = 0;
+      const rows: string[] = [];
+      // Only original visit rows (2-12) are allowed. Never copy arbitrary
+      // text, summary disclaimers, customer data or partial CSV records.
+      for (const line of lines) {
+        const lineStart = offset;
+        const lineEnd = offset + line.length;
+        if (lineStart < end && lineEnd > start && /^\d+,\d{4}-\d{2}-\d{2},/.test(line)) {
+          rows.push(line);
+        }
+        offset = lineEnd + 1;
+      }
+      if (!rows.length) {
+        setSelectedRowsCopyFeedback({ reviewCsvKey, kind: "empty" });
+        return;
+      }
+      if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText([lines[0], ...rows].join("\r\n") + "\r\n");
+      setSelectedRowsCopyFeedback({ reviewCsvKey, kind: "copied" });
+    } catch {
+      setSelectedRowsCopyFeedback({ reviewCsvKey, kind: "failed" });
     }
   }
   async function copyPlannedDates() {
@@ -479,6 +527,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setSelectedRowsCopyFeedback(null);
             setDate(prior);
             setPreviewStartDate(prior);
           }}
@@ -500,6 +549,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setSelectedRowsCopyFeedback(null);
               setDate(e.target.value);
               setPreviewStartDate(e.target.value);
             }}
@@ -518,6 +568,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setSelectedRowsCopyFeedback(null);
             setDate(following);
             setPreviewStartDate(following);
           }}
@@ -569,6 +620,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setSelectedRowsCopyFeedback(null);
                   setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
                 }}
               >
@@ -592,6 +644,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setSelectedRowsCopyFeedback(null);
                   setPreviewCount(Number(event.target.value));
                 }}
               >
@@ -926,6 +979,7 @@ export function Schedule({
                   </label>
                   <textarea
                     id={savedReviewCsvNoteId}
+                    ref={savedReviewCsvTextareaRef}
                     aria-label="Selectable saved-date review CSV — NOT BOOKED"
                     readOnly
                     rows={10}
@@ -935,7 +989,26 @@ export function Schedule({
                       savedCountByPlannedDate,
                     )}
                   />
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => void copySelectedSavedReviewRows()}
+                  >
+                    Copy selected review rows
+                  </button>
+                  {visibleSelectedRowsCopyFeedback && (
+                    <p role="status" className="recurring-visit-saved-review-csv-copy-feedback">
+                      {visibleSelectedRowsCopyFeedback === "copied"
+                        ? "Selected review rows copied with column headers. No visits were booked."
+                        : visibleSelectedRowsCopyFeedback === "empty"
+                          ? "Select text within one or more visit rows first."
+                          : "Could not copy selected review rows. Select text manually or download the full CSV."}
+                    </p>
+                  )}
                   <p className="muted">
+                    Select text across the visit rows, then use Copy selected review rows.
+                    Only complete visit rows and column headers are copied.
                     Read-only proposed dates and saved status counts; no customer
                     details or appointment times. Select or long-press text to
                     copy manually. No visits are booked and availability is
