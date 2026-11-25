@@ -175,6 +175,7 @@ export function Schedule({
     reviewCsvKey: string;
     kind: "started" | "failed";
   } | null>(null);
+  const [selectedRowsPrintErrorKey, setSelectedRowsPrintErrorKey] = useState<string | null>(null);
   const [savedReviewRowSelection, setSavedReviewRowSelection] = useState<{
     reviewCsvKey: string;
     count: number;
@@ -396,6 +397,7 @@ export function Schedule({
     }
   }
   function updateSavedReviewRowSelection(textarea: HTMLTextAreaElement) {
+    setSelectedRowsPrintErrorKey(null);
     setSelectedRowsDownloadFeedback(null);
     try {
       const csv = recurringVisitSavedStatusCsv(
@@ -422,6 +424,7 @@ export function Schedule({
     textarea.setSelectionRange(0, 0);
     setSavedReviewRowSelection(null);
     setSelectedRowsCopyFeedback(null);
+    setSelectedRowsPrintErrorKey(null);
     setSelectedRowsDownloadFeedback(null);
     setSavedReviewStatusSelection({ reviewCsvKey: savedReviewCsvKey, filter });
   }
@@ -430,6 +433,7 @@ export function Schedule({
       setSavedReviewStatusSelection(null);
       setSavedReviewRowSelection(null);
       setSelectedRowsCopyFeedback(null);
+      setSelectedRowsPrintErrorKey(null);
       setSelectedRowsDownloadFeedback(null);
     }
   }
@@ -442,6 +446,7 @@ export function Schedule({
     }
     setSavedReviewRowSelection(null);
     setSelectedRowsCopyFeedback(null);
+    setSelectedRowsPrintErrorKey(null);
     setSelectedRowsDownloadFeedback(null);
   }
   function selectAllSavedReviewRows() {
@@ -465,6 +470,7 @@ export function Schedule({
       textarea.setSelectionRange(start, end);
       updateSavedReviewRowSelection(textarea);
       setSelectedRowsCopyFeedback(null);
+      setSelectedRowsPrintErrorKey(null);
       setSelectedRowsDownloadFeedback(null);
     } catch {
       // Invalid recurrence never selects unvalidated or stale text.
@@ -523,6 +529,68 @@ export function Schedule({
       link?.remove();
       const urlToRelease = blobUrl;
       if (urlToRelease) window.setTimeout(() => URL.revokeObjectURL(urlToRelease), 1000);
+    }
+  }
+  function openSelectedSavedReviewPrintReport() {
+    setSelectedRowsPrintErrorKey(null);
+    let reportWindow: Window | null = null;
+    try {
+      const csv = selectedSavedReviewCsv();
+      if (!csv) return;
+      // The fixed validated CSV has no quoted cells or arbitrary record text.
+      const [header, ...dataRows] = csv.trimEnd().split("\r\n").map((line) => line.split(","));
+      reportWindow = window.open("", "_blank");
+      if (!reportWindow) throw new Error("Print window blocked");
+      reportWindow.opener = null;
+      const doc = reportWindow.document;
+      doc.title = "LMS selected visit review — NOT BOOKED";
+      doc.documentElement.lang = "en";
+      const style = doc.createElement("style");
+      style.textContent = `
+        body { font: 14px system-ui, sans-serif; color: #171717; background: white; margin: 24px; }
+        h1 { font-size: 24px; } p { max-width: 80ch; }
+        table { border-collapse: collapse; width: 100%; font-size: 11px; }
+        th, td { border: 1px solid #999; padding: 5px; text-align: left; overflow-wrap: anywhere; }
+        th { background: #eee; } button { padding: 12px 20px; margin: 0 0 16px; cursor: pointer; }
+        .table-scroll { overflow-x: auto; }
+        @page { size: landscape; margin: 12mm; }
+        @media print { body { margin: 0; } button { display: none; } .table-scroll { overflow: visible; }
+          thead { display: table-header-group; } tr { break-inside: avoid; } }
+      `;
+      doc.head.appendChild(style);
+      const heading = doc.createElement("h1");
+      heading.textContent = "LMS selected visit review — NOT BOOKED";
+      const notice = doc.createElement("p");
+      notice.textContent = "Planning report only. No visits are booked or confirmed. Staff and resource availability is not confirmed. Counts describe existing non-archived saved appointment records.";
+      const summary = doc.createElement("p");
+      summary.textContent = dataRows.length + " selected visit rows. Original proposed visit numbers retained.";
+      const print = doc.createElement("button");
+      print.type = "button";
+      print.textContent = "Print report";
+      const targetWindow = reportWindow;
+      print.addEventListener("click", () => targetWindow.print());
+      const table = doc.createElement("table");
+      const caption = table.createCaption();
+      caption.textContent = "Selected proposed visit dates and saved status counts";
+      const head = table.createTHead().insertRow();
+      for (const label of header) {
+        const cell = doc.createElement("th");
+        cell.scope = "col";
+        cell.textContent = label;
+        head.appendChild(cell);
+      }
+      const body = table.createTBody();
+      for (const values of dataRows) {
+        const row = body.insertRow();
+        for (const value of values) row.insertCell().textContent = value;
+      }
+      const tableWrapper = doc.createElement("div");
+      tableWrapper.className = "table-scroll";
+      tableWrapper.appendChild(table);
+      doc.body.replaceChildren(heading, notice, summary, print, tableWrapper);
+    } catch {
+      reportWindow?.close();
+      setSelectedRowsPrintErrorKey(savedReviewCsvKey);
     }
   }
   async function copyPlannedDates() {
@@ -673,6 +741,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSelectedRowsPrintErrorKey(null);
                   setSelectedRowsDownloadFeedback(null);
                   setSavedReviewRowSelection(null);
                   setSavedReviewStatusSelection(null);
@@ -698,6 +767,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSelectedRowsPrintErrorKey(null);
                   setSelectedRowsDownloadFeedback(null);
                   setSavedReviewRowSelection(null);
                   setSavedReviewStatusSelection(null);
@@ -720,6 +790,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSelectedRowsPrintErrorKey(null);
                   setSelectedRowsDownloadFeedback(null);
                   setSavedReviewRowSelection(null);
                   setSavedReviewStatusSelection(null);
@@ -775,6 +846,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSelectedRowsPrintErrorKey(null);
                   setSelectedRowsDownloadFeedback(null);
                   setSavedReviewRowSelection(null);
                   setSavedReviewStatusSelection(null);
@@ -802,6 +874,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSelectedRowsPrintErrorKey(null);
                   setSelectedRowsDownloadFeedback(null);
                   setSavedReviewRowSelection(null);
                   setSavedReviewStatusSelection(null);
@@ -1108,6 +1181,7 @@ export function Schedule({
                     setSavedReviewRowSelection(null);
                     setSavedReviewStatusSelection(null);
                     setSelectedRowsCopyFeedback(null);
+                    setSelectedRowsPrintErrorKey(null);
                     setSelectedRowsDownloadFeedback(null);
                     setVisibleSavedReviewCsvPreviewKey(
                       isSavedReviewCsvPreviewVisible ? null : savedReviewCsvKey,
@@ -1192,7 +1266,7 @@ export function Schedule({
                       )?.label}. {filteredSavedReviewIndices.length
                         ? "Selected visit numbers: " + filteredSavedReviewIndices.map((index) => index + 1).join(", ") + "."
                         : "No matching visit rows."}
-                      {" "}Copy and download selected review rows use this status selection. No visits are booked.
+                      {" "}Copy, download and print selected review rows use this status selection. No visits are booked.
                     </p>
                   )}
                   <p className="muted" aria-live="polite">
@@ -1214,6 +1288,17 @@ export function Schedule({
                   >
                     Download selected review rows
                   </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy || selectedSavedReviewRowCount === 0}
+                    onClick={openSelectedSavedReviewPrintReport}
+                  >
+                    Print selected review rows
+                  </button>
+                  {selectedRowsPrintErrorKey === savedReviewCsvKey && (
+                    <p role="status">Could not open the print report. Allow pop-ups or download the selected CSV instead.</p>
+                  )}
                   {visibleSelectedRowsDownloadFeedback && (
                     <p role="status" className="recurring-visit-selected-download-feedback">
                       {visibleSelectedRowsDownloadFeedback === "started"
@@ -1233,7 +1318,7 @@ export function Schedule({
                     </p>
                   )}
                   <p className="muted">
-                    Select any visit rows, select all, or choose a saved status, then copy or download selected review rows.
+                    Select any visit rows, select all, or choose a saved status, then copy, download or print selected review rows.
                     Only complete visit rows and column headers are copied or downloaded.
                     Read-only proposed dates and saved status counts; no customer
                     details or appointment times. Select or long-press text to
