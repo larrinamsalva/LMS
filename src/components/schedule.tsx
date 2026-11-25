@@ -1130,7 +1130,7 @@ export function Schedule({
                   >
                     Clear selection
                   </button>
-                  <div role="group" aria-label="Select visit rows by saved status">
+                  <div className="recurring-visit-navigation-actions" role="group" aria-label="Select visit rows by saved status">
                     {savedReviewRowFilters.map(({ value, label }) => (
                       <button
                         key={value}
