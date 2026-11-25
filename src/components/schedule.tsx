@@ -171,6 +171,10 @@ export function Schedule({
     reviewCsvKey: string;
     kind: "copied" | "failed" | "empty";
   } | null>(null);
+  const [selectedRowsDownloadFeedback, setSelectedRowsDownloadFeedback] = useState<{
+    reviewCsvKey: string;
+    kind: "started" | "failed";
+  } | null>(null);
   const [savedReviewRowSelection, setSavedReviewRowSelection] = useState<{
     reviewCsvKey: string;
     count: number;
@@ -236,6 +240,9 @@ export function Schedule({
   const visibleSelectedRowsCopyFeedback =
     selectedRowsCopyFeedback?.reviewCsvKey === savedReviewCsvKey
       ? selectedRowsCopyFeedback.kind : null;
+  const visibleSelectedRowsDownloadFeedback =
+    selectedRowsDownloadFeedback?.reviewCsvKey === savedReviewCsvKey
+      ? selectedRowsDownloadFeedback.kind : null;
   const isSavedReviewCsvPreviewVisible = plannedVisitDates.length > 0 &&
     visibleSavedReviewCsvPreviewKey === savedReviewCsvKey;
   const activeSavedReviewFilter = isSavedReviewCsvPreviewVisible &&
@@ -389,6 +396,7 @@ export function Schedule({
     }
   }
   function updateSavedReviewRowSelection(textarea: HTMLTextAreaElement) {
+    setSelectedRowsDownloadFeedback(null);
     try {
       const csv = recurringVisitSavedStatusCsv(
         previewStartDate, previewIntervalWeeks, previewCount,
@@ -414,6 +422,7 @@ export function Schedule({
     textarea.setSelectionRange(0, 0);
     setSavedReviewRowSelection(null);
     setSelectedRowsCopyFeedback(null);
+    setSelectedRowsDownloadFeedback(null);
     setSavedReviewStatusSelection({ reviewCsvKey: savedReviewCsvKey, filter });
   }
   function returnToManualSavedReviewSelection() {
@@ -421,6 +430,7 @@ export function Schedule({
       setSavedReviewStatusSelection(null);
       setSavedReviewRowSelection(null);
       setSelectedRowsCopyFeedback(null);
+      setSelectedRowsDownloadFeedback(null);
     }
   }
   function clearSavedReviewRowSelection() {
@@ -432,6 +442,7 @@ export function Schedule({
     }
     setSavedReviewRowSelection(null);
     setSelectedRowsCopyFeedback(null);
+    setSelectedRowsDownloadFeedback(null);
   }
   function selectAllSavedReviewRows() {
     setSavedReviewStatusSelection(null);
@@ -454,39 +465,64 @@ export function Schedule({
       textarea.setSelectionRange(start, end);
       updateSavedReviewRowSelection(textarea);
       setSelectedRowsCopyFeedback(null);
+      setSelectedRowsDownloadFeedback(null);
     } catch {
       // Invalid recurrence never selects unvalidated or stale text.
     }
   }
+  // Copy and download share the exact validated, complete selected rows.
+  // The original column header, visit ordinals and NOT BOOKED notes survive.
+  function selectedSavedReviewCsv(): string | null {
+    const textarea = savedReviewCsvTextareaRef.current;
+    if (!textarea || !isSavedReviewCsvPreviewVisible || (activeSavedReviewFilter === null &&
+      textarea.selectionStart === textarea.selectionEnd)) return null;
+    const csv = recurringVisitSavedStatusCsv(
+      previewStartDate, previewIntervalWeeks, previewCount,
+      savedCountByPlannedDate,
+    ).replace(/\r\n/g, "\n");
+    if (textarea.value !== csv) throw new Error("Stale review preview");
+    const lines = csv.split("\n");
+    const rows = activeSavedReviewFilter === null
+      ? selectedSavedReviewCsvRows(csv, textarea.selectionStart, textarea.selectionEnd)
+      : filteredSavedReviewIndices.map((index) => lines[index + 1]);
+    return rows.length ? [lines[0], ...rows].join("\r\n") + "\r\n" : null;
+  }
   async function copySelectedSavedReviewRows() {
     const reviewCsvKey = savedReviewCsvKey;
-    const textarea = savedReviewCsvTextareaRef.current;
-    if (!textarea || (activeSavedReviewFilter === null &&
-      textarea.selectionStart === textarea.selectionEnd)) {
-      setSelectedRowsCopyFeedback({ reviewCsvKey, kind: "empty" });
-      return;
-    }
     try {
-      // Revalidate using the same date/count-only generator as the full CSV.
-      // Expand a text selection to whole lines; omit the header and disclaimer.
-      const csv = recurringVisitSavedStatusCsv(
-        previewStartDate, previewIntervalWeeks, previewCount,
-        savedCountByPlannedDate,
-      ).replace(/\r\n/g, "\n");
-      if (textarea.value !== csv) throw new Error("Stale review preview");
-      const lines = csv.split("\n");
-      const rows = activeSavedReviewFilter === null
-        ? selectedSavedReviewCsvRows(csv, textarea.selectionStart, textarea.selectionEnd)
-        : filteredSavedReviewIndices.map((index) => lines[index + 1]);
-      if (!rows.length) {
+      const csv = selectedSavedReviewCsv();
+      if (!csv) {
         setSelectedRowsCopyFeedback({ reviewCsvKey, kind: "empty" });
         return;
       }
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
-      await navigator.clipboard.writeText([lines[0], ...rows].join("\r\n") + "\r\n");
+      await navigator.clipboard.writeText(csv);
       setSelectedRowsCopyFeedback({ reviewCsvKey, kind: "copied" });
     } catch {
       setSelectedRowsCopyFeedback({ reviewCsvKey, kind: "failed" });
+    }
+  }
+  function downloadSelectedSavedReviewRows() {
+    const reviewCsvKey = savedReviewCsvKey;
+    setSelectedRowsDownloadFeedback(null);
+    let blobUrl: string | undefined;
+    let link: HTMLAnchorElement | undefined;
+    try {
+      const csv = selectedSavedReviewCsv();
+      if (!csv) return;
+      blobUrl = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+      link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `lms-selected-visit-review-${previewStartDate}-NOT-BOOKED.csv`;
+      document.body.appendChild(link);
+      link.click();
+      setSelectedRowsDownloadFeedback({ reviewCsvKey, kind: "started" });
+    } catch {
+      setSelectedRowsDownloadFeedback({ reviewCsvKey, kind: "failed" });
+    } finally {
+      link?.remove();
+      const urlToRelease = blobUrl;
+      if (urlToRelease) window.setTimeout(() => URL.revokeObjectURL(urlToRelease), 1000);
     }
   }
   async function copyPlannedDates() {
@@ -637,6 +673,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSelectedRowsDownloadFeedback(null);
                   setSavedReviewRowSelection(null);
                   setSavedReviewStatusSelection(null);
             setDate(prior);
@@ -661,6 +698,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSelectedRowsDownloadFeedback(null);
                   setSavedReviewRowSelection(null);
                   setSavedReviewStatusSelection(null);
               setDate(e.target.value);
@@ -682,6 +720,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSelectedRowsDownloadFeedback(null);
                   setSavedReviewRowSelection(null);
                   setSavedReviewStatusSelection(null);
             setDate(following);
@@ -736,6 +775,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSelectedRowsDownloadFeedback(null);
                   setSavedReviewRowSelection(null);
                   setSavedReviewStatusSelection(null);
                   setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
@@ -762,6 +802,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSelectedRowsDownloadFeedback(null);
                   setSavedReviewRowSelection(null);
                   setSavedReviewStatusSelection(null);
                   setPreviewCount(Number(event.target.value));
@@ -1067,6 +1108,7 @@ export function Schedule({
                     setSavedReviewRowSelection(null);
                     setSavedReviewStatusSelection(null);
                     setSelectedRowsCopyFeedback(null);
+                    setSelectedRowsDownloadFeedback(null);
                     setVisibleSavedReviewCsvPreviewKey(
                       isSavedReviewCsvPreviewVisible ? null : savedReviewCsvKey,
                     );
@@ -1150,7 +1192,7 @@ export function Schedule({
                       )?.label}. {filteredSavedReviewIndices.length
                         ? "Selected visit numbers: " + filteredSavedReviewIndices.map((index) => index + 1).join(", ") + "."
                         : "No matching visit rows."}
-                      {" "}Copy selected review rows uses this status selection. No visits are booked.
+                      {" "}Copy and download selected review rows use this status selection. No visits are booked.
                     </p>
                   )}
                   <p className="muted" aria-live="polite">
@@ -1164,6 +1206,21 @@ export function Schedule({
                   >
                     Copy selected review rows
                   </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={busy || selectedSavedReviewRowCount === 0}
+                    onClick={downloadSelectedSavedReviewRows}
+                  >
+                    Download selected review rows
+                  </button>
+                  {visibleSelectedRowsDownloadFeedback && (
+                    <p role="status" className="recurring-visit-selected-download-feedback">
+                      {visibleSelectedRowsDownloadFeedback === "started"
+                        ? "Selected review CSV download requested. No visits were booked."
+                        : "Could not start the selected review CSV download. Try copying the selected rows."}
+                    </p>
+                  )}
                   {visibleSelectedRowsCopyFeedback && (
                     <p role="status" className="recurring-visit-saved-review-csv-copy-feedback">
                       {visibleSelectedRowsCopyFeedback === "copied"
@@ -1176,8 +1233,8 @@ export function Schedule({
                     </p>
                   )}
                   <p className="muted">
-                    Select any visit rows, select all, or choose a saved status, then use Copy selected review rows.
-                    Only complete visit rows and column headers are copied.
+                    Select any visit rows, select all, or choose a saved status, then copy or download selected review rows.
+                    Only complete visit rows and column headers are copied or downloaded.
                     Read-only proposed dates and saved status counts; no customer
                     details or appointment times. Select or long-press text to
                     copy manually. No visits are booked and availability is
