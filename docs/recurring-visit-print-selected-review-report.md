@@ -1,0 +1,7 @@
+# Printable selected visit review — LMS #241
+
+In Schedule → Repeating visit planner → Preview saved-date review CSV, select visit rows manually, select all, or choose a saved status. Press **Print selected review rows** to open a clean report in a separate browser window. The report contains the exact existing validated selected CSV rows and headers as a readable table, preserving original visit ordinals, business-local dates, aggregate status counts, and NOT BOOKED warnings. Its explicit Print report button invokes the browser print dialog. Print styles use landscape orientation, repeating headers and no action buttons on paper. The report does not claim printing succeeded. Empty selections disable the action; if a window is blocked, the user can allow pop-ups or download the CSV instead.
+
+The report uses text-only DOM insertion, no raw HTML from records, no new requests, no persistent state, no customer/staff/resource identities, appointment times, booking or availability claims. No API/schema/database/auth changes or other repositories.
+
+The existing desktop/tablet/phone scheduling scenario tests the report header, exact selected table row, privacy warning, omitted private data, print-button invocation and empty-selection disabling. Status and all-row selections share the existing validated CSV generator tested in the same scenario. No new demo sessions. Full suite not run locally; all five final-head GitHub checks must pass before merging. Never auto-merge.

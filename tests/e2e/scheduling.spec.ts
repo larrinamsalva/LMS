@@ -954,6 +954,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Download selected review rows", exact: true,
     });
     await expect(selectedReviewDownloadButton).toBeDisabled();
+    const selectedVisitPrintButton = planner.getByRole("button", {
+      name: "Print selected review rows", exact: true,
+    });
+    await expect(selectedVisitPrintButton).toBeDisabled();
     const reviewSelectionCounter = planner.getByText(/^\d+ of \d+ visit rows selected$/);
     const clearReviewSelectionButton = planner.getByRole("button", {
       name: "Clear selection", exact: true,
@@ -1002,6 +1006,28 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       "lms-selected-visit-review-2026-11-06-NOT-BOOKED.csv",
     );
     expect(await readFile(await singleSelectedReviewDownload.path(), "utf8")).toBe(selectedCopy);
+    const [selectedVisitReportPage] = await Promise.all([
+      page.context().waitForEvent("page"), selectedVisitPrintButton.click(),
+    ]);
+    await expect(selectedVisitReportPage.getByRole("heading", {
+      name: "LMS selected visit review — NOT BOOKED",
+    })).toBeVisible();
+    await expect(selectedVisitReportPage.locator("tbody tr")).toHaveCount(1);
+    expect(await selectedVisitReportPage.locator("thead th").allTextContents())
+      .toEqual(statusCsvRows[0].split(","));
+    expect(await selectedVisitReportPage.locator("tbody tr").first().locator("td").allTextContents())
+      .toEqual(statusCsvRows[2].split(","));
+    const selectedVisitReportContent = await selectedVisitReportPage.locator("body").innerText();
+    expect(selectedVisitReportContent).not.toContain(customer);
+    expect(selectedVisitReportContent).not.toContain(work);
+    expect(selectedVisitReportContent).not.toContain(resource);
+    expect(selectedVisitReportContent).toContain("No visits are booked or confirmed.");
+    await selectedVisitReportPage.evaluate(() => {
+      window.print = () => { document.documentElement.dataset.printInvoked = "yes"; };
+    });
+    await selectedVisitReportPage.getByRole("button", { name: "Print report", exact: true }).click();
+    await expect(selectedVisitReportPage.locator("html")).toHaveAttribute("data-print-invoked", "yes");
+    await selectedVisitReportPage.close();
     // One tap selects all proposal visit rows without the CSV column header.
     const selectAllRowsButton = planner.getByRole("button", {
       name: "Select all visit rows", exact: true,
@@ -1073,6 +1099,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
         )).toBe([statusCsvRows[0], ...matchingReviewCsvRows].join("\r\n") + "\r\n");
       } else {
         await expect(selectedReviewDownloadButton).toBeDisabled();
+        await expect(selectedVisitPrintButton).toBeDisabled();
         await expect(planner.getByRole("status").filter({
           hasText: "No matching visit rows to copy.",
         })).toBeVisible();
@@ -1095,6 +1122,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
     )).toBe(savedStatusCsv);
     await clearReviewSelectionButton.click();
+    await expect(selectedVisitPrintButton).toBeDisabled();
     await expect(selectedReviewDownloadButton).toBeDisabled();
     await expect(reviewSelectionCounter).toHaveText(`0 of ${reviewRowTotal} visit rows selected`);
     expect(await savedCsvPreviewTextarea.evaluate((element: HTMLTextAreaElement) =>
