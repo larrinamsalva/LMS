@@ -12,6 +12,23 @@ import type { StaffAssignment } from "../core/workforce";
 import { displayTime, localDate, shiftDate, instant } from "../core/time";
 import { previewRecurringVisitDates, plannedVisitAppointmentDraft, adjacentPlannedVisitDate, plannedVisitReviewPosition, recurringVisitPreviewCsv, recurringVisitPreviewText, recurringVisitReviewedText, recurringVisitPlanOverview, edgePlannedVisitDate, plannedVisitWeekday, type VisitFrequencyWeeks, type RecurringVisitReturnPlan } from "../core/recurring-visit-preview";
 import { savedAppointmentStatusesOnPlannedDates, savedDateCoverage, nextProposedDateBySavedCoverage, previousProposedDateBySavedCoverage, cancelledOnlySavedDateCount, cancelledOnlySavedDateList, isCancelledOnlySavedDate, hasNoSavedAppointmentsOnPlannedDate, noSavedProposedDateList, recurringVisitSavedStatusCsv, recurringVisitReviewedSavedStatusText } from "../core/recurring-visit-saved-appointments";
+// Count and copy share the same whole-row interpretation of a selection.
+// Input is the already-validated, LF-normalized saved-date review CSV.
+function selectedSavedReviewCsvRows(csv: string, start: number, end: number): string[] {
+  if (start >= end) return [];
+  const rows: string[] = [];
+  let offset = 0;
+  for (const line of csv.split("\n")) {
+    const lineStart = offset;
+    const lineEnd = offset + line.length;
+    if (lineStart < end && lineEnd > start && /^\d+,\d{4}-\d{2}-\d{2},/.test(line)) {
+      rows.push(line);
+    }
+    offset = lineEnd + 1;
+  }
+  return rows;
+}
+
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -147,6 +164,10 @@ export function Schedule({
     reviewCsvKey: string;
     kind: "copied" | "failed" | "empty";
   } | null>(null);
+  const [savedReviewRowSelection, setSavedReviewRowSelection] = useState<{
+    reviewCsvKey: string;
+    count: number;
+  } | null>(null);
   const planKey = `${previewStartDate}/${previewIntervalWeeks}/${previewCount}`;
   const visibleCopyFeedback = copyFeedback?.planKey === planKey
     ? copyFeedback.kind : null;
@@ -206,6 +227,9 @@ export function Schedule({
       ? selectedRowsCopyFeedback.kind : null;
   const isSavedReviewCsvPreviewVisible = plannedVisitDates.length > 0 &&
     visibleSavedReviewCsvPreviewKey === savedReviewCsvKey;
+  const selectedSavedReviewRowCount = isSavedReviewCsvPreviewVisible &&
+    savedReviewRowSelection?.reviewCsvKey === savedReviewCsvKey
+      ? savedReviewRowSelection.count : 0;
   const savedCoverage = savedDateCoverage(savedCountByPlannedDate);
   const cancelledOnlyDates = cancelledOnlySavedDateCount(savedCountByPlannedDate);
   const cancelledDateList = cancelledOnlySavedDateList(savedCountByPlannedDate);
@@ -340,6 +364,33 @@ export function Schedule({
       });
     }
   }
+  function updateSavedReviewRowSelection(textarea: HTMLTextAreaElement) {
+    try {
+      const csv = recurringVisitSavedStatusCsv(
+        previewStartDate, previewIntervalWeeks, previewCount,
+        savedCountByPlannedDate,
+      ).replace(/\r\n/g, "\n");
+      if (textarea.value !== csv) {
+        setSavedReviewRowSelection(null);
+        return;
+      }
+      const count = selectedSavedReviewCsvRows(
+        csv, textarea.selectionStart, textarea.selectionEnd,
+      ).length;
+      setSavedReviewRowSelection({ reviewCsvKey: savedReviewCsvKey, count });
+    } catch {
+      setSavedReviewRowSelection(null);
+    }
+  }
+  function clearSavedReviewRowSelection() {
+    const textarea = savedReviewCsvTextareaRef.current;
+    if (textarea) {
+      textarea.focus();
+      textarea.setSelectionRange(textarea.selectionStart, textarea.selectionStart);
+    }
+    setSavedReviewRowSelection(null);
+    setSelectedRowsCopyFeedback(null);
+  }
   function selectAllSavedReviewRows() {
     const textarea = savedReviewCsvTextareaRef.current;
     if (!textarea) return;
@@ -358,6 +409,7 @@ export function Schedule({
       if (start >= end) return;
       textarea.focus();
       textarea.setSelectionRange(start, end);
+      updateSavedReviewRowSelection(textarea);
       setSelectedRowsCopyFeedback(null);
     } catch {
       // Invalid recurrence never selects unvalidated or stale text.
@@ -377,21 +429,11 @@ export function Schedule({
         previewStartDate, previewIntervalWeeks, previewCount,
         savedCountByPlannedDate,
       ).replace(/\r\n/g, "\n");
+      if (textarea.value !== csv) throw new Error("Stale review preview");
       const lines = csv.split("\n");
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      let offset = 0;
-      const rows: string[] = [];
-      // Only original visit rows (2-12) are allowed. Never copy arbitrary
-      // text, summary disclaimers, customer data or partial CSV records.
-      for (const line of lines) {
-        const lineStart = offset;
-        const lineEnd = offset + line.length;
-        if (lineStart < end && lineEnd > start && /^\d+,\d{4}-\d{2}-\d{2},/.test(line)) {
-          rows.push(line);
-        }
-        offset = lineEnd + 1;
-      }
+      const rows = selectedSavedReviewCsvRows(
+        csv, textarea.selectionStart, textarea.selectionEnd,
+      );
       if (!rows.length) {
         setSelectedRowsCopyFeedback({ reviewCsvKey, kind: "empty" });
         return;
@@ -551,6 +593,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSavedReviewRowSelection(null);
             setDate(prior);
             setPreviewStartDate(prior);
           }}
@@ -573,6 +616,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSavedReviewRowSelection(null);
               setDate(e.target.value);
               setPreviewStartDate(e.target.value);
             }}
@@ -592,6 +636,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSavedReviewRowSelection(null);
             setDate(following);
             setPreviewStartDate(following);
           }}
@@ -644,6 +689,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSavedReviewRowSelection(null);
                   setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
                 }}
               >
@@ -668,6 +714,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
+                  setSavedReviewRowSelection(null);
                   setPreviewCount(Number(event.target.value));
                 }}
               >
@@ -967,9 +1014,13 @@ export function Schedule({
                   aria-expanded={isSavedReviewCsvPreviewVisible}
                   aria-controls={isSavedReviewCsvPreviewVisible
                     ? savedReviewCsvNoteId + "-wrapper" : undefined}
-                  onClick={() => setVisibleSavedReviewCsvPreviewKey(
-                    isSavedReviewCsvPreviewVisible ? null : savedReviewCsvKey,
-                  )}
+                  onClick={() => {
+                    setSavedReviewRowSelection(null);
+                    setSelectedRowsCopyFeedback(null);
+                    setVisibleSavedReviewCsvPreviewKey(
+                      isSavedReviewCsvPreviewVisible ? null : savedReviewCsvKey,
+                    );
+                  }}
                 >
                   {isSavedReviewCsvPreviewVisible
                     ? "Hide saved-date review CSV preview"
@@ -1003,6 +1054,7 @@ export function Schedule({
                   <textarea
                     id={savedReviewCsvNoteId}
                     ref={savedReviewCsvTextareaRef}
+                    onSelect={(event) => updateSavedReviewRowSelection(event.currentTarget)}
                     aria-label="Selectable saved-date review CSV — NOT BOOKED"
                     readOnly
                     rows={10}
@@ -1019,6 +1071,16 @@ export function Schedule({
                   >
                     Select all visit rows
                   </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={clearSavedReviewRowSelection}
+                  >
+                    Clear selection
+                  </button>
+                  <p className="muted" aria-live="polite">
+                    {selectedSavedReviewRowCount} of {plannedVisitDates.length} visit rows selected
+                  </p>
                   <button
                     type="button"
                     className="secondary"
