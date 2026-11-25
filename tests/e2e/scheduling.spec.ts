@@ -987,13 +987,13 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Select all visit rows", exact: true,
     });
     await selectAllRowsButton.click();
-    const selectedText = await savedCsvPreviewTextarea.evaluate(
+    const allVisitRowsSelectedText = await savedCsvPreviewTextarea.evaluate(
       (element: HTMLTextAreaElement) =>
         element.value.substring(element.selectionStart, element.selectionEnd),
     );
     const originalLines = savedStatusCsv.replace(/\r\n/g, "\n").trimEnd().split("\n");
-    expect(selectedText).toBe(originalLines.slice(1).join("\n"));
-    expect(selectedText).not.toContain(originalLines[0]);
+    expect(allVisitRowsSelectedText).toBe(originalLines.slice(1).join("\n"));
+    expect(allVisitRowsSelectedText).not.toContain(originalLines[0]);
     await selectedRowsButton.click();
     await expect(planner.getByRole("status").filter({
       hasText: "Selected review rows copied with column headers.",
