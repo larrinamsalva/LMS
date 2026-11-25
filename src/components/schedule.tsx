@@ -340,6 +340,29 @@ export function Schedule({
       });
     }
   }
+  function selectAllSavedReviewRows() {
+    const textarea = savedReviewCsvTextareaRef.current;
+    if (!textarea) return;
+    try {
+      // Revalidate the same bounded, date/count-only CSV used by the preview.
+      // Visually select only the visit rows, excluding header and trailing blank.
+      const csv = recurringVisitSavedStatusCsv(
+        previewStartDate, previewIntervalWeeks, previewCount,
+        savedCountByPlannedDate,
+      ).replace(/\r\n/g, "\n");
+      if (textarea.value !== csv) return;
+      const headerEnd = csv.indexOf("\n");
+      if (headerEnd < 0) return;
+      const start = headerEnd + 1;
+      const end = csv.endsWith("\n") ? csv.length - 1 : csv.length;
+      if (start >= end) return;
+      textarea.focus();
+      textarea.setSelectionRange(start, end);
+      setSelectedRowsCopyFeedback(null);
+    } catch {
+      // Invalid recurrence never selects unvalidated or stale text.
+    }
+  }
   async function copySelectedSavedReviewRows() {
     const reviewCsvKey = savedReviewCsvKey;
     const textarea = savedReviewCsvTextareaRef.current;
@@ -992,6 +1015,13 @@ export function Schedule({
                   <button
                     type="button"
                     className="secondary"
+                    onClick={selectAllSavedReviewRows}
+                  >
+                    Select all visit rows
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
                     disabled={busy}
                     onClick={() => void copySelectedSavedReviewRows()}
                   >
@@ -1007,7 +1037,7 @@ export function Schedule({
                     </p>
                   )}
                   <p className="muted">
-                    Select text across the visit rows, then use Copy selected review rows.
+                    Select any visit rows, or press Select all visit rows, then use Copy selected review rows.
                     Only complete visit rows and column headers are copied.
                     Read-only proposed dates and saved status counts; no customer
                     details or appointment times. Select or long-press text to

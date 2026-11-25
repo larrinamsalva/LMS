@@ -982,6 +982,29 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(selectedCopy).not.toContain(customer);
     expect(selectedCopy).not.toContain(work);
     expect(selectedCopy).not.toContain(resource);
+    // One tap selects all proposal visit rows without the CSV column header.
+    const selectAllRowsButton = planner.getByRole("button", {
+      name: "Select all visit rows", exact: true,
+    });
+    await selectAllRowsButton.click();
+    const allVisitRowsSelectedText = await savedCsvPreviewTextarea.evaluate(
+      (element: HTMLTextAreaElement) =>
+        element.value.substring(element.selectionStart, element.selectionEnd),
+    );
+    const originalLines = savedStatusCsv.replace(/\r\n/g, "\n").trimEnd().split("\n");
+    expect(allVisitRowsSelectedText).toBe(originalLines.slice(1).join("\n"));
+    expect(allVisitRowsSelectedText).not.toContain(originalLines[0]);
+    await selectedRowsButton.click();
+    await expect(planner.getByRole("status").filter({
+      hasText: "Selected review rows copied with column headers.",
+    })).toBeVisible();
+    const allRowsCopied = await page.evaluate(() =>
+      (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
+    );
+    expect(allRowsCopied).toBe(savedStatusCsv);
+    expect(allRowsCopied).not.toContain(customer);
+    expect(allRowsCopied).not.toContain(work);
+    expect(allRowsCopied).not.toContain(resource);
     await savedCsvPreviewToggle.click();
     await expect(savedCsvPreviewToggle).toHaveAttribute("aria-expanded", "false");
     await expect(savedCsvPreviewTextarea).toHaveCount(0);
