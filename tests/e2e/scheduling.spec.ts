@@ -1017,6 +1017,64 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(allRowsCopied).not.toContain(customer);
     expect(allRowsCopied).not.toContain(work);
     expect(allRowsCopied).not.toContain(resource);
+    // Status selection can include non-adjacent dates; copy must preserve
+    // original visit numbering and must not include intervening rows.
+    const reviewStatusSelectionGroup = planner.getByRole("group", {
+      name: "Select visit rows by saved status",
+    });
+    for (const reviewStatusCase of [
+      { label: "With saved appointments", matches: (cells: string[]) => Number(cells[2]) > 0 },
+      { label: "No saved appointments", matches: (cells: string[]) => Number(cells[2]) === 0 },
+      { label: "Cancelled-only appointments", matches: (cells: string[]) =>
+        Number(cells[2]) > 0 && cells[2] === cells[6] },
+    ]) {
+      const reviewStatusButton = reviewStatusSelectionGroup.getByRole("button", {
+        name: reviewStatusCase.label, exact: true,
+      });
+      const matchingReviewCsvRows = statusCsvRows.slice(1).filter(
+        (line) => reviewStatusCase.matches(line.split(",")),
+      );
+      await reviewStatusButton.click();
+      await expect(reviewStatusButton).toHaveAttribute("aria-pressed", "true");
+      await expect(reviewSelectionCounter).toHaveText(
+        `${matchingReviewCsvRows.length} of ${reviewRowTotal} visit rows selected`,
+      );
+      expect(await savedCsvPreviewTextarea.inputValue()).toBe(
+        savedStatusCsv.replace(/\r\n/g, "\n"),
+      );
+      const clipboardBeforeStatusCopy = await page.evaluate(() =>
+        (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
+      );
+      await selectedRowsButton.click();
+      if (matchingReviewCsvRows.length) {
+        await expect(planner.getByRole("status").filter({
+          hasText: "Selected review rows copied with column headers.",
+        })).toBeVisible();
+        expect(await page.evaluate(() =>
+          (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
+        )).toBe([statusCsvRows[0], ...matchingReviewCsvRows].join("\r\n") + "\r\n");
+      } else {
+        await expect(planner.getByRole("status").filter({
+          hasText: "No matching visit rows to copy.",
+        })).toBeVisible();
+        expect(await page.evaluate(() =>
+          (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
+        )).toBe(clipboardBeforeStatusCopy);
+      }
+    }
+    // Select-all leaves the status mode and restores all original rows.
+    await selectAllRowsButton.click();
+    await expect(reviewStatusSelectionGroup.locator('[aria-pressed="true"]')).toHaveCount(0);
+    await expect(reviewSelectionCounter).toHaveText(
+      `${reviewRowTotal} of ${reviewRowTotal} visit rows selected`,
+    );
+    await selectedRowsButton.click();
+    await expect(planner.getByRole("status").filter({
+      hasText: "Selected review rows copied with column headers.",
+    })).toBeVisible();
+    expect(await page.evaluate(() =>
+      (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
+    )).toBe(savedStatusCsv);
     await clearReviewSelectionButton.click();
     await expect(reviewSelectionCounter).toHaveText(`0 of ${reviewRowTotal} visit rows selected`);
     expect(await savedCsvPreviewTextarea.evaluate((element: HTMLTextAreaElement) =>
