@@ -950,6 +950,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       name: "Copy selected review rows", exact: true,
     });
     await expect(selectedRowsButton).toBeVisible();
+    const selectedReviewDownloadButton = planner.getByRole("button", {
+      name: "Download selected review rows", exact: true,
+    });
+    await expect(selectedReviewDownloadButton).toBeDisabled();
     const reviewSelectionCounter = planner.getByText(/^\d+ of \d+ visit rows selected$/);
     const clearReviewSelectionButton = planner.getByRole("button", {
       name: "Clear selection", exact: true,
@@ -991,6 +995,13 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(selectedCopy).not.toContain(customer);
     expect(selectedCopy).not.toContain(work);
     expect(selectedCopy).not.toContain(resource);
+    const [singleSelectedReviewDownload] = await Promise.all([
+      page.waitForEvent("download"), selectedReviewDownloadButton.click(),
+    ]);
+    expect(singleSelectedReviewDownload.suggestedFilename()).toBe(
+      "lms-selected-visit-review-2026-11-06-NOT-BOOKED.csv",
+    );
+    expect(await readFile(await singleSelectedReviewDownload.path(), "utf8")).toBe(selectedCopy);
     // One tap selects all proposal visit rows without the CSV column header.
     const selectAllRowsButton = planner.getByRole("button", {
       name: "Select all visit rows", exact: true,
@@ -1047,6 +1058,13 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       );
       await selectedRowsButton.click();
       if (matchingReviewCsvRows.length) {
+        await expect(selectedReviewDownloadButton).toBeEnabled();
+        const [statusSelectedReviewDownload] = await Promise.all([
+          page.waitForEvent("download"), selectedReviewDownloadButton.click(),
+        ]);
+        expect(await readFile(await statusSelectedReviewDownload.path(), "utf8")).toBe(
+          [statusCsvRows[0], ...matchingReviewCsvRows].join("\r\n") + "\r\n",
+        );
         await expect(planner.getByRole("status").filter({
           hasText: "Selected review rows copied with column headers.",
         })).toBeVisible();
@@ -1054,6 +1072,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
           (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
         )).toBe([statusCsvRows[0], ...matchingReviewCsvRows].join("\r\n") + "\r\n");
       } else {
+        await expect(selectedReviewDownloadButton).toBeDisabled();
         await expect(planner.getByRole("status").filter({
           hasText: "No matching visit rows to copy.",
         })).toBeVisible();
@@ -1076,6 +1095,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
     )).toBe(savedStatusCsv);
     await clearReviewSelectionButton.click();
+    await expect(selectedReviewDownloadButton).toBeDisabled();
     await expect(reviewSelectionCounter).toHaveText(`0 of ${reviewRowTotal} visit rows selected`);
     expect(await savedCsvPreviewTextarea.evaluate((element: HTMLTextAreaElement) =>
       element.selectionStart === element.selectionEnd,
