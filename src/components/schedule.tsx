@@ -29,6 +29,13 @@ function selectedSavedReviewCsvRows(csv: string, start: number, end: number): st
   return rows;
 }
 
+type SavedReviewRowFilter = "with-saved" | "without-saved" | "cancelled-only";
+const savedReviewRowFilters: { value: SavedReviewRowFilter; label: string }[] = [
+  { value: "with-saved", label: "With saved appointments" },
+  { value: "without-saved", label: "No saved appointments" },
+  { value: "cancelled-only", label: "Cancelled-only appointments" },
+];
+
 export function relatedLabel(value: unknown, records: WorkspaceRecord[]) {
   const r = records.find((r) => r.id === value);
   return r
@@ -168,6 +175,10 @@ export function Schedule({
     reviewCsvKey: string;
     count: number;
   } | null>(null);
+  const [savedReviewStatusSelection, setSavedReviewStatusSelection] = useState<{
+    reviewCsvKey: string;
+    filter: SavedReviewRowFilter;
+  } | null>(null);
   const planKey = `${previewStartDate}/${previewIntervalWeeks}/${previewCount}`;
   const visibleCopyFeedback = copyFeedback?.planKey === planKey
     ? copyFeedback.kind : null;
@@ -227,8 +238,21 @@ export function Schedule({
       ? selectedRowsCopyFeedback.kind : null;
   const isSavedReviewCsvPreviewVisible = plannedVisitDates.length > 0 &&
     visibleSavedReviewCsvPreviewKey === savedReviewCsvKey;
-  const selectedSavedReviewRowCount = isSavedReviewCsvPreviewVisible &&
-    savedReviewRowSelection?.reviewCsvKey === savedReviewCsvKey
+  const activeSavedReviewFilter = isSavedReviewCsvPreviewVisible &&
+    savedReviewStatusSelection?.reviewCsvKey === savedReviewCsvKey
+      ? savedReviewStatusSelection.filter : null;
+  const filteredSavedReviewIndices = activeSavedReviewFilter === null ? [] :
+    savedCountByPlannedDate.flatMap((row, index) => {
+      const matches = activeSavedReviewFilter === "with-saved"
+        ? !hasNoSavedAppointmentsOnPlannedDate(row)
+        : activeSavedReviewFilter === "without-saved"
+          ? hasNoSavedAppointmentsOnPlannedDate(row)
+          : isCancelledOnlySavedDate(row);
+      return matches ? [index] : [];
+    });
+  const selectedSavedReviewRowCount = activeSavedReviewFilter !== null
+    ? filteredSavedReviewIndices.length
+    : isSavedReviewCsvPreviewVisible && savedReviewRowSelection?.reviewCsvKey === savedReviewCsvKey
       ? savedReviewRowSelection.count : 0;
   const savedCoverage = savedDateCoverage(savedCountByPlannedDate);
   const cancelledOnlyDates = cancelledOnlySavedDateCount(savedCountByPlannedDate);
@@ -382,7 +406,25 @@ export function Schedule({
       setSavedReviewRowSelection(null);
     }
   }
+  function selectSavedReviewRowsByStatus(filter: SavedReviewRowFilter) {
+    const textarea = savedReviewCsvTextareaRef.current;
+    if (!textarea || !isSavedReviewCsvPreviewVisible) return;
+    // Non-adjacent rows cannot be highlighted by a single native selection.
+    // Keep the full preview intact and show the explicit status selection separately.
+    textarea.setSelectionRange(0, 0);
+    setSavedReviewRowSelection(null);
+    setSelectedRowsCopyFeedback(null);
+    setSavedReviewStatusSelection({ reviewCsvKey: savedReviewCsvKey, filter });
+  }
+  function returnToManualSavedReviewSelection() {
+    if (activeSavedReviewFilter !== null) {
+      setSavedReviewStatusSelection(null);
+      setSavedReviewRowSelection(null);
+      setSelectedRowsCopyFeedback(null);
+    }
+  }
   function clearSavedReviewRowSelection() {
+    setSavedReviewStatusSelection(null);
     const textarea = savedReviewCsvTextareaRef.current;
     if (textarea) {
       textarea.focus();
@@ -392,6 +434,7 @@ export function Schedule({
     setSelectedRowsCopyFeedback(null);
   }
   function selectAllSavedReviewRows() {
+    setSavedReviewStatusSelection(null);
     const textarea = savedReviewCsvTextareaRef.current;
     if (!textarea) return;
     try {
@@ -418,7 +461,8 @@ export function Schedule({
   async function copySelectedSavedReviewRows() {
     const reviewCsvKey = savedReviewCsvKey;
     const textarea = savedReviewCsvTextareaRef.current;
-    if (!textarea || textarea.selectionStart === textarea.selectionEnd) {
+    if (!textarea || (activeSavedReviewFilter === null &&
+      textarea.selectionStart === textarea.selectionEnd)) {
       setSelectedRowsCopyFeedback({ reviewCsvKey, kind: "empty" });
       return;
     }
@@ -431,9 +475,9 @@ export function Schedule({
       ).replace(/\r\n/g, "\n");
       if (textarea.value !== csv) throw new Error("Stale review preview");
       const lines = csv.split("\n");
-      const rows = selectedSavedReviewCsvRows(
-        csv, textarea.selectionStart, textarea.selectionEnd,
-      );
+      const rows = activeSavedReviewFilter === null
+        ? selectedSavedReviewCsvRows(csv, textarea.selectionStart, textarea.selectionEnd)
+        : filteredSavedReviewIndices.map((index) => lines[index + 1]);
       if (!rows.length) {
         setSelectedRowsCopyFeedback({ reviewCsvKey, kind: "empty" });
         return;
@@ -594,6 +638,7 @@ export function Schedule({
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
                   setSavedReviewRowSelection(null);
+                  setSavedReviewStatusSelection(null);
             setDate(prior);
             setPreviewStartDate(prior);
           }}
@@ -617,6 +662,7 @@ export function Schedule({
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
                   setSavedReviewRowSelection(null);
+                  setSavedReviewStatusSelection(null);
               setDate(e.target.value);
               setPreviewStartDate(e.target.value);
             }}
@@ -637,6 +683,7 @@ export function Schedule({
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
                   setSavedReviewRowSelection(null);
+                  setSavedReviewStatusSelection(null);
             setDate(following);
             setPreviewStartDate(following);
           }}
@@ -690,6 +737,7 @@ export function Schedule({
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
                   setSavedReviewRowSelection(null);
+                  setSavedReviewStatusSelection(null);
                   setPreviewIntervalWeeks(Number(event.target.value) as VisitFrequencyWeeks);
                 }}
               >
@@ -715,6 +763,7 @@ export function Schedule({
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setSelectedRowsCopyFeedback(null);
                   setSavedReviewRowSelection(null);
+                  setSavedReviewStatusSelection(null);
                   setPreviewCount(Number(event.target.value));
                 }}
               >
@@ -1016,6 +1065,7 @@ export function Schedule({
                     ? savedReviewCsvNoteId + "-wrapper" : undefined}
                   onClick={() => {
                     setSavedReviewRowSelection(null);
+                    setSavedReviewStatusSelection(null);
                     setSelectedRowsCopyFeedback(null);
                     setVisibleSavedReviewCsvPreviewKey(
                       isSavedReviewCsvPreviewVisible ? null : savedReviewCsvKey,
@@ -1055,6 +1105,8 @@ export function Schedule({
                     id={savedReviewCsvNoteId}
                     ref={savedReviewCsvTextareaRef}
                     onSelect={(event) => updateSavedReviewRowSelection(event.currentTarget)}
+                    onPointerDown={returnToManualSavedReviewSelection}
+                    onKeyDown={returnToManualSavedReviewSelection}
                     aria-label="Selectable saved-date review CSV — NOT BOOKED"
                     readOnly
                     rows={10}
@@ -1078,6 +1130,29 @@ export function Schedule({
                   >
                     Clear selection
                   </button>
+                  <div className="recurring-visit-navigation-actions" role="group" aria-label="Select visit rows by saved status">
+                    {savedReviewRowFilters.map(({ value, label }) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className="secondary"
+                        aria-pressed={activeSavedReviewFilter === value}
+                        onClick={() => selectSavedReviewRowsByStatus(value)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {activeSavedReviewFilter !== null && (
+                    <p className="muted">
+                      Status selection: {savedReviewRowFilters.find(
+                        ({ value }) => value === activeSavedReviewFilter,
+                      )?.label}. {filteredSavedReviewIndices.length
+                        ? "Selected visit numbers: " + filteredSavedReviewIndices.map((index) => index + 1).join(", ") + "."
+                        : "No matching visit rows."}
+                      {" "}Copy selected review rows uses this status selection. No visits are booked.
+                    </p>
+                  )}
                   <p className="muted" aria-live="polite">
                     {selectedSavedReviewRowCount} of {plannedVisitDates.length} visit rows selected
                   </p>
@@ -1094,12 +1169,14 @@ export function Schedule({
                       {visibleSelectedRowsCopyFeedback === "copied"
                         ? "Selected review rows copied with column headers. No visits were booked."
                         : visibleSelectedRowsCopyFeedback === "empty"
-                          ? "Select text within one or more visit rows first."
+                          ? activeSavedReviewFilter !== null
+                            ? "No matching visit rows to copy. Choose another status or clear selection."
+                            : "Select text within one or more visit rows first."
                           : "Could not copy selected review rows. Select text manually or download the full CSV."}
                     </p>
                   )}
                   <p className="muted">
-                    Select any visit rows, or press Select all visit rows, then use Copy selected review rows.
+                    Select any visit rows, select all, or choose a saved status, then use Copy selected review rows.
                     Only complete visit rows and column headers are copied.
                     Read-only proposed dates and saved status counts; no customer
                     details or appointment times. Select or long-press text to
