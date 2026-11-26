@@ -586,6 +586,16 @@ export function Schedule({
       if (urlToRelease) window.setTimeout(() => URL.revokeObjectURL(urlToRelease), 1000);
     }
   }
+  function resetPrintReviewSettings() {
+    // Reset only temporary print preferences; keep the selected rows,
+    // recurrence, CSV preview and copy/download feedback intact.
+    setPrintReviewLayout(null);
+    setPrintReviewOrientation(null);
+    setPrintReviewPaperSize(null);
+    setPrintReviewAppearance(null);
+    setPrintReviewAnnotations(null);
+    setSelectedRowsPrintErrorKey(null);
+  }
   function updatePrintReviewAnnotations(field: "title" | "notes", value: string) {
     setPrintReviewAnnotations({
       reviewCsvKey: savedReviewCsvKey,
@@ -1639,6 +1649,14 @@ export function Schedule({
                       Clear print title and notes
                     </button>
                   </details>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={resetPrintReviewSettings}
+                  >
+                    Reset print settings
+                  </button>
+                  <p className="muted">Restores Full report, Landscape, US Letter and Full color, and clears the optional print title and notes. Selected visit rows stay selected.</p>
                   <button
                     type="button"
                     className="secondary"
