@@ -1074,9 +1074,26 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(allRowsCopied).not.toContain(customer);
     expect(allRowsCopied).not.toContain(work);
     expect(allRowsCopied).not.toContain(resource);
+    const printAnnotationToggle = planner.getByText("Optional print report title and notes", { exact: true });
+    const printCustomTitleInput = planner.getByLabel("Custom report title (optional)", { exact: true });
+    const printCustomNotesInput = planner.getByLabel("Manager's planning notes (optional)", { exact: true });
+    await printAnnotationToggle.click();
+    await expect(printCustomTitleInput).toHaveValue("");
+    await expect(printCustomNotesInput).toHaveValue("");
+    await printCustomTitleInput.fill("Weekly planning <review>");
+    await printCustomNotesInput.fill("Review coverage first.\n<img src=x onerror=alert(1)>");
+    await selectedRowsButton.click();
+    await expect.poll(() => page.evaluate(() =>
+      (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
+    )).toBe(savedStatusCsv);
     const [allSelectedPrintReport] = await Promise.all([
       page.context().waitForEvent("page"), selectedVisitPrintButton.click(),
     ]);
+    await expect(allSelectedPrintReport.getByRole("heading", { name: "LMS selected visit review — NOT BOOKED" })).toBeVisible();
+    await expect(allSelectedPrintReport.getByRole("heading", { name: "Weekly planning <review>", exact: true })).toBeVisible();
+    const printAnnotations = allSelectedPrintReport.locator(".report-annotations");
+    await expect(printAnnotations.locator("p")).toHaveText("Review coverage first.\n<img src=x onerror=alert(1)>");
+    await expect(printAnnotations.locator("img")).toHaveCount(0);
     const allPrintSummary = allSelectedPrintReport.getByRole("region", { name: "Selected dates summary" });
     const allPrintCells = statusCsvRows.slice(1).map((line) => line.split(","));
     const allPrintTotals = [2, 3, 4, 5, 6, 7].map((column) =>
@@ -1104,6 +1121,9 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       expect(width).toBeCloseTo(tenths * 0.998, 5);
     });
     await allSelectedPrintReport.close();
+    await planner.getByRole("button", { name: "Clear print title and notes", exact: true }).click();
+    await expect(printCustomTitleInput).toHaveValue("");
+    await expect(printCustomNotesInput).toHaveValue("");
     // Status selection can include non-adjacent dates; copy must preserve
     // original visit numbering and must not include intervening rows.
     const reviewStatusSelectionGroup = planner.getByRole("group", {
@@ -1201,11 +1221,16 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
     )).toBe(savedStatusCsv);
     await selectAllRowsButton.click();
+    await printCustomTitleInput.fill("Temporary planning");
+    await printCustomNotesInput.fill("Discard on close");
     await savedCsvPreviewToggle.click();
     await expect(savedCsvPreviewToggle).toHaveAttribute("aria-expanded", "false");
     await expect(savedCsvPreviewTextarea).toHaveCount(0);
     await savedCsvPreviewToggle.click();
     await expect(reviewSelectionCounter).toHaveText(`0 of ${reviewRowTotal} visit rows selected`);
+    await printAnnotationToggle.click();
+    await expect(printCustomTitleInput).toHaveValue("");
+    await expect(printCustomNotesInput).toHaveValue("");
     await savedCsvPreviewToggle.click();
     // Copy is the same validated count CSV, including CRLF, header and
     // NOT BOOKED label, without an additional test/demo session.
