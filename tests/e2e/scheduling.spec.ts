@@ -1080,6 +1080,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(selectedPrintOrientationChoice).toHaveValue("landscape");
     const selectedPrintPaperChoice = planner.getByLabel("Print paper size", { exact: true });
     await expect(selectedPrintPaperChoice).toHaveValue("letter");
+    const selectedPrintAppearanceChoice = planner.getByLabel("Print report appearance", { exact: true });
+    await expect(selectedPrintAppearanceChoice).toHaveValue("color");
     const printAnnotationToggle = planner.getByText("Optional print report title and notes", { exact: true });
     const printCustomTitleInput = planner.getByLabel("Custom report title (optional)", { exact: true });
     const printCustomNotesInput = planner.getByLabel("Manager's planning notes (optional)", { exact: true });
@@ -1129,7 +1131,35 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(allSelectedPrintReport.getByText("Requested paper orientation: Landscape", { exact: true })).toBeVisible();
     await expect(allSelectedPrintReport.getByText("Requested paper size: US Letter (8.5 × 11 in)", { exact: true })).toBeVisible();
     expect(await allSelectedPrintReport.locator("style").textContent()).toContain("@page { size: letter landscape;");
+    await expect(allSelectedPrintReport.locator("html")).toHaveAttribute("data-report-appearance", "color");
+    await expect(allSelectedPrintReport.getByText("Report appearance: Full color", { exact: true })).toBeVisible();
+    expect(await allPrintChart.locator("svg rect:last-child").evaluateAll(
+      (bars) => bars.map((bar) => bar.getAttribute("fill")),
+    )).toEqual(["#345b87", "#735820", "#24664b", "#963d45", "#606060"]);
     await allSelectedPrintReport.close();
+    for (const printAppearanceCase of [
+      { value: "monochrome", label: "Black and white", fill: "#000" },
+      { value: "ink-saving", label: "Ink-saving mode", fill: "none" },
+    ]) {
+      await selectedPrintAppearanceChoice.selectOption(printAppearanceCase.value);
+      const [appearanceReportPage] = await Promise.all([
+        page.context().waitForEvent("page"), selectedVisitPrintButton.click(),
+      ]);
+      await expect(appearanceReportPage.locator("html")).toHaveAttribute("data-report-appearance", printAppearanceCase.value);
+      await expect(appearanceReportPage.getByText("Report appearance: " + printAppearanceCase.label, { exact: true })).toBeVisible();
+      await expect(appearanceReportPage.getByRole("heading", { name: "LMS selected visit review — NOT BOOKED" })).toBeVisible();
+      const appearanceChart = appearanceReportPage.getByRole("region", { name: "Saved appointment status breakdown" });
+      await expect(appearanceChart.locator(".status-chart-value")).toHaveText(printChartExpectedValues(allPrintTotals));
+      expect(await appearanceChart.locator("svg rect:last-child").evaluateAll(
+        (bars) => bars.map((bar) => bar.getAttribute("fill")),
+      )).toEqual(Array(5).fill(printAppearanceCase.fill));
+      await expect(appearanceReportPage.locator("tbody tr")).toHaveCount(allPrintCells.length);
+      if (printAppearanceCase.value === "ink-saving") {
+        await expect(appearanceReportPage.locator("thead th").first()).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      }
+      await appearanceReportPage.close();
+    }
+    await selectedPrintAppearanceChoice.selectOption("color");
     await selectedPrintOrientationChoice.selectOption("portrait");
     for (const layoutCase of [
       { value: "summary", label: "Summary and charts only", summary: true, details: false },
@@ -1267,6 +1297,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await selectedPrintLayoutChoice.selectOption("details");
     await selectedPrintOrientationChoice.selectOption("portrait");
     await selectedPrintPaperChoice.selectOption("legal");
+    await selectedPrintAppearanceChoice.selectOption("ink-saving");
     await printCustomTitleInput.fill("Temporary planning");
     await printCustomNotesInput.fill("Discard on close");
     await savedCsvPreviewToggle.click();
@@ -1277,6 +1308,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(selectedPrintLayoutChoice).toHaveValue("full");
     await expect(selectedPrintOrientationChoice).toHaveValue("landscape");
     await expect(selectedPrintPaperChoice).toHaveValue("letter");
+    await expect(selectedPrintAppearanceChoice).toHaveValue("color");
     await printAnnotationToggle.click();
     await expect(printCustomTitleInput).toHaveValue("");
     await expect(printCustomNotesInput).toHaveValue("");
