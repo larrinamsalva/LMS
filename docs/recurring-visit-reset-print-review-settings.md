@@ -1,0 +1,5 @@
+# Reset selected review print settings — LMS #249
+
+In the saved-date review CSV preview, press **Reset print settings** to restore Full report, Landscape, US Letter and Full color, clear optional print title and notes, and dismiss print-window error feedback. The control explicitly explains which temporary preferences and annotations are cleared. The selected visit rows, recurrence, full CSV preview and copy/download behavior remain unchanged. Reset affects new print report snapshots only; existing report windows are not changed. Close/reopen reset remains in place.
+
+The existing desktop/tablet/phone scheduling scenario changes all print preferences and annotations, resets them, verifies selection and CSV preservation, opens a new default report, and separately verifies close/reopen reset. No additional demo sessions. No booking, availability claims, private-record exports, persistence, API/schema/auth changes or other repositories. Full suite not run locally; physical print output not verified. Wait for all five final-head checks before merging; never auto-merge.
