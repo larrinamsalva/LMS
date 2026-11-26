@@ -1300,6 +1300,44 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await selectedPrintAppearanceChoice.selectOption("ink-saving");
     await printCustomTitleInput.fill("Temporary planning");
     await printCustomNotesInput.fill("Discard on close");
+    const resetPrintSettingsButton = planner.getByRole("button", { name: "Reset print settings", exact: true });
+    await resetPrintSettingsButton.click();
+    await expect(selectedPrintLayoutChoice).toHaveValue("full");
+    await expect(selectedPrintOrientationChoice).toHaveValue("landscape");
+    await expect(selectedPrintPaperChoice).toHaveValue("letter");
+    await expect(selectedPrintAppearanceChoice).toHaveValue("color");
+    await expect(printCustomTitleInput).toHaveValue("");
+    await expect(printCustomNotesInput).toHaveValue("");
+    await expect(reviewSelectionCounter).toHaveText(
+      `${reviewRowTotal} of ${reviewRowTotal} visit rows selected`,
+    );
+    await expect(savedCsvPreviewTextarea).toHaveValue(savedStatusCsv.replace(/\r\n/g, "\n"));
+    await expect(selectedVisitPrintButton).toBeEnabled();
+    await selectedRowsButton.click();
+    await expect(planner.getByRole("status").filter({
+      hasText: "Selected review rows copied with column headers.",
+    })).toBeVisible();
+    expect(await page.evaluate(() =>
+      (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
+    )).toBe(savedStatusCsv);
+    // The reset applies to future report snapshots, not only to the controls.
+    const [resetSettingsReport] = await Promise.all([
+      page.context().waitForEvent("page"), selectedVisitPrintButton.click(),
+    ]);
+    await expect(resetSettingsReport.getByText("Report layout: Full report", { exact: true })).toBeVisible();
+    await expect(resetSettingsReport.getByText("Requested paper orientation: Landscape", { exact: true })).toBeVisible();
+    await expect(resetSettingsReport.getByText("Requested paper size: US Letter (8.5 × 11 in)", { exact: true })).toBeVisible();
+    await expect(resetSettingsReport.locator("html")).toHaveAttribute("data-report-appearance", "color");
+    await expect(resetSettingsReport.locator(".report-annotations")).toHaveCount(0);
+    await expect(resetSettingsReport.locator("tbody tr")).toHaveCount(reviewRowTotal);
+    await resetSettingsReport.close();
+    // Change the settings again to preserve the separate close/reopen test.
+    await selectedPrintLayoutChoice.selectOption("details");
+    await selectedPrintOrientationChoice.selectOption("portrait");
+    await selectedPrintPaperChoice.selectOption("legal");
+    await selectedPrintAppearanceChoice.selectOption("ink-saving");
+    await printCustomTitleInput.fill("Temporary planning");
+    await printCustomNotesInput.fill("Discard on close");
     await savedCsvPreviewToggle.click();
     await expect(savedCsvPreviewToggle).toHaveAttribute("aria-expanded", "false");
     await expect(savedCsvPreviewTextarea).toHaveCount(0);
