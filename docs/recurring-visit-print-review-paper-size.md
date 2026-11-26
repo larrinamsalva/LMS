@@ -1,0 +1,5 @@
+# Selected review print paper size — LMS #247
+
+In the saved-date review CSV preview, choose Print paper size: US Letter (8.5 × 11 in), US Legal (8.5 × 14 in), or A4 (210 × 297 mm). Letter is the default. The selected report requests the chosen paper size and orientation together through its CSS @page rule, and visibly identifies both settings. All three report layouts remain supported. Browser and printer settings may override the request. The choice is temporary and resets on preview close or review context change; CSV exports remain unchanged.
+
+The existing desktop/tablet/phone scheduling scenario verifies Letter landscape, A4 portrait summary, Legal portrait details, the requested CSS and labels, and default reset. No extra demo sessions. Physical printer output has not been verified. No booking, availability claims, private-record export, persistence, API/schema/auth changes or other repositories. Full suite not run locally. Wait for all five final-head checks before merging; never auto-merge.
