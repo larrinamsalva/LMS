@@ -1,0 +1,5 @@
+# Selected review print appearance — LMS #248
+
+Choose Print report appearance in the saved-date review CSV preview: Full color (default), Black and white, or Ink-saving mode. Full color retains the existing status palette; monochrome uses black bars; ink-saving uses outlined bars, unshaded table headings and fewer borders. All modes retain exact counts, percentages, labels, selected rows and NOT BOOKED warnings. Appearance is temporary and resets when the preview closes or the review context changes. It works independently of layout, paper size and orientation. Printer/browser settings may override appearance; actual ink consumption depends on the printer and is not measured. CSV exports are unchanged.
+
+The existing desktop/tablet/phone scheduling scenario checks each appearance, bar fills, unchanged chart values and table rows, unshaded headings, and reset. No extra demo sessions. No booking, private-record exports, persistence, API/schema/auth changes or other repositories. Full suite not run locally and physical printing not verified. Wait for all five final-head checks before merging; never auto-merge.
