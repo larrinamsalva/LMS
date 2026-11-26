@@ -1,0 +1,5 @@
+# Selected visit print layouts — LMS #245
+
+In Schedule → Repeating visit planner → Preview saved-date review CSV, choose a Print report layout: Full report (default), Summary and charts only, or Detailed visit table only. All layouts keep the fixed NOT BOOKED heading, planning/availability warnings, selected date count, optional print-only title and notes, and explicit Print report button. Omitted sections are not attached to the report. The layout is temporary and resets to Full report when the preview closes or the review context changes. CSV downloads and copy remain unchanged.
+
+The existing desktop/tablet/phone scheduling scenario verifies the default, each alternate layout, omitted sections, retained warnings and optional annotations, and reset after reopening. No extra demo sessions. No booking, availability claims, private-record exports, persistence, API/schema/auth changes or other repositories. Full suite not run locally. Wait for all five final-head checks before merging; never auto-merge.

@@ -29,6 +29,12 @@ function selectedSavedReviewCsvRows(csv: string, start: number, end: number): st
   return rows;
 }
 
+type PrintReviewLayout = "full" | "summary" | "details";
+const printReviewLayouts: { value: PrintReviewLayout; label: string }[] = [
+  { value: "full", label: "Full report" },
+  { value: "summary", label: "Summary and charts only" },
+  { value: "details", label: "Detailed visit table only" },
+];
 type SavedReviewRowFilter = "with-saved" | "without-saved" | "cancelled-only";
 const savedReviewRowFilters: { value: SavedReviewRowFilter; label: string }[] = [
   { value: "with-saved", label: "With saved appointments" },
@@ -182,6 +188,10 @@ export function Schedule({
     title: string;
     notes: string;
   } | null>(null);
+  const [printReviewLayout, setPrintReviewLayout] = useState<{
+    reviewCsvKey: string;
+    layout: PrintReviewLayout;
+  } | null>(null);
   const [savedReviewRowSelection, setSavedReviewRowSelection] = useState<{
     reviewCsvKey: string;
     count: number;
@@ -255,6 +265,8 @@ export function Schedule({
   const activePrintReviewAnnotations = isSavedReviewCsvPreviewVisible &&
     printReviewAnnotations?.reviewCsvKey === savedReviewCsvKey
       ? printReviewAnnotations : null;
+  const activePrintReviewLayout: PrintReviewLayout = isSavedReviewCsvPreviewVisible &&
+    printReviewLayout?.reviewCsvKey === savedReviewCsvKey ? printReviewLayout.layout : "full";
   const activeSavedReviewFilter = isSavedReviewCsvPreviewVisible &&
     savedReviewStatusSelection?.reviewCsvKey === savedReviewCsvKey
       ? savedReviewStatusSelection.filter : null;
@@ -722,9 +734,17 @@ export function Schedule({
       const tableWrapper = doc.createElement("div");
       tableWrapper.className = "table-scroll";
       tableWrapper.appendChild(table);
+      // All layouts retain the fixed safety notice, selection size and
+      // optional print-only annotations. Omitted sections are not attached.
+      const layoutLabel = doc.createElement("p");
+      layoutLabel.textContent = "Report layout: " + (printReviewLayouts.find(
+        (option) => option.value === activePrintReviewLayout,
+      )?.label ?? "Full report");
       doc.body.replaceChildren(heading, notice,
         ...(annotations.childElementCount ? [annotations] : []),
-        summary, summarySection, chart, print, tableWrapper);
+        summary, layoutLabel, print,
+        ...(activePrintReviewLayout !== "details" ? [summarySection, chart] : []),
+        ...(activePrintReviewLayout !== "summary" ? [tableWrapper] : []));
     } catch {
       reportWindow?.close();
       setSelectedRowsPrintErrorKey(savedReviewCsvKey);
@@ -877,6 +897,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setPrintReviewLayout(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -904,6 +925,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setPrintReviewLayout(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -928,6 +950,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setPrintReviewLayout(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -985,6 +1008,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setPrintReviewLayout(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -1014,6 +1038,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setPrintReviewLayout(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -1326,6 +1351,7 @@ export function Schedule({
                     setSelectedRowsPrintErrorKey(null);
                     setSelectedRowsDownloadFeedback(null);
                     setPrintReviewAnnotations(null);
+                    setPrintReviewLayout(null);
                     setVisibleSavedReviewCsvPreviewKey(
                       isSavedReviewCsvPreviewVisible ? null : savedReviewCsvKey,
                     );
@@ -1431,6 +1457,23 @@ export function Schedule({
                   >
                     Download selected review rows
                   </button>
+                  <div className="recurring-visit-controls recurring-visit-print-layout">
+                    <div className="recurring-visit-note-preview">
+                      <label htmlFor={savedReviewCsvNoteId + "-print-layout"}>Print report layout</label>
+                      <select
+                        id={savedReviewCsvNoteId + "-print-layout"}
+                        value={activePrintReviewLayout}
+                        onChange={(event) => {
+                          const layout = printReviewLayouts.find((option) => option.value === event.target.value);
+                          if (layout) setPrintReviewLayout({ reviewCsvKey: savedReviewCsvKey, layout: layout.value });
+                        }}
+                      >
+                        {printReviewLayouts.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                   <details className="recurring-visit-note-preview">
                     <summary>Optional print report title and notes</summary>
                     <p className="muted">

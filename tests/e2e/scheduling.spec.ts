@@ -1074,6 +1074,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(allRowsCopied).not.toContain(customer);
     expect(allRowsCopied).not.toContain(work);
     expect(allRowsCopied).not.toContain(resource);
+    const selectedPrintLayoutChoice = planner.getByLabel("Print report layout", { exact: true });
+    await expect(selectedPrintLayoutChoice).toHaveValue("full");
     const printAnnotationToggle = planner.getByText("Optional print report title and notes", { exact: true });
     const printCustomTitleInput = planner.getByLabel("Custom report title (optional)", { exact: true });
     const printCustomNotesInput = planner.getByLabel("Manager's planning notes (optional)", { exact: true });
@@ -1121,6 +1123,25 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       expect(width).toBeCloseTo(tenths * 0.998, 5);
     });
     await allSelectedPrintReport.close();
+    for (const layoutCase of [
+      { value: "summary", label: "Summary and charts only", summary: true, details: false },
+      { value: "details", label: "Detailed visit table only", summary: false, details: true },
+    ]) {
+      await selectedPrintLayoutChoice.selectOption(layoutCase.value);
+      const [layoutReportPage] = await Promise.all([
+        page.context().waitForEvent("page"), selectedVisitPrintButton.click(),
+      ]);
+      await expect(layoutReportPage.getByRole("heading", { name: "LMS selected visit review — NOT BOOKED" })).toBeVisible();
+      await expect(layoutReportPage.getByText("Report layout: " + layoutCase.label, { exact: true })).toBeVisible();
+      await expect(layoutReportPage.getByText("Planning report only.", { exact: false })).toBeVisible();
+      await expect(layoutReportPage.getByRole("heading", { name: "Weekly planning <review>", exact: true })).toBeVisible();
+      await expect(layoutReportPage.locator(".report-summary")).toHaveCount(layoutCase.summary ? 1 : 0);
+      await expect(layoutReportPage.locator(".report-status-chart")).toHaveCount(layoutCase.summary ? 1 : 0);
+      await expect(layoutReportPage.locator("tbody tr")).toHaveCount(layoutCase.details ? allPrintCells.length : 0);
+      await expect(layoutReportPage.getByRole("button", { name: "Print report", exact: true })).toBeVisible();
+      await layoutReportPage.close();
+    }
+    await selectedPrintLayoutChoice.selectOption("full");
     await planner.getByRole("button", { name: "Clear print title and notes", exact: true }).click();
     await expect(printCustomTitleInput).toHaveValue("");
     await expect(printCustomNotesInput).toHaveValue("");
@@ -1221,6 +1242,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       (window as typeof window & { __selectedReviewRows?: string }).__selectedReviewRows,
     )).toBe(savedStatusCsv);
     await selectAllRowsButton.click();
+    await selectedPrintLayoutChoice.selectOption("details");
     await printCustomTitleInput.fill("Temporary planning");
     await printCustomNotesInput.fill("Discard on close");
     await savedCsvPreviewToggle.click();
@@ -1228,6 +1250,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await expect(savedCsvPreviewTextarea).toHaveCount(0);
     await savedCsvPreviewToggle.click();
     await expect(reviewSelectionCounter).toHaveText(`0 of ${reviewRowTotal} visit rows selected`);
+    await expect(selectedPrintLayoutChoice).toHaveValue("full");
     await printAnnotationToggle.click();
     await expect(printCustomTitleInput).toHaveValue("");
     await expect(printCustomNotesInput).toHaveValue("");
