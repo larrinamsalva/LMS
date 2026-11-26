@@ -176,6 +176,12 @@ export function Schedule({
     kind: "started" | "failed";
   } | null>(null);
   const [selectedRowsPrintErrorKey, setSelectedRowsPrintErrorKey] = useState<string | null>(null);
+  // Optional user-entered print annotations are never included in CSV or saved.
+  const [printReviewAnnotations, setPrintReviewAnnotations] = useState<{
+    reviewCsvKey: string;
+    title: string;
+    notes: string;
+  } | null>(null);
   const [savedReviewRowSelection, setSavedReviewRowSelection] = useState<{
     reviewCsvKey: string;
     count: number;
@@ -246,6 +252,9 @@ export function Schedule({
       ? selectedRowsDownloadFeedback.kind : null;
   const isSavedReviewCsvPreviewVisible = plannedVisitDates.length > 0 &&
     visibleSavedReviewCsvPreviewKey === savedReviewCsvKey;
+  const activePrintReviewAnnotations = isSavedReviewCsvPreviewVisible &&
+    printReviewAnnotations?.reviewCsvKey === savedReviewCsvKey
+      ? printReviewAnnotations : null;
   const activeSavedReviewFilter = isSavedReviewCsvPreviewVisible &&
     savedReviewStatusSelection?.reviewCsvKey === savedReviewCsvKey
       ? savedReviewStatusSelection.filter : null;
@@ -531,6 +540,14 @@ export function Schedule({
       if (urlToRelease) window.setTimeout(() => URL.revokeObjectURL(urlToRelease), 1000);
     }
   }
+  function updatePrintReviewAnnotations(field: "title" | "notes", value: string) {
+    setPrintReviewAnnotations({
+      reviewCsvKey: savedReviewCsvKey,
+      title: activePrintReviewAnnotations?.title ?? "",
+      notes: activePrintReviewAnnotations?.notes ?? "",
+      [field]: value.slice(0, field === "title" ? 100 : 500),
+    });
+  }
   function openSelectedSavedReviewPrintReport() {
     setSelectedRowsPrintErrorKey(null);
     let reportWindow: Window | null = null;
@@ -553,6 +570,9 @@ export function Schedule({
         th, td { border: 1px solid #999; padding: 5px; text-align: left; overflow-wrap: anywhere; }
         th { background: #eee; } button { padding: 12px 20px; margin: 0 0 16px; cursor: pointer; }
         .table-scroll { overflow-x: auto; }
+        .report-annotations { overflow-wrap: anywhere; white-space: pre-wrap; margin: 10px 0; }
+        .report-annotations h2 { font-size: 17px; margin: 0 0 5px; }
+        .report-annotations p { margin: 4px 0; }
         .report-summary { margin: 12px 0; break-inside: avoid; }
         .report-summary h2 { font-size: 17px; margin: 0 0 6px; }
         .report-summary dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 6px; margin: 0; }
@@ -574,6 +594,24 @@ export function Schedule({
       heading.textContent = "LMS selected visit review — NOT BOOKED";
       const notice = doc.createElement("p");
       notice.textContent = "Planning report only. No visits are booked or confirmed. Staff and resource availability is not confirmed. Counts describe existing non-archived saved appointment records.";
+      // Keep the fixed NOT BOOKED heading and warning above any user text.
+      // Text nodes render annotations literally, never as executable HTML.
+      const annotations = doc.createElement("section");
+      annotations.className = "report-annotations";
+      const customTitle = activePrintReviewAnnotations?.title.trim() ?? "";
+      const customNotes = activePrintReviewAnnotations?.notes.trim() ?? "";
+      if (customTitle) {
+        const title = doc.createElement("h2");
+        title.textContent = customTitle;
+        annotations.appendChild(title);
+      }
+      if (customNotes) {
+        const notesLabel = doc.createElement("h2");
+        notesLabel.textContent = "Manager's planning notes (user-entered)";
+        const notesText = doc.createElement("p");
+        notesText.textContent = customNotes;
+        annotations.append(notesLabel, notesText);
+      }
       const summary = doc.createElement("p");
       summary.textContent = dataRows.length + " selected visit rows. Original proposed visit numbers retained.";
       // Sum ONLY the selected, validated CSV rows. BigInt preserves exact
@@ -684,7 +722,9 @@ export function Schedule({
       const tableWrapper = doc.createElement("div");
       tableWrapper.className = "table-scroll";
       tableWrapper.appendChild(table);
-      doc.body.replaceChildren(heading, notice, summary, summarySection, chart, print, tableWrapper);
+      doc.body.replaceChildren(heading, notice,
+        ...(annotations.childElementCount ? [annotations] : []),
+        summary, summarySection, chart, print, tableWrapper);
     } catch {
       reportWindow?.close();
       setSelectedRowsPrintErrorKey(savedReviewCsvKey);
@@ -837,6 +877,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
                   setSelectedRowsDownloadFeedback(null);
@@ -863,6 +904,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
                   setSelectedRowsDownloadFeedback(null);
@@ -886,6 +928,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
                   setSelectedRowsDownloadFeedback(null);
@@ -942,6 +985,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
                   setSelectedRowsDownloadFeedback(null);
@@ -970,6 +1014,7 @@ export function Schedule({
                   setVisibleNoSavedListPlan(null);
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
+                  setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
                   setSelectedRowsDownloadFeedback(null);
@@ -1280,6 +1325,7 @@ export function Schedule({
                     setSelectedRowsCopyFeedback(null);
                     setSelectedRowsPrintErrorKey(null);
                     setSelectedRowsDownloadFeedback(null);
+                    setPrintReviewAnnotations(null);
                     setVisibleSavedReviewCsvPreviewKey(
                       isSavedReviewCsvPreviewVisible ? null : savedReviewCsvKey,
                     );
@@ -1385,6 +1431,32 @@ export function Schedule({
                   >
                     Download selected review rows
                   </button>
+                  <details className="recurring-visit-note-preview">
+                    <summary>Optional print report title and notes</summary>
+                    <p className="muted">
+                      Print-only, temporary text. Do not enter private customer, staff or resource details.
+                      These notes are included in the report you print or share, not in CSV exports.
+                    </p>
+                    <label htmlFor={savedReviewCsvNoteId + "-print-title"}>Custom report title (optional)</label>
+                    <input
+                      id={savedReviewCsvNoteId + "-print-title"}
+                      type="text"
+                      maxLength={100}
+                      value={activePrintReviewAnnotations?.title ?? ""}
+                      onChange={(event) => updatePrintReviewAnnotations("title", event.target.value)}
+                    />
+                    <label htmlFor={savedReviewCsvNoteId + "-print-notes"}>Manager's planning notes (optional)</label>
+                    <textarea
+                      id={savedReviewCsvNoteId + "-print-notes"}
+                      maxLength={500}
+                      rows={3}
+                      value={activePrintReviewAnnotations?.notes ?? ""}
+                      onChange={(event) => updatePrintReviewAnnotations("notes", event.target.value)}
+                    />
+                    <button type="button" className="secondary" onClick={() => setPrintReviewAnnotations(null)}>
+                      Clear print title and notes
+                    </button>
+                  </details>
                   <button
                     type="button"
                     className="secondary"
