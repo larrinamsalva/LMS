@@ -559,6 +559,12 @@ export function Schedule({
         .report-summary dl div { border: 1px solid #999; padding: 7px; }
         .report-summary dt { font-size: 12px; }
         .report-summary dd { font-size: 18px; font-weight: 700; margin: 3px 0 0; font-variant-numeric: tabular-nums; }
+        .report-status-chart { margin: 12px 0; break-inside: avoid; }
+        .report-status-chart h2 { font-size: 17px; margin: 0 0 6px; }
+        .report-status-chart ul { list-style: none; margin: 0; padding: 0; }
+        .report-status-chart li { display: grid; grid-template-columns: 90px minmax(0, 1fr) auto; gap: 8px; align-items: center; margin: 5px 0; font-size: 12px; }
+        .report-status-chart svg { display: block; width: 100%; height: 14px; }
+        .report-status-chart .status-chart-value { font-variant-numeric: tabular-nums; text-align: right; }
         @page { size: landscape; margin: 12mm; }
         @media print { body { margin: 0; } button { display: none; } .table-scroll { overflow: visible; }
           thead { display: table-header-group; } tr { break-inside: avoid; } }
@@ -606,6 +612,55 @@ export function Schedule({
       const countingNote = doc.createElement("p");
       countingNote.textContent = "Totals count saved appointment overlaps with selected dates, not unique appointments. An appointment spanning multiple selected dates can be counted more than once. Zero saved records does not establish availability.";
       summarySection.append(summaryHeading, summaryList, countingNote);
+      // All bars use a common denominator: saved appointment/date overlaps.
+      // Keep the exact integer count visible and avoid division by zero.
+      const chart = doc.createElement("section");
+      chart.className = "report-status-chart";
+      chart.setAttribute("aria-labelledby", "selected-review-chart-heading");
+      const chartHeading = doc.createElement("h2");
+      chartHeading.id = "selected-review-chart-heading";
+      chartHeading.textContent = "Saved appointment status breakdown";
+      const chartNote = doc.createElement("p");
+      chartNote.textContent = totals[0] === BigInt(0)
+        ? "No saved appointment date overlaps in the selected rows. This does not establish availability."
+        : "Each bar shows its share of saved appointment date overlaps across selected dates, not unique appointments.";
+      const chartList = doc.createElement("ul");
+      const chartStatuses = ["Scheduled", "In progress", "Completed", "Cancelled", "Other"];
+      const chartColors = ["#345b87", "#735820", "#24664b", "#963d45", "#606060"];
+      chartStatuses.forEach((label, index) => {
+        const count = totals[index + 1];
+        // Integer basis points, rounded to the nearest tenth of a percent.
+        const tenths = totals[0] === BigInt(0) ? BigInt(0)
+          : (count * BigInt(1000) + totals[0] / BigInt(2)) / totals[0];
+        const percent = (Number(tenths) / 10).toFixed(1);
+        const item = doc.createElement("li");
+        const statusLabel = doc.createElement("span");
+        statusLabel.textContent = label;
+        const bar = doc.createElementNS("http://www.w3.org/2000/svg", "svg");
+        bar.setAttribute("viewBox", "0 0 1000 14");
+        bar.setAttribute("preserveAspectRatio", "none");
+        bar.setAttribute("aria-hidden", "true");
+        const track = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
+        track.setAttribute("x", "1");
+        track.setAttribute("y", "1");
+        track.setAttribute("width", "998");
+        track.setAttribute("height", "12");
+        track.setAttribute("fill", "white");
+        track.setAttribute("stroke", "#555");
+        const fill = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
+        fill.setAttribute("x", "1");
+        fill.setAttribute("y", "1");
+        fill.setAttribute("height", "12");
+        fill.setAttribute("width", String(Number(tenths) * 0.998));
+        fill.setAttribute("fill", chartColors[index]);
+        bar.append(track, fill);
+        const value = doc.createElement("span");
+        value.className = "status-chart-value";
+        value.textContent = String(count) + " (" + percent + "%)";
+        item.append(statusLabel, bar, value);
+        chartList.appendChild(item);
+      });
+      chart.append(chartHeading, chartNote, chartList);
       const print = doc.createElement("button");
       print.type = "button";
       print.textContent = "Print report";
@@ -629,7 +684,7 @@ export function Schedule({
       const tableWrapper = doc.createElement("div");
       tableWrapper.className = "table-scroll";
       tableWrapper.appendChild(table);
-      doc.body.replaceChildren(heading, notice, summary, summarySection, print, tableWrapper);
+      doc.body.replaceChildren(heading, notice, summary, summarySection, chart, print, tableWrapper);
     } catch {
       reportWindow?.close();
       setSelectedRowsPrintErrorKey(savedReviewCsvKey);

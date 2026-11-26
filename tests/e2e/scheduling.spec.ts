@@ -1031,6 +1031,17 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     ]);
     await expect(selectedPrintSummary).toContainText("not unique appointments");
     await expect(selectedPrintSummary).toContainText("Zero saved records does not establish availability.");
+    const printChartExpectedValues = (counts: string[]) => counts.slice(1).map((count) =>
+      count + " (" + (Number(counts[0]) === 0 ? "0.0" :
+        (Math.round(Number(count) / Number(counts[0]) * 1000) / 10).toFixed(1)) + "%)",
+    );
+    const selectedPrintChart = selectedVisitReportPage.getByRole("region", {
+      name: "Saved appointment status breakdown",
+    });
+    await expect(selectedPrintChart.locator(".status-chart-value")).toHaveText(
+      printChartExpectedValues(selectedPrintCells.slice(2, 8)),
+    );
+    await expect(selectedPrintChart.locator('svg[aria-hidden="true"]')).toHaveCount(5);
     await selectedVisitReportPage.evaluate(() => {
       window.print = () => { document.documentElement.dataset.printInvoked = "yes"; };
     });
@@ -1077,6 +1088,21 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       String(allPrintCells.filter((cells) => cells[2] !== "0" && cells[2] === cells[6]).length),
     ]);
     await expect(allSelectedPrintReport.locator("tbody tr")).toHaveCount(allPrintCells.length);
+    const allPrintChart = allSelectedPrintReport.getByRole("region", {
+      name: "Saved appointment status breakdown",
+    });
+    await expect(allPrintChart.locator(".status-chart-value")).toHaveText(
+      printChartExpectedValues(allPrintTotals),
+    );
+    const allPrintBarWidths = await allPrintChart.locator("svg rect:last-child").evaluateAll(
+      (bars) => bars.map((bar) => Number(bar.getAttribute("width"))),
+    );
+    expect(allPrintBarWidths).toHaveLength(5);
+    allPrintBarWidths.forEach((width, index) => {
+      const tenths = Number(allPrintTotals[0]) === 0 ? 0 :
+        Math.round(Number(allPrintTotals[index + 1]) / Number(allPrintTotals[0]) * 1000);
+      expect(width).toBeCloseTo(tenths * 0.998, 5);
+    });
     await allSelectedPrintReport.close();
     // Status selection can include non-adjacent dates; copy must preserve
     // original visit numbering and must not include intervening rows.
@@ -1109,6 +1135,21 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       await selectedRowsButton.click();
       if (matchingReviewCsvRows.length) {
         await expect(selectedReviewDownloadButton).toBeEnabled();
+        if (reviewStatusCase.label === "No saved appointments") {
+          const [zeroSavedPrintReport] = await Promise.all([
+            page.context().waitForEvent("page"), selectedVisitPrintButton.click(),
+          ]);
+          const zeroSavedPrintChart = zeroSavedPrintReport.getByRole("region", {
+            name: "Saved appointment status breakdown",
+          });
+          await expect(zeroSavedPrintChart).toContainText(
+            "No saved appointment date overlaps in the selected rows. This does not establish availability.",
+          );
+          await expect(zeroSavedPrintChart.locator(".status-chart-value")).toHaveText(
+            Array(5).fill("0 (0.0%)"),
+          );
+          await zeroSavedPrintReport.close();
+        }
         const [statusSelectedReviewDownload] = await Promise.all([
           page.waitForEvent("download"), selectedReviewDownloadButton.click(),
         ]);
