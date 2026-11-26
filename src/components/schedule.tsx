@@ -29,6 +29,12 @@ function selectedSavedReviewCsvRows(csv: string, start: number, end: number): st
   return rows;
 }
 
+type PrintReviewPaperSize = "letter" | "legal" | "a4";
+const printReviewPaperSizes: { value: PrintReviewPaperSize; label: string; css: string }[] = [
+  { value: "letter", label: "US Letter (8.5 × 11 in)", css: "letter" },
+  { value: "legal", label: "US Legal (8.5 × 14 in)", css: "legal" },
+  { value: "a4", label: "A4 (210 × 297 mm)", css: "A4" },
+];
 type PrintReviewOrientation = "portrait" | "landscape";
 type PrintReviewLayout = "full" | "summary" | "details";
 const printReviewLayouts: { value: PrintReviewLayout; label: string }[] = [
@@ -197,6 +203,10 @@ export function Schedule({
     reviewCsvKey: string;
     orientation: PrintReviewOrientation;
   } | null>(null);
+  const [printReviewPaperSize, setPrintReviewPaperSize] = useState<{
+    reviewCsvKey: string;
+    size: PrintReviewPaperSize;
+  } | null>(null);
   const [savedReviewRowSelection, setSavedReviewRowSelection] = useState<{
     reviewCsvKey: string;
     count: number;
@@ -275,6 +285,9 @@ export function Schedule({
   const activePrintReviewOrientation: PrintReviewOrientation = isSavedReviewCsvPreviewVisible &&
     printReviewOrientation?.reviewCsvKey === savedReviewCsvKey
       ? printReviewOrientation.orientation : "landscape";
+  const activePrintReviewPaperSize: PrintReviewPaperSize = isSavedReviewCsvPreviewVisible &&
+    printReviewPaperSize?.reviewCsvKey === savedReviewCsvKey
+      ? printReviewPaperSize.size : "letter";
   const activeSavedReviewFilter = isSavedReviewCsvPreviewVisible &&
     savedReviewStatusSelection?.reviewCsvKey === savedReviewCsvKey
       ? savedReviewStatusSelection.filter : null;
@@ -582,6 +595,9 @@ export function Schedule({
       const doc = reportWindow.document;
       doc.title = "LMS selected visit review — NOT BOOKED";
       doc.documentElement.lang = "en";
+      const paperSize = printReviewPaperSizes.find(
+        (option) => option.value === activePrintReviewPaperSize,
+      ) ?? printReviewPaperSizes[0];
       const style = doc.createElement("style");
       style.textContent = `
         body { font: 14px system-ui, sans-serif; color: #171717; background: white; margin: 24px; }
@@ -605,7 +621,7 @@ export function Schedule({
         .report-status-chart li { display: grid; grid-template-columns: 90px minmax(0, 1fr) auto; gap: 8px; align-items: center; margin: 5px 0; font-size: 12px; }
         .report-status-chart svg { display: block; width: 100%; height: 14px; }
         .report-status-chart .status-chart-value { font-variant-numeric: tabular-nums; text-align: right; }
-        @page { size: ${activePrintReviewOrientation}; margin: 12mm; }
+        @page { size: ${paperSize.css} ${activePrintReviewOrientation}; margin: 12mm; }
         ${activePrintReviewOrientation === "portrait" ? `
           @media print {
             table { table-layout: fixed; font-size: 9px; }
@@ -763,9 +779,11 @@ export function Schedule({
       const orientationLabel = doc.createElement("p");
       orientationLabel.textContent = "Requested paper orientation: " +
         (activePrintReviewOrientation === "portrait" ? "Portrait" : "Landscape");
+      const paperSizeLabel = doc.createElement("p");
+      paperSizeLabel.textContent = "Requested paper size: " + paperSize.label;
       doc.body.replaceChildren(heading, notice,
         ...(annotations.childElementCount ? [annotations] : []),
-        summary, layoutLabel, orientationLabel, print,
+        summary, layoutLabel, orientationLabel, paperSizeLabel, print,
         ...(activePrintReviewLayout !== "details" ? [summarySection, chart] : []),
         ...(activePrintReviewLayout !== "summary" ? [tableWrapper] : []));
     } catch {
@@ -922,6 +940,7 @@ export function Schedule({
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setPrintReviewLayout(null);
                   setPrintReviewOrientation(null);
+                  setPrintReviewPaperSize(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -951,6 +970,7 @@ export function Schedule({
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setPrintReviewLayout(null);
                   setPrintReviewOrientation(null);
+                  setPrintReviewPaperSize(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -977,6 +997,7 @@ export function Schedule({
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setPrintReviewLayout(null);
                   setPrintReviewOrientation(null);
+                  setPrintReviewPaperSize(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -1036,6 +1057,7 @@ export function Schedule({
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setPrintReviewLayout(null);
                   setPrintReviewOrientation(null);
+                  setPrintReviewPaperSize(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -1067,6 +1089,7 @@ export function Schedule({
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setPrintReviewLayout(null);
                   setPrintReviewOrientation(null);
+                  setPrintReviewPaperSize(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -1381,6 +1404,7 @@ export function Schedule({
                     setPrintReviewAnnotations(null);
                     setPrintReviewLayout(null);
                     setPrintReviewOrientation(null);
+                    setPrintReviewPaperSize(null);
                     setVisibleSavedReviewCsvPreviewKey(
                       isSavedReviewCsvPreviewVisible ? null : savedReviewCsvKey,
                     );
@@ -1518,7 +1542,22 @@ export function Schedule({
                         <option value="portrait">Portrait (vertical)</option>
                       </select>
                     </div>
-                    <p className="muted">Your browser or printer may override the requested paper orientation.</p>
+                    <div className="recurring-visit-note-preview">
+                      <label htmlFor={savedReviewCsvNoteId + "-print-paper-size"}>Print paper size</label>
+                      <select
+                        id={savedReviewCsvNoteId + "-print-paper-size"}
+                        value={activePrintReviewPaperSize}
+                        onChange={(event) => {
+                          const size = printReviewPaperSizes.find((option) => option.value === event.target.value);
+                          if (size) setPrintReviewPaperSize({ reviewCsvKey: savedReviewCsvKey, size: size.value });
+                        }}
+                      >
+                        {printReviewPaperSizes.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="muted">Your browser or printer may override the requested paper size or orientation.</p>
                   </div>
                   <details className="recurring-visit-note-preview">
                     <summary>Optional print report title and notes</summary>
