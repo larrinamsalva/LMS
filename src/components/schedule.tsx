@@ -29,6 +29,12 @@ function selectedSavedReviewCsvRows(csv: string, start: number, end: number): st
   return rows;
 }
 
+type PrintReviewAppearance = "color" | "monochrome" | "ink-saving";
+const printReviewAppearances: { value: PrintReviewAppearance; label: string }[] = [
+  { value: "color", label: "Full color" },
+  { value: "monochrome", label: "Black and white" },
+  { value: "ink-saving", label: "Ink-saving mode" },
+];
 type PrintReviewPaperSize = "letter" | "legal" | "a4";
 const printReviewPaperSizes: { value: PrintReviewPaperSize; label: string; css: string }[] = [
   { value: "letter", label: "US Letter (8.5 × 11 in)", css: "letter" },
@@ -207,6 +213,10 @@ export function Schedule({
     reviewCsvKey: string;
     size: PrintReviewPaperSize;
   } | null>(null);
+  const [printReviewAppearance, setPrintReviewAppearance] = useState<{
+    reviewCsvKey: string;
+    appearance: PrintReviewAppearance;
+  } | null>(null);
   const [savedReviewRowSelection, setSavedReviewRowSelection] = useState<{
     reviewCsvKey: string;
     count: number;
@@ -288,6 +298,9 @@ export function Schedule({
   const activePrintReviewPaperSize: PrintReviewPaperSize = isSavedReviewCsvPreviewVisible &&
     printReviewPaperSize?.reviewCsvKey === savedReviewCsvKey
       ? printReviewPaperSize.size : "letter";
+  const activePrintReviewAppearance: PrintReviewAppearance = isSavedReviewCsvPreviewVisible &&
+    printReviewAppearance?.reviewCsvKey === savedReviewCsvKey
+      ? printReviewAppearance.appearance : "color";
   const activeSavedReviewFilter = isSavedReviewCsvPreviewVisible &&
     savedReviewStatusSelection?.reviewCsvKey === savedReviewCsvKey
       ? savedReviewStatusSelection.filter : null;
@@ -595,6 +608,7 @@ export function Schedule({
       const doc = reportWindow.document;
       doc.title = "LMS selected visit review — NOT BOOKED";
       doc.documentElement.lang = "en";
+      doc.documentElement.dataset.reportAppearance = activePrintReviewAppearance;
       const paperSize = printReviewPaperSizes.find(
         (option) => option.value === activePrintReviewPaperSize,
       ) ?? printReviewPaperSizes[0];
@@ -621,6 +635,13 @@ export function Schedule({
         .report-status-chart li { display: grid; grid-template-columns: 90px minmax(0, 1fr) auto; gap: 8px; align-items: center; margin: 5px 0; font-size: 12px; }
         .report-status-chart svg { display: block; width: 100%; height: 14px; }
         .report-status-chart .status-chart-value { font-variant-numeric: tabular-nums; text-align: right; }
+        html[data-report-appearance="monochrome"] body,
+        html[data-report-appearance="ink-saving"] body { color: #000; }
+        html[data-report-appearance="monochrome"] th { background: #eee; }
+        html[data-report-appearance="ink-saving"] th { background: transparent; }
+        html[data-report-appearance="ink-saving"] th,
+        html[data-report-appearance="ink-saving"] td { border: 0; border-bottom: 1px solid #999; }
+        html[data-report-appearance="ink-saving"] .report-summary dl div { border: 0; border-bottom: 1px solid #999; }
         @page { size: ${paperSize.css} ${activePrintReviewOrientation}; margin: 12mm; }
         ${activePrintReviewOrientation === "portrait" ? `
           @media print {
@@ -738,7 +759,15 @@ export function Schedule({
         fill.setAttribute("y", "1");
         fill.setAttribute("height", "12");
         fill.setAttribute("width", String(Number(tenths) * 0.998));
-        fill.setAttribute("fill", chartColors[index]);
+        if (activePrintReviewAppearance === "ink-saving") {
+          fill.setAttribute("fill", "none");
+          if (tenths > BigInt(0)) {
+            fill.setAttribute("stroke", "#000");
+            fill.setAttribute("stroke-width", "2");
+          }
+        } else {
+          fill.setAttribute("fill", activePrintReviewAppearance === "monochrome" ? "#000" : chartColors[index]);
+        }
         bar.append(track, fill);
         const value = doc.createElement("span");
         value.className = "status-chart-value";
@@ -781,9 +810,13 @@ export function Schedule({
         (activePrintReviewOrientation === "portrait" ? "Portrait" : "Landscape");
       const paperSizeLabel = doc.createElement("p");
       paperSizeLabel.textContent = "Requested paper size: " + paperSize.label;
+      const appearanceLabel = doc.createElement("p");
+      appearanceLabel.textContent = "Report appearance: " + (printReviewAppearances.find(
+        (option) => option.value === activePrintReviewAppearance,
+      )?.label ?? "Full color");
       doc.body.replaceChildren(heading, notice,
         ...(annotations.childElementCount ? [annotations] : []),
-        summary, layoutLabel, orientationLabel, paperSizeLabel, print,
+        summary, layoutLabel, orientationLabel, paperSizeLabel, appearanceLabel, print,
         ...(activePrintReviewLayout !== "details" ? [summarySection, chart] : []),
         ...(activePrintReviewLayout !== "summary" ? [tableWrapper] : []));
     } catch {
@@ -941,6 +974,7 @@ export function Schedule({
                   setPrintReviewLayout(null);
                   setPrintReviewOrientation(null);
                   setPrintReviewPaperSize(null);
+                  setPrintReviewAppearance(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -971,6 +1005,7 @@ export function Schedule({
                   setPrintReviewLayout(null);
                   setPrintReviewOrientation(null);
                   setPrintReviewPaperSize(null);
+                  setPrintReviewAppearance(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -998,6 +1033,7 @@ export function Schedule({
                   setPrintReviewLayout(null);
                   setPrintReviewOrientation(null);
                   setPrintReviewPaperSize(null);
+                  setPrintReviewAppearance(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -1058,6 +1094,7 @@ export function Schedule({
                   setPrintReviewLayout(null);
                   setPrintReviewOrientation(null);
                   setPrintReviewPaperSize(null);
+                  setPrintReviewAppearance(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -1090,6 +1127,7 @@ export function Schedule({
                   setPrintReviewLayout(null);
                   setPrintReviewOrientation(null);
                   setPrintReviewPaperSize(null);
+                  setPrintReviewAppearance(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -1405,6 +1443,7 @@ export function Schedule({
                     setPrintReviewLayout(null);
                     setPrintReviewOrientation(null);
                     setPrintReviewPaperSize(null);
+                    setPrintReviewAppearance(null);
                     setVisibleSavedReviewCsvPreviewKey(
                       isSavedReviewCsvPreviewVisible ? null : savedReviewCsvKey,
                     );
@@ -1557,7 +1596,22 @@ export function Schedule({
                         ))}
                       </select>
                     </div>
-                    <p className="muted">Your browser or printer may override the requested paper size or orientation.</p>
+                    <div className="recurring-visit-note-preview">
+                      <label htmlFor={savedReviewCsvNoteId + "-print-appearance"}>Print report appearance</label>
+                      <select
+                        id={savedReviewCsvNoteId + "-print-appearance"}
+                        value={activePrintReviewAppearance}
+                        onChange={(event) => {
+                          const appearance = printReviewAppearances.find((option) => option.value === event.target.value);
+                          if (appearance) setPrintReviewAppearance({ reviewCsvKey: savedReviewCsvKey, appearance: appearance.value });
+                        }}
+                      >
+                        {printReviewAppearances.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <p className="muted">Your browser or printer may override the requested paper size, orientation or color settings.</p>
                   </div>
                   <details className="recurring-visit-note-preview">
                     <summary>Optional print report title and notes</summary>
