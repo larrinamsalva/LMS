@@ -29,6 +29,7 @@ function selectedSavedReviewCsvRows(csv: string, start: number, end: number): st
   return rows;
 }
 
+type PrintReviewOrientation = "portrait" | "landscape";
 type PrintReviewLayout = "full" | "summary" | "details";
 const printReviewLayouts: { value: PrintReviewLayout; label: string }[] = [
   { value: "full", label: "Full report" },
@@ -192,6 +193,10 @@ export function Schedule({
     reviewCsvKey: string;
     layout: PrintReviewLayout;
   } | null>(null);
+  const [printReviewOrientation, setPrintReviewOrientation] = useState<{
+    reviewCsvKey: string;
+    orientation: PrintReviewOrientation;
+  } | null>(null);
   const [savedReviewRowSelection, setSavedReviewRowSelection] = useState<{
     reviewCsvKey: string;
     count: number;
@@ -267,6 +272,9 @@ export function Schedule({
       ? printReviewAnnotations : null;
   const activePrintReviewLayout: PrintReviewLayout = isSavedReviewCsvPreviewVisible &&
     printReviewLayout?.reviewCsvKey === savedReviewCsvKey ? printReviewLayout.layout : "full";
+  const activePrintReviewOrientation: PrintReviewOrientation = isSavedReviewCsvPreviewVisible &&
+    printReviewOrientation?.reviewCsvKey === savedReviewCsvKey
+      ? printReviewOrientation.orientation : "landscape";
   const activeSavedReviewFilter = isSavedReviewCsvPreviewVisible &&
     savedReviewStatusSelection?.reviewCsvKey === savedReviewCsvKey
       ? savedReviewStatusSelection.filter : null;
@@ -597,7 +605,19 @@ export function Schedule({
         .report-status-chart li { display: grid; grid-template-columns: 90px minmax(0, 1fr) auto; gap: 8px; align-items: center; margin: 5px 0; font-size: 12px; }
         .report-status-chart svg { display: block; width: 100%; height: 14px; }
         .report-status-chart .status-chart-value { font-variant-numeric: tabular-nums; text-align: right; }
-        @page { size: landscape; margin: 12mm; }
+        @page { size: ${activePrintReviewOrientation}; margin: 12mm; }
+        ${activePrintReviewOrientation === "portrait" ? `
+          @media print {
+            table { table-layout: fixed; font-size: 9px; }
+            th, td { padding: 3px; overflow-wrap: anywhere; }
+            th:nth-child(1) { width: 5%; }
+            th:nth-child(2) { width: 12%; }
+            th:nth-child(3) { width: 12%; }
+            th:nth-child(9) { width: 17%; }
+            th:nth-child(10) { width: 20%; }
+            .report-summary dl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+          }
+        ` : ""}
         @media print { body { margin: 0; } button { display: none; } .table-scroll { overflow: visible; }
           thead { display: table-header-group; } tr { break-inside: avoid; } }
       `;
@@ -740,9 +760,12 @@ export function Schedule({
       layoutLabel.textContent = "Report layout: " + (printReviewLayouts.find(
         (option) => option.value === activePrintReviewLayout,
       )?.label ?? "Full report");
+      const orientationLabel = doc.createElement("p");
+      orientationLabel.textContent = "Requested paper orientation: " +
+        (activePrintReviewOrientation === "portrait" ? "Portrait" : "Landscape");
       doc.body.replaceChildren(heading, notice,
         ...(annotations.childElementCount ? [annotations] : []),
-        summary, layoutLabel, print,
+        summary, layoutLabel, orientationLabel, print,
         ...(activePrintReviewLayout !== "details" ? [summarySection, chart] : []),
         ...(activePrintReviewLayout !== "summary" ? [tableWrapper] : []));
     } catch {
@@ -898,6 +921,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setPrintReviewLayout(null);
+                  setPrintReviewOrientation(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -926,6 +950,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setPrintReviewLayout(null);
+                  setPrintReviewOrientation(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -951,6 +976,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setPrintReviewLayout(null);
+                  setPrintReviewOrientation(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -1009,6 +1035,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setPrintReviewLayout(null);
+                  setPrintReviewOrientation(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -1039,6 +1066,7 @@ export function Schedule({
                   setSavedReviewCsvCopyFeedback(null);
                   setVisibleSavedReviewCsvPreviewKey(null);
                   setPrintReviewLayout(null);
+                  setPrintReviewOrientation(null);
                   setPrintReviewAnnotations(null);
                   setSelectedRowsCopyFeedback(null);
                   setSelectedRowsPrintErrorKey(null);
@@ -1352,6 +1380,7 @@ export function Schedule({
                     setSelectedRowsDownloadFeedback(null);
                     setPrintReviewAnnotations(null);
                     setPrintReviewLayout(null);
+                    setPrintReviewOrientation(null);
                     setVisibleSavedReviewCsvPreviewKey(
                       isSavedReviewCsvPreviewVisible ? null : savedReviewCsvKey,
                     );
@@ -1473,6 +1502,23 @@ export function Schedule({
                         ))}
                       </select>
                     </div>
+                    <div className="recurring-visit-note-preview">
+                      <label htmlFor={savedReviewCsvNoteId + "-print-orientation"}>Print paper orientation</label>
+                      <select
+                        id={savedReviewCsvNoteId + "-print-orientation"}
+                        value={activePrintReviewOrientation}
+                        onChange={(event) => {
+                          const orientation = event.target.value;
+                          if (orientation === "portrait" || orientation === "landscape") {
+                            setPrintReviewOrientation({ reviewCsvKey: savedReviewCsvKey, orientation });
+                          }
+                        }}
+                      >
+                        <option value="landscape">Landscape (horizontal)</option>
+                        <option value="portrait">Portrait (vertical)</option>
+                      </select>
+                    </div>
+                    <p className="muted">Your browser or printer may override the requested paper orientation.</p>
                   </div>
                   <details className="recurring-visit-note-preview">
                     <summary>Optional print report title and notes</summary>

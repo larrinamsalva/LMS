@@ -1,0 +1,5 @@
+# Selected review print orientation — LMS #246
+
+Choose Print paper orientation in the saved-date review CSV preview: Landscape (horizontal), the default, or Portrait (vertical). The selected report requests that orientation through its print-only page style and labels the requested orientation. Portrait printing uses compact wrapping table cells and a three-column summary grid. Browser/printer settings may override the request; the app does not claim that printing or a particular physical page layout succeeded. All three report layouts retain the fixed NOT BOOKED heading and safety warnings. The setting is temporary, resets on closing the preview or changing review context, and does not change CSV exports.
+
+The existing desktop/tablet/phone scheduling scenario checks the default landscape request, portrait requests in both alternative report layouts, CSS and visible labels, and reset. No new demo sessions. Physical printer output has not been verified. No booking, private-record export, persistent state, API/schema/auth changes or other repositories. Full suite not run locally. Wait for all five final-head checks before merging; never auto-merge.

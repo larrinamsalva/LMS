@@ -1076,6 +1076,8 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(allRowsCopied).not.toContain(resource);
     const selectedPrintLayoutChoice = planner.getByLabel("Print report layout", { exact: true });
     await expect(selectedPrintLayoutChoice).toHaveValue("full");
+    const selectedPrintOrientationChoice = planner.getByLabel("Print paper orientation", { exact: true });
+    await expect(selectedPrintOrientationChoice).toHaveValue("landscape");
     const printAnnotationToggle = planner.getByText("Optional print report title and notes", { exact: true });
     const printCustomTitleInput = planner.getByLabel("Custom report title (optional)", { exact: true });
     const printCustomNotesInput = planner.getByLabel("Manager's planning notes (optional)", { exact: true });
@@ -1122,7 +1124,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
         Math.round(Number(allPrintTotals[index + 1]) / Number(allPrintTotals[0]) * 1000);
       expect(width).toBeCloseTo(tenths * 0.998, 5);
     });
+    await expect(allSelectedPrintReport.getByText("Requested paper orientation: Landscape", { exact: true })).toBeVisible();
+    expect(await allSelectedPrintReport.locator("style").textContent()).toContain("@page { size: landscape;");
     await allSelectedPrintReport.close();
+    await selectedPrintOrientationChoice.selectOption("portrait");
     for (const layoutCase of [
       { value: "summary", label: "Summary and charts only", summary: true, details: false },
       { value: "details", label: "Detailed visit table only", summary: false, details: true },
@@ -1133,6 +1138,10 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       ]);
       await expect(layoutReportPage.getByRole("heading", { name: "LMS selected visit review — NOT BOOKED" })).toBeVisible();
       await expect(layoutReportPage.getByText("Report layout: " + layoutCase.label, { exact: true })).toBeVisible();
+      await expect(layoutReportPage.getByText("Requested paper orientation: Portrait", { exact: true })).toBeVisible();
+      expect(await layoutReportPage.locator("style").textContent()).toContain("@page { size: portrait;");
+      expect(await layoutReportPage.locator("style").textContent()).toContain("table-layout: fixed");
+
       await expect(layoutReportPage.getByText("Planning report only.", { exact: false })).toBeVisible();
       await expect(layoutReportPage.getByRole("heading", { name: "Weekly planning <review>", exact: true })).toBeVisible();
       await expect(layoutReportPage.locator(".report-summary")).toHaveCount(layoutCase.summary ? 1 : 0);
@@ -1142,6 +1151,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
       await layoutReportPage.close();
     }
     await selectedPrintLayoutChoice.selectOption("full");
+    await selectedPrintOrientationChoice.selectOption("landscape");
     await planner.getByRole("button", { name: "Clear print title and notes", exact: true }).click();
     await expect(printCustomTitleInput).toHaveValue("");
     await expect(printCustomNotesInput).toHaveValue("");
@@ -1243,6 +1253,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     )).toBe(savedStatusCsv);
     await selectAllRowsButton.click();
     await selectedPrintLayoutChoice.selectOption("details");
+    await selectedPrintOrientationChoice.selectOption("portrait");
     await printCustomTitleInput.fill("Temporary planning");
     await printCustomNotesInput.fill("Discard on close");
     await savedCsvPreviewToggle.click();
@@ -1251,6 +1262,7 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     await savedCsvPreviewToggle.click();
     await expect(reviewSelectionCounter).toHaveText(`0 of ${reviewRowTotal} visit rows selected`);
     await expect(selectedPrintLayoutChoice).toHaveValue("full");
+    await expect(selectedPrintOrientationChoice).toHaveValue("landscape");
     await printAnnotationToggle.click();
     await expect(printCustomTitleInput).toHaveValue("");
     await expect(printCustomNotesInput).toHaveValue("");
