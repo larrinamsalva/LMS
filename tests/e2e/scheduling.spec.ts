@@ -1022,6 +1022,15 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(selectedVisitReportContent).not.toContain(work);
     expect(selectedVisitReportContent).not.toContain(resource);
     expect(selectedVisitReportContent).toContain("No visits are booked or confirmed.");
+    const selectedPrintSummary = selectedVisitReportPage.getByRole("region", { name: "Selected dates summary" });
+    const selectedPrintCells = statusCsvRows[2].split(",");
+    await expect(selectedPrintSummary.locator("dd")).toHaveText([
+      "1", ...selectedPrintCells.slice(2, 8),
+      selectedPrintCells[2] === "0" ? "1" : "0",
+      selectedPrintCells[2] !== "0" && selectedPrintCells[2] === selectedPrintCells[6] ? "1" : "0",
+    ]);
+    await expect(selectedPrintSummary).toContainText("not unique appointments");
+    await expect(selectedPrintSummary).toContainText("Zero saved records does not establish availability.");
     await selectedVisitReportPage.evaluate(() => {
       window.print = () => { document.documentElement.dataset.printInvoked = "yes"; };
     });
@@ -1054,6 +1063,21 @@ test("customer-linked cleaning and maintenance share conflict-aware, accessible 
     expect(allRowsCopied).not.toContain(customer);
     expect(allRowsCopied).not.toContain(work);
     expect(allRowsCopied).not.toContain(resource);
+    const [allSelectedPrintReport] = await Promise.all([
+      page.context().waitForEvent("page"), selectedVisitPrintButton.click(),
+    ]);
+    const allPrintSummary = allSelectedPrintReport.getByRole("region", { name: "Selected dates summary" });
+    const allPrintCells = statusCsvRows.slice(1).map((line) => line.split(","));
+    const allPrintTotals = [2, 3, 4, 5, 6, 7].map((column) =>
+      String(allPrintCells.reduce((total, cells) => total + Number(cells[column]), 0)),
+    );
+    await expect(allPrintSummary.locator("dd")).toHaveText([
+      String(allPrintCells.length), ...allPrintTotals,
+      String(allPrintCells.filter((cells) => cells[2] === "0").length),
+      String(allPrintCells.filter((cells) => cells[2] !== "0" && cells[2] === cells[6]).length),
+    ]);
+    await expect(allSelectedPrintReport.locator("tbody tr")).toHaveCount(allPrintCells.length);
+    await allSelectedPrintReport.close();
     // Status selection can include non-adjacent dates; copy must preserve
     // original visit numbering and must not include intervening rows.
     const reviewStatusSelectionGroup = planner.getByRole("group", {

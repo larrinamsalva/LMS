@@ -1,0 +1,5 @@
+# Selected visit print report summary — LMS #242
+
+The printable selected review report now includes the number of selected proposed dates, saved appointment date overlaps, counts by Scheduled, In progress, Completed, Cancelled and Other, dates without saved records, and cancelled-only dates. Totals are computed solely from the same validated selected CSV rows used for the table, with exact integer addition. Counts are date overlaps, not unique saved appointment records: a spanning appointment can contribute to multiple selected dates. Zero records does not establish availability. Original table, NOT BOOKED notice and print action remain unchanged.
+
+The existing desktop/tablet/phone scheduling scenario verifies one-row and all-row print summaries against the validated CSV. Status filtering uses the same selected CSV path. No new demo sessions, raw record exports, identities, times, persistence, bookings, API/schema/database/auth changes or other repositories. Full suite not run locally. Keep draft/unmerged until all five final-head CI checks pass; never auto-merge.
