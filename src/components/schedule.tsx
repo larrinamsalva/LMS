@@ -553,6 +553,12 @@ export function Schedule({
         th, td { border: 1px solid #999; padding: 5px; text-align: left; overflow-wrap: anywhere; }
         th { background: #eee; } button { padding: 12px 20px; margin: 0 0 16px; cursor: pointer; }
         .table-scroll { overflow-x: auto; }
+        .report-summary { margin: 12px 0; break-inside: avoid; }
+        .report-summary h2 { font-size: 17px; margin: 0 0 6px; }
+        .report-summary dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 6px; margin: 0; }
+        .report-summary dl div { border: 1px solid #999; padding: 7px; }
+        .report-summary dt { font-size: 12px; }
+        .report-summary dd { font-size: 18px; font-weight: 700; margin: 3px 0 0; font-variant-numeric: tabular-nums; }
         @page { size: landscape; margin: 12mm; }
         @media print { body { margin: 0; } button { display: none; } .table-scroll { overflow: visible; }
           thead { display: table-header-group; } tr { break-inside: avoid; } }
@@ -564,6 +570,42 @@ export function Schedule({
       notice.textContent = "Planning report only. No visits are booked or confirmed. Staff and resource availability is not confirmed. Counts describe existing non-archived saved appointment records.";
       const summary = doc.createElement("p");
       summary.textContent = dataRows.length + " selected visit rows. Original proposed visit numbers retained.";
+      // Sum ONLY the selected, validated CSV rows. BigInt preserves exact
+      // integer counts even when a sum exceeds Number.MAX_SAFE_INTEGER.
+      // Counts are date overlaps, not a count of distinct appointments.
+      const totals = [2, 3, 4, 5, 6, 7].map((column) =>
+        dataRows.reduce((total, cells) => total + BigInt(cells[column]), BigInt(0)),
+      );
+      const summarySection = doc.createElement("section");
+      summarySection.className = "report-summary";
+      summarySection.setAttribute("aria-labelledby", "selected-review-summary-heading");
+      const summaryHeading = doc.createElement("h2");
+      summaryHeading.id = "selected-review-summary-heading";
+      summaryHeading.textContent = "Selected dates summary";
+      const summaryList = doc.createElement("dl");
+      const summaryItems: [string, string][] = [
+        ["Selected proposed dates", String(dataRows.length)],
+        ["Saved appointment date overlaps", String(totals[0])],
+        ["Scheduled", String(totals[1])],
+        ["In progress", String(totals[2])],
+        ["Completed", String(totals[3])],
+        ["Cancelled", String(totals[4])],
+        ["Other", String(totals[5])],
+        ["Dates without saved records", String(dataRows.filter((cells) => cells[2] === "0").length)],
+        ["Cancelled-only dates", String(dataRows.filter((cells) => cells[2] !== "0" && cells[2] === cells[6]).length)],
+      ];
+      for (const [label, value] of summaryItems) {
+        const item = doc.createElement("div");
+        const term = doc.createElement("dt");
+        term.textContent = label;
+        const count = doc.createElement("dd");
+        count.textContent = value;
+        item.append(term, count);
+        summaryList.appendChild(item);
+      }
+      const countingNote = doc.createElement("p");
+      countingNote.textContent = "Totals count saved appointment overlaps with selected dates, not unique appointments. An appointment spanning multiple selected dates can be counted more than once. Zero saved records does not establish availability.";
+      summarySection.append(summaryHeading, summaryList, countingNote);
       const print = doc.createElement("button");
       print.type = "button";
       print.textContent = "Print report";
@@ -587,7 +629,7 @@ export function Schedule({
       const tableWrapper = doc.createElement("div");
       tableWrapper.className = "table-scroll";
       tableWrapper.appendChild(table);
-      doc.body.replaceChildren(heading, notice, summary, print, tableWrapper);
+      doc.body.replaceChildren(heading, notice, summary, summarySection, print, tableWrapper);
     } catch {
       reportWindow?.close();
       setSelectedRowsPrintErrorKey(savedReviewCsvKey);
