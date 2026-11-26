@@ -4,6 +4,8 @@
 
 An MIT-licensed, independent open-source foundation for small-business management software. Inspired by [ForgeOS](https://github.com/larrinamsalva/ForgeOS-Property-Manager); ForgeOS is unchanged. No mandatory cloud account, subscription, payment processor or AI service.
 
+Read the [Road to PR #250 milestone review](docs/milestone-250.md) for delivered features, verification evidence, readiness gates and proposed next steps.
+
 ## What works in this foundation
 
 - One TypeScript engine and one responsive React workspace render **Property Manager** (customers, sites/units, maintenance tasks, supply catalog) and **Cleaning Company** (customers, cleaning jobs, service dates, crew notes, tasks, supply catalog).
