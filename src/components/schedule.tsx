@@ -1457,9 +1457,9 @@ export function Schedule({
                   >
                     Download selected review rows
                   </button>
-                  <div className="recurring-visit-controls">
-                    <label htmlFor={savedReviewCsvNoteId + "-print-layout"}>
-                      Print report layout
+                  <div className="recurring-visit-controls recurring-visit-print-layout">
+                    <div className="recurring-visit-note-preview">
+                      <label htmlFor={savedReviewCsvNoteId + "-print-layout"}>Print report layout</label>
                       <select
                         id={savedReviewCsvNoteId + "-print-layout"}
                         value={activePrintReviewLayout}
@@ -1472,7 +1472,7 @@ export function Schedule({
                           <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
                       </select>
-                    </label>
+                    </div>
                   </div>
                   <details className="recurring-visit-note-preview">
                     <summary>Optional print report title and notes</summary>
